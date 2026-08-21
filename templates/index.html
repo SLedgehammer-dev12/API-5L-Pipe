@@ -28,7 +28,7 @@
                 <div>
                     <h1 class="text-base sm:text-lg font-bold tracking-tight text-white flex items-center gap-2">
                         <span data-i18n="app_title">API 5L PSL2 & BOTAŞ Boru Kalite Güvence Yazılımı</span>
-                        <span class="bg-blue-800/80 text-blue-200 text-xs px-2 py-0.5 rounded-full border border-blue-600 font-semibold">v2.0 Pro</span>
+                        <span class="bg-blue-800/80 text-blue-200 text-xs px-2 py-0.5 rounded-full border border-blue-600 font-semibold">v1.0.0</span>
                     </h1>
                     <p class="text-xs text-slate-400 hidden sm:block" data-i18n="app_subtitle">Boru Seçim, Kabul Kriterleri, Fabrika Test Denetimi & Et Kalınlığı Tasarım Motoru</p>
                 </div>
@@ -48,7 +48,7 @@
                     <span data-i18n="btn_export_excel">Excel İndir</span>
                 </button>
 
-                <!-- Project Save Dropdown / Button -->
+                <!-- Project Save Button -->
                 <button id="btn-save-project-json" class="bg-slate-700 hover:bg-slate-600 text-white px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center transition" title="Projeyi Kaydet">
                     <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>
                     JSON
@@ -84,31 +84,23 @@
     <!-- Main Workspace Container -->
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full">
 
-        <!-- TAB 1: QA/QC MATRIX DASHBOARD (MAIN VIEW MATCHING SCREENSHOT) -->
+        <!-- TAB 1: QA/QC MATRIX DASHBOARD -->
         <div id="matrix-tab" class="tab-content">
             <!-- Action Bar -->
             <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm mb-6 flex flex-wrap items-center justify-between gap-3">
                 <div class="flex flex-wrap items-center gap-2">
-                    <button onclick="loadPreset('reference')" class="bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center shadow-sm">
-                        <svg class="w-4 h-4 mr-1.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-                        48" + 18" Referans Şablonu
-                    </button>
-                    <button onclick="loadPreset('botas-10')" class="bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-300 px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center shadow-sm">
-                        <span class="w-2 h-2 rounded-full bg-emerald-600 mr-1.5"></span>
-                        10 Çeşit BOTAŞ Borusu Şablonu
-                    </button>
-                    <button onclick="loadPreset('api5l-10')" class="bg-purple-50 text-purple-800 hover:bg-purple-100 border border-purple-300 px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center shadow-sm">
-                        <span class="w-2 h-2 rounded-full bg-purple-600 mr-1.5"></span>
-                        10 Çeşit API 5L Borusu Şablonu
-                    </button>
-                    <label class="bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition">
-                        Proje Yükle (.pipeproj)
+                    <label class="bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition flex items-center">
+                        <svg class="w-4 h-4 mr-1.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                        Proje Yükle (.pipeproj / JSON)
                         <input type="file" id="input-load-project-file" class="hidden" accept=".pipeproj,.json">
                     </label>
+                    <button onclick="clearAllPipes()" class="text-xs text-red-600 hover:text-red-800 hover:bg-red-50 border border-red-200 px-3 py-1.5 rounded-lg font-semibold transition">
+                        Matrisi Temizle
+                    </button>
                 </div>
 
                 <div class="flex items-center space-x-2">
-                    <button id="btn-open-add-pipe-modal" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold flex items-center shadow transition">
+                    <button id="btn-open-add-pipe-modal" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-xs sm:text-sm font-bold flex items-center shadow transition">
                         <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                         Yeni Boru Sütunu Ekle
                     </button>
@@ -127,7 +119,7 @@
                 <div class="overflow-x-auto">
                     <table class="matrix-table text-xs">
                         <tbody id="matrix-table-body">
-                            <!-- Populated dynamically by app.js with engineering remarks column -->
+                            <!-- Populated dynamically by app.js with explanations on FAR RIGHT -->
                         </tbody>
                     </table>
                 </div>
@@ -402,7 +394,7 @@
 
     </main>
 
-    <!-- Modal: Add New Pipe with BOTAŞ vs API 5L Support -->
+    <!-- Modal: Add New Pipe with BOTAŞ Auto-Populate for All Design Factors -->
     <div id="add-pipe-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200">
             <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
@@ -414,62 +406,80 @@
                 <div>
                     <label class="font-bold text-slate-700 block mb-1">Değerlendirme Kriteri / Şartname</label>
                     <select id="new-pipe-standard" class="w-full border-2 border-blue-500 rounded-lg p-2 font-bold bg-blue-50/50">
-                        <option value="BOTAŞ">BOTAŞ Şartnamesi (Tablodan Otomatik Seçim)</option>
-                        <option value="API 5L">API 5L PSL2 (Kullanıcı Tarafından Serbest Seçim)</option>
+                        <option value="BOTAŞ">BOTAŞ Şartnamesi</option>
+                        <option value="API 5L">API 5L PSL2 (Serbest Seçim)</option>
                     </select>
                 </div>
 
-                <div id="botas-hint-msg" class="p-2 bg-amber-50 border border-amber-200 rounded text-amber-900 text-[11px] font-medium hidden">
+                <!-- BOTAŞ Auto-Populate Checkbox Box -->
+                <div id="botas-auto-populate-section" class="p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
+                    <label class="flex items-start space-x-2 cursor-pointer">
+                        <input type="checkbox" id="chk-auto-populate-botas" checked class="w-4 h-4 text-emerald-600 rounded mt-0.5 focus:ring-emerald-500">
+                        <span class="text-emerald-950 font-bold leading-tight">
+                            Tüm Dizayn Faktörlerine Göre Otomatik Doldur
+                            <span class="block text-[11px] font-normal text-emerald-700 mt-0.5">
+                                Seçilen çap için BOTAŞ tablosundaki tüm hat ve istasyon boruları (0.72, 0.60, 0.50 Hat & İstasyon 1/2) aynı anda matrise ayrı sütunlar olarak eklenir.
+                            </span>
+                        </span>
+                    </label>
                 </div>
 
                 <div>
                     <label class="font-bold text-slate-700 block mb-1">Boru Anma Çapı (NPS / OD)</label>
-                    <select id="new-pipe-dia" class="w-full border border-slate-300 rounded-lg p-2">
+                    <select id="new-pipe-dia" class="w-full border border-slate-300 rounded-lg p-2 font-bold text-slate-900">
                         {% for d in diameters %}
                         <option value="{{ d.inch }}" data-mm="{{ d.mm }}" {% if d.inch == '48\"' %}selected{% endif %}>{{ d.inch }} (OD: {{ d.mm }} mm)</option>
                         {% endfor %}
                     </select>
                 </div>
 
-                <div class="grid grid-cols-2 gap-2">
-                    <div>
-                        <label class="font-bold text-slate-700 block mb-1">Tasarım Faktörü</label>
-                        <select id="new-pipe-factor" class="w-full border border-slate-300 rounded-lg p-2">
-                            <option value="0,72 (Hat)">0,72 (Hat)</option>
-                            <option value="0,6 (Hat)">0,6 (Hat)</option>
-                            <option value="0,5 (Hat)">0,5 (Hat)</option>
-                            <option value="0,5 (İst.)">0,5 (İstasyon 1)</option>
-                            <option value="0,5 (İst. 2)">0,5 (İstasyon 2)</option>
-                            <option value="0,4">0,4</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="font-bold text-slate-700 block mb-1">Et Kalınlığı (mm)</label>
-                        <input type="number" step="0.01" id="new-pipe-thk" value="14.30" required class="w-full border border-slate-300 rounded-lg p-2 font-bold">
-                    </div>
-                </div>
+                <!-- Manual Fields (Hidden when BOTAŞ Auto-Populate is active) -->
+                <div id="manual-fields-section" class="space-y-3 hidden">
+                    <div id="botas-hint-msg" class="p-2 bg-amber-50 border border-amber-200 rounded text-amber-900 text-[11px] font-medium hidden"></div>
 
-                <div class="grid grid-cols-2 gap-2">
-                    <div>
-                        <label class="font-bold text-slate-700 block mb-1">Malzeme Kalitesi</label>
-                        <select id="new-pipe-grade" class="w-full border border-slate-300 rounded-lg p-2 font-semibold">
-                            {% for g in grades %}
-                            <option value="{{ g }}" {% if g == 'X65' %}selected{% endif %}>{{ g }}</option>
-                            {% endfor %}
-                        </select>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="font-bold text-slate-700 block mb-1">Tasarım Faktörü</label>
+                            <select id="new-pipe-factor" class="w-full border border-slate-300 rounded-lg p-2">
+                                <option value="0,72 (Hat)">0,72 (Hat)</option>
+                                <option value="0,6 (Hat)">0,6 (Hat)</option>
+                                <option value="0,5 (Hat)">0,5 (Hat)</option>
+                                <option value="0,5 (İst.)">0,5 (İstasyon 1)</option>
+                                <option value="0,5 (İst. 2)">0,5 (İstasyon 2)</option>
+                                <option value="0,4">0,4</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="font-bold text-slate-700 block mb-1">Et Kalınlığı (mm)</label>
+                            <input type="number" step="0.01" id="new-pipe-thk" value="14.30" class="w-full border border-slate-300 rounded-lg p-2 font-bold">
+                        </div>
                     </div>
-                    <div>
-                        <label class="font-bold text-slate-700 block mb-1">İmalat Yöntemi</label>
-                        <select id="new-pipe-process" class="w-full border border-slate-300 rounded-lg p-2">
-                            <option value="SAWH">SAWH (Spiral Kaynak)</option>
-                            <option value="ERW HFW">ERW / HFW (Boyuna Kaynak)</option>
-                            <option value="SMLS">SMLS (Dikişsiz)</option>
-                        </select>
+
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="font-bold text-slate-700 block mb-1">Malzeme Kalitesi</label>
+                            <select id="new-pipe-grade" class="w-full border border-slate-300 rounded-lg p-2 font-semibold">
+                                {% for g in grades %}
+                                <option value="{{ g }}" {% if g == 'X65' %}selected{% endif %}>{{ g }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <label class="font-bold text-slate-700 block mb-1">İmalat Yöntemi</label>
+                            <select id="new-pipe-process" class="w-full border border-slate-300 rounded-lg p-2">
+                                <option value="SAWH">SAWH (Spiral Kaynak)</option>
+                                <option value="ERW HFW">ERW / HFW (Boyuna Kaynak)</option>
+                                <option value="SMLS">SMLS (Dikişsiz)</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
 
                 <div class="pt-3 flex space-x-2">
-                    <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg transition shadow">Matrise Sütun Olarak Ekle</button>
+                    <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg transition shadow flex items-center justify-center">
+                        <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                        Matrise Sütun Olarak Ekle
+                    </button>
                     <button type="button" onclick="document.getElementById('add-pipe-modal').classList.add('hidden')" class="px-4 bg-slate-100 text-slate-700 rounded-lg font-semibold">İptal</button>
                 </div>
             </form>
@@ -508,12 +518,45 @@
             }
         }
 
-        function handleAddNewPipe(e) {
+        function clearAllPipes() {
+            if (confirm("Matristeki tüm boru sütunlarını temizlemek istediğinize emin misiniz?")) {
+                activeProject.pipes = [];
+                ProjectStorage.saveToLocalStorage(activeProject);
+                calculateAndRenderAll();
+                showToast("Matris temizlendi.", "info");
+            }
+        }
+
+        async function handleAddNewPipe(e) {
             e.preventDefault();
             const std = document.getElementById("new-pipe-standard").value;
+            const isBotas = std === "BOTAŞ";
+            const autoCheckbox = document.getElementById("chk-auto-populate-botas");
+            const isAutoPopulate = isBotas && autoCheckbox && autoCheckbox.checked;
+
             const diaSelect = document.getElementById("new-pipe-dia");
             const diaInch = diaSelect.value;
             const diaMm = parseFloat(diaSelect.options[diaSelect.selectedIndex].getAttribute("data-mm") || "1219.0");
+
+            if (isAutoPopulate) {
+                // Fetch all BOTAŞ design factors for this diameter
+                try {
+                    const resp = await fetch(`/api/botas-all-factors?diameter_inch=${encodeURIComponent(diaInch)}`);
+                    const data = await resp.json();
+                    if (data.status === "success" && data.pipes.length > 0) {
+                        data.pipes.forEach(p => activeProject.pipes.push(p));
+                        ProjectStorage.saveToLocalStorage(activeProject);
+                        await calculateAndRenderAll();
+                        document.getElementById("add-pipe-modal").classList.add("hidden");
+                        showToast(`${diaInch} çapı için ${data.pipes.length} adet BOTAŞ boru sütunu başarıyla eklendi!`, "success");
+                        return;
+                    }
+                } catch (err) {
+                    console.error("Auto-populate error:", err);
+                }
+            }
+
+            // Manual Single Pipe Addition (Fallback or API 5L mode)
             const thk = parseFloat(document.getElementById("new-pipe-thk").value || "14.30");
             const factor = document.getElementById("new-pipe-factor").value;
             const grade = document.getElementById("new-pipe-grade").value;
@@ -532,7 +575,7 @@
             });
 
             ProjectStorage.saveToLocalStorage(activeProject);
-            calculateAndRenderAll();
+            await calculateAndRenderAll();
             document.getElementById("add-pipe-modal").classList.add("hidden");
             showToast(`Yeni ${std} borusu başarıyla eklendi!`, "success");
         }

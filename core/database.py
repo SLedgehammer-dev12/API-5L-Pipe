@@ -2298,3 +2298,45 @@ def get_pipe_size_by_mm(mm: float):
             min_diff = diff
             best_match = p
     return best_match
+
+def get_botas_all_factors_for_diameter(diameter_inch: str):
+    pipe_size = get_pipe_size_by_inch(diameter_inch)
+    if not pipe_size:
+        return []
+    
+    factors = [
+        ('0,72 (Hat)', '0.72_hat'),
+        ('0,6 (Hat)', '0.60_hat'),
+        ('0,5 (Hat)', '0.50_hat'),
+        ('0,5 (İst.)', '0.50_ist1'),
+        ('0,5 (İst. 2)', '0.50_ist2'),
+    ]
+    
+    d_mm = pipe_size['mm']
+    if d_mm >= 406.4:
+        default_proc = 'SAWH'
+    elif d_mm >= 114.3:
+        default_proc = 'ERW HFW'
+    else:
+        default_proc = 'SMLS'
+
+    pipes = []
+    seen_factors = set()
+    for factor_label, factor_key in factors:
+        thk = pipe_size['botas_thk'].get(factor_key, 0.0)
+        if thk > 0:
+            # Check if this exact thk and factor was already added
+            if (factor_label, thk) not in seen_factors:
+                seen_factors.add((factor_label, thk))
+                pipes.append({
+                    'id': f"pipe_botas_{len(pipes)+1}_{int(d_mm)}_{int(thk*100)}",
+                    'diameter_inch': pipe_size['inch'],
+                    'diameter_mm': pipe_size['mm'],
+                    'design_factor_str': factor_label,
+                    'wall_thickness_mm': thk,
+                    'manufacturing_process': default_proc,
+                    'material_grade': pipe_size['default_material'],
+                    'standard_type': 'BOTAŞ',
+                    'design_pressure_bar': 75.0
+                })
+    return pipes

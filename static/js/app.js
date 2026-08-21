@@ -1,6 +1,8 @@
 /**
  * Main Frontend Application Logic for API 5L Pipe QA/QC & Design Suite
- * Includes BOTAŞ automatic lookup, API 5L mode, and engineering remarks for every row.
+ * - Clean start (empty table on initial open unless cached)
+ * - BOTAŞ auto-populate for all design factors
+ * - Remarks / Explanations column placed ALWAYS ON THE FAR RIGHT
  */
 
 let activeProject = {
@@ -30,10 +32,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     setLanguage(savedLang);
 
     const cachedProj = ProjectStorage.loadFromLocalStorage();
-    if (cachedProj && cachedProj.pipes && cachedProj.pipes.length > 0) {
+    if (cachedProj && cachedProj.pipes) {
         activeProject = cachedProj;
     } else {
-        await loadPreset("reference");
+        activeProject.pipes = [];
     }
 
     await calculateAndRenderAll();
@@ -49,26 +51,15 @@ document.addEventListener("DOMContentLoaded", async () => {
     setupEventListeners();
 });
 
-async function loadPreset(type) {
-    try {
-        let url = "/api/presets/reference";
-        if (type === "botas-10") url = "/api/presets/botas-10";
-        else if (type === "api5l-10") url = "/api/presets/api5l-10";
-
-        const resp = await fetch(url);
-        const data = await resp.json();
-        activeProject = data;
-        ProjectStorage.saveToLocalStorage(activeProject);
-        await calculateAndRenderAll();
-        showToast("Şablon başarıyla yüklendi!", "success");
-    } catch (e) {
-        console.error("Preset load error:", e);
-        showToast("Şablon yüklenirken hata oluştu!", "error");
-    }
-}
-
 async function calculateAndRenderAll() {
     try {
+        if (!activeProject.pipes || activeProject.pipes.length === 0) {
+            calculatedPipes = [];
+            renderEmptyState();
+            renderPipesManagementList();
+            return;
+        }
+
         const resp = await fetch("/api/calculate", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -92,6 +83,23 @@ async function calculateAndRenderAll() {
     }
 }
 
+function renderEmptyState() {
+    const tableBody = document.getElementById("matrix-table-body");
+    if (!tableBody) return;
+    tableBody.innerHTML = `
+        <tr>
+            <td colspan="10" class="py-16 text-center text-slate-400">
+                <svg class="w-12 h-12 mx-auto mb-3 opacity-40 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <h4 class="text-base font-bold text-slate-700 mb-1">Matriste Henüz Boru Sütunu Bulunmuyor</h4>
+                <p class="text-xs text-slate-500 max-w-md mx-auto mb-4">Yukarıdaki <strong>"Yeni Boru Sütunu Ekle"</strong> butonuna basarak tek tek boru ekleyebilir veya BOTAŞ otomatik doldurma ile tüm dizayn faktörlerini tek tıkla matrise yerleştirebilirsiniz.</p>
+                <button onclick="document.getElementById('btn-open-add-pipe-modal').click()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 rounded-lg text-xs shadow transition">
+                    + Yeni Boru Sütunu Ekle
+                </button>
+            </td>
+        </tr>
+    `;
+}
+
 function renderMatrixTable() {
     const tableBody = document.getElementById("matrix-table-body");
     if (!tableBody || calculatedPipes.length === 0) return;
@@ -105,7 +113,7 @@ function renderMatrixTable() {
         return currentLang === "en" ? expObj.en : expObj.tr;
     };
 
-    // Header parameters
+    // Header parameters (Explanations on the FAR RIGHT)
     const headerRows = [
         { label: "ÇAP (inch)", exp: getExp('diameter'), extractor: p => `<span class="font-bold text-gray-900">${p.input_summary.diameter_inch}</span>` },
         { label: "ÇAP (mm)", exp: "Boru Gerçek Dış Çapı (OD mm)", extractor: p => `<span class="font-semibold text-gray-800">${p.input_summary.diameter_mm}</span>` },
@@ -118,15 +126,15 @@ function renderMatrixTable() {
 
     headerRows.forEach(hr => {
         html += `<tr class="border-b border-gray-400">
-            <td class="th-main text-left font-bold px-3 py-1.5 min-w-[170px]">${hr.label}</td>
-            <td class="bg-slate-100 text-slate-600 text-[11px] px-2 py-1 italic text-left max-w-[280px]">${hr.exp}</td>`;
+            <td class="th-main text-left font-bold px-3 py-1.5 min-w-[170px]">${hr.label}</td>`;
         calculatedPipes.forEach(p => {
             html += `<td class="text-center font-semibold th-sub px-2 py-1.5">${hr.extractor(p)}</td>`;
         });
-        html += `</tr>`;
+        // FAR RIGHT: Explanation Column
+        html += `<td class="bg-slate-100 text-slate-600 text-[11px] px-3 py-1 italic text-left max-w-[280px] border-l-2 border-slate-300">${hr.exp}</td></tr>`;
     });
 
-    // Chemical Block
+    // Chemical Block (Explanations on FAR RIGHT)
     const chemRows = [
         { elem: "C", limitType: "Max %", ext: p => p.chemical_analysis.C_max.toFixed(2) },
         { elem: "Mn", limitType: "Max %", ext: p => p.chemical_analysis.Mn_max.toFixed(2) },
@@ -141,35 +149,33 @@ function renderMatrixTable() {
     chemRows.forEach((cr, idx) => {
         html += `<tr class="border-b border-gray-300">`;
         if (idx === 0) {
-            html += `<td rowspan="${chemRows.length}" class="th-side text-center font-bold px-2 py-1 border-r border-gray-400">Kimyasal Analiz</td>
-                     <td rowspan="${chemRows.length}" class="bg-slate-50 text-slate-600 text-[11px] px-2 py-1 italic text-left border-r border-gray-300">${getExp('chemical')}</td>`;
+            html += `<td rowspan="${chemRows.length}" class="th-side text-center font-bold px-2 py-1 border-r border-gray-400">Kimyasal Analiz</td>`;
         }
-        html += `<td class="font-bold text-center bg-gray-100 px-1 py-1 hidden"></td>`; // dummy
-        html += ``;
         calculatedPipes.forEach(p => {
             html += `<td class="text-center font-mono text-xs px-2 py-1">${cr.elem} (${cr.limitType}): <strong>${cr.ext(p)}</strong></td>`;
         });
+        if (idx === 0) {
+            html += `<td rowspan="${chemRows.length}" class="bg-slate-50 text-slate-600 text-[11px] px-3 py-1 italic text-left border-l-2 border-slate-300">${getExp('chemical')}</td>`;
+        }
         html += `</tr>`;
     });
 
     // Wall Thickness Tolerance Block
     html += `<tr class="border-b border-gray-300">
-        <td class="th-side text-left font-bold px-3 py-1 text-xs">Et Kalınlığı: Min. (mm)</td>
-        <td class="bg-slate-100 text-slate-600 text-[11px] px-2 py-1 italic text-left">${getExp('wall_thickness_tol')}</td>`;
+        <td class="th-side text-left font-bold px-3 py-1 text-xs">Et Kalınlığı: Min. (mm)</td>`;
     calculatedPipes.forEach(p => {
         html += `<td class="text-center font-mono font-bold text-red-700 px-2 py-1">${p.wall_thickness_tolerance.min_mm.toFixed(2)}</td>`;
     });
-    html += `</tr>`;
+    html += `<td class="bg-slate-100 text-slate-600 text-[11px] px-3 py-1 italic text-left border-l-2 border-slate-300">${getExp('wall_thickness_tol')}</td></tr>`;
 
     html += `<tr class="border-b border-gray-400">
-        <td class="th-side text-left font-bold px-3 py-1 text-xs">Et Kalınlığı: Max. (mm)</td>
-        <td class="bg-slate-100 text-slate-600 text-[11px] px-2 py-1 italic text-left">${getExp('wall_thickness_tol')}</td>`;
+        <td class="th-side text-left font-bold px-3 py-1 text-xs">Et Kalınlığı: Max. (mm)</td>`;
     calculatedPipes.forEach(p => {
         html += `<td class="text-center font-mono font-bold text-emerald-700 px-2 py-1">${p.wall_thickness_tolerance.max_mm.toFixed(2)}</td>`;
     });
-    html += `</tr>`;
+    html += `<td class="bg-slate-100 text-slate-600 text-[11px] px-3 py-1 italic text-left border-l-2 border-slate-300">${getExp('wall_thickness_tol')}</td></tr>`;
 
-    // Remaining Inspection Parameters
+    // Remaining Inspection Parameters (Explanations on FAR RIGHT)
     const standardRows = [
         { label: "Yield Min. (Psi-Mpa)", exp: getExp('yield_tensile'), ext: p => `${p.mechanical_properties.yield_min_psi} / ${p.mechanical_properties.yield_min_mpa}` },
         { label: "Yield Max. (Psi-Mpa)", exp: getExp('yield_tensile'), ext: p => `${p.mechanical_properties.yield_max_psi} / ${p.mechanical_properties.yield_max_mpa}` },
@@ -208,12 +214,12 @@ function renderMatrixTable() {
 
     standardRows.forEach(sr => {
         html += `<tr class="border-b border-gray-300 hover:bg-blue-50">
-            <td class="label-cell text-left px-3 py-1 font-semibold">${sr.label}</td>
-            <td class="bg-slate-100 text-slate-600 text-[11px] px-2 py-1 italic text-left">${sr.exp}</td>`;
+            <td class="label-cell text-left px-3 py-1 font-semibold">${sr.label}</td>`;
         calculatedPipes.forEach(p => {
             html += `<td class="text-center text-xs px-2 py-1">${sr.ext(p)}</td>`;
         });
-        html += `</tr>`;
+        // FAR RIGHT: Explanation Column
+        html += `<td class="bg-slate-100 text-slate-600 text-[11px] px-3 py-1 italic text-left border-l-2 border-slate-300">${sr.exp}</td></tr>`;
     });
 
     tableBody.innerHTML = html;
@@ -222,6 +228,11 @@ function renderMatrixTable() {
 function renderPipesManagementList() {
     const list = document.getElementById("pipes-management-list");
     if (!list) return;
+
+    if (!activeProject.pipes || activeProject.pipes.length === 0) {
+        list.innerHTML = `<p class="text-xs text-slate-400 italic py-2 col-span-full">Listelenecek boru bulunmuyor.</p>`;
+        return;
+    }
 
     let html = "";
     activeProject.pipes.forEach((p, idx) => {
@@ -267,10 +278,6 @@ function clonePipe(idx) {
 }
 
 function deletePipe(idx) {
-    if (activeProject.pipes.length <= 1) {
-        showToast("En az bir boru bulunmalıdır!", "error");
-        return;
-    }
     activeProject.pipes.splice(idx, 1);
     if (selectedPipeIndex >= activeProject.pipes.length) selectedPipeIndex = 0;
     ProjectStorage.saveToLocalStorage(activeProject);
@@ -290,30 +297,49 @@ function updateVisualizers(pipeData) {
 async function updateBotasDefaultsInModal() {
     const stdSelect = document.getElementById("new-pipe-standard");
     const isBotas = stdSelect ? stdSelect.value === "BOTAŞ" : true;
-    const diaSelect = document.getElementById("new-pipe-dia");
-    const factorSelect = document.getElementById("new-pipe-factor");
-    const gradeSelect = document.getElementById("new-pipe-grade");
-    const thkInput = document.getElementById("new-pipe-thk");
-    const hintDiv = document.getElementById("botas-hint-msg");
+    const autoPopulateSection = document.getElementById("botas-auto-populate-section");
+    const manualFieldsSection = document.getElementById("manual-fields-section");
+    const autoCheckbox = document.getElementById("chk-auto-populate-botas");
 
-    if (isBotas && diaSelect && factorSelect) {
-        const dia = diaSelect.value;
-        const factor = factorSelect.value;
-        try {
-            const resp = await fetch(`/api/botas-lookup?diameter_inch=${encodeURIComponent(dia)}&factor=${encodeURIComponent(factor)}`);
-            const data = await resp.json();
-            if (data.status === "success") {
-                if (gradeSelect) gradeSelect.value = data.material;
-                if (thkInput) thkInput.value = data.thickness.toFixed(2);
-                if (hintDiv) {
-                    hintDiv.innerHTML = `ℹ BOTAŞ Standardı: <strong>${data.material}</strong> malzeme ve <strong>${data.thickness} mm</strong> et kalınlığı otomatik uygulandı.`;
-                    hintDiv.classList.remove("hidden");
-                }
-            }
-        } catch (e) {
-            console.error("Botas lookup error:", e);
+    if (isBotas) {
+        if (autoPopulateSection) autoPopulateSection.classList.remove("hidden");
+        const isAutoChecked = autoCheckbox ? autoCheckbox.checked : true;
+        if (manualFieldsSection) {
+            if (isAutoChecked) manualFieldsSection.classList.add("hidden");
+            else manualFieldsSection.classList.remove("hidden");
         }
     } else {
+        if (autoPopulateSection) autoPopulateSection.classList.add("hidden");
+        if (manualFieldsSection) manualFieldsSection.classList.remove("hidden");
+    }
+
+    if (isBotas && (!autoCheckbox || !autoCheckbox.checked)) {
+        const diaSelect = document.getElementById("new-pipe-dia");
+        const factorSelect = document.getElementById("new-pipe-factor");
+        const gradeSelect = document.getElementById("new-pipe-grade");
+        const thkInput = document.getElementById("new-pipe-thk");
+        const hintDiv = document.getElementById("botas-hint-msg");
+
+        if (diaSelect && factorSelect) {
+            const dia = diaSelect.value;
+            const factor = factorSelect.value;
+            try {
+                const resp = await fetch(`/api/botas-lookup?diameter_inch=${encodeURIComponent(dia)}&factor=${encodeURIComponent(factor)}`);
+                const data = await resp.json();
+                if (data.status === "success") {
+                    if (gradeSelect) gradeSelect.value = data.material;
+                    if (thkInput) thkInput.value = data.thickness.toFixed(2);
+                    if (hintDiv) {
+                        hintDiv.innerHTML = `ℹ BOTAŞ Standardı: <strong>${data.material}</strong> malzeme ve <strong>${data.thickness} mm</strong> et kalınlığı otomatik uygulandı.`;
+                        hintDiv.classList.remove("hidden");
+                    }
+                }
+            } catch (e) {
+                console.error("Botas lookup error:", e);
+            }
+        }
+    } else {
+        const hintDiv = document.getElementById("botas-hint-msg");
         if (hintDiv) hintDiv.classList.add("hidden");
     }
 }
@@ -332,14 +358,21 @@ function setupEventListeners() {
     const diaSelect = document.getElementById("new-pipe-dia");
     const factorSelect = document.getElementById("new-pipe-factor");
     const stdSelect = document.getElementById("new-pipe-standard");
+    const autoCheckbox = document.getElementById("chk-auto-populate-botas");
+
     if (diaSelect) diaSelect.addEventListener("change", updateBotasDefaultsInModal);
     if (factorSelect) factorSelect.addEventListener("change", updateBotasDefaultsInModal);
     if (stdSelect) stdSelect.addEventListener("change", updateBotasDefaultsInModal);
+    if (autoCheckbox) autoCheckbox.addEventListener("change", updateBotasDefaultsInModal);
 
     // Export Excel Button
     const btnExcel = document.getElementById("btn-export-excel");
     if (btnExcel) {
         btnExcel.addEventListener("click", async () => {
+            if (!activeProject.pipes || activeProject.pipes.length === 0) {
+                showToast("Dışa aktarmak için en az bir boru bulunmalıdır!", "error");
+                return;
+            }
             btnExcel.disabled = true;
             btnExcel.innerHTML = "Excel Hazırlanıyor...";
             try {
@@ -437,6 +470,10 @@ function setupEventListeners() {
         verForm.addEventListener("submit", async (e) => {
             e.preventDefault();
             const selectedPipe = activeProject.pipes[selectedPipeIndex] || activeProject.pipes[0];
+            if (!selectedPipe) {
+                showToast("Doğrulama için önce bir boru sütunu ekleyin!", "error");
+                return;
+            }
             const formData = new FormData(verForm);
             const actualData = {};
             formData.forEach((val, key) => {

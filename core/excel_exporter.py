@@ -250,16 +250,47 @@ class ExcelExporter:
                     c_val.fill = fill_zebra
             current_r += 1
 
-        # Adjust Column Widths
-        ws.column_dimensions['A'].width = 8
+        # Set column widths
+        ws.column_dimensions['A'].width = 6
         ws.column_dimensions['B'].width = 8
         ws.column_dimensions['C'].width = 12
         ws.column_dimensions['D'].width = 14
+
         for idx in range(num_pipes):
             col_letter = get_column_letter(5 + idx)
-            ws.column_dimensions[col_letter].width = 18
+            ws.column_dimensions[col_letter].width = 15
 
-        output = io.BytesIO()
-        wb.save(output)
-        output.seek(0)
-        return output
+        # Set Remarks column width
+        remarks_col_letter = get_column_letter(5 + num_pipes)
+        ws.column_dimensions[remarks_col_letter].width = 32
+
+        # Header for remarks
+        cell_rem_head = ws.cell(start_row - 1, 5 + num_pipes, "Standart Referansı / Açıklama")
+        cell_rem_head.font = font_header_dark
+        cell_rem_head.fill = fill_header_main
+        cell_rem_head.alignment = align_center
+        cell_rem_head.border = border_all
+
+        # Fill explanations in the far right column
+        exp_dict = pipes_data[0].get('explanations', {}) if pipes_data else {}
+        row_exp_mapping = {
+            start_row: exp_dict.get('diameter', {}).get('tr', ''),
+            start_row + 1: "Boru Gerçek Dış Çapı (OD mm)",
+            start_row + 2: exp_dict.get('design_factor', {}).get('tr', ''),
+            start_row + 3: exp_dict.get('wall_thickness', {}).get('tr', ''),
+            start_row + 4: exp_dict.get('process', {}).get('tr', ''),
+            start_row + 5: exp_dict.get('grade', {}).get('tr', ''),
+            start_row + 6: exp_dict.get('smys', {}).get('tr', ''),
+        }
+
+        for r_idx, exp_txt in row_exp_mapping.items():
+            c_exp = ws.cell(r_idx, 5 + num_pipes, exp_txt)
+            c_exp.font = font_sub
+            c_exp.fill = fill_zebra
+            c_exp.alignment = align_left
+            c_exp.border = border_all
+
+        stream = io.BytesIO()
+        wb.save(stream)
+        stream.seek(0)
+        return stream

@@ -151,6 +151,20 @@ async def lookup_botas_specs(diameter_inch: str, factor: str = "0.72 (Hat)"):
         "available_thicknesses": pipe_size['botas_thk']
     })
 
+@app.get("/api/botas-all-factors")
+async def get_botas_all_factors(diameter_inch: str):
+    """
+    Returns all standard BOTAŞ pipe configurations for all available design factors for a given diameter.
+    """
+    from core.database import get_botas_all_factors_for_diameter
+    pipes = get_botas_all_factors_for_diameter(diameter_inch)
+    return JSONResponse(content={
+        "status": "success",
+        "diameter_inch": diameter_inch,
+        "count": len(pipes),
+        "pipes": pipes
+    })
+
 @app.post("/api/export-excel")
 async def export_excel(data: Dict[str, Any] = Body(...)):
     """
