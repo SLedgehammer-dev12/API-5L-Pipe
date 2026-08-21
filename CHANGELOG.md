@@ -5,22 +5,27 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ---
 
-## [1.0.3] - 2026-08-21
+## [1.1.0] - 2026-08-21 (Kapsamlı Ergonomi, 3D Senkronizasyon & Otomatik Güncelleyici)
 
-### 🛠️ Düzeltmeler ve İyileştirmeler (Fixed & Improved)
-- **Arayüz Versiyon Senkronizasyonu:** Arayüz başlığındaki versiyon rozeti dinamik `v1.0.3` olarak güncellendi.
-- **PyInstaller Binary Başlatma Düzeltmesi:** Uvicorn `app:app` string modülü yerine doğrudan ASGI nesnesiyle başlatılarak `.exe` ve `.app` paketlerinin açılış çökmesi giderildi.
-- **Multiprocessing Freeze & Stdout Güvenliği:** `multiprocessing.freeze_support()` ve `DummyWriter` eklenerek Windows ve macOS GUI modunda kararlı çalışma sağlandı.
-- **BOTAŞ Otomatik Doldurma:** Çap seçildiğinde tüm dizayn faktörlerindeki BOTAŞ borularının tek tıkla matrise eklenmesi tamamlandı.
-- **Sağ Açıklamalar Sütunu:** Mühendislik açıklamaları ve standart referansları en sağ sütuna sabitlendi.
+### 🎉 Eklenen Özellikler (Added)
+- **Açılışta Otomatik Güncelleme Denetimi:** GitHub Releases API üzerinden yeni sürümleri algılayıp doğrudan indirme bağlantıları sunan bildirim şeridi ve manuel güncelleme butonu.
+- **Çoklu Boru 2D & 3D Senkronizasyonu:** Tablo sütun başlığından tıklanarak aktif boru odaklaması ve 2D/3D modelin eşzamanlı güncellenmesi.
+- **2D/3D Yatay Boru Seçim Çipleri:** Görselleştirme ekranında sekmeler arası geçiş yapmadan tek tıkla borular arası gezinme.
+- **3D PNG Snapshot Dışa Aktarma:** Three.js WebGL tuvalinden şeffaf arka planlı yüksek çözünürlüklü teknik PNG indirme.
+- **Yönetici KPI Özet Kartları:** Matrisin en üstünde seçili borunun hidrostatik basıncı, ağırlığı, $D/t$ oranı ve kırılma emniyeti özetleri.
+- **Donuk Başlıklar (Sticky Table) & Katlanabilir Akordeon:** 6 kategoriye ayrılmış katlanabilir parametre blokları ve donuk üst/sol/sağ sütunlar.
+- **Canlı Parametre Arama:** Matris tablosunda anlık parametre ve standart filtreleme.
+- **Telif Hakkı & Sorumluluk Reddi (Disclaimer):** Alt bilgi (Footer), Hakkında modalı, Excel çıktısı ve resmi rapor şablonuna kapsamlı yasal uyarılar.
+- **Geriye Dönük Şema Göçü (Backward Compatibility):** Eski versiyonlarda kaydedilmiş `.pipeproj` dosyalarını otomatik uyarlama.
+
+---
+
+## [1.0.3] - 2026-08-21
+- PyInstaller freeze support ve doğrudan ASGI nesnesiyle çalıştırma düzeltmesi.
+- BOTAŞ otomatik doldurma entegrasyonu.
+- Sağ açıklama sütunu sabitlemesi.
 
 ---
 
 ## [1.0.0] - 2026-08-21
-
-### 🎉 İlk Kararlı Sürüm (Initial Release)
-- API 5L PSL2 ve BOTAŞ şartnamelerine göre 40+ parametrenin otomatik hesaplanması.
-- 3D WebGL (Three.js) ve 2D SVG boru görselleştiricisi.
-- PASS / FAIL fabrika kabul test doğrulama modülü.
-- ASME B31.8 & ASME B36.10 et kalınlığı tasarım aracı.
-- Excel (.xlsx) profesyonel dışa aktarım ve EN 10204 3.1 rapor şablonu.
+- İlk kararlı sürüm (Initial Release).
