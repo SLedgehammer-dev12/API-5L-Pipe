@@ -17,6 +17,7 @@ from core.project_manager import ProjectManager
 from core.excel_exporter import ExcelExporter
 from core.database import API_5L_SMYS_TABLE, PIPE_SIZES_TABLE
 from core.i18n import TRANSLATIONS, get_text
+from version import __version__, __app_name__
 
 # Resolve base directory (compatible with PyInstaller one-file and normal runtime)
 BASE_DIR = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
@@ -24,9 +25,9 @@ STATIC_DIR = os.path.join(BASE_DIR, "static")
 TEMPLATES_DIR = os.path.join(BASE_DIR, "templates")
 
 app = FastAPI(
-    title="API 5L PSL2 & BOTAŞ Pipe QA/QC & Design Suite",
+    title=__app_name__,
     description="Professional Engineering Software for Pipe QA/QC, Factory Acceptance Testing and Wall Thickness Design",
-    version="1.0.1"
+    version=__version__
 )
 
 # Ensure static and template directories exist
@@ -45,6 +46,7 @@ async def index_page(request: Request):
         request=request,
         name="index.html",
         context={
+            "app_version": __version__,
             "translations": TRANSLATIONS,
             "grades": list(API_5L_SMYS_TABLE.keys()),
             "diameters": PIPE_SIZES_TABLE
