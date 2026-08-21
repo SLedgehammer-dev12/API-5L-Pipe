@@ -87,6 +87,33 @@
         </div>
     </header>
 
+    <!-- App Automatic Update Notification Banner -->
+    <div id="app-update-banner" class="bg-gradient-to-r from-blue-700 via-indigo-700 to-blue-800 text-white px-4 py-2.5 shadow-md hidden border-b border-blue-600 transition-all duration-300">
+        <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2 text-xs">
+            <div class="flex items-center space-x-2">
+                <span class="flex h-2.5 w-2.5 relative">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                </span>
+                <span class="font-bold">🎉 Yeni Bir Güncelleme Mevcut!</span>
+                <span id="update-banner-version" class="bg-white/20 px-2 py-0.5 rounded font-mono font-bold">v1.0.4</span>
+                <span class="text-blue-100 hidden sm:inline">— En son iyileştirmeleri ve hata düzeltmelerini içerir.</span>
+            </div>
+            <div class="flex items-center space-x-2">
+                <a id="update-win-download-link" href="#" class="bg-emerald-500 hover:bg-emerald-600 text-white font-bold px-3 py-1 rounded shadow text-[11px] transition hidden">
+                    🪟 Windows (.exe) İndir
+                </a>
+                <a id="update-mac-download-link" href="#" class="bg-indigo-500 hover:bg-indigo-600 text-white font-bold px-3 py-1 rounded shadow text-[11px] transition hidden">
+                    🍏 macOS (.dmg) İndir
+                </a>
+                <a id="update-banner-link" href="https://github.com/SLedgehammer-dev12/API-5L-Pipe/releases/latest" target="_blank" class="bg-white text-blue-900 hover:bg-blue-50 font-bold px-3 py-1 rounded text-[11px] transition">
+                    Sürüm Detayları
+                </a>
+                <button onclick="document.getElementById('app-update-banner').classList.add('hidden')" class="text-blue-200 hover:text-white font-bold px-1.5 py-0.5 text-sm">✕</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Main Workspace Container -->
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full">
 
@@ -522,10 +549,22 @@
                     </p>
                 </div>
 
+                <!-- Update Check Area inside About Modal -->
+                <div class="bg-slate-100 p-3 rounded-lg border border-slate-300 flex items-center justify-between">
+                    <div>
+                        <span class="font-bold text-slate-800 block">Sürüm ve Güncelleme Takibi</span>
+                        <span id="manual-update-status" class="text-[11px] text-slate-500">Mevcut Sürüm: v{{ app_version | default('1.0.3') }}</span>
+                    </div>
+                    <button onclick="checkForAppUpdates(false)" class="bg-slate-800 hover:bg-slate-700 text-white font-semibold px-3 py-1.5 rounded-lg text-xs transition flex items-center shadow-sm">
+                        <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                        Güncellemeleri Denetle
+                    </button>
+                </div>
+
                 <div class="pt-2 flex justify-between items-center text-[11px] text-slate-500 border-t border-slate-100">
                     <span>© 2026 API 5L & BOTAŞ Pipeline Engineering</span>
                     <button onclick="document.getElementById('about-modal').classList.add('hidden')" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-1.5 rounded-lg transition">
-                        Anladım ve Kapat
+                        Kapat
                     </button>
                 </div>
             </div>

@@ -179,5 +179,62 @@ class TestPipeQAQCSuite(unittest.TestCase):
         s_api = ExcelExporter.export_matrix_to_excel(p_api['project_info'], calc_api)
         self.assertGreater(len(s_api.getvalue()), 8000)
 
+    def test_07_check_update_endpoint_and_semver_logic(self):
+        """Verifies /api/check-update endpoint and semver comparison."""
+        from core.updater import is_newer_version, parse_semver
+        
+        # Test semver parser
+        self.assertEqual(parse_semver('v1.0.3'), (1, 0, 3))
+        self.assertEqual(parse_semver('2.1.0-beta'), (2, 1, 0))
+        
+        # Test newer version comparator
+        self.assertTrue(is_newer_version('1.0.3', '1.0.4'))
+        self.assertTrue(is_newer_version('1.0.3', '1.1.0'))
+        self.assertTrue(is_newer_version('1.0.3', '2.0.0'))
+        self.assertFalse(is_newer_version('1.0.3', '1.0.3'))
+        self.assertFalse(is_newer_version('1.0.3', '1.0.2'))
+        
+        # Test API endpoint
+        resp = self.client.get('/api/check-update')
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertIn('current_version', data)
+        self.assertIn('latest_version', data)
+        self.assertIn('update_available', data)
+        self.assertIn('download_assets', data)
+
+    def test_08_backward_compatibility_project_migration(self):
+        """Verifies that projects created in older versions (v1.0.0, v1.0.1) can be cleanly loaded and evaluated."""
+        # Simulated raw project from v1.0.0 with missing fields
+        old_project = {
+            "project_info": {
+                "project_name": "Eski Proje v1.0.0",
+                "revision": "Rev. A"
+            },
+            "pipes": [
+                {
+                    "diameter_inch": "48\"",
+                    "wall_thickness_mm": 14.30,
+                    "material_grade": "X65"
+                    # missing standard_type, design_pressure_bar, manufacturing_process, id
+                }
+            ]
+        }
+
+        # Calculate using the QA/QC Engine with fallback defaults
+        pipe = old_project['pipes'][0]
+        res = PipeQAQCEngine.calculate_pipe_qc(
+            diameter_inch=pipe.get('diameter_inch', '48"'),
+            wall_thickness_mm=pipe.get('wall_thickness_mm', 14.30),
+            material_grade=pipe.get('material_grade', 'X65'),
+            design_factor_str=pipe.get('design_factor_str', '0,72 (Hat)'),
+            manufacturing_process=pipe.get('manufacturing_process', 'SAWH'),
+            standard_type=pipe.get('standard_type', 'BOTAŞ')
+        )
+        self.assertIsNotNone(res)
+        self.assertEqual(res['input_summary']['material_grade'], 'X65')
+        self.assertEqual(res['input_summary']['wall_thickness_mm'], 14.30)
+        self.assertAlmostEqual(res['hydrostatic_test']['hydro_test_max_bar'], 105.61, delta=0.5)
+
 if __name__ == '__main__':
     unittest.main()

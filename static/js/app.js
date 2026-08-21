@@ -52,7 +52,61 @@ document.addEventListener("DOMContentLoaded", async () => {
     }, 400);
 
     setupEventListeners();
+
+    // Automatic update check on startup (runs asynchronously in background)
+    setTimeout(() => {
+        checkForAppUpdates(true);
+    }, 1200);
 });
+
+async function checkForAppUpdates(isSilent = false) {
+    try {
+        const resp = await fetch("/api/check-update");
+        const data = await resp.json();
+        const banner = document.getElementById("app-update-banner");
+        const statusSpan = document.getElementById("manual-update-status");
+
+        if (data.update_available) {
+            if (banner) {
+                document.getElementById("update-banner-version").innerText = `v${data.latest_version}`;
+                document.getElementById("update-banner-link").href = data.html_url;
+                
+                // Set direct asset download links if available
+                const winLink = document.getElementById("update-win-download-link");
+                const macLink = document.getElementById("update-mac-download-link");
+                if (winLink && data.download_assets.windows_exe) {
+                    winLink.href = data.download_assets.windows_exe;
+                    winLink.classList.remove("hidden");
+                }
+                if (macLink && data.download_assets.macos_dmg) {
+                    macLink.href = data.download_assets.macos_dmg;
+                    macLink.classList.remove("hidden");
+                }
+
+                banner.classList.remove("hidden");
+            }
+            if (statusSpan) {
+                statusSpan.innerHTML = `<span class="text-emerald-700 font-bold">🎉 Yeni bir sürüm mevcut: v${data.latest_version}</span> <a href="${data.html_url}" target="_blank" class="underline text-blue-600 font-bold ml-2">İndir</a>`;
+            }
+            if (!isSilent) {
+                showToast(`Yeni güncelleme mevcut: v${data.latest_version}`, "info");
+            }
+        } else {
+            if (statusSpan) {
+                statusSpan.innerHTML = `<span class="text-slate-600 font-medium">✓ Uygulamanız güncel (v${data.current_version}).</span>`;
+            }
+            if (!isSilent) {
+                showToast("Uygulamanız en güncel sürümdedir.", "success");
+            }
+        }
+    } catch (e) {
+        console.warn("Update check note:", e);
+        const statusSpan = document.getElementById("manual-update-status");
+        if (statusSpan && !isSilent) {
+            statusSpan.innerHTML = `<span class="text-slate-400">Çevrimdışı (Güncelleme kontrolü yapılamadı).</span>`;
+        }
+    }
+}
 
 async function calculateAndRenderAll() {
     try {

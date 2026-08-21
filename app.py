@@ -53,6 +53,15 @@ async def index_page(request: Request):
         }
     )
 
+@app.get("/api/check-update")
+async def check_update_endpoint():
+    """
+    Checks GitHub Releases for application updates and returns download links.
+    """
+    from core.updater import check_for_updates
+    update_info = await check_for_updates()
+    return JSONResponse(content=update_info)
+
 @app.post("/api/calculate")
 async def calculate_matrix(data: Dict[str, Any] = Body(...)):
     """
