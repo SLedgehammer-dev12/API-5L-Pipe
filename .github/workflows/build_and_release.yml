@@ -35,7 +35,7 @@ jobs:
         run: |
           python -m unittest tests/test_pipe_suite.py -v
 
-      - name: Build Windows One-File Executable (.exe)
+      - name: Build Windows Executable (.exe)
         run: |
           pyinstaller --name "API-5L-Pipe-Windows-x64" `
             --onefile `
@@ -45,16 +45,34 @@ jobs:
             --add-data "static;static" `
             --add-data "templates;templates" `
             --add-data "core;core" `
+            --hidden-import "app" `
+            --hidden-import "core" `
+            --hidden-import "core.database" `
+            --hidden-import "core.pipe_qaqc_engine" `
+            --hidden-import "core.verification_engine" `
+            --hidden-import "core.wall_thickness_engine" `
+            --hidden-import "core.project_manager" `
+            --hidden-import "core.excel_exporter" `
+            --hidden-import "core.i18n" `
             --hidden-import "uvicorn" `
             --hidden-import "uvicorn.logging" `
             --hidden-import "uvicorn.loops" `
             --hidden-import "uvicorn.loops.auto" `
+            --hidden-import "uvicorn.loops.asyncio" `
             --hidden-import "uvicorn.protocols" `
             --hidden-import "uvicorn.protocols.http" `
             --hidden-import "uvicorn.protocols.http.auto" `
+            --hidden-import "uvicorn.protocols.http.h11_impl" `
+            --hidden-import "uvicorn.protocols.websockets" `
+            --hidden-import "uvicorn.protocols.websockets.auto" `
             --hidden-import "uvicorn.lifespan" `
             --hidden-import "uvicorn.lifespan.on" `
+            --hidden-import "uvicorn.lifespan.off" `
             --hidden-import "fastapi" `
+            --hidden-import "starlette" `
+            --hidden-import "starlette.routing" `
+            --hidden-import "starlette.responses" `
+            --hidden-import "starlette.middleware" `
             --hidden-import "openpyxl" `
             --hidden-import "jinja2" `
             --hidden-import "pydantic" `
@@ -102,23 +120,42 @@ jobs:
             --add-data "static:static" \
             --add-data "templates:templates" \
             --add-data "core:core" \
+            --hidden-import "app" \
+            --hidden-import "core" \
+            --hidden-import "core.database" \
+            --hidden-import "core.pipe_qaqc_engine" \
+            --hidden-import "core.verification_engine" \
+            --hidden-import "core.wall_thickness_engine" \
+            --hidden-import "core.project_manager" \
+            --hidden-import "core.excel_exporter" \
+            --hidden-import "core.i18n" \
             --hidden-import "uvicorn" \
             --hidden-import "uvicorn.logging" \
             --hidden-import "uvicorn.loops" \
             --hidden-import "uvicorn.loops.auto" \
+            --hidden-import "uvicorn.loops.asyncio" \
             --hidden-import "uvicorn.protocols" \
             --hidden-import "uvicorn.protocols.http" \
             --hidden-import "uvicorn.protocols.http.auto" \
+            --hidden-import "uvicorn.protocols.http.h11_impl" \
+            --hidden-import "uvicorn.protocols.websockets" \
+            --hidden-import "uvicorn.protocols.websockets.auto" \
             --hidden-import "uvicorn.lifespan" \
             --hidden-import "uvicorn.lifespan.on" \
+            --hidden-import "uvicorn.lifespan.off" \
             --hidden-import "fastapi" \
+            --hidden-import "starlette" \
+            --hidden-import "starlette.routing" \
+            --hidden-import "starlette.responses" \
+            --hidden-import "starlette.middleware" \
             --hidden-import "openpyxl" \
             --hidden-import "jinja2" \
             --hidden-import "pydantic" \
             run.py
 
-      - name: Ad-hoc Code Signing
+      - name: Ad-hoc Code Signing & Permissions
         run: |
+          chmod +x "dist/API-5L-Pipe.app/Contents/MacOS/API-5L-Pipe"
           codesign --force --deep -s - "dist/API-5L-Pipe.app" || true
 
       - name: Create Apple Disk Image (.dmg)
