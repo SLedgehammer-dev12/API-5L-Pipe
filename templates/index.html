@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API 5L PSL2 & BOTAŞ Boru Kalite Güvence ve Kabul Yazılımı</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Three.js and OrbitControls CDN for 3D Pipe Visualization -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body class="bg-slate-50 text-slate-900 min-h-screen flex flex-col">
+
+    <!-- Top Navigation Header -->
+    <header class="bg-slate-900 text-white border-b border-slate-800 shadow-md sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center font-bold text-white shadow-lg text-lg">
+                    5L
+                </div>
+                <div>
+                    <h1 class="text-base sm:text-lg font-bold tracking-tight text-white flex items-center gap-2">
+                        <span data-i18n="app_title">API 5L PSL2 & BOTAŞ Boru Kalite Güvence Yazılımı</span>
+                        <span class="bg-blue-800/80 text-blue-200 text-xs px-2 py-0.5 rounded-full border border-blue-600 font-semibold">v2.0 Pro</span>
+                    </h1>
+                    <p class="text-xs text-slate-400 hidden sm:block" data-i18n="app_subtitle">Boru Seçim, Kabul Kriterleri, Fabrika Test Denetimi & Et Kalınlığı Tasarım Motoru</p>
+                </div>
+            </div>
+
+            <!-- Header Quick Actions -->
+            <div class="flex items-center space-x-2 sm:space-x-3">
+                <!-- Language Switcher -->
+                <div class="flex items-center bg-slate-800 rounded-lg p-1 border border-slate-700">
+                    <button onclick="setLanguage('tr')" class="px-2 py-1 text-xs font-bold rounded text-white hover:bg-blue-600 transition">TR</button>
+                    <button onclick="setLanguage('en')" class="px-2 py-1 text-xs font-bold rounded text-white hover:bg-blue-600 transition">EN</button>
+                </div>
+
+                <!-- Export Excel Button -->
+                <button id="btn-export-excel" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold flex items-center shadow transition">
+                    <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    <span data-i18n="btn_export_excel">Excel İndir</span>
+                </button>
+
+                <!-- Project Save Dropdown / Button -->
+                <button id="btn-save-project-json" class="bg-slate-700 hover:bg-slate-600 text-white px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center transition" title="Projeyi Kaydet">
+                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>
+                    JSON
+                </button>
+            </div>
+        </div>
+
+        <!-- Tab Navigation Bar -->
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex space-x-1 sm:space-x-4 overflow-x-auto text-xs sm:text-sm font-medium border-t border-slate-800">
+            <button onclick="switchTab('matrix-tab')" id="tab-btn-matrix" class="tab-button active py-3 px-3 border-b-2 border-blue-500 text-blue-400 font-bold flex items-center gap-1.5">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                <span data-i18n="nav_qaqc">Kalite Güvence & Kabul Matrisi</span>
+            </button>
+            <button onclick="switchTab('schematic-tab')" id="tab-btn-schematic" class="tab-button py-3 px-3 border-b-2 border-transparent text-slate-400 hover:text-white flex items-center gap-1.5">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5"></path></svg>
+                <span data-i18n="nav_schematic_3d">2D / 3D Şematik Gösterim</span>
+            </button>
+            <button onclick="switchTab('verify-tab')" id="tab-btn-verify" class="tab-button py-3 px-3 border-b-2 border-transparent text-slate-400 hover:text-white flex items-center gap-1.5">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <span data-i18n="nav_verification">Fabrika Test Doğrulama (PASS/FAIL)</span>
+            </button>
+            <button onclick="switchTab('wall-thickness-tab')" id="tab-btn-wall-thickness" class="tab-button py-3 px-3 border-b-2 border-transparent text-slate-400 hover:text-white flex items-center gap-1.5">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+                <span data-i18n="nav_wall_thickness">Et Kalınlığı Tasarım Aracı</span>
+            </button>
+            <button onclick="switchTab('project-info-tab')" id="tab-btn-project-info" class="tab-button py-3 px-3 border-b-2 border-transparent text-slate-400 hover:text-white flex items-center gap-1.5">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                <span data-i18n="nav_projects">Proje & Revizyon</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Workspace Container -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full">
+
+        <!-- TAB 1: QA/QC MATRIX DASHBOARD (MAIN VIEW MATCHING SCREENSHOT) -->
+        <div id="matrix-tab" class="tab-content">
+            <!-- Action Bar -->
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm mb-6 flex flex-wrap items-center justify-between gap-3">
+                <div class="flex flex-wrap items-center gap-2">
+                    <button onclick="loadPreset('reference')" class="bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center shadow-sm">
+                        <svg class="w-4 h-4 mr-1.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                        48" + 18" Referans Şablonu
+                    </button>
+                    <button onclick="loadPreset('botas-10')" class="bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-300 px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center shadow-sm">
+                        <span class="w-2 h-2 rounded-full bg-emerald-600 mr-1.5"></span>
+                        10 Çeşit BOTAŞ Borusu Şablonu
+                    </button>
+                    <button onclick="loadPreset('api5l-10')" class="bg-purple-50 text-purple-800 hover:bg-purple-100 border border-purple-300 px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center shadow-sm">
+                        <span class="w-2 h-2 rounded-full bg-purple-600 mr-1.5"></span>
+                        10 Çeşit API 5L Borusu Şablonu
+                    </button>
+                    <label class="bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition">
+                        Proje Yükle (.pipeproj)
+                        <input type="file" id="input-load-project-file" class="hidden" accept=".pipeproj,.json">
+                    </label>
+                </div>
+
+                <div class="flex items-center space-x-2">
+                    <button id="btn-open-add-pipe-modal" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold flex items-center shadow transition">
+                        <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                        Yeni Boru Sütunu Ekle
+                    </button>
+                </div>
+            </div>
+
+            <!-- Table Container with Horizontal Scroll for Unlimited Columns -->
+            <div class="bg-white rounded-xl border border-slate-300 shadow-md overflow-hidden mb-6">
+                <div class="p-3 bg-slate-800 text-white flex items-center justify-between border-b border-slate-700">
+                    <div class="flex items-center space-x-2">
+                        <span class="w-3 h-3 rounded-full bg-emerald-500 inline-block"></span>
+                        <h3 class="font-bold text-sm">Boru Kalite Güvence, Fabrika Kabul ve Boyutsal Tolerans Matrisi</h3>
+                    </div>
+                    <span class="text-xs text-slate-300">API 5L PSL2 & BOTAŞ Şartnameleri</span>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="matrix-table text-xs">
+                        <tbody id="matrix-table-body">
+                            <!-- Populated dynamically by app.js with engineering remarks column -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Quick Management List -->
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Matristeki Borular (Seçmek veya Çıkarmak için Tıklayın)</h4>
+                <div id="pipes-management-list" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
+                    <!-- Populated dynamically -->
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 2: 2D & 3D SCHEMATIC VIEWPORTS -->
+        <div id="schematic-tab" class="tab-content hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- 2D SVG Cross-Section Card -->
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col">
+                    <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+                        <div>
+                            <h3 class="text-sm font-bold text-slate-800">2D Boru Enkesiti ve Tolerans Zarfı</h3>
+                            <p class="text-xs text-slate-500">Nominal et kalınlığı, imalat tolerans bandı ve kaynak takviyesi</p>
+                        </div>
+                        <span class="bg-blue-100 text-blue-800 text-xs font-bold px-2 py-0.5 rounded">SVG 2D</span>
+                    </div>
+                    <div id="viewport-2d" class="flex-1 bg-slate-900 rounded-lg p-2 min-h-[420px] flex items-center justify-center">
+                        <!-- 2D SVG rendered here -->
+                    </div>
+                </div>
+
+                <!-- 3D Three.js WebGL Interactive Pipe Card -->
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col">
+                    <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+                        <div>
+                            <h3 class="text-sm font-bold text-slate-800">3D İnteraktif Boru & Helisel/Boyuna Kaynak Modeli</h3>
+                            <p class="text-xs text-slate-500">Mouse ile 360° döndürün, yakınlaştırın ve kesit alın</p>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <button onclick="visualizer3DInstance.toggleCutaway(calculatedPipes[selectedPipeIndex])" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs px-2.5 py-1 rounded font-semibold transition">
+                                Kesit Al (Cutaway)
+                            </button>
+                            <button onclick="visualizer3DInstance.toggleRotation()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs px-2.5 py-1 rounded font-semibold transition">
+                                Otomatik Dönüş
+                            </button>
+                        </div>
+                    </div>
+                    <div id="viewport-3d" class="viewport-container flex-1 min-h-[420px]">
+                        <!-- Three.js WebGL canvas rendered here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 3: VERIFICATION (PASS/FAIL ANALYSIS) -->
+        <div id="verify-tab" class="tab-content hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Input Form Card -->
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm lg:col-span-1">
+                    <h3 class="text-base font-bold text-slate-900 mb-1">Fabrika Test Verilerini Girin</h3>
+                    <p class="text-xs text-slate-500 mb-4">Sahadan veya laboratuvardan gelen gerçek ölçüm değerlerini denetleyin.</p>
+
+                    <form id="pipe-verification-form" class="space-y-3 text-xs">
+                        <div>
+                            <label class="font-bold text-slate-700 block mb-1">Gerçek Et Kalınlığı (mm)</label>
+                            <input type="number" step="0.01" name="wall_thickness_actual" placeholder="Örn: 14.35" class="w-full border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="font-bold text-slate-700 block mb-1">Akma Mukavemeti (MPa)</label>
+                                <input type="number" step="0.1" name="yield_strength_actual" placeholder="Örn: 480.0" class="w-full border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            <div>
+                                <label class="font-bold text-slate-700 block mb-1">Çekme Mukavemeti (MPa)</label>
+                                <input type="number" step="0.1" name="tensile_strength_actual" placeholder="Örn: 560.0" class="w-full border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="font-bold text-slate-700 block mb-1">Minimum Uzama (% e)</label>
+                            <input type="number" step="0.1" name="elongation_actual" placeholder="Örn: 24.5" class="w-full border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="font-bold text-slate-700 block mb-1">Karbon (C %)</label>
+                                <input type="number" step="0.001" name="C" placeholder="Örn: 0.10" class="w-full border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            <div>
+                                <label class="font-bold text-slate-700 block mb-1">Mangan (Mn %)</label>
+                                <input type="number" step="0.01" name="Mn" placeholder="Örn: 1.45" class="w-full border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="font-bold text-slate-700 block mb-1">Fosfor (P %)</label>
+                                <input type="number" step="0.001" name="P" placeholder="Örn: 0.015" class="w-full border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            <div>
+                                <label class="font-bold text-slate-700 block mb-1">Kükürt (S %)</label>
+                                <input type="number" step="0.001" name="S" placeholder="Örn: 0.004" class="w-full border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="font-bold text-slate-700 block mb-1">Çentik Gövde (J)</label>
+                                <input type="number" step="1" name="cvn_mat_actual" placeholder="Örn: 85" class="w-full border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            <div>
+                                <label class="font-bold text-slate-700 block mb-1">Çentik Kaynak (J)</label>
+                                <input type="number" step="1" name="cvn_weld_actual" placeholder="Örn: 65" class="w-full border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="font-bold text-slate-700 block mb-1">Fabrika Hidrostatik Basıncı (Bar)</label>
+                            <input type="number" step="0.1" name="hydro_test_actual_bar" placeholder="Örn: 106.0" class="w-full border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500">
+                        </div>
+
+                        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg shadow transition text-sm flex items-center justify-center">
+                            <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            Uygunluğu Doğrula (PASS/FAIL)
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Verification Results Card -->
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm lg:col-span-2">
+                    <h3 class="text-base font-bold text-slate-900 mb-1">Doğrulama ve Kabul Raporu</h3>
+                    <p class="text-xs text-slate-500 mb-4">Şartname kriterlerine göre parametre bazlı otomatik denetim sonuçları.</p>
+
+                    <div id="verification-results-panel" class="hidden">
+                        <!-- Populated by JS -->
+                    </div>
+
+                    <div id="verification-placeholder" class="text-center py-16 text-slate-400">
+                        <svg class="w-12 h-12 mx-auto mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                        <p class="text-sm">Sol taraftan gerçek fabrika test verilerini girip "Uygunluğu Doğrula" butonuna basın.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 4: BONUS WALL THICKNESS DESIGN TOOL -->
+        <div id="wall-thickness-tab" class="tab-content hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Design Form -->
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm lg:col-span-1">
+                    <h3 class="text-base font-bold text-slate-900 mb-1">Boru Et Kalınlığı Tasarım Aracı</h3>
+                    <p class="text-xs text-slate-500 mb-4">ASME B31.8 & BOTAŞ Barlow Formülü ve ASME B36.10 Seçimi</p>
+
+                    <form id="wall-thickness-calc-form" class="space-y-3 text-xs">
+                        <div>
+                            <label class="font-bold text-slate-700 block mb-1">Boru Dış Çapı</label>
+                            <select name="diameter_inch" class="w-full border border-slate-300 rounded-lg p-2">
+                                <option value="4\"">4" (114.3 mm)</option>
+                                <option value="6\"">6" (168.3 mm)</option>
+                                <option value="8\"">8" (219.1 mm)</option>
+                                <option value="12\"">12" (323.9 mm)</option>
+                                <option value="16\"">16" (406.4 mm)</option>
+                                <option value="18\"">18" (457.0 mm)</option>
+                                <option value="24\"">24" (610.0 mm)</option>
+                                <option value="36\"">36" (914.0 mm)</option>
+                                <option value="48\"">48" (1219.0 mm)</option>
+                                <option value="56\"">56" (1422.0 mm)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="font-bold text-slate-700 block mb-1">Malzeme Kalitesi (API 5L)</label>
+                            <select name="material_grade" class="w-full border border-slate-300 rounded-lg p-2">
+                                <option value="X65">X65 (L450 - SMYS: 65300 psi / 450 MPa)</option>
+                                <option value="X70">X70 (L485 - SMYS: 70300 psi / 485 MPa)</option>
+                                <option value="X52">X52 (L360 - SMYS: 52200 psi / 360 MPa)</option>
+                                <option value="X56">X56 (L390 - SMYS: 56600 psi / 390 MPa)</option>
+                                <option value="GRADE B">GRADE B (L245 - SMYS: 35500 psi / 245 MPa)</option>
+                            </select>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="font-bold text-slate-700 block mb-1">Tasarım Basıncı (Bar)</label>
+                                <input type="number" step="0.1" name="design_pressure_bar" value="75.0" class="w-full border border-slate-300 rounded-lg p-2">
+                            </div>
+                            <div>
+                                <label class="font-bold text-slate-700 block mb-1">Dizayn Faktörü (F)</label>
+                                <select name="design_factor_f" class="w-full border border-slate-300 rounded-lg p-2">
+                                    <option value="0.72">F = 0.72 (Sınıf 1 Hat)</option>
+                                    <option value="0.60">F = 0.60 (Sınıf 2 Hat)</option>
+                                    <option value="0.50">F = 0.50 (Sınıf 3 / İstasyon)</option>
+                                    <option value="0.40">F = 0.40 (Sınıf 4 Yerleşim)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="font-bold text-slate-700 block mb-1">Boyuna Kaynak Faktörü (E)</label>
+                                <input type="number" step="0.05" name="longitudinal_joint_factor_e" value="1.0" class="w-full border border-slate-300 rounded-lg p-2">
+                            </div>
+                            <div>
+                                <label class="font-bold text-slate-700 block mb-1">Sıcaklık Düşürme (T)</label>
+                                <input type="number" step="0.05" name="temperature_derating_factor_t" value="1.0" class="w-full border border-slate-300 rounded-lg p-2">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="font-bold text-slate-700 block mb-1">Korozyon Payı (mm)</label>
+                                <input type="number" step="0.1" name="corrosion_allowance_mm" value="0.0" class="w-full border border-slate-300 rounded-lg p-2">
+                            </div>
+                            <div>
+                                <label class="font-bold text-slate-700 block mb-1">Tesis Türü</label>
+                                <select name="location_type" class="w-full border border-slate-300 rounded-lg p-2">
+                                    <option value="Pipeline">Hat Borusu (Pipeline)</option>
+                                    <option value="Station">İstasyon (Station)</option>
+                                    <option value="Pig Or Valve Station">Pig / Vana İstasyonu</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-lg shadow transition text-sm">
+                            Et Kalınlığı Hesapla & ASME B36.10 Seç
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Design Results -->
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm lg:col-span-2">
+                    <h3 class="text-base font-bold text-slate-900 mb-1">Tasarım Hesap Sonuçları</h3>
+                    <p class="text-xs text-slate-500 mb-4">ASME B31.8 minimum teorik et kalınlığı ve standart schedule seçimi.</p>
+                    <div id="wt-results-panel" class="hidden">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 5: PROJECT METADATA -->
+        <div id="project-info-tab" class="tab-content hidden">
+            <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm max-w-3xl mx-auto">
+                <h3 class="text-base font-bold text-slate-900 mb-4 pb-2 border-b border-slate-200">Proje, Müşteri ve Revizyon Anteti</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                    <div>
+                        <label class="font-bold text-slate-700 block mb-1">Proje Adı</label>
+                        <input type="text" id="meta-project-name" value="Doğal Gaz Boru Hattı Fabrika Kabul ve Kalite Güvence Projesi" class="w-full border border-slate-300 rounded-lg p-2">
+                    </div>
+                    <div>
+                        <label class="font-bold text-slate-700 block mb-1">Proje No</label>
+                        <input type="text" id="meta-project-no" value="PRJ-2026-API5L-001" class="w-full border border-slate-300 rounded-lg p-2">
+                    </div>
+                    <div>
+                        <label class="font-bold text-slate-700 block mb-1">Hat / Tesis Adı</label>
+                        <input type="text" id="meta-line-name" value="Ana İletim Hattı & İstasyon Bağlantıları" class="w-full border border-slate-300 rounded-lg p-2">
+                    </div>
+                    <div>
+                        <label class="font-bold text-slate-700 block mb-1">Müşteri / İşveren</label>
+                        <input type="text" id="meta-client" value="BOTAŞ Boru Hatları ile Petrol Taşıma A.Ş." class="w-full border border-slate-300 rounded-lg p-2">
+                    </div>
+                    <div>
+                        <label class="font-bold text-slate-700 block mb-1">Hazırlayan Mühendis</label>
+                        <input type="text" id="meta-prepared" value="Boru Tasarım & Kalite Mühendisi" class="w-full border border-slate-300 rounded-lg p-2">
+                    </div>
+                    <div>
+                        <label class="font-bold text-slate-700 block mb-1">Kontrol Eden / Şef</label>
+                        <input type="text" id="meta-checked" value="Kalite Kontrol Şefi" class="w-full border border-slate-300 rounded-lg p-2">
+                    </div>
+                    <div>
+                        <label class="font-bold text-slate-700 block mb-1">Revizyon No</label>
+                        <input type="text" id="meta-revision" value="Rev. 0" class="w-full border border-slate-300 rounded-lg p-2">
+                    </div>
+                    <div>
+                        <label class="font-bold text-slate-700 block mb-1">Revizyon Tarihi</label>
+                        <input type="date" id="meta-date" value="2026-08-21" class="w-full border border-slate-300 rounded-lg p-2">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Modal: Add New Pipe with BOTAŞ vs API 5L Support -->
+    <div id="add-pipe-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
+                <h3 class="font-bold text-base text-slate-900">Matrise Yeni Boru Sütunu Ekle</h3>
+                <button onclick="document.getElementById('add-pipe-modal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600">✕</button>
+            </div>
+            
+            <form id="add-pipe-form" onsubmit="handleAddNewPipe(event)" class="space-y-3 text-xs">
+                <div>
+                    <label class="font-bold text-slate-700 block mb-1">Değerlendirme Kriteri / Şartname</label>
+                    <select id="new-pipe-standard" class="w-full border-2 border-blue-500 rounded-lg p-2 font-bold bg-blue-50/50">
+                        <option value="BOTAŞ">BOTAŞ Şartnamesi (Tablodan Otomatik Seçim)</option>
+                        <option value="API 5L">API 5L PSL2 (Kullanıcı Tarafından Serbest Seçim)</option>
+                    </select>
+                </div>
+
+                <div id="botas-hint-msg" class="p-2 bg-amber-50 border border-amber-200 rounded text-amber-900 text-[11px] font-medium hidden">
+                </div>
+
+                <div>
+                    <label class="font-bold text-slate-700 block mb-1">Boru Anma Çapı (NPS / OD)</label>
+                    <select id="new-pipe-dia" class="w-full border border-slate-300 rounded-lg p-2">
+                        {% for d in diameters %}
+                        <option value="{{ d.inch }}" data-mm="{{ d.mm }}" {% if d.inch == '48\"' %}selected{% endif %}>{{ d.inch }} (OD: {{ d.mm }} mm)</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="font-bold text-slate-700 block mb-1">Tasarım Faktörü</label>
+                        <select id="new-pipe-factor" class="w-full border border-slate-300 rounded-lg p-2">
+                            <option value="0,72 (Hat)">0,72 (Hat)</option>
+                            <option value="0,6 (Hat)">0,6 (Hat)</option>
+                            <option value="0,5 (Hat)">0,5 (Hat)</option>
+                            <option value="0,5 (İst.)">0,5 (İstasyon 1)</option>
+                            <option value="0,5 (İst. 2)">0,5 (İstasyon 2)</option>
+                            <option value="0,4">0,4</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="font-bold text-slate-700 block mb-1">Et Kalınlığı (mm)</label>
+                        <input type="number" step="0.01" id="new-pipe-thk" value="14.30" required class="w-full border border-slate-300 rounded-lg p-2 font-bold">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="font-bold text-slate-700 block mb-1">Malzeme Kalitesi</label>
+                        <select id="new-pipe-grade" class="w-full border border-slate-300 rounded-lg p-2 font-semibold">
+                            {% for g in grades %}
+                            <option value="{{ g }}" {% if g == 'X65' %}selected{% endif %}>{{ g }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="font-bold text-slate-700 block mb-1">İmalat Yöntemi</label>
+                        <select id="new-pipe-process" class="w-full border border-slate-300 rounded-lg p-2">
+                            <option value="SAWH">SAWH (Spiral Kaynak)</option>
+                            <option value="ERW HFW">ERW / HFW (Boyuna Kaynak)</option>
+                            <option value="SMLS">SMLS (Dikişsiz)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="pt-3 flex space-x-2">
+                    <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg transition shadow">Matrise Sütun Olarak Ekle</button>
+                    <button type="button" onclick="document.getElementById('add-pipe-modal').classList.add('hidden')" class="px-4 bg-slate-100 text-slate-700 rounded-lg font-semibold">İptal</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Notification Element -->
+    <div id="app-toast" class="hidden"></div>
+
+    <!-- Scripts -->
+    <script src="/static/js/i18n.js"></script>
+    <script src="/static/js/pipe_visualizer_2d.js"></script>
+    <script src="/static/js/pipe_visualizer_3d.js"></script>
+    <script src="/static/js/project_storage.js"></script>
+    <script src="/static/js/app.js"></script>
+
+    <script>
+        function switchTab(tabId) {
+            document.querySelectorAll(".tab-content").forEach(el => el.classList.add("hidden"));
+            document.querySelectorAll(".tab-button").forEach(el => {
+                el.classList.remove("border-blue-500", "text-blue-400", "font-bold");
+                el.classList.add("border-transparent", "text-slate-400");
+            });
+
+            const target = document.getElementById(tabId);
+            if (target) target.classList.remove("hidden");
+
+            const activeBtn = document.getElementById(`tab-btn-${tabId.replace('-tab', '')}`);
+            if (activeBtn) {
+                activeBtn.classList.remove("border-transparent", "text-slate-400");
+                activeBtn.classList.add("border-blue-500", "text-blue-400", "font-bold");
+            }
+
+            if (tabId === "schematic-tab" && visualizer3DInstance) {
+                setTimeout(() => visualizer3DInstance.onResize(), 150);
+            }
+        }
+
+        function handleAddNewPipe(e) {
+            e.preventDefault();
+            const std = document.getElementById("new-pipe-standard").value;
+            const diaSelect = document.getElementById("new-pipe-dia");
+            const diaInch = diaSelect.value;
+            const diaMm = parseFloat(diaSelect.options[diaSelect.selectedIndex].getAttribute("data-mm") || "1219.0");
+            const thk = parseFloat(document.getElementById("new-pipe-thk").value || "14.30");
+            const factor = document.getElementById("new-pipe-factor").value;
+            const grade = document.getElementById("new-pipe-grade").value;
+            const proc = document.getElementById("new-pipe-process").value;
+
+            activeProject.pipes.push({
+                id: "pipe_" + Date.now(),
+                diameter_inch: diaInch,
+                diameter_mm: diaMm,
+                wall_thickness_mm: thk,
+                design_factor_str: factor,
+                material_grade: grade,
+                manufacturing_process: proc,
+                standard_type: std,
+                design_pressure_bar: 75.0
+            });
+
+            ProjectStorage.saveToLocalStorage(activeProject);
+            calculateAndRenderAll();
+            document.getElementById("add-pipe-modal").classList.add("hidden");
+            showToast(`Yeni ${std} borusu başarıyla eklendi!`, "success");
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ project.project_name }} - {{ t('app_title') }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        @page { size: A4 landscape; margin: 10mm; }
+        body { font-family: 'Inter', sans-serif; background: white; color: #111827; }
+    </style>
+</head>
+<body class="p-4" onload="window.print()">
+
+    <!-- Official Header & Banner -->
+    <div class="border-2 border-slate-900 p-4 mb-4 rounded-lg bg-slate-50">
+        <div class="flex justify-between items-start border-b-2 border-slate-800 pb-3 mb-3">
+            <div>
+                <h1 class="text-lg font-black text-slate-900 tracking-wide uppercase">{{ project.project_name }}</h1>
+                <p class="text-xs font-semibold text-slate-600">BORU KALİTE GÜVENCE, FABRİKA KABUL (FAT) VE BOYUTSAL TOLERANS RAPORU</p>
+                <p class="text-xs text-slate-500">Standart: {{ project.standard }} | İlgili Hat: {{ project.line_name }}</p>
+            </div>
+            <div class="text-right text-xs">
+                <p><strong>Proje No:</strong> {{ project.project_no }}</p>
+                <p><strong>Revizyon:</strong> <span class="bg-slate-200 px-1.5 py-0.5 rounded font-bold">{{ project.revision }}</span></p>
+                <p><strong>Tarih:</strong> {{ project.revision_date }}</p>
+            </div>
+        </div>
+        <div class="grid grid-cols-3 gap-2 text-xs text-slate-700">
+            <div><strong>İşveren / Müşteri:</strong> {{ project.client }}</div>
+            <div><strong>Yüklenici / Üretici:</strong> {{ project.contractor }}</div>
+            <div><strong>Uygulama Sürümü:</strong> v2.0 (API 5L PSL2 & BOTAŞ)</div>
+        </div>
+    </div>
+
+    <!-- The Exact Matrix Table -->
+    <div class="overflow-x-auto mb-6">
+        <table class="matrix-table text-xs border-2 border-slate-900">
+            <tbody>
+                <!-- Diameter Inch -->
+                <tr>
+                    <td colspan="4" class="th-main font-bold">ÇAP (inch)</td>
+                    {% for p in pipes %}
+                    <td class="th-sub font-bold">{{ p.input_summary.diameter_inch }}</td>
+                    {% endfor %}
+                </tr>
+                <!-- Diameter Mm -->
+                <tr>
+                    <td colspan="4" class="th-main font-bold">ÇAP (mm)</td>
+                    {% for p in pipes %}
+                    <td class="th-sub font-bold">{{ p.input_summary.diameter_mm }}</td>
+                    {% endfor %}
+                </tr>
+                <!-- Design Factor -->
+                <tr>
+                    <td colspan="4" class="th-main font-bold">Design Basıncı</td>
+                    {% for p in pipes %}
+                    <td class="th-sub font-bold">{{ p.input_summary.design_factor_str }}</td>
+                    {% endfor %}
+                </tr>
+                <!-- Wall Thickness -->
+                <tr>
+                    <td colspan="4" class="th-main font-bold">Et Kalınlığı (mm)</td>
+                    {% for p in pipes %}
+                    <td class="th-sub font-black text-indigo-900">{{ "%.2f"|format(p.input_summary.wall_thickness_mm) }}</td>
+                    {% endfor %}
+                </tr>
+                <!-- Process -->
+                <tr>
+                    <td colspan="4" class="th-main font-bold">Üretim Yöntemi</td>
+                    {% for p in pipes %}
+                    <td class="th-sub font-bold">{{ p.input_summary.manufacturing_process }}</td>
+                    {% endfor %}
+                </tr>
+                <!-- Material Grade -->
+                <tr>
+                    <td colspan="4" class="th-main font-bold">Malzeme Kalitesi</td>
+                    {% for p in pipes %}
+                    <td class="th-sub font-bold text-emerald-900">{{ p.input_summary.material_grade }}</td>
+                    {% endfor %}
+                </tr>
+                <!-- SMYS -->
+                <tr>
+                    <td colspan="4" class="th-main font-bold">SMYS (Psi)</td>
+                    {% for p in pipes %}
+                    <td class="th-sub font-bold">{{ p.mechanical_properties.smys_psi }}</td>
+                    {% endfor %}
+                </tr>
+
+                <!-- Chemical Block -->
+                <tr>
+                    <td rowspan="8" colspan="2" class="th-side font-bold text-center">Kimyasal Analiz</td>
+                    <td class="font-bold text-center">C</td>
+                    <td class="text-center text-xs">Max %</td>
+                    {% for p in pipes %}<td>{{ "%.2f"|format(p.chemical_analysis.C_max) }}</td>{% endfor %}
+                </tr>
+                <tr>
+                    <td class="font-bold text-center">Mn</td>
+                    <td class="text-center text-xs">Max %</td>
+                    {% for p in pipes %}<td>{{ "%.2f"|format(p.chemical_analysis.Mn_max) }}</td>{% endfor %}
+                </tr>
+                <tr>
+                    <td class="font-bold text-center">P</td>
+                    <td class="text-center text-xs">Max %</td>
+                    {% for p in pipes %}<td>{{ "%.3f"|format(p.chemical_analysis.P_max) }}</td>{% endfor %}
+                </tr>
+                <tr>
+                    <td class="font-bold text-center">S</td>
+                    <td class="text-center text-xs">Max %</td>
+                    {% for p in pipes %}<td>{{ "%.3f"|format(p.chemical_analysis.S_max) }}</td>{% endfor %}
+                </tr>
+                <tr>
+                    <td class="font-bold text-center">Nb</td>
+                    <td class="text-center text-xs">{{ pipes[0].chemical_analysis.Nb_label }}</td>
+                    {% for p in pipes %}<td>{{ p.chemical_analysis.Nb_min_max }}</td>{% endfor %}
+                </tr>
+                <tr>
+                    <td class="font-bold text-center">V</td>
+                    <td class="text-center text-xs">Max %</td>
+                    {% for p in pipes %}<td>{{ "%.2f"|format(p.chemical_analysis.V_max) }}</td>{% endfor %}
+                </tr>
+                <tr>
+                    <td class="font-bold text-center">Ti</td>
+                    <td class="text-center text-xs">Max %</td>
+                    {% for p in pipes %}<td>{{ "%.2f"|format(p.chemical_analysis.Ti_max) }}</td>{% endfor %}
+                </tr>
+                <tr>
+                    <td class="font-bold text-center">N</td>
+                    <td class="text-center text-xs">Max %</td>
+                    {% for p in pipes %}<td>{{ "%.3f"|format(p.chemical_analysis.N_max) }}</td>{% endfor %}
+                </tr>
+
+                <!-- Wall Thickness Tolerance -->
+                <tr>
+                    <td rowspan="2" class="th-side font-bold text-center text-xs">Et Kalınlığı Toleransı</td>
+                    <td colspan="3" class="label-cell">Et Kalınlığı: Min. (mm)</td>
+                    {% for p in pipes %}<td class="font-bold text-red-700">{{ "%.2f"|format(p.wall_thickness_tolerance.min_mm) }}</td>{% endfor %}
+                </tr>
+                <tr>
+                    <td colspan="3" class="label-cell">Et Kalınlığı: Max. (mm)</td>
+                    {% for p in pipes %}<td class="font-bold text-emerald-700">{{ "%.2f"|format(p.wall_thickness_tolerance.max_mm) }}</td>{% endfor %}
+                </tr>
+
+                <!-- Mechanical Properties -->
+                <tr>
+                    <td colspan="4" class="label-cell">Yield Min. (Psi-Mpa)</td>
+                    {% for p in pipes %}<td>{{ p.mechanical_properties.yield_min_psi }} / {{ p.mechanical_properties.yield_min_mpa }}</td>{% endfor %}
+                </tr>
+                <tr>
+                    <td colspan="4" class="label-cell">Yield Max. (Psi-Mpa)</td>
+                    {% for p in pipes %}<td>{{ p.mechanical_properties.yield_max_psi }} / {{ p.mechanical_properties.yield_max_mpa }}</td>{% endfor %}
+                </tr>
+                <tr>
+                    <td colspan="4" class="label-cell">Tensile Min (Psi-Mpa)</td>
+                    {% for p in pipes %}<td>{{ p.mechanical_properties.tensile_min_psi }} / {{ p.mechanical_properties.tensile_min_mpa }}</td>{% endfor %}
+                </tr>
+                <tr>
+                    <td colspan="4" class="label-cell">Tensile Max (Psi-Mpa)</td>
+                    {% for p in pipes %}<td>{{ p.mechanical_properties.tensile_max_psi }} / {{ p.mechanical_properties.tensile_max_mpa }}</td>{% endfor %}
+                </tr>
+                <tr>
+                    <td colspan="4" class="label-cell">Hydro Test Basıncı Max.(Bar)</td>
+                    {% for p in pipes %}<td class="font-bold text-blue-900">{{ "%.2f"|format(p.hydrostatic_test.hydro_test_max_bar) }}</td>{% endfor %}
+                </tr>
+                <tr>
+                    <td colspan="4" class="label-cell">Hydro Test Basıncı Min.(Bar)</td>
+                    {% for p in pipes %}<td>{{ "%.2f"|format(p.hydrostatic_test.hydro_test_min_bar) }}</td>{% endfor %}
+                </tr>
+                <tr>
+                    <td colspan="4" class="label-cell">API 5L Standart Test Pressure (Bar)</td>
+                    {% for p in pipes %}<td>{{ "%.2f"|format(p.hydrostatic_test.api_5l_std_test_bar) }}</td>{% endfor %}
+                </tr>
+                <tr>
+                    <td colspan="4" class="label-cell">Minimum Uzama (% e) - Malzeme</td>
+                    {% for p in pipes %}<td><strong>{{ "%.2f"|format(p.toughness_and_tests.elongation_mat_min_percent) }}%</strong></td>{% endfor %}
+                </tr>
+                <tr>
+                    <td colspan="4" class="label-cell">Radial Offset Max. (mm)</td>
+                    {% for p in pipes %}<td>{{ p.weld_and_geometry.radial_offset_max_mm }}</td>{% endfor %}
+                </tr>
+                <tr>
+                    <td colspan="4" class="label-cell">Kaynak Yüksekliği - İç / Dış (mm)</td>
+                    {% for p in pipes %}<td>{{ p.weld_and_geometry.weld_height_inside_mm }} / {{ p.weld_and_geometry.weld_height_outside_mm }}</td>{% endfor %}
+                </tr>
+                <tr>
+                    <td colspan="4" class="label-cell">Artık Sress Testi Max (mm)</td>
+                    {% for p in pipes %}<td><strong>{{ p.toughness_and_tests.residual_stress_max_mm }}</strong></td>{% endfor %}
+                </tr>
+                <tr>
+                    <td colspan="4" class="label-cell">Yırtılma Testi (DWTT)</td>
+                    {% for p in pipes %}<td><strong>{{ p.toughness_and_tests.dwtt_test }}</strong></td>{% endfor %}
+                </tr>
+                <tr>
+                    <td colspan="4" class="label-cell">Mandrel Çapı / Çene Açıklığı Max (mm)</td>
+                    {% for p in pipes %}<td>{{ p.toughness_and_tests.mandrel_dia_max_mm }} / {{ p.toughness_and_tests.jaw_opening_max_mm }}</td>{% endfor %}
+                </tr>
+                <tr>
+                    <td colspan="4" class="label-cell">Ağırlık Nominal (Kg/m)</td>
+                    {% for p in pipes %}<td><strong>{{ "%.1f"|format(p.weights_and_safety.weight_nominal_kg_m) }}</strong></td>{% endfor %}
+                </tr>
+                <tr>
+                    <td colspan="4" class="label-cell">Operating pressure/ SMYS</td>
+                    {% for p in pipes %}<td>{{ p.weights_and_safety.operating_press_over_smys_percent }}</td>{% endfor %}
+                </tr>
+                <tr>
+                    <td colspan="4" class="label-cell">841.1.2 Fracture Control and Arrest</td>
+                    {% for p in pipes %}<td>{{ p.weights_and_safety.fracture_control_asme_841_1_2 }}</td>{% endfor %}
+                </tr>
+                <tr>
+                    <td colspan="4" class="label-cell">D/t & Alternatif Basınç Dizayn</td>
+                    {% for p in pipes %}<td>{{ p.weights_and_safety.d_over_t }} ({{ p.weights_and_safety.alternative_design_pressure_bar }})</td>{% endfor %}
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Signatures Block -->
+    <div class="grid grid-cols-3 gap-6 text-xs border-2 border-slate-800 p-4 rounded-lg bg-slate-50 mt-6">
+        <div class="text-center">
+            <p class="font-bold text-slate-900 mb-1">HAZIRLAYAN</p>
+            <p class="text-slate-600">{{ project.prepared_by }}</p>
+            <div class="h-12 border-b border-dashed border-slate-400 mt-2"></div>
+            <p class="text-[10px] text-slate-400 mt-1">İmza / Tarih</p>
+        </div>
+        <div class="text-center">
+            <p class="font-bold text-slate-900 mb-1">KONTROL EDEN</p>
+            <p class="text-slate-600">{{ project.checked_by }}</p>
+            <div class="h-12 border-b border-dashed border-slate-400 mt-2"></div>
+            <p class="text-[10px] text-slate-400 mt-1">İmza / Tarih</p>
+        </div>
+        <div class="text-center">
+            <p class="font-bold text-slate-900 mb-1">ONAYLAYAN (BAŞ DENETÇİ)</p>
+            <p class="text-slate-600">{{ project.approved_by }}</p>
+            <div class="h-12 border-b border-dashed border-slate-400 mt-2"></div>
+            <p class="text-[10px] text-slate-400 mt-1">İmza / Kaşe / Tarih</p>
+        </div>
+    </div>
+
+</body>
+</html>

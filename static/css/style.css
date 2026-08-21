@@ -1,0 +1,143 @@
+/* Modern Engineering Theme for API 5L Pipe QA/QC Suite */
+:root {
+    --primary: #1e3a8a;
+    --primary-light: #3b82f6;
+    --primary-dark: #172554;
+    --secondary: #0f766e;
+    --accent: #d97706;
+    --bg-main: #f8fafc;
+    --bg-card: #ffffff;
+    --border-color: #cbd5e1;
+    --text-main: #0f172a;
+    --text-muted: #64748b;
+    --table-header-bg: #9ca3af;
+    --table-header-sub: #d1d5db;
+    --table-zebra: #f9fafb;
+    --pass-bg: #dcfce7;
+    --pass-text: #15803d;
+    --fail-bg: #fee2e2;
+    --fail-text: #b91c1c;
+}
+
+body {
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background-color: var(--bg-main);
+    color: var(--text-main);
+    margin: 0;
+    padding: 0;
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+::-webkit-scrollbar-track {
+    background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+    background: #94a3b8;
+    border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #64748b;
+}
+
+/* Matrix Table Styling matching exact screenshot */
+.matrix-table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 0.82rem;
+    background: white;
+}
+
+.matrix-table th, .matrix-table td {
+    border: 1px solid #475569;
+    padding: 5px 8px;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.matrix-table .th-main {
+    background-color: var(--table-header-bg);
+    color: #111827;
+    font-weight: 700;
+}
+
+.matrix-table .th-sub {
+    background-color: var(--table-header-sub);
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.matrix-table .th-side {
+    background-color: #e5e7eb;
+    font-weight: 700;
+    text-align: center;
+    color: #111827;
+}
+
+.matrix-table .label-cell {
+    background-color: #f1f5f9;
+    text-align: left;
+    font-weight: 600;
+    color: #1e293b;
+    white-space: nowrap;
+}
+
+.matrix-table tr:nth-child(even) td:not(.label-cell):not(.th-main):not(.th-sub):not(.th-side) {
+    background-color: #f8fafc;
+}
+
+.matrix-table tr:hover td {
+    background-color: #eff6ff !important;
+}
+
+/* Status Badges */
+.badge-pass {
+    background-color: var(--pass-bg);
+    color: var(--pass-text);
+    padding: 2px 8px;
+    border-radius: 9999px;
+    font-weight: 600;
+    font-size: 0.75rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.badge-fail {
+    background-color: var(--fail-bg);
+    color: var(--fail-text);
+    padding: 2px 8px;
+    border-radius: 9999px;
+    font-weight: 600;
+    font-size: 0.75rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* Canvas & 3D Visualizer Container */
+.viewport-container {
+    position: relative;
+    width: 100%;
+    height: 480px;
+    background: radial-gradient(circle, #1e293b 0%, #0f172a 100%);
+    border-radius: 0.75rem;
+    overflow: hidden;
+}
+
+/* Print Specifics */
+@media print {
+    .no-print {
+        display: none !important;
+    }
+    body {
+        background: white;
+    }
+    .matrix-table th, .matrix-table td {
+        border: 1px solid #000 !important;
+        font-size: 8pt;
+    }
+}
