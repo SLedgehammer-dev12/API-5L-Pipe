@@ -271,9 +271,11 @@ class ExcelExporter:
         cell_rem_head.alignment = align_center
         cell_rem_head.border = border_all
 
-        # Fill explanations in the far right column
+        # Fill explanations in the far right column for all rows
         exp_dict = pipes_data[0].get('explanations', {}) if pipes_data else {}
-        row_exp_mapping = {
+        
+        # Add explanations for remaining standard rows
+        rem_mapping = {
             start_row: exp_dict.get('diameter', {}).get('tr', ''),
             start_row + 1: "Boru Gerçek Dış Çapı (OD mm)",
             start_row + 2: exp_dict.get('design_factor', {}).get('tr', ''),
@@ -282,13 +284,33 @@ class ExcelExporter:
             start_row + 5: exp_dict.get('grade', {}).get('tr', ''),
             start_row + 6: exp_dict.get('smys', {}).get('tr', ''),
         }
-
-        for r_idx, exp_txt in row_exp_mapping.items():
+        for r_idx, exp_txt in rem_mapping.items():
             c_exp = ws.cell(r_idx, 5 + num_pipes, exp_txt)
             c_exp.font = font_sub
             c_exp.fill = fill_zebra
             c_exp.alignment = align_left
             c_exp.border = border_all
+
+        # Disclaimer & Copyright Footer in Excel
+        disclaimer_row = current_r + 2
+        total_cols = 5 + num_pipes
+        
+        # Copyright Note
+        ws.merge_cells(start_row=disclaimer_row, start_column=1, end_row=disclaimer_row, end_column=total_cols)
+        c_copy = ws.cell(disclaimer_row, 1, "© 2026 API 5L PSL2 & BOTAŞ Pipe QA/QC & Design Suite. Tüm Hakları Saklıdır.")
+        c_copy.font = Font(name="Segoe UI", size=9, bold=True, color="334155")
+        c_copy.alignment = align_left
+
+        # Engineering Disclaimer Note
+        ws.merge_cells(start_row=disclaimer_row + 1, start_column=1, end_row=disclaimer_row + 2, end_column=total_cols)
+        disclaimer_text = (
+            "YASAL SORUMLULUK REDDİ (ENGINEERING DISCLAIMER): Bu rapor API 5L PSL2 standardı ve BOTAŞ teknik şartnameleri "
+            "doğrultusunda otomatik ön hesaplama ve kalite kontrol amacıyla üretilmiştir. Projelerde uygulanacak nihai et kalınlıkları "
+            "ve kabul parametreleri, yürürlükteki yasal mevzuat ve lisanslı proje baş mühendisinin / kuruluşunun resmi onayına tabidir."
+        )
+        c_disc = ws.cell(disclaimer_row + 1, 1, disclaimer_text)
+        c_disc.font = Font(name="Segoe UI", size=8, italic=True, color="64748B")
+        c_disc.alignment = Alignment(horizontal="left", vertical="top", wrap_text=True)
 
         stream = io.BytesIO()
         wb.save(stream)

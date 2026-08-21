@@ -16,7 +16,7 @@
     <!-- Custom CSS -->
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
-<body class="bg-slate-50 text-slate-900 min-h-screen flex flex-col">
+<body class="bg-slate-50 text-slate-900 min-h-screen flex flex-col justify-between">
 
     <!-- Top Navigation Header -->
     <header class="bg-slate-900 text-white border-b border-slate-800 shadow-md sticky top-0 z-40">
@@ -41,6 +41,12 @@
                     <button onclick="setLanguage('tr')" class="px-2 py-1 text-xs font-bold rounded text-white hover:bg-blue-600 transition">TR</button>
                     <button onclick="setLanguage('en')" class="px-2 py-1 text-xs font-bold rounded text-white hover:bg-blue-600 transition">EN</button>
                 </div>
+
+                <!-- About & Disclaimer Button -->
+                <button onclick="document.getElementById('about-modal').classList.remove('hidden')" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center transition" title="Hakkında ve Yasal Uyarı">
+                    <svg class="w-4 h-4 mr-1 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <span data-i18n="nav_about">Hakkında</span>
+                </button>
 
                 <!-- Export Excel Button -->
                 <button id="btn-export-excel" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold flex items-center shadow transition">
@@ -86,40 +92,79 @@
 
         <!-- TAB 1: QA/QC MATRIX DASHBOARD -->
         <div id="matrix-tab" class="tab-content">
-            <!-- Action Bar -->
-            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm mb-6 flex flex-wrap items-center justify-between gap-3">
-                <div class="flex flex-wrap items-center gap-2">
-                    <label class="bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition flex items-center">
-                        <svg class="w-4 h-4 mr-1.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
-                        Proje Yükle (.pipeproj / JSON)
-                        <input type="file" id="input-load-project-file" class="hidden" accept=".pipeproj,.json">
-                    </label>
-                    <button onclick="clearAllPipes()" class="text-xs text-red-600 hover:text-red-800 hover:bg-red-50 border border-red-200 px-3 py-1.5 rounded-lg font-semibold transition">
-                        Matrisi Temizle
-                    </button>
+
+            <!-- Executive KPI Cards Panel for Selected Pipe -->
+            <div id="kpi-cards-panel" class="hidden mb-5 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="flex items-center space-x-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-blue-600 animate-pulse"></span>
+                        <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider">Aktif İncelenen Boru Özet Performansı</h4>
+                    </div>
+                    <span id="kpi-active-pipe-title" class="text-xs font-bold text-blue-900 bg-blue-50 px-2.5 py-1 rounded border border-blue-200"></span>
+                </div>
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                    <div class="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                        <span class="text-[11px] text-slate-500 font-semibold block" data-i18n="kpi_hydro_press">Maks. Fabrika Test Basıncı</span>
+                        <span id="kpi-hydro-val" class="text-base font-extrabold text-blue-700 block">--</span>
+                        <span id="kpi-hydro-sub" class="text-[10px] text-slate-400 block mt-0.5">Barlow Formülü (SMYS %90-%95)</span>
+                    </div>
+                    <div class="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                        <span class="text-[11px] text-slate-500 font-semibold block" data-i18n="kpi_weight">Nominal Birim Ağırlık</span>
+                        <span id="kpi-weight-val" class="text-base font-extrabold text-slate-800 block">--</span>
+                        <span id="kpi-weight-sub" class="text-[10px] text-slate-400 block mt-0.5">0.02466 · t · (D - t)</span>
+                    </div>
+                    <div class="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                        <span class="text-[11px] text-slate-500 font-semibold block" data-i18n="kpi_dt_ratio">D/t Oranı & Tasarım</span>
+                        <span id="kpi-dt-val" class="text-base font-extrabold text-purple-800 block">--</span>
+                        <span id="kpi-dt-sub" class="text-[10px] text-slate-400 block mt-0.5">ASME B31.8 841.1.1</span>
+                    </div>
+                    <div class="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                        <span class="text-[11px] text-slate-500 font-semibold block" data-i18n="kpi_fracture">ASME 841.1.2 Kırılma Emniyeti</span>
+                        <span id="kpi-fracture-val" class="text-base font-extrabold text-amber-800 block">--</span>
+                        <span id="kpi-fracture-sub" class="text-[10px] text-slate-400 block mt-0.5">API 5L Annex G / Tokluk</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Bar with Live Search & Collapse Toggles -->
+            <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm mb-4 flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center space-x-2 flex-1 min-w-[280px]">
+                    <div class="relative flex-1">
+                        <input type="text" id="matrix-search-input" onkeyup="filterMatrixRows()" data-i18n-placeholder="search_placeholder" placeholder="Tabloda parametre veya standart ara (örn: uzama, ovalite, hydro, C)..." class="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg pl-8 pr-3 py-2 focus:ring-2 focus:ring-blue-500 focus:bg-white transition">
+                        <svg class="w-4 h-4 text-slate-400 absolute left-2.5 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    </div>
+                    <button onclick="toggleAllAccordions(true)" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs px-2.5 py-2 rounded-lg font-semibold transition" title="Tüm grupları genişlet" data-i18n="btn_expand_all">Tümünü Aç</button>
+                    <button onclick="toggleAllAccordions(false)" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs px-2.5 py-2 rounded-lg font-semibold transition" title="Tüm grupları daralt" data-i18n="btn_collapse_all">Tümünü Kapat</button>
                 </div>
 
                 <div class="flex items-center space-x-2">
-                    <button id="btn-open-add-pipe-modal" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-xs sm:text-sm font-bold flex items-center shadow transition">
-                        <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                        Yeni Boru Sütunu Ekle
+                    <label class="bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200 px-3 py-2 rounded-lg text-xs font-semibold cursor-pointer transition flex items-center">
+                        <svg class="w-4 h-4 mr-1.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                        Proje Yükle
+                        <input type="file" id="input-load-project-file" class="hidden" accept=".pipeproj,.json">
+                    </label>
+                    <button onclick="clearAllPipes()" class="text-xs text-red-600 hover:text-red-800 hover:bg-red-50 border border-red-200 px-3 py-2 rounded-lg font-semibold transition">
+                        Temizle
+                    </button>
+                    <button id="btn-open-add-pipe-modal" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-xs font-bold flex items-center shadow transition" data-i18n="btn_add_pipe">
+                        + Yeni Boru Sütunu Ekle
                     </button>
                 </div>
             </div>
 
-            <!-- Table Container with Horizontal Scroll for Unlimited Columns -->
+            <!-- Sticky Matrix Table Container -->
             <div class="bg-white rounded-xl border border-slate-300 shadow-md overflow-hidden mb-6">
-                <div class="p-3 bg-slate-800 text-white flex items-center justify-between border-b border-slate-700">
+                <div class="p-3 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800">
                     <div class="flex items-center space-x-2">
                         <span class="w-3 h-3 rounded-full bg-emerald-500 inline-block"></span>
-                        <h3 class="font-bold text-sm">Boru Kalite Güvence, Fabrika Kabul ve Boyutsal Tolerans Matrisi</h3>
+                        <h3 class="font-bold text-xs sm:text-sm">Boru Kalite Güvence, Fabrika Kabul ve Boyutsal Tolerans Matrisi</h3>
                     </div>
-                    <span class="text-xs text-slate-300">API 5L PSL2 & BOTAŞ Şartnameleri</span>
+                    <span class="text-[11px] text-slate-400 italic">Sütun başlığına tıklayarak 3D'de odaklayabilirsiniz</span>
                 </div>
-                <div class="overflow-x-auto">
+                <div class="table-sticky-container">
                     <table class="matrix-table text-xs">
                         <tbody id="matrix-table-body">
-                            <!-- Populated dynamically by app.js with explanations on FAR RIGHT -->
+                            <!-- Populated dynamically with Sticky Headers and Explanations on FAR RIGHT -->
                         </tbody>
                     </table>
                 </div>
@@ -127,7 +172,7 @@
 
             <!-- Quick Management List -->
             <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Matristeki Borular (Seçmek veya Çıkarmak için Tıklayın)</h4>
+                <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Matristeki Borular (3D'de Seçmek veya Çıkarmak için Tıklayın)</h4>
                 <div id="pipes-management-list" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
                     <!-- Populated dynamically -->
                 </div>
@@ -136,6 +181,17 @@
 
         <!-- TAB 2: 2D & 3D SCHEMATIC VIEWPORTS -->
         <div id="schematic-tab" class="tab-content hidden">
+            <!-- Horizontal Pipe Selector Carousel -->
+            <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm mb-4">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">3D/2D'de Görüntülenecek Boruyu Seçin:</span>
+                    <span class="text-[11px] text-slate-400">Tek tıkla modeli anında güncelleyin</span>
+                </div>
+                <div id="schematic-pipe-chips" class="flex items-center space-x-2 overflow-x-auto pb-1">
+                    <!-- Populated dynamically with pipe chips -->
+                </div>
+            </div>
+
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <!-- 2D SVG Cross-Section Card -->
                 <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col">
@@ -153,17 +209,23 @@
 
                 <!-- 3D Three.js WebGL Interactive Pipe Card -->
                 <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col">
-                    <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+                    <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-3 flex-wrap gap-2">
                         <div>
                             <h3 class="text-sm font-bold text-slate-800">3D İnteraktif Boru & Helisel/Boyuna Kaynak Modeli</h3>
                             <p class="text-xs text-slate-500">Mouse ile 360° döndürün, yakınlaştırın ve kesit alın</p>
                         </div>
-                        <div class="flex items-center space-x-2">
-                            <button onclick="visualizer3DInstance.toggleCutaway(calculatedPipes[selectedPipeIndex])" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs px-2.5 py-1 rounded font-semibold transition">
-                                Kesit Al (Cutaway)
+                        <div class="flex items-center space-x-1.5">
+                            <button id="btn-snapshot-3d" class="bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-300 text-xs px-2.5 py-1 rounded font-semibold transition flex items-center" title="Yüksek çözünürlüklü PNG indir" data-i18n="btn_snapshot_3d">
+                                📷 3D Resmi Kaydet (PNG)
+                            </button>
+                            <button onclick="visualizer3DInstance.toggleCutaway()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs px-2.5 py-1 rounded font-semibold transition">
+                                Kesit Al
                             </button>
                             <button onclick="visualizer3DInstance.toggleRotation()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs px-2.5 py-1 rounded font-semibold transition">
-                                Otomatik Dönüş
+                                Dönüş
+                            </button>
+                            <button onclick="visualizer3DInstance.resetCamera()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs px-2 py-1 rounded font-semibold transition" title="Kamerayı sıfırla">
+                                ↺
                             </button>
                         </div>
                     </div>
@@ -394,6 +456,82 @@
 
     </main>
 
+    <!-- Professional Engineering Footer with Copyright & Disclaimer -->
+    <footer class="bg-slate-900 text-slate-400 border-t border-slate-800 text-xs py-4 px-4 sm:px-8 mt-6">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-2 text-center md:text-left">
+            <div>
+                <span class="font-semibold text-slate-200" data-i18n="footer_copyright">© 2026 API 5L PSL2 & BOTAŞ Pipe QA/QC & Design Suite. Tüm Hakları Saklıdır.</span>
+                <p class="text-[11px] text-slate-500 mt-0.5" data-i18n="footer_disclaimer_short">
+                    Bu yazılım boru kalite güvence ve ön kabul hesaplamalarını hızlandırmak amacıyla hazırlanmıştır; projelerde nihai onay lisanslı baş mühendis sorumluluğundadır.
+                </p>
+            </div>
+            <div class="flex items-center space-x-3 text-[11px]">
+                <button onclick="document.getElementById('about-modal').classList.remove('hidden')" class="hover:text-blue-400 transition underline">
+                    Yasal Uyarı / Disclaimer
+                </button>
+                <span>•</span>
+                <span>API Spec 5L 46th Ed.</span>
+                <span>•</span>
+                <span>ASME B31.8-2022</span>
+                <span>•</span>
+                <span>BOTAŞ Spec</span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Modal: About & Legal Disclaimer -->
+    <div id="about-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 text-xs text-slate-700 max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-200 mb-4">
+                <div class="flex items-center space-x-2">
+                    <div class="w-8 h-8 rounded-lg bg-blue-600 text-white font-bold flex items-center justify-center text-sm">5L</div>
+                    <div>
+                        <h3 class="font-bold text-base text-slate-900">API 5L PSL2 & BOTAŞ Boru Kalite Güvence Yazılımı</h3>
+                        <p class="text-[11px] text-slate-500">Sürüm: v{{ app_version | default('1.0.3') }} | Açık Kaynak (MIT License)</p>
+                    </div>
+                </div>
+                <button onclick="document.getElementById('about-modal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600 text-lg font-bold">✕</button>
+            </div>
+
+            <div class="space-y-4">
+                <div>
+                    <h4 class="font-bold text-slate-900 text-sm mb-1">📖 Yazılımın Amacı ve Kapsamı</h4>
+                    <p class="text-slate-600 leading-relaxed">
+                        Bu platform, doğal gaz ve petrol iletim şebekelerinde kullanılan hat borularının <strong>API 5L PSL2 standardı</strong>, <strong>ASME B31.8</strong> ve <strong>BOTAŞ Boru Hatları ile Petrol Taşıma A.Ş.</strong> teknik şartnamelerine göre fabrika kabul (FAT), boyutsal tolerans, kimyasal bileşim ve mekanik mukavemet parametrelerini otomatik denetlemek, 3D/2D modellerini üretmek ve raporlamak üzere tasarlanmıştır.
+                    </p>
+                </div>
+
+                <div class="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                    <h4 class="font-bold text-slate-900 mb-1">📚 Referans Standartlar ve Şartnameler</h4>
+                    <ul class="list-disc list-inside space-y-1 text-[11px] text-slate-600">
+                        <li><strong>API Specification 5L (46th Edition) / ISO 3183:</strong> Line Pipe Specification for PSL2 Product Specification Levels.</li>
+                        <li><strong>ASME B31.8 (2022 Edition):</strong> Gas Transmission and Distribution Piping Systems (Barlow Formula & Fracture Control 841.1.2).</li>
+                        <li><strong>ASME B36.10M:</strong> Welded and Seamless Wrought Steel Pipe Dimensional Standards & Schedules.</li>
+                        <li><strong>BOTAŞ Doğal Gaz Çelik Hat Borusu Teknik Şartnamesi:</strong> İmalat Toleransları, Artık Gerilme ($\Delta$) ve Fabrika Kabul Kriterleri.</li>
+                    </ul>
+                </div>
+
+                <div class="p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-950">
+                    <h4 class="font-bold text-sm mb-1 flex items-center">
+                        <svg class="w-4 h-4 mr-1 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                        ⚖️ Yasal Sorumluluk Reddi (Engineering Disclaimer)
+                    </h4>
+                    <p class="text-[11px] leading-relaxed text-amber-900 mt-1">
+                        Bu yazılım tarafından üretilen tüm hesaplama, tolerans zarfı, hidrostatik test basıncı, 2D/3D modeller ve doğrulama sonuçları yalnızca <strong>mühendislik ön tasarımı, kalite güvence kontrolleri ve bilgilendirme</strong> amaçlıdır.
+                        Herhangi bir boru hattı projesinde imalat, satın alma ve inşaat kararlarının verilmesinde yürürlükteki resmi standartlar ve lisanslı baş mühendis / denetim kuruluşunun resmi imzası ve onayı esastır. Yazılım geliştiricileri, hesaplama sonuçlarının kullanımından doğabilecek doğrudan veya dolaylı maddi, teknik veya idari zararlardan sorumlu tutulamaz.
+                    </p>
+                </div>
+
+                <div class="pt-2 flex justify-between items-center text-[11px] text-slate-500 border-t border-slate-100">
+                    <span>© 2026 API 5L & BOTAŞ Pipeline Engineering</span>
+                    <button onclick="document.getElementById('about-modal').classList.add('hidden')" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-1.5 rounded-lg transition">
+                        Anladım ve Kapat
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal: Add New Pipe with BOTAŞ Auto-Populate for All Design Factors -->
     <div id="add-pipe-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200">
@@ -514,7 +652,12 @@
             }
 
             if (tabId === "schematic-tab" && visualizer3DInstance) {
-                setTimeout(() => visualizer3DInstance.onResize(), 150);
+                setTimeout(() => {
+                    visualizer3DInstance.onResize();
+                    if (calculatedPipes.length > 0) {
+                        visualizer3DInstance.renderPipe(calculatedPipes[selectedPipeIndex] || calculatedPipes[0]);
+                    }
+                }, 150);
             }
         }
 
@@ -539,7 +682,6 @@
             const diaMm = parseFloat(diaSelect.options[diaSelect.selectedIndex].getAttribute("data-mm") || "1219.0");
 
             if (isAutoPopulate) {
-                // Fetch all BOTAŞ design factors for this diameter
                 try {
                     const resp = await fetch(`/api/botas-all-factors?diameter_inch=${encodeURIComponent(diaInch)}`);
                     const data = await resp.json();
@@ -556,7 +698,6 @@
                 }
             }
 
-            // Manual Single Pipe Addition (Fallback or API 5L mode)
             const thk = parseFloat(document.getElementById("new-pipe-thk").value || "14.30");
             const factor = document.getElementById("new-pipe-factor").value;
             const grade = document.getElementById("new-pipe-grade").value;

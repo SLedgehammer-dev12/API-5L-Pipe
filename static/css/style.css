@@ -25,6 +25,9 @@ body {
     color: var(--text-main);
     margin: 0;
     padding: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
 }
 
 /* Custom Scrollbars */
@@ -43,16 +46,26 @@ body {
     background: #64748b;
 }
 
-/* Matrix Table Styling matching exact screenshot */
+/* Sticky Matrix Table Container */
+.table-sticky-container {
+    overflow: auto;
+    max-height: 72vh;
+    position: relative;
+    border-radius: 0.75rem;
+}
+
+/* Matrix Table Styling */
 .matrix-table {
-    border-collapse: collapse;
+    border-collapse: separate;
+    border-spacing: 0;
     width: 100%;
-    font-size: 0.82rem;
+    font-size: 0.80rem;
     background: white;
 }
 
 .matrix-table th, .matrix-table td {
-    border: 1px solid #475569;
+    border-right: 1px solid #cbd5e1;
+    border-bottom: 1px solid #cbd5e1;
     padding: 5px 8px;
     text-align: center;
     vertical-align: middle;
@@ -85,12 +98,59 @@ body {
     white-space: nowrap;
 }
 
-.matrix-table tr:nth-child(even) td:not(.label-cell):not(.th-main):not(.th-sub):not(.th-side) {
-    background-color: #f8fafc;
+/* Sticky Left First Column */
+.sticky-left {
+    position: sticky;
+    left: 0;
+    z-index: 10;
+    box-shadow: 2px 0 5px rgba(0,0,0,0.05);
 }
 
-.matrix-table tr:hover td {
-    background-color: #eff6ff !important;
+/* Sticky Right Explanation Column */
+.sticky-right {
+    position: sticky;
+    right: 0;
+    z-index: 10;
+    background-color: #f8fafc;
+    box-shadow: -2px 0 5px rgba(0,0,0,0.05);
+}
+
+/* Active Pipe Column Glow & Focus Highlight */
+.pipe-header-cell {
+    cursor: pointer;
+    transition: all 0.2s ease;
+    user-select: none;
+}
+.pipe-header-cell:hover {
+    background-color: #93c5fd !important;
+}
+.active-pipe-header {
+    background-color: #2563eb !important;
+    color: #ffffff !important;
+    font-weight: 800 !important;
+    box-shadow: 0 0 12px rgba(37, 99, 235, 0.5) inset;
+}
+.active-pipe-col {
+    background-color: #f0f7ff !important;
+    border-left: 2px solid #3b82f6 !important;
+    border-right: 2px solid #3b82f6 !important;
+}
+
+/* Accordion Section Headers */
+.accordion-header {
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.15s ease;
+}
+.accordion-header:hover {
+    background-color: #e2e8f0 !important;
+}
+.accordion-icon {
+    display: inline-block;
+    transition: transform 0.2s ease;
+}
+.accordion-icon.collapsed {
+    transform: rotate(-90deg);
 }
 
 /* Status Badges */
@@ -118,7 +178,7 @@ body {
     gap: 4px;
 }
 
-/* Canvas & 3D Visualizer Container */
+/* 3D Visualizer Viewport */
 .viewport-container {
     position: relative;
     width: 100%;
@@ -126,6 +186,26 @@ body {
     background: radial-gradient(circle, #1e293b 0%, #0f172a 100%);
     border-radius: 0.75rem;
     overflow: hidden;
+}
+
+/* Horizontal Pipe Selector Chip */
+.pipe-chip {
+    transition: all 0.2s ease;
+    cursor: pointer;
+    user-select: none;
+}
+.pipe-chip:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+.pipe-chip.active {
+    background-color: #2563eb !important;
+    color: white !important;
+    border-color: #1d4ed8 !important;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
+}
+.pipe-chip.active p {
+    color: #dbeafe !important;
 }
 
 /* Print Specifics */
