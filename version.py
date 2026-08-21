@@ -1,8 +1,4 @@
-"""
-Version and Application Metadata for API 5L PSL2 & BOTAŞ Pipe QA/QC Suite.
-"""
-
-__version__ = "1.0.0"
+__version__ = "1.0.1"
 __app_name__ = "API 5L PSL2 & BOTAŞ Pipe QA/QC & Wall Thickness Design Suite"
 __author__ = "BOTAŞ & API 5L Pipeline Engineering"
 __license__ = "MIT"
