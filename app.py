@@ -7,6 +7,7 @@ from fastapi.responses import HTMLResponse, StreamingResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 import os
+import sys
 from typing import Dict, Any, List
 
 from core.pipe_qaqc_engine import PipeQAQCEngine
@@ -17,20 +18,25 @@ from core.excel_exporter import ExcelExporter
 from core.database import API_5L_SMYS_TABLE, PIPE_SIZES_TABLE
 from core.i18n import TRANSLATIONS, get_text
 
+# Resolve base directory (compatible with PyInstaller one-file and normal runtime)
+BASE_DIR = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
+STATIC_DIR = os.path.join(BASE_DIR, "static")
+TEMPLATES_DIR = os.path.join(BASE_DIR, "templates")
+
 app = FastAPI(
     title="API 5L PSL2 & BOTAŞ Pipe QA/QC & Design Suite",
     description="Professional Engineering Software for Pipe QA/QC, Factory Acceptance Testing and Wall Thickness Design",
-    version="2.0.0"
+    version="1.0.1"
 )
 
 # Ensure static and template directories exist
-os.makedirs("static/css", exist_ok=True)
-os.makedirs("static/js", exist_ok=True)
-os.makedirs("static/img", exist_ok=True)
-os.makedirs("templates", exist_ok=True)
+os.makedirs(os.path.join(STATIC_DIR, "css"), exist_ok=True)
+os.makedirs(os.path.join(STATIC_DIR, "js"), exist_ok=True)
+os.makedirs(os.path.join(STATIC_DIR, "img"), exist_ok=True)
+os.makedirs(TEMPLATES_DIR, exist_ok=True)
 
-app.mount("/static", StaticFiles(directory="static"), name="static")
-templates = Jinja2Templates(directory="templates")
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+templates = Jinja2Templates(directory=TEMPLATES_DIR)
 
 @app.get("/", response_class=HTMLResponse)
 async def index_page(request: Request):
