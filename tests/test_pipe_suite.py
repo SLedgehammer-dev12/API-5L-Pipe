@@ -167,6 +167,12 @@ class TestPipeQAQCSuite(unittest.TestCase):
         res_b318 = WallThicknessEngine.calculate_wall_thickness('24"', 'X70', design_pressure_bar=80.0, design_factor_f=0.60, standard_code='ASME B31.8 / ASME B31.4')
         self.assertGreater(res_b318['calculation_results']['t_required_asme_b31_8_mm'], 0)
 
+        # 4. ASME B31.3: 24" X65 P=75 bar (610.0 mm OD)
+        res_b313_24 = WallThicknessEngine.calculate_wall_thickness('24"', 'X65', design_pressure_bar=75.0, standard_code='ASME B31.3')
+        self.assertEqual(res_b313_24['calculation_results']['t_required_asme_b31_8_mm'], 7.55)
+        self.assertEqual(res_b313_24['calculation_results']['selected_nominal_thickness_asme_b36_10_mm'], 8.74)
+        self.assertEqual(res_b313_24['calculation_results']['negative_tolerance_min_mm'], 7.65)
+
     def test_10_comprehensive_40_parameter_verification(self):
         """Verifies PipeVerificationEngine evaluates chemical, mechanical, dimensional, weld, and test data."""
         pipe_cfg = {

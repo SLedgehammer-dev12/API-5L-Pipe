@@ -34,9 +34,19 @@ class WallThicknessEngine:
         Calculates required wall thickness across BOTAŞ, ASME B31.8/B31.4, or ASME B31.3,
         and selects the appropriate nominal schedule from ASME B36.10M or ASME B36.19M.
         """
-        pipe_size = get_pipe_size_by_inch(diameter_inch)
-        d_mm = pipe_size['mm'] if pipe_size else 114.3
-        d_inch = pipe_size['inch'] if pipe_size else diameter_inch
+        inch_clean = str(diameter_inch).replace('\\', '').replace('"', '').replace("'", '').strip()
+        pipe_size = get_pipe_size_by_inch(inch_clean)
+        if pipe_size:
+            d_mm = pipe_size['mm']
+            d_inch = pipe_size['inch']
+        else:
+            try:
+                inch_val = float(inch_clean)
+                d_mm = round(inch_val * 25.4, 2)
+                d_inch = f"{inch_val}\""
+            except (ValueError, TypeError):
+                d_mm = 114.3
+                d_inch = diameter_inch
 
         smys_info = get_smys_info(material_grade)
         smys_mpa = smys_info['yield_min_mpa']  # MPa
@@ -85,16 +95,17 @@ class WallThicknessEngine:
         target_schedule_table = ASME_B36_19_TABLE if is_stainless else ASME_B36_10_TABLE
         schedule_standard_name = "ASME B36.19M (Paslanmaz Çelik)" if is_stainless else "ASME B36.10M (Karbon Çeliği)"
 
-        inch_key = str(diameter_inch).replace('"', '').replace("'", '').strip()
+        inch_key = inch_clean
         avail_thks: List[float] = []
 
         # Find schedule thicknesses for this diameter
         for k, v in target_schedule_table.items():
-            if k == inch_key or f"{k}\"" == diameter_inch:
+            k_clean = str(k).replace('\\', '').replace('"', '').replace("'", '').strip()
+            if k_clean == inch_key or f"{k_clean}\"" == d_inch:
                 avail_thks = v
                 break
             try:
-                if float(k) == float(inch_key):
+                if float(k_clean) == float(inch_key):
                     avail_thks = v
                     break
             except (ValueError, TypeError):
@@ -104,14 +115,14 @@ class WallThicknessEngine:
             # Match by nearest diameter in mm using PIPE_SIZES_TABLE
             for p in PIPE_SIZES_TABLE:
                 if abs(p['mm'] - d_mm) < 1.0:
-                    matched_inch = p['inch'].replace('"', '').strip()
+                    matched_inch = p['inch'].replace('\\', '').replace('"', '').replace("'", '').strip()
                     if matched_inch in target_schedule_table:
                         avail_thks = target_schedule_table[matched_inch]
                         break
 
         if not avail_thks:
-            # Fallback series
-            avail_thks = [2.77, 3.18, 3.96, 4.78, 5.56, 6.35, 7.14, 7.92, 8.74, 9.53, 10.31, 11.13, 11.91, 12.70, 14.27, 15.88, 17.48, 19.05, 20.62, 22.22, 23.83, 25.40]
+            # Fallback series for very large custom diameters
+            avail_thks = [5.56, 6.35, 7.14, 7.92, 8.74, 9.53, 10.31, 11.13, 11.91, 12.70, 14.27, 15.88, 17.48, 19.05, 20.62, 22.22, 23.83, 25.40]
 
         # Select standard nominal thickness where t_nom * 0.875 >= t_req (12.5% mill tolerance)
         selected_thk = avail_thks[-1]

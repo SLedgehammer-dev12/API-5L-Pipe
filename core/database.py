@@ -2401,7 +2401,7 @@ FRACTIONS_NORMALIZATION = {
 }
 
 def normalize_inch_str(s: str) -> str:
-    cleaned = str(s).replace('"', '').replace("'", '').strip()
+    cleaned = str(s).replace('\\', '').replace('"', '').replace("'", '').strip()
     return FRACTIONS_NORMALIZATION.get(cleaned, cleaned)
 
 def get_pipe_size_by_inch(inch: str):
