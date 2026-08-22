@@ -52,6 +52,7 @@ jobs:
             --hidden-import "core.verification_engine" `
             --hidden-import "core.wall_thickness_engine" `
             --hidden-import "core.project_manager" `
+            --hidden-import "core.updater" `
             --hidden-import "core.excel_exporter" `
             --hidden-import "core.i18n" `
             --hidden-import "uvicorn" `
@@ -127,6 +128,7 @@ jobs:
             --hidden-import "core.verification_engine" \
             --hidden-import "core.wall_thickness_engine" \
             --hidden-import "core.project_manager" \
+            --hidden-import "core.updater" \
             --hidden-import "core.excel_exporter" \
             --hidden-import "core.i18n" \
             --hidden-import "uvicorn" \
