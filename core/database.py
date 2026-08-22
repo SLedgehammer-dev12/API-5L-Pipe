@@ -212,10 +212,105 @@ API_5L_SMYS_TABLE = {
         "tensile_max_psi": 166100.0,
         "tensile_max_mpa": 1145.0,
         "strain_value": 0.0675
+    },
+    "SS 304 / 304L": {
+        "grade": "SS 304 / 304L",
+        "iso_grade": "TP304L",
+        "smys_psi": 30000.0,
+        "yield_tensile_max": 0.85,
+        "cvn_material_j": 60.0,
+        "cvn_weld_j": 45.0,
+        "yield_min_mpa": 205.0,
+        "yield_max_psi": 58000.0,
+        "yield_max_mpa": 400.0,
+        "tensile_min_psi": 70000.0,
+        "tensile_min_mpa": 485.0,
+        "tensile_max_psi": 95000.0,
+        "tensile_max_mpa": 655.0,
+        "allowable_stress_mpa": 115.0,
+        "allowable_stress_psi": 16700.0,
+        "strain_value": 0.35,
+        "is_stainless": True
+    },
+    "SS 316 / 316L": {
+        "grade": "SS 316 / 316L",
+        "iso_grade": "TP316L",
+        "smys_psi": 30000.0,
+        "yield_tensile_max": 0.85,
+        "cvn_material_j": 60.0,
+        "cvn_weld_j": 45.0,
+        "yield_min_mpa": 205.0,
+        "yield_max_psi": 58000.0,
+        "yield_max_mpa": 400.0,
+        "tensile_min_psi": 70000.0,
+        "tensile_min_mpa": 485.0,
+        "tensile_max_psi": 95000.0,
+        "tensile_max_mpa": 655.0,
+        "allowable_stress_mpa": 115.0,
+        "allowable_stress_psi": 16700.0,
+        "strain_value": 0.35,
+        "is_stainless": True
+    },
+    "SS 321": {
+        "grade": "SS 321",
+        "iso_grade": "TP321",
+        "smys_psi": 30000.0,
+        "yield_tensile_max": 0.85,
+        "cvn_material_j": 60.0,
+        "cvn_weld_j": 45.0,
+        "yield_min_mpa": 205.0,
+        "yield_max_psi": 58000.0,
+        "yield_max_mpa": 400.0,
+        "tensile_min_psi": 75000.0,
+        "tensile_min_mpa": 515.0,
+        "tensile_max_psi": 100000.0,
+        "tensile_max_mpa": 690.0,
+        "allowable_stress_mpa": 115.0,
+        "allowable_stress_psi": 16700.0,
+        "strain_value": 0.35,
+        "is_stainless": True
+    },
+    "Duplex 2205": {
+        "grade": "Duplex 2205",
+        "iso_grade": "UNS S32205",
+        "smys_psi": 65300.0,
+        "yield_tensile_max": 0.88,
+        "cvn_material_j": 80.0,
+        "cvn_weld_j": 60.0,
+        "yield_min_mpa": 450.0,
+        "yield_max_psi": 95000.0,
+        "yield_max_mpa": 655.0,
+        "tensile_min_psi": 95000.0,
+        "tensile_min_mpa": 655.0,
+        "tensile_max_psi": 130000.0,
+        "tensile_max_mpa": 900.0,
+        "allowable_stress_mpa": 175.0,
+        "allowable_stress_psi": 25400.0,
+        "strain_value": 0.25,
+        "is_stainless": True
+    },
+    "Super Duplex 2507": {
+        "grade": "Super Duplex 2507",
+        "iso_grade": "UNS S32750",
+        "smys_psi": 80000.0,
+        "yield_tensile_max": 0.90,
+        "cvn_material_j": 80.0,
+        "cvn_weld_j": 60.0,
+        "yield_min_mpa": 550.0,
+        "yield_max_psi": 110000.0,
+        "yield_max_mpa": 760.0,
+        "tensile_min_psi": 110000.0,
+        "tensile_min_mpa": 760.0,
+        "tensile_max_psi": 145000.0,
+        "tensile_max_mpa": 1000.0,
+        "allowable_stress_mpa": 210.0,
+        "allowable_stress_psi": 30500.0,
+        "strain_value": 0.20,
+        "is_stainless": True
     }
 }
 
-# Chemical Composition Limits (API 5L PSL2 & BOTAŞ)
+# Chemical Composition Limits (API 5L PSL2 & BOTAŞ & Stainless)
 CHEMICAL_COMPOSITION_RULES = {
     'GRADE A': {'C_max': 0.22, 'Mn_max': 0.90, 'P_max': 0.025, 'S_max': 0.015, 'Nb_min': 0.0, 'Nb_max': 0.05, 'V_max': 0.05, 'Ti_max': 0.04, 'N_max': 0.012, 'CE_IIW_max': 0.42, 'CE_Pcm_max': 0.24},
     'GRADE B': {'C_max': 0.18, 'Mn_max': 1.20, 'P_max': 0.025, 'S_max': 0.010, 'Nb_min': 0.0, 'Nb_max': 0.05, 'V_max': 0.05, 'Ti_max': 0.04, 'N_max': 0.009, 'CE_IIW_max': 0.42, 'CE_Pcm_max': 0.24},
@@ -229,7 +324,12 @@ CHEMICAL_COMPOSITION_RULES = {
     'X80':     {'C_max': 0.12, 'Mn_max': 1.85, 'P_max': 0.025, 'S_max': 0.010, 'Nb_min': 0.015, 'Nb_max': 0.06, 'V_max': 0.06, 'Ti_max': 0.05, 'N_max': 0.009, 'CE_IIW_max': 0.43, 'CE_Pcm_max': 0.25},
     'X90':     {'C_max': 0.10, 'Mn_max': 1.90, 'P_max': 0.020, 'S_max': 0.008, 'Nb_min': 0.015, 'Nb_max': 0.06, 'V_max': 0.06, 'Ti_max': 0.05, 'N_max': 0.009, 'CE_IIW_max': 0.44, 'CE_Pcm_max': 0.25},
     'X100':    {'C_max': 0.10, 'Mn_max': 1.95, 'P_max': 0.020, 'S_max': 0.008, 'Nb_min': 0.015, 'Nb_max': 0.06, 'V_max': 0.06, 'Ti_max': 0.05, 'N_max': 0.009, 'CE_IIW_max': 0.44, 'CE_Pcm_max': 0.25},
-    'X120':    {'C_max': 0.10, 'Mn_max': 2.00, 'P_max': 0.015, 'S_max': 0.006, 'Nb_min': 0.015, 'Nb_max': 0.06, 'V_max': 0.06, 'Ti_max': 0.05, 'N_max': 0.009, 'CE_IIW_max': 0.45, 'CE_Pcm_max': 0.26}
+    'X120':    {'C_max': 0.10, 'Mn_max': 2.00, 'P_max': 0.015, 'S_max': 0.006, 'Nb_min': 0.015, 'Nb_max': 0.06, 'V_max': 0.06, 'Ti_max': 0.05, 'N_max': 0.009, 'CE_IIW_max': 0.45, 'CE_Pcm_max': 0.26},
+    'SS 304 / 304L': {'C_max': 0.030, 'Mn_max': 2.00, 'P_max': 0.045, 'S_max': 0.030, 'Nb_min': 0.0, 'Nb_max': 0.0, 'V_max': 0.0, 'Ti_max': 0.0, 'N_max': 0.10, 'CE_IIW_max': 0.0, 'CE_Pcm_max': 0.0},
+    'SS 316 / 316L': {'C_max': 0.030, 'Mn_max': 2.00, 'P_max': 0.045, 'S_max': 0.030, 'Nb_min': 0.0, 'Nb_max': 0.0, 'V_max': 0.0, 'Ti_max': 0.0, 'N_max': 0.10, 'CE_IIW_max': 0.0, 'CE_Pcm_max': 0.0},
+    'SS 321':        {'C_max': 0.080, 'Mn_max': 2.00, 'P_max': 0.045, 'S_max': 0.030, 'Nb_min': 0.0, 'Nb_max': 0.0, 'V_max': 0.0, 'Ti_max': 0.70, 'N_max': 0.10, 'CE_IIW_max': 0.0, 'CE_Pcm_max': 0.0},
+    'Duplex 2205':   {'C_max': 0.030, 'Mn_max': 2.00, 'P_max': 0.030, 'S_max': 0.020, 'Nb_min': 0.0, 'Nb_max': 0.0, 'V_max': 0.0, 'Ti_max': 0.0, 'N_max': 0.20, 'CE_IIW_max': 0.0, 'CE_Pcm_max': 0.0},
+    'Super Duplex 2507': {'C_max': 0.030, 'Mn_max': 1.20, 'P_max': 0.035, 'S_max': 0.020, 'Nb_min': 0.0, 'Nb_max': 0.0, 'V_max': 0.0, 'Ti_max': 0.0, 'N_max': 0.32, 'CE_IIW_max': 0.0, 'CE_Pcm_max': 0.0}
 }
 
 # Standard Pipe Sizes, Wall Thicknesses & Tolerances (BOTAŞ & ASME B31.8)
@@ -2248,6 +2348,41 @@ ASME_B36_10_TABLE = {
         31.75
     ]
 }
+
+# ASME B36.19M Stainless Steel Pipe Dimensions (Schedules 5S, 10S, 40S, 80S)
+ASME_B36_19_TABLE = {
+    "1/8": [1.24, 1.45, 1.73, 2.41],
+    "1/4": [1.24, 1.65, 2.24, 3.02],
+    "3/8": [1.24, 1.65, 2.31, 3.20],
+    "1/2": [1.65, 2.11, 2.77, 3.73],
+    "3/4": [1.65, 2.11, 2.87, 3.91],
+    "1": [1.65, 2.77, 3.38, 4.55],
+    "1 1/4": [1.65, 2.77, 3.56, 4.85],
+    "1 1/2": [1.65, 2.77, 3.68, 5.08],
+    "2": [1.65, 2.77, 3.91, 5.54],
+    "2 1/2": [2.11, 3.05, 5.16, 7.01],
+    "3": [2.11, 3.05, 5.49, 7.62],
+    "3 1/2": [2.11, 3.05, 5.74, 8.08],
+    "4": [2.11, 3.05, 6.02, 8.56],
+    "5": [2.77, 3.40, 6.55, 9.53],
+    "6": [2.77, 3.40, 7.11, 10.97],
+    "8": [2.77, 3.76, 8.18, 12.70],
+    "10": [3.40, 4.19, 9.27, 12.70],
+    "12": [3.96, 4.57, 9.53, 12.70],
+    "14": [3.96, 4.78, 9.53, 12.70],
+    "16": [4.19, 4.78, 9.53, 12.70],
+    "18": [4.19, 4.78, 9.53, 12.70],
+    "20": [4.78, 5.54, 9.53, 12.70],
+    "22": [4.78, 5.54, 9.53, 12.70],
+    "24": [5.54, 6.35, 9.53, 12.70],
+    "30": [6.35, 7.92, 9.53, 12.70],
+    "36": [6.35, 7.92, 9.53, 12.70]
+}
+
+def is_stainless_grade(grade: str) -> bool:
+    """Returns True if the material grade is stainless steel or duplex."""
+    g = grade.upper().strip()
+    return "SS" in g or "304" in g or "316" in g or "321" in g or "DUPLEX" in g
 
 # Helper functions
 def get_smys_info(grade: str):

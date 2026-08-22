@@ -3,8 +3,7 @@ Project & Revision Management Module.
 Handles project metadata, revisions, presets for 10 BOTAŞ and 10 API 5L pipes, and JSON serialization.
 """
 
-from typing import Dict, Any, List
-import json
+from typing import Dict, Any
 
 class ProjectManager:
     @staticmethod

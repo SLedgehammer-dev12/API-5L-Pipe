@@ -164,6 +164,17 @@
                     <button onclick="toggleAllAccordions(false)" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs px-2.5 py-2 rounded-lg font-semibold transition" title="Tüm grupları daralt" data-i18n="btn_collapse_all">Tümünü Kapat</button>
                 </div>
 
+                <!-- Quick Column Navigator for Focus -->
+                <div class="flex items-center space-x-1.5 bg-slate-100 p-1 rounded-lg border border-slate-200">
+                    <button onclick="selectPrevPipe()" class="bg-white hover:bg-slate-200 text-slate-700 px-2.5 py-1.5 rounded text-xs font-bold transition flex items-center shadow-xs" title="Önceki Boruya Odaklan (Sol Ok Tuşu)">
+                        ◀ Önceki
+                    </button>
+                    <span id="matrix-col-status" class="text-[11px] font-bold text-blue-900 bg-blue-50 px-2 py-1 rounded border border-blue-200 min-w-[75px] text-center">Boru 1 / 1</span>
+                    <button onclick="selectNextPipe()" class="bg-white hover:bg-slate-200 text-slate-700 px-2.5 py-1.5 rounded text-xs font-bold transition flex items-center shadow-xs" title="Sonraki Boruya Odaklan (Sağ Ok Tuşu)">
+                        Sonraki ▶
+                    </button>
+                </div>
+
                 <div class="flex items-center space-x-2">
                     <label class="bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200 px-3 py-2 rounded-lg text-xs font-semibold cursor-pointer transition flex items-center">
                         <svg class="w-4 h-4 mr-1.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
@@ -267,67 +278,176 @@
         <div id="verify-tab" class="tab-content hidden">
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <!-- Input Form Card -->
-                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm lg:col-span-1">
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm lg:col-span-1 max-h-[800px] overflow-y-auto">
                     <h3 class="text-base font-bold text-slate-900 mb-1">Fabrika Test Verilerini Girin</h3>
-                    <p class="text-xs text-slate-500 mb-4">Sahadan veya laboratuvardan gelen gerçek ölçüm değerlerini denetleyin.</p>
+                    <p class="text-xs text-slate-500 mb-4">40+ parametre bazında sahadan veya laboratuvardan gelen ölçümleri denetleyin.</p>
 
-                    <form id="pipe-verification-form" class="space-y-3 text-xs">
-                        <div>
-                            <label class="font-bold text-slate-700 block mb-1">Gerçek Et Kalınlığı (mm)</label>
-                            <input type="number" step="0.01" name="wall_thickness_actual" placeholder="Örn: 14.35" class="w-full border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500">
+                    <form id="pipe-verification-form" class="space-y-4 text-xs">
+                        <!-- 1. Kimyasal Analiz -->
+                        <div class="p-3 bg-slate-50 rounded-lg border border-slate-200">
+                            <h4 class="font-bold text-slate-800 mb-2 flex items-center">🧪 Kimyasal Analiz</h4>
+                            <div class="grid grid-cols-2 gap-2 mb-2">
+                                <div>
+                                    <label class="font-semibold text-slate-600 block mb-0.5">C (%)</label>
+                                    <input type="number" step="0.001" name="C" placeholder="0.10" class="w-full border border-slate-300 rounded p-1.5 focus:ring-1 focus:ring-blue-500">
+                                </div>
+                                <div>
+                                    <label class="font-semibold text-slate-600 block mb-0.5">Mn (%)</label>
+                                    <input type="number" step="0.01" name="Mn" placeholder="1.45" class="w-full border border-slate-300 rounded p-1.5 focus:ring-1 focus:ring-blue-500">
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2 mb-2">
+                                <div>
+                                    <label class="font-semibold text-slate-600 block mb-0.5">P (%)</label>
+                                    <input type="number" step="0.001" name="P" placeholder="0.012" class="w-full border border-slate-300 rounded p-1.5">
+                                </div>
+                                <div>
+                                    <label class="font-semibold text-slate-600 block mb-0.5">S (%)</label>
+                                    <input type="number" step="0.001" name="S" placeholder="0.003" class="w-full border border-slate-300 rounded p-1.5">
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-3 gap-1.5 mb-2">
+                                <div>
+                                    <label class="font-semibold text-slate-600 block mb-0.5">Nb (%)</label>
+                                    <input type="number" step="0.001" name="Nb" placeholder="0.035" class="w-full border border-slate-300 rounded p-1.5">
+                                </div>
+                                <div>
+                                    <label class="font-semibold text-slate-600 block mb-0.5">V (%)</label>
+                                    <input type="number" step="0.001" name="V" placeholder="0.030" class="w-full border border-slate-300 rounded p-1.5">
+                                </div>
+                                <div>
+                                    <label class="font-semibold text-slate-600 block mb-0.5">Ti (%)</label>
+                                    <input type="number" step="0.001" name="Ti" placeholder="0.020" class="w-full border border-slate-300 rounded p-1.5">
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="font-semibold text-slate-600 block mb-0.5">N (%)</label>
+                                    <input type="number" step="0.001" name="N" placeholder="0.006" class="w-full border border-slate-300 rounded p-1.5">
+                                </div>
+                                <div>
+                                    <label class="font-semibold text-slate-600 block mb-0.5">CE (IIW)</label>
+                                    <input type="number" step="0.01" name="CE_IIW" placeholder="0.38" class="w-full border border-slate-300 rounded p-1.5">
+                                </div>
+                            </div>
                         </div>
-                        <div class="grid grid-cols-2 gap-2">
-                            <div>
-                                <label class="font-bold text-slate-700 block mb-1">Akma Mukavemeti (MPa)</label>
-                                <input type="number" step="0.1" name="yield_strength_actual" placeholder="Örn: 480.0" class="w-full border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500">
+
+                        <!-- 2. Boyutsal Toleranslar -->
+                        <div class="p-3 bg-slate-50 rounded-lg border border-slate-200">
+                            <h4 class="font-bold text-slate-800 mb-2 flex items-center">📐 Boyutsal Toleranslar</h4>
+                            <div class="mb-2">
+                                <label class="font-semibold text-slate-600 block mb-0.5">Et Kalınlığı (mm)</label>
+                                <input type="number" step="0.01" name="wall_thickness_actual" placeholder="14.35" class="w-full border border-slate-300 rounded p-1.5">
                             </div>
-                            <div>
-                                <label class="font-bold text-slate-700 block mb-1">Çekme Mukavemeti (MPa)</label>
-                                <input type="number" step="0.1" name="tensile_strength_actual" placeholder="Örn: 560.0" class="w-full border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500">
+                            <div class="grid grid-cols-2 gap-2 mb-2">
+                                <div>
+                                    <label class="font-semibold text-slate-600 block mb-0.5">Uç Çapı (mm)</label>
+                                    <input type="number" step="0.1" name="diameter_end_actual" placeholder="1219.2" class="w-full border border-slate-300 rounded p-1.5">
+                                </div>
+                                <div>
+                                    <label class="font-semibold text-slate-600 block mb-0.5">Gövde Çapı (mm)</label>
+                                    <input type="number" step="0.1" name="diameter_body_actual" placeholder="1219.5" class="w-full border border-slate-300 rounded p-1.5">
+                                </div>
                             </div>
-                        </div>
-                        <div>
-                            <label class="font-bold text-slate-700 block mb-1">Minimum Uzama (% e)</label>
-                            <input type="number" step="0.1" name="elongation_actual" placeholder="Örn: 24.5" class="w-full border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500">
-                        </div>
-                        <div class="grid grid-cols-2 gap-2">
-                            <div>
-                                <label class="font-bold text-slate-700 block mb-1">Karbon (C %)</label>
-                                <input type="number" step="0.001" name="C" placeholder="Örn: 0.10" class="w-full border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500">
+                            <div class="grid grid-cols-2 gap-2 mb-2">
+                                <div>
+                                    <label class="font-semibold text-slate-600 block mb-0.5">Uç Ovalite (mm)</label>
+                                    <input type="number" step="0.1" name="ovality_end_actual" placeholder="3.2" class="w-full border border-slate-300 rounded p-1.5">
+                                </div>
+                                <div>
+                                    <label class="font-semibold text-slate-600 block mb-0.5">Gövde Ovalite (mm)</label>
+                                    <input type="number" step="0.1" name="ovality_body_actual" placeholder="4.1" class="w-full border border-slate-300 rounded p-1.5">
+                                </div>
                             </div>
-                            <div>
-                                <label class="font-bold text-slate-700 block mb-1">Mangan (Mn %)</label>
-                                <input type="number" step="0.01" name="Mn" placeholder="Örn: 1.45" class="w-full border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500">
-                            </div>
-                        </div>
-                        <div class="grid grid-cols-2 gap-2">
-                            <div>
-                                <label class="font-bold text-slate-700 block mb-1">Fosfor (P %)</label>
-                                <input type="number" step="0.001" name="P" placeholder="Örn: 0.015" class="w-full border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500">
-                            </div>
-                            <div>
-                                <label class="font-bold text-slate-700 block mb-1">Kükürt (S %)</label>
-                                <input type="number" step="0.001" name="S" placeholder="Örn: 0.004" class="w-full border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500">
-                            </div>
-                        </div>
-                        <div class="grid grid-cols-2 gap-2">
-                            <div>
-                                <label class="font-bold text-slate-700 block mb-1">Çentik Gövde (J)</label>
-                                <input type="number" step="1" name="cvn_mat_actual" placeholder="Örn: 85" class="w-full border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500">
-                            </div>
-                            <div>
-                                <label class="font-bold text-slate-700 block mb-1">Çentik Kaynak (J)</label>
-                                <input type="number" step="1" name="cvn_weld_actual" placeholder="Örn: 65" class="w-full border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500">
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="font-semibold text-slate-600 block mb-0.5">Peaking (mm)</label>
+                                    <input type="number" step="0.1" name="pipe_end_peaking_actual" placeholder="1.8" class="w-full border border-slate-300 rounded p-1.5">
+                                </div>
+                                <div>
+                                    <label class="font-semibold text-slate-600 block mb-0.5">Squareness (mm)</label>
+                                    <input type="number" step="0.1" name="pipe_end_squareness_actual" placeholder="1.2" class="w-full border border-slate-300 rounded p-1.5">
+                                </div>
                             </div>
                         </div>
-                        <div>
-                            <label class="font-bold text-slate-700 block mb-1">Fabrika Hidrostatik Basıncı (Bar)</label>
-                            <input type="number" step="0.1" name="hydro_test_actual_bar" placeholder="Örn: 106.0" class="w-full border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500">
+
+                        <!-- 3. Mekanik ve Tokluk Testleri -->
+                        <div class="p-3 bg-slate-50 rounded-lg border border-slate-200">
+                            <h4 class="font-bold text-slate-800 mb-2 flex items-center">💥 Mekanik & Tokluk Testleri</h4>
+                            <div class="grid grid-cols-2 gap-2 mb-2">
+                                <div>
+                                    <label class="font-semibold text-slate-600 block mb-0.5">Akma / Yield (MPa)</label>
+                                    <input type="number" step="0.1" name="yield_strength_actual" placeholder="480.0" class="w-full border border-slate-300 rounded p-1.5">
+                                </div>
+                                <div>
+                                    <label class="font-semibold text-slate-600 block mb-0.5">Çekme / Tensile (MPa)</label>
+                                    <input type="number" step="0.1" name="tensile_strength_actual" placeholder="560.0" class="w-full border border-slate-300 rounded p-1.5">
+                                </div>
+                            </div>
+                            <div class="mb-2">
+                                <label class="font-semibold text-slate-600 block mb-0.5">Minimum Uzama (% e)</label>
+                                <input type="number" step="0.1" name="elongation_actual" placeholder="24.5" class="w-full border border-slate-300 rounded p-1.5">
+                            </div>
+                            <div class="grid grid-cols-2 gap-2 mb-2">
+                                <div>
+                                    <label class="font-semibold text-slate-600 block mb-0.5">CVN Gövde (J)</label>
+                                    <input type="number" step="1" name="cvn_mat_actual" placeholder="85" class="w-full border border-slate-300 rounded p-1.5">
+                                </div>
+                                <div>
+                                    <label class="font-semibold text-slate-600 block mb-0.5">CVN Kaynak (J)</label>
+                                    <input type="number" step="1" name="cvn_weld_actual" placeholder="65" class="w-full border border-slate-300 rounded p-1.5">
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="font-semibold text-slate-600 block mb-0.5">Artık Gerilme (mm)</label>
+                                    <input type="number" step="0.1" name="residual_stress_actual" placeholder="12.0" class="w-full border border-slate-300 rounded p-1.5">
+                                </div>
+                                <div>
+                                    <label class="font-semibold text-slate-600 block mb-0.5">Sertlik (HV10)</label>
+                                    <input type="number" step="1" name="hardness_actual" placeholder="220" class="w-full border border-slate-300 rounded p-1.5">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 4. Kaynak Geometrisi, Ağırlık ve Hidrostatik -->
+                        <div class="p-3 bg-slate-50 rounded-lg border border-slate-200">
+                            <h4 class="font-bold text-slate-800 mb-2 flex items-center">⚖️ Kaynak, Ağırlık & Hidrostatik</h4>
+                            <div class="grid grid-cols-2 gap-2 mb-2">
+                                <div>
+                                    <label class="font-semibold text-slate-600 block mb-0.5">Radyal Ofset (mm)</label>
+                                    <input type="number" step="0.05" name="radial_offset_actual" placeholder="0.95" class="w-full border border-slate-300 rounded p-1.5">
+                                </div>
+                                <div>
+                                    <label class="font-semibold text-slate-600 block mb-0.5">Misalignment (mm)</label>
+                                    <input type="number" step="0.1" name="misalignment_actual" placeholder="1.1" class="w-full border border-slate-300 rounded p-1.5">
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2 mb-2">
+                                <div>
+                                    <label class="font-semibold text-slate-600 block mb-0.5">Kaynak Yük. İç (mm)</label>
+                                    <input type="number" step="0.1" name="weld_height_inside_actual" placeholder="1.8" class="w-full border border-slate-300 rounded p-1.5">
+                                </div>
+                                <div>
+                                    <label class="font-semibold text-slate-600 block mb-0.5">Kaynak Yük. Dış (mm)</label>
+                                    <input type="number" step="0.1" name="weld_height_outside_actual" placeholder="2.1" class="w-full border border-slate-300 rounded p-1.5">
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="font-semibold text-slate-600 block mb-0.5">Birim Ağırlık (kg/m)</label>
+                                    <input type="number" step="0.1" name="weight_actual_kg_m" placeholder="425.0" class="w-full border border-slate-300 rounded p-1.5">
+                                </div>
+                                <div>
+                                    <label class="font-semibold text-slate-600 block mb-0.5">Hydro Test (Bar)</label>
+                                    <input type="number" step="0.1" name="hydro_test_actual_bar" placeholder="106.0" class="w-full border border-slate-300 rounded p-1.5">
+                                </div>
+                            </div>
                         </div>
 
                         <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg shadow transition text-sm flex items-center justify-center">
                             <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                            Uygunluğu Doğrula (PASS/FAIL)
+                            40+ Parametre Uygunluğunu Doğrula (PASS/FAIL)
                         </button>
                     </form>
                 </div>
@@ -343,7 +463,7 @@
 
                     <div id="verification-placeholder" class="text-center py-16 text-slate-400">
                         <svg class="w-12 h-12 mx-auto mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
-                        <p class="text-sm">Sol taraftan gerçek fabrika test verilerini girip "Uygunluğu Doğrula" butonuna basın.</p>
+                        <p class="text-sm">Sol taraftan gerçek fabrika test verilerini girip "40+ Parametre Uygunluğunu Doğrula" butonuna basın.</p>
                     </div>
                 </div>
             </div>
@@ -355,32 +475,61 @@
                 <!-- Design Form -->
                 <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm lg:col-span-1">
                     <h3 class="text-base font-bold text-slate-900 mb-1">Boru Et Kalınlığı Tasarım Aracı</h3>
-                    <p class="text-xs text-slate-500 mb-4">ASME B31.8 & BOTAŞ Barlow Formülü ve ASME B36.10 Seçimi</p>
+                    <p class="text-xs text-slate-500 mb-4">Çoklu Standart (BOTAŞ, ASME B31.8 / B31.4, ASME B31.3) ve ASME B36.10M / B36.19M Schedule Seçimi</p>
 
                     <form id="wall-thickness-calc-form" class="space-y-3 text-xs">
                         <div>
-                            <label class="font-bold text-slate-700 block mb-1">Boru Dış Çapı</label>
+                            <label class="font-bold text-slate-700 block mb-1">Hesaplama Standardı & Kriteri</label>
+                            <select name="standard_code" class="w-full border border-blue-300 bg-blue-50/50 rounded-lg p-2 font-semibold text-blue-950">
+                                <option value="BOTAŞ">1. BOTAŞ Şartnamesi (Doğal Gaz İletim & İstasyon)</option>
+                                <option value="ASME B31.8 / ASME B31.4">2. ASME B31.8 / ASME B31.4 (Gaz & Sıvı Boru Hatları)</option>
+                                <option value="ASME B31.3">3. ASME B31.3 (Process Piping / Tesis Borulaması)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="font-bold text-slate-700 block mb-1">Boru Dış Çapı (NPS / OD)</label>
                             <select name="diameter_inch" class="w-full border border-slate-300 rounded-lg p-2">
-                                <option value="4\"">4" (114.3 mm)</option>
+                                <option value="1/2\"">1/2" (21.3 mm)</option>
+                                <option value="3/4\"">3/4" (26.7 mm)</option>
+                                <option value="1\"">1" (33.4 mm)</option>
+                                <option value="1 1/2\"">1 1/2" (48.3 mm)</option>
+                                <option value="2\"">2" (60.3 mm)</option>
+                                <option value="3\"">3" (88.9 mm)</option>
+                                <option value="4\"" selected>4" (114.3 mm)</option>
                                 <option value="6\"">6" (168.3 mm)</option>
                                 <option value="8\"">8" (219.1 mm)</option>
+                                <option value="10\"">10" (273.0 mm)</option>
                                 <option value="12\"">12" (323.9 mm)</option>
+                                <option value="14\"">14" (355.6 mm)</option>
                                 <option value="16\"">16" (406.4 mm)</option>
                                 <option value="18\"">18" (457.0 mm)</option>
+                                <option value="20\"">20" (508.0 mm)</option>
                                 <option value="24\"">24" (610.0 mm)</option>
+                                <option value="30\"">30" (762.0 mm)</option>
                                 <option value="36\"">36" (914.0 mm)</option>
                                 <option value="48\"">48" (1219.0 mm)</option>
                                 <option value="56\"">56" (1422.0 mm)</option>
                             </select>
                         </div>
                         <div>
-                            <label class="font-bold text-slate-700 block mb-1">Malzeme Kalitesi (API 5L)</label>
+                            <label class="font-bold text-slate-700 block mb-1">Malzeme Kalitesi (Karbon & Paslanmaz Çelik)</label>
                             <select name="material_grade" class="w-full border border-slate-300 rounded-lg p-2">
-                                <option value="X65">X65 (L450 - SMYS: 65300 psi / 450 MPa)</option>
-                                <option value="X70">X70 (L485 - SMYS: 70300 psi / 485 MPa)</option>
-                                <option value="X52">X52 (L360 - SMYS: 52200 psi / 360 MPa)</option>
-                                <option value="X56">X56 (L390 - SMYS: 56600 psi / 390 MPa)</option>
-                                <option value="GRADE B">GRADE B (L245 - SMYS: 35500 psi / 245 MPa)</option>
+                                <optgroup label="API 5L Karbon Çeliği (BOTAŞ & ASME B31.8)">
+                                    <option value="X65" selected>X65 (L450 - SMYS: 65300 psi / 450 MPa)</option>
+                                    <option value="X70">X70 (L485 - SMYS: 70300 psi / 485 MPa)</option>
+                                    <option value="X60">X60 (L415 - SMYS: 60200 psi / 415 MPa)</option>
+                                    <option value="X56">X56 (L390 - SMYS: 56600 psi / 390 MPa)</option>
+                                    <option value="X52">X52 (L360 - SMYS: 52200 psi / 360 MPa)</option>
+                                    <option value="X42">X42 (L290 - SMYS: 42100 psi / 290 MPa)</option>
+                                    <option value="GRADE B">GRADE B (L245 - SMYS: 35500 psi / 245 MPa)</option>
+                                </optgroup>
+                                <optgroup label="Paslanmaz Çelik & Duplex (ASME B31.3 & B36.19M)">
+                                    <option value="SS 304 / 304L">SS 304 / 304L (Östenitik Paslanmaz - S_allow: 115 MPa)</option>
+                                    <option value="SS 316 / 316L">SS 316 / 316L (Östenitik Molibdenli - S_allow: 115 MPa)</option>
+                                    <option value="SS 321">SS 321 (Titanyum Stabilize - S_allow: 115 MPa)</option>
+                                    <option value="Duplex 2205">Duplex 2205 (UNS S32205 - S_allow: 175 MPa)</option>
+                                    <option value="Super Duplex 2507">Super Duplex 2507 (UNS S32750 - S_allow: 210 MPa)</option>
+                                </optgroup>
                             </select>
                         </div>
                         <div class="grid grid-cols-2 gap-2">
@@ -400,17 +549,17 @@
                         </div>
                         <div class="grid grid-cols-2 gap-2">
                             <div>
-                                <label class="font-bold text-slate-700 block mb-1">Boyuna Kaynak Faktörü (E)</label>
+                                <label class="font-bold text-slate-700 block mb-1">Boyuna Kaynak (E)</label>
                                 <input type="number" step="0.05" name="longitudinal_joint_factor_e" value="1.0" class="w-full border border-slate-300 rounded-lg p-2">
                             </div>
                             <div>
-                                <label class="font-bold text-slate-700 block mb-1">Sıcaklık Düşürme (T)</label>
+                                <label class="font-bold text-slate-700 block mb-1">Sıcaklık Faktörü (T)</label>
                                 <input type="number" step="0.05" name="temperature_derating_factor_t" value="1.0" class="w-full border border-slate-300 rounded-lg p-2">
                             </div>
                         </div>
                         <div class="grid grid-cols-2 gap-2">
                             <div>
-                                <label class="font-bold text-slate-700 block mb-1">Korozyon Payı (mm)</label>
+                                <label class="font-bold text-slate-700 block mb-1">Korozyon Payı c (mm)</label>
                                 <input type="number" step="0.1" name="corrosion_allowance_mm" value="0.0" class="w-full border border-slate-300 rounded-lg p-2">
                             </div>
                             <div>
@@ -424,7 +573,7 @@
                         </div>
 
                         <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-lg shadow transition text-sm">
-                            Et Kalınlığı Hesapla & ASME B36.10 Seç
+                            Et Kalınlığı Hesapla & Schedule Seç
                         </button>
                     </form>
                 </div>
@@ -432,7 +581,7 @@
                 <!-- Design Results -->
                 <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm lg:col-span-2">
                     <h3 class="text-base font-bold text-slate-900 mb-1">Tasarım Hesap Sonuçları</h3>
-                    <p class="text-xs text-slate-500 mb-4">ASME B31.8 minimum teorik et kalınlığı ve standart schedule seçimi.</p>
+                    <p class="text-xs text-slate-500 mb-4">Seçilen standarda göre teorik et kalınlığı ve standart nominal schedule seçimi.</p>
                     <div id="wt-results-panel" class="hidden">
                         <!-- Populated by JS -->
                     </div>

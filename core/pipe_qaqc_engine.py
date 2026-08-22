@@ -7,13 +7,10 @@ safety factors and attaches engineering remarks / standard references for every 
 import math
 from typing import Dict, Any, Optional
 from core.database import (
-    API_5L_SMYS_TABLE,
-    CHEMICAL_COMPOSITION_RULES,
     get_smys_info,
     get_chemical_rules,
     get_pipe_size_by_inch,
-    get_pipe_size_by_mm,
-    PIPE_SIZES_TABLE
+    get_pipe_size_by_mm
 )
 
 # Standard references and engineering explanations for every matrix row
@@ -202,12 +199,10 @@ class PipeQAQCEngine:
 
         # Determine Wall Thickness (t)
         t = wall_thickness_mm
-        is_auto_botas_thickness = False
         if (t is None or t <= 0) and is_botas_mode and pipe_size:
             botas_thk_val = pipe_size['botas_thk'].get(factor_key, 0.0)
             if botas_thk_val > 0:
                 t = botas_thk_val
-                is_auto_botas_thickness = True
             else:
                 # Fallback to standard station thickness if hat is None for small diameters
                 t = pipe_size['botas_thk'].get('0.50_ist1', 14.30)
@@ -392,11 +387,22 @@ class PipeQAQCEngine:
         weight_max = weight_nom * 1.10
 
         # 16. Operating Pressure / SMYS & Fracture Control
-        p_oper = design_pressure_bar if (design_pressure_bar and design_pressure_bar > 0) else (75.0 if f_factor >= 0.72 else (82.5 if f_factor >= 0.60 else 100.0))
+        if design_pressure_bar and design_pressure_bar > 0:
+            p_oper = float(design_pressure_bar)
+        else:
+            # Excel 'Design P F' mapping:
+            # F=0.80 -> 75.0 bar, F=0.72 -> 82.5 bar, F=0.60 -> 100.0 bar, F=0.50 -> 100.0 bar
+            if f_factor >= 0.75:
+                p_oper = 75.0
+            elif f_factor >= 0.70:
+                p_oper = 82.5
+            else:
+                p_oper = 100.0
+
         oper_press_ratio = (p_oper / p_hydro_max) if p_hydro_max > 0 else 0.0
 
         # ASME B31.8 841.1.2 Fracture Control & Arrest (OD > 14" / 355.6 mm)
-        d_inch_num = round(d_mm / 25.4, 3)
+        d_inch_num = round(d_mm / 25.4, 2)
         if d_inch_num > 14.0:
             if oper_press_ratio > 0.40:
                 fracture_control = "Brittle Fracture Control, API 5L Annex G ye Bakınız"
@@ -420,45 +426,45 @@ class PipeQAQCEngine:
         return {
             'input_summary': {
                 'diameter_inch': d_inch,
-                'diameter_mm': d_mm,
+                'diameter_mm': round(d_mm, 2),
                 'design_factor_str': design_factor_str,
-                'design_factor_num': f_factor,
-                'wall_thickness_mm': t,
+                'design_factor_num': round(f_factor, 2),
+                'wall_thickness_mm': round(t, 2),
                 'manufacturing_process': manufacturing_process,
                 'material_grade': grade_clean,
                 'standard_type': standard_type,
-                'design_pressure_bar': p_oper,
+                'design_pressure_bar': round(p_oper, 2),
                 'botas_thickness_status': botas_thickness_status
             },
             'chemical_analysis': {
-                'C_max': chem_rules['C_max'],
-                'Mn_max': chem_rules['Mn_max'],
-                'P_max': chem_rules['P_max'],
-                'S_max': chem_rules['S_max'],
+                'C_max': round(chem_rules['C_max'], 2),
+                'Mn_max': round(chem_rules['Mn_max'], 2),
+                'P_max': round(chem_rules['P_max'], 3),
+                'S_max': round(chem_rules['S_max'], 3),
                 'Nb_min_max': f"{chem_rules['Nb_min']:.3f}-{chem_rules['Nb_max']:.3f}" if chem_rules['Nb_min'] > 0 else f"{chem_rules['Nb_max']:.2f}",
                 'Nb_label': "Min%-Max%" if chem_rules['Nb_min'] > 0 else "Max %",
-                'V_max': chem_rules['V_max'],
-                'Ti_max': chem_rules['Ti_max'],
-                'N_max': chem_rules['N_max'],
-                'CE_IIW_max': chem_rules.get('CE_IIW_max', 0.43),
-                'CE_Pcm_max': chem_rules.get('CE_Pcm_max', 0.25)
+                'V_max': round(chem_rules['V_max'], 2),
+                'Ti_max': round(chem_rules['Ti_max'], 2),
+                'N_max': round(chem_rules['N_max'], 3),
+                'CE_IIW_max': round(chem_rules.get('CE_IIW_max', 0.43), 2),
+                'CE_Pcm_max': round(chem_rules.get('CE_Pcm_max', 0.25), 2)
             },
             'wall_thickness_tolerance': {
-                'nominal_mm': t,
-                'min_mm': t_min,
-                'max_mm': t_max
+                'nominal_mm': round(t, 2),
+                'min_mm': round(t_min, 2),
+                'max_mm': round(t_max, 2)
             },
             'mechanical_properties': {
-                'smys_psi': smys_psi,
-                'yield_min_psi': smys_psi,
-                'yield_min_mpa': yield_min_mpa,
-                'yield_max_psi': yield_max_psi,
-                'yield_max_mpa': yield_max_mpa,
-                'tensile_min_psi': tensile_min_psi,
-                'tensile_min_mpa': tensile_min_mpa,
-                'tensile_max_psi': tensile_max_psi,
-                'tensile_max_mpa': tensile_max_mpa,
-                'yield_to_tensile_ratio_max': yt_max
+                'smys_psi': round(smys_psi, 2),
+                'yield_min_psi': round(smys_psi, 2),
+                'yield_min_mpa': round(yield_min_mpa, 2),
+                'yield_max_psi': round(yield_max_psi, 2),
+                'yield_max_mpa': round(yield_max_mpa, 2),
+                'tensile_min_psi': round(tensile_min_psi, 2),
+                'tensile_min_mpa': round(tensile_min_mpa, 2),
+                'tensile_max_psi': round(tensile_max_psi, 2),
+                'tensile_max_mpa': round(tensile_max_mpa, 2),
+                'yield_to_tensile_ratio_max': round(yt_max, 2)
             },
             'hydrostatic_test': {
                 'hydro_test_max_bar': round(p_hydro_max, 2),
@@ -467,52 +473,52 @@ class PipeQAQCEngine:
                 'api_5l_alt_test_bar': round(alt_design_press, 2) if isinstance(alt_design_press, (int, float)) else "Hesaplamaya Gerek Yok"
             },
             'dimensional_tolerances': {
-                'diameter_end_max_mm': round(d_end_max, 1),
-                'diameter_end_min_mm': round(d_end_min, 1),
-                'diameter_body_max_mm': round(d_body_max, 1),
-                'diameter_body_min_mm': round(d_body_min, 1),
-                'circ_end_max_mm': circ_end_max,
-                'circ_end_min_mm': circ_end_min,
-                'circ_body_max_mm': circ_body_max,
-                'circ_body_min_mm': circ_body_min,
-                'ovality_end_mm': ovality_end,
-                'ovality_body_mm': ovality_body,
-                'pipe_end_peaking_max_mm': weld_peaking,
-                'pipe_end_squareness_max_mm': pipe_end_squareness
+                'diameter_end_max_mm': round(d_end_max, 2),
+                'diameter_end_min_mm': round(d_end_min, 2),
+                'diameter_body_max_mm': round(d_body_max, 2),
+                'diameter_body_min_mm': round(d_body_min, 2),
+                'circ_end_max_mm': round(circ_end_max, 2) if isinstance(circ_end_max, (int, float)) else circ_end_max,
+                'circ_end_min_mm': round(circ_end_min, 2) if isinstance(circ_end_min, (int, float)) else circ_end_min,
+                'circ_body_max_mm': round(circ_body_max, 2) if isinstance(circ_body_max, (int, float)) else circ_body_max,
+                'circ_body_min_mm': round(circ_body_min, 2) if isinstance(circ_body_min, (int, float)) else circ_body_min,
+                'ovality_end_mm': round(ovality_end, 2) if isinstance(ovality_end, (int, float)) else ovality_end,
+                'ovality_body_mm': round(ovality_body, 2) if isinstance(ovality_body, (int, float)) else ovality_body,
+                'pipe_end_peaking_max_mm': round(weld_peaking, 2) if isinstance(weld_peaking, (int, float)) else weld_peaking,
+                'pipe_end_squareness_max_mm': round(pipe_end_squareness, 2) if isinstance(pipe_end_squareness, (int, float)) else pipe_end_squareness
             },
             'weld_and_geometry': {
                 'radial_offset_max_mm': round(radial_offset, 2) if isinstance(radial_offset, (int, float)) else radial_offset,
-                'weld_height_inside_mm': round(weld_h_inside, 1) if isinstance(weld_h_inside, (int, float)) else weld_h_inside,
-                'weld_height_outside_mm': round(weld_h_outside, 1) if isinstance(weld_h_outside, (int, float)) else weld_h_outside,
-                'misalignment_max_mm': round(misalignment, 1) if isinstance(misalignment, (int, float)) else misalignment,
-                'weld_repair_length_max_mm': round(weld_repair_single, 1) if isinstance(weld_repair_single, (int, float)) else weld_repair_single,
+                'weld_height_inside_mm': round(weld_h_inside, 2) if isinstance(weld_h_inside, (int, float)) else weld_h_inside,
+                'weld_height_outside_mm': round(weld_h_outside, 2) if isinstance(weld_h_outside, (int, float)) else weld_h_outside,
+                'misalignment_max_mm': round(misalignment, 2) if isinstance(misalignment, (int, float)) else misalignment,
+                'weld_repair_length_max_mm': round(weld_repair_single, 2) if isinstance(weld_repair_single, (int, float)) else weld_repair_single,
                 'weld_repair_preheat': repair_preheat
             },
             'toughness_and_tests': {
                 'elongation_mat_min_percent': round(elongation_mat, 2),
-                'elongation_weld_min_percent': elongation_weld,
-                'notch_impact_mat_j': cvn_mat,
-                'notch_impact_weld_j': cvn_weld,
+                'elongation_weld_min_percent': round(elongation_weld, 2) if isinstance(elongation_weld, (int, float)) else elongation_weld,
+                'notch_impact_mat_j': round(cvn_mat, 2) if isinstance(cvn_mat, (int, float)) else cvn_mat,
+                'notch_impact_weld_j': round(cvn_weld, 2) if isinstance(cvn_weld, (int, float)) else cvn_weld,
                 'notch_specimen_size': "Tablo 22 ye göre düzenle",
-                'residual_stress_max_mm': round(residual_stress_max, 1) if isinstance(residual_stress_max, (int, float)) else residual_stress_max,
+                'residual_stress_max_mm': round(residual_stress_max, 2) if isinstance(residual_stress_max, (int, float)) else residual_stress_max,
                 'dwtt_test': dwtt,
                 'hardness_test_max': hardness_test,
-                'mandrel_dia_max_mm': round(mandrel_dia, 1) if isinstance(mandrel_dia, (int, float)) else mandrel_dia,
-                'jaw_opening_max_mm': round(jaw_opening, 1) if isinstance(jaw_opening, (int, float)) else jaw_opening
+                'mandrel_dia_max_mm': round(mandrel_dia, 2) if isinstance(mandrel_dia, (int, float)) else mandrel_dia,
+                'jaw_opening_max_mm': round(jaw_opening, 2) if isinstance(jaw_opening, (int, float)) else jaw_opening
             },
             'flattening': {
-                'weld_opening_height_mm': weld_open_h,
-                'material_crack_height_mm': mat_crack_h,
+                'weld_opening_height_mm': round(weld_open_h, 2) if isinstance(weld_open_h, (int, float)) else weld_open_h,
+                'material_crack_height_mm': round(mat_crack_h, 2) if isinstance(mat_crack_h, (int, float)) else mat_crack_h,
                 'lamination_rule': lamination
             },
             'weights_and_safety': {
-                'weight_nominal_kg_m': round(weight_nom, 1),
-                'weight_min_kg_m': round(weight_min, 1),
-                'weight_max_kg_m': round(weight_max, 1),
-                'operating_press_over_smys_percent': f"{round(oper_press_ratio * 100.0, 1)}%",
-                'operating_press_over_smys_val': oper_press_ratio,
+                'weight_nominal_kg_m': round(weight_nom, 2),
+                'weight_min_kg_m': round(weight_min, 2),
+                'weight_max_kg_m': round(weight_max, 2),
+                'operating_press_over_smys_percent': f"{round(oper_press_ratio * 100.0, 2)}%",
+                'operating_press_over_smys_val': round(oper_press_ratio, 4),
                 'fracture_control_asme_841_1_2': fracture_control,
-                'd_over_t': round(d_over_t, 1),
+                'd_over_t': round(d_over_t, 2),
                 'design_formula_asme_841_1_1': design_formula_alt,
                 'alternative_design_pressure_bar': round(alt_design_press, 2) if isinstance(alt_design_press, (int, float)) else alt_design_press
             },

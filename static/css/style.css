@@ -1,4 +1,8 @@
-/* Modern Engineering Theme for API 5L Pipe QA/QC Suite */
+/* ==========================================================================
+   Modern & Ergonomic Engineering Theme for API 5L Pipe QA/QC Suite
+   Optimized for High-Contrast Readability, Sticky Navigation & Crosshair Focus
+   ========================================================================== */
+
 :root {
     --primary: #1e3a8a;
     --primary-light: #3b82f6;
@@ -10,13 +14,13 @@
     --border-color: #cbd5e1;
     --text-main: #0f172a;
     --text-muted: #64748b;
-    --table-header-bg: #9ca3af;
-    --table-header-sub: #d1d5db;
-    --table-zebra: #f9fafb;
+    --table-header-bg: #94a3b8;
+    --table-header-sub: #cbd5e1;
+    --table-zebra: #f8fafc;
     --pass-bg: #dcfce7;
-    --pass-text: #15803d;
+    --pass-text: #166534;
     --fail-bg: #fee2e2;
-    --fail-text: #b91c1c;
+    --fail-text: #991b1b;
 }
 
 body {
@@ -30,7 +34,7 @@ body {
     flex-direction: column;
 }
 
-/* Custom Scrollbars */
+/* Custom Ergonomic Scrollbars */
 ::-webkit-scrollbar {
     width: 8px;
     height: 8px;
@@ -52,6 +56,8 @@ body {
     max-height: 72vh;
     position: relative;
     border-radius: 0.75rem;
+    background-color: #ffffff;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
 }
 
 /* Matrix Table Styling */
@@ -59,81 +65,173 @@ body {
     border-collapse: separate;
     border-spacing: 0;
     width: 100%;
-    font-size: 0.80rem;
+    font-size: 0.8125rem; /* 13px */
     background: white;
+    font-variant-numeric: tabular-nums;
 }
 
 .matrix-table th, .matrix-table td {
     border-right: 1px solid #cbd5e1;
     border-bottom: 1px solid #cbd5e1;
-    padding: 5px 8px;
+    padding: 6px 10px;
     text-align: center;
     vertical-align: middle;
+    transition: background-color 0.12s ease;
 }
 
+/* Header Row Types */
 .matrix-table .th-main {
-    background-color: var(--table-header-bg);
-    color: #111827;
+    background-color: #64748b !important;
+    color: #ffffff !important;
     font-weight: 700;
+    letter-spacing: 0.01em;
 }
 
 .matrix-table .th-sub {
-    background-color: var(--table-header-sub);
+    background-color: #f1f5f9;
     font-weight: 600;
-    color: #1f2937;
+    color: #1e293b;
 }
 
 .matrix-table .th-side {
-    background-color: #e5e7eb;
+    background-color: #e2e8f0;
     font-weight: 700;
-    text-align: center;
-    color: #111827;
+    text-align: left;
+    color: #0f172a;
 }
 
 .matrix-table .label-cell {
-    background-color: #f1f5f9;
+    background-color: #f8fafc;
     text-align: left;
     font-weight: 600;
     color: #1e293b;
     white-space: nowrap;
 }
 
-/* Sticky Left First Column */
+/* Sticky Left First Column (Fixed Left with Solid Opaque Background) */
 .sticky-left {
     position: sticky;
     left: 0;
-    z-index: 10;
-    box-shadow: 2px 0 5px rgba(0,0,0,0.05);
+    z-index: 20;
+    background-color: #f8fafc !important;
+    border-right: 2px solid #94a3b8 !important;
+    box-shadow: 3px 0 6px rgba(0, 0, 0, 0.06);
+}
+
+.th-main.sticky-left {
+    background-color: #475569 !important;
+    color: #ffffff !important;
+}
+
+.th-side.sticky-left {
+    background-color: #e2e8f0 !important;
 }
 
 /* Sticky Right Explanation Column */
 .sticky-right {
     position: sticky;
     right: 0;
-    z-index: 10;
-    background-color: #f8fafc;
-    box-shadow: -2px 0 5px rgba(0,0,0,0.05);
+    z-index: 15;
+    background-color: #f8fafc !important;
+    border-left: 2px solid #cbd5e1 !important;
+    box-shadow: -3px 0 6px rgba(0, 0, 0, 0.04);
 }
 
-/* Active Pipe Column Glow & Focus Highlight */
+/* Sticky Top Sticky Header Row */
+.sticky-top-header {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+}
+
+.sticky-top-header th.sticky-left,
+.sticky-top-header td.sticky-left {
+    z-index: 35 !important;
+}
+
+.sticky-top-header th.sticky-right,
+.sticky-top-header td.sticky-right {
+    z-index: 32 !important;
+}
+
+/* --------------------------------------------------------------------------
+   ACTIVE COLUMN & CROSSHAIR FOCUS STYLING (High Contrast & Crystal Clear)
+   -------------------------------------------------------------------------- */
+
 .pipe-header-cell {
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.15s ease;
     user-select: none;
 }
+
 .pipe-header-cell:hover {
-    background-color: #93c5fd !important;
+    background-color: #dbeafe !important;
 }
-.active-pipe-header {
-    background-color: #2563eb !important;
+
+/* Active Column Header (Bold Dark Blue with Crisp White Text) */
+.matrix-table th.active-pipe-header,
+.matrix-table td.active-pipe-header {
+    background: linear-gradient(180deg, #1d4ed8 0%, #1e40af 100%) !important;
     color: #ffffff !important;
     font-weight: 800 !important;
-    box-shadow: 0 0 12px rgba(37, 99, 235, 0.5) inset;
+    border-left: 2px solid #1e3a8a !important;
+    border-right: 2px solid #1e3a8a !important;
+    box-shadow: 0 3px 6px rgba(30, 58, 138, 0.3) !important;
 }
-.active-pipe-col {
-    background-color: #f0f7ff !important;
+
+.active-pipe-header * {
+    color: #ffffff !important;
+    background-color: transparent !important;
+    border-color: transparent !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* Active Column Body Cells (Crisp Highlight with 2px High-Visibility Border) */
+.matrix-table td.active-pipe-col {
+    background-color: #eff6ff !important;
     border-left: 2px solid #3b82f6 !important;
     border-right: 2px solid #3b82f6 !important;
+    color: #0f172a !important;
+    font-weight: 600;
+}
+
+.matrix-table td.active-pipe-col * {
+    color: inherit;
+}
+
+/* Active Column Indicator Header Badge */
+.active-col-indicator-badge {
+    display: inline-block;
+    background: #22c55e;
+    color: #ffffff !important;
+    font-size: 9px;
+    font-weight: 800;
+    padding: 1px 6px;
+    border-radius: 4px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+/* Row Hover Crosshair Effect */
+.matrix-table tr:hover td:not(.sticky-left):not(.sticky-right):not(.active-pipe-col) {
+    background-color: #f1f5f9;
+}
+
+.matrix-table tr:hover td.sticky-left {
+    background-color: #cbd5e1 !important;
+}
+
+.matrix-table tr:hover td.active-pipe-col {
+    background-color: #dbeafe !important;
+    color: #1e3a8a !important;
+    font-weight: 700 !important;
+    box-shadow: inset 0 0 0 1px #93c5fd;
+}
+
+/* Alternating Row Stripe (Zebra) */
+.matrix-table tr:nth-child(even) td:not(.active-pipe-col):not(.sticky-left):not(.sticky-right):not(.th-main):not(.th-side) {
+    background-color: #fcfdfe;
 }
 
 /* Accordion Section Headers */
@@ -143,7 +241,7 @@ body {
     transition: background-color 0.15s ease;
 }
 .accordion-header:hover {
-    background-color: #e2e8f0 !important;
+    background-color: #cbd5e1 !important;
 }
 .accordion-icon {
     display: inline-block;
@@ -159,11 +257,12 @@ body {
     color: var(--pass-text);
     padding: 2px 8px;
     border-radius: 9999px;
-    font-weight: 600;
+    font-weight: 700;
     font-size: 0.75rem;
     display: inline-flex;
     align-items: center;
     gap: 4px;
+    border: 1px solid #86efac;
 }
 
 .badge-fail {
@@ -171,11 +270,12 @@ body {
     color: var(--fail-text);
     padding: 2px 8px;
     border-radius: 9999px;
-    font-weight: 600;
+    font-weight: 700;
     font-size: 0.75rem;
     display: inline-flex;
     align-items: center;
     gap: 4px;
+    border: 1px solid #fca5a5;
 }
 
 /* 3D Visualizer Viewport */
@@ -204,8 +304,9 @@ body {
     border-color: #1d4ed8 !important;
     box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
 }
-.pipe-chip.active p {
-    color: #dbeafe !important;
+.pipe-chip.active p,
+.pipe-chip.active span {
+    color: #ffffff !important;
 }
 
 /* Print Specifics */

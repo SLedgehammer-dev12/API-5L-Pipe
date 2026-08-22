@@ -6,7 +6,6 @@ on Windows, macOS (Apple Silicon & Intel), and Linux.
 """
 
 import sys
-import os
 import multiprocessing
 import socket
 import threading
@@ -66,10 +65,10 @@ def main():
         port = find_available_port(8000)
 
     url = f"http://127.0.0.1:{port}"
-    print(f"\n=======================================================")
-    print(f"🚀 API 5L & BOTAŞ Boru Kalite Güvence Yazılımı Başlatıldı")
+    print("\n=======================================================")
+    print("🚀 API 5L & BOTAŞ Boru Kalite Güvence Yazılımı Başlatıldı")
     print(f"🌐 Adres: {url}")
-    print(f"=======================================================\n")
+    print("=======================================================\n")
 
     # Start browser opener in background thread
     threading.Thread(target=open_browser_delayed, args=(url, 1.2), daemon=True).start()

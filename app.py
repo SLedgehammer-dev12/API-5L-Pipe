@@ -2,13 +2,13 @@
 Main FastAPI Web Application for API 5L PSL2 & BOTAŞ Pipe QA/QC & Design Suite.
 """
 
-from fastapi import FastAPI, Request, Body, HTTPException
+from fastapi import FastAPI, Request, Body
 from fastapi.responses import HTMLResponse, StreamingResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 import os
 import sys
-from typing import Dict, Any, List
+from typing import Dict, Any
 
 from core.pipe_qaqc_engine import PipeQAQCEngine
 from core.verification_engine import PipeVerificationEngine
@@ -102,7 +102,8 @@ async def verify_pipe(data: Dict[str, Any] = Body(...)):
 @app.post("/api/wall-thickness")
 async def calculate_wall_thickness(data: Dict[str, Any] = Body(...)):
     """
-    Calculates required pipe wall thickness and selects standard nominal thickness from ASME B36.10.
+    Calculates required pipe wall thickness across BOTAŞ, ASME B31.8/B31.4, or ASME B31.3
+    and selects standard nominal thickness from ASME B36.10M or ASME B36.19M.
     """
     res = WallThicknessEngine.calculate_wall_thickness(
         diameter_inch=data.get("diameter_inch", "4\""),
@@ -112,7 +113,8 @@ async def calculate_wall_thickness(data: Dict[str, Any] = Body(...)):
         longitudinal_joint_factor_e=float(data.get("longitudinal_joint_factor_e", 1.0)),
         temperature_derating_factor_t=float(data.get("temperature_derating_factor_t", 1.0)),
         corrosion_allowance_mm=float(data.get("corrosion_allowance_mm", 0.0)),
-        location_type=data.get("location_type", "Pipeline")
+        location_type=data.get("location_type", "Pipeline"),
+        standard_code=data.get("standard_code", "BOTAŞ")
     )
     return JSONResponse(content={"status": "success", "data": res})
 

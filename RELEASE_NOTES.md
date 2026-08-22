@@ -1,52 +1,50 @@
-# Sürüm Notları / Release Notes - v1.1.0
+# Sürüm Notları / Release Notes - v1.2.0
 
-## 🚀 API 5L PSL2 & BOTAŞ Boru Kalite Güvence, Fabrika Kabul ve Et Kalınlığı Tasarım Yazılımı
+## 🚀 API 5L PSL2 & BOTAŞ Boru Kalite Güvence, Fabrika Kabul ve Çoklu Standart Et Kalınlığı Tasarım Yazılımı
 
-Bu sürüm, kullanıcı deneyimini ve ergonomisini artıran **çoklu boru 2D/3D senkronizasyonunu**, **Yönetici KPI özet kartlarını**, **katlanabilir akordeon parametre matrisini**, **canlı parametre arama motorunu**, **3D yüksek çözünürlüklü PNG teknik çizim çıktısını**, **otomatik açılış güncelleme denetleyicisini** ve **Telif Hakkı & Yasal Sorumluluk Reddi (Disclaimer)** entegrasyonlarını içermektedir.
-
----
-
-### 🌟 v1.1.0 ile Gelen Önemli Yenilikler
-
-1. **🔄 Açılışta Otomatik Güncelleme Denetimi (Auto-Updater):**
-   - Program açıldığında arka planda GitHub Releases API üzerinden yeni sürümleri sorgular.
-   - Yeni sürüm çıktığında Windows (`.exe`) ve macOS (`.dmg`) için doğrudan indirme bağlantıları içeren şık bir bildirim şeridi açılır.
-   - "Hakkında" penceresinde istenildiği zaman manuel güncelleme denetimi yapılabilir.
-
-2. **🎯 Çoklu Boru 2D & 3D Görsel Senkronizasyonu:**
-   - Tablodaki herhangi bir boru sütununa tıklandığında, o sütun parlama efektiyle aktif seçilir; 2D kesit ve 3D WebGL modeli anında o borunun gerçek geometrisine ($D$, $t$, kaynak türü) güncellenir.
-   - 2D/3D sekmesinde yer alan yatay **Boru Seçim Çipleri (Chips Carousel)** ile sekmeler arası geçiş yapmadan tek tıkla borular arası odaklama sağlanır.
-   - **📷 3D Görüntüyü Kaydet (PNG Snapshot):** 3D model ekranından tek tıkla teknik raporlar ve sunumlar için şeffaf arka planlı yüksek çözünürlüklü PNG resmi indirilebilir.
-
-3. **📊 Yönetici KPI Özet Performans Kartları:**
-   - Matrisin en üstünde seçili boruya ait 4 kritik mühendislik kartı yer alır:
-     - 💧 *Maks. Fabrika Hidrostatik Basıncı ($P_{\max}$)*
-     - ⚖️ *Nominal Birim Boru Ağırlığı ($\text{kg/m}$)*
-     - 📐 *D/t Oranı & ASME B31.8 841.1.1 Tasarım Formülü*
-     - 🛡️ *ASME 841.1.2 Kırılma Emniyeti (API 5L Annex G Durumu)*
-
-4. **📑 Donuk Başlıklar (Sticky Table) & Katlanabilir Akordeon Matrisi:**
-   - Aşağı kaydırırken boru başlıkları (`sticky top`), sağa kaydırırken parametre adları (`sticky left`) ve açıklamalar (`sticky right`) donuk kalır.
-   - 40+ satır 6 mantıksal mühendislik grubuna ayrıldı; kullanıcı dilediği bloğu tek tıkla daraltıp genişletebilir.
-   - **Canlı Parametre Arama Çubuğu:** Tablo üzerinde anlık parametre süzme imkanı.
-
-5. **⚡ BOTAŞ Çapa Göre Otomatik Doldurma:**
-   - BOTAŞ Şartnamesi seçildiğinde kullanıcı yalnızca çap seçer; ilgili çapa ait tüm dizayn faktörlerindeki borular ($F=0.72\text{ Hat}$, $F=0.60\text{ Hat}$, $F=0.50\text{ Hat}$, $F=0.50\text{ İstasyon 1/2}$) tek tıkla matrise ayrı sütunlar olarak eklenir.
-
-6. **⚖️ Telif Hakkı (Copyright) & Yasal Sorumluluk Reddi (Disclaimer):**
-   - Alt bilgi (Footer), Hakkında modalı, Excel çalışma kitabı dipnotu ve resmi EN 10204 3.1 rapor şablonuna kapsamlı yasal sorumluluk ve telif bildirimleri entegre edildi.
-
-7. **📦 Geriye Dönük Şema Uyumluluğu:**
-   - Eski versiyonlarda (`v1.0.0`, `v1.0.1`, `v1.0.2`) kaydedilmiş `.pipeproj` dosyaları yüklendiğinde otomatik göç ettirilerek veri kaybı olmadan açılır.
+Bu sürüm, boru mühendisliği standartlarına tam uyumluluk sağlayan **Çoklu Standart Et Kalınlığı Hesaplama Motoru (BOTAŞ, ASME B31.8/B31.4, ASME B31.3)**, **Paslanmaz ve Dubleks Çelik Malzeme Kütüphanesi & ASME B36.19M Schedule Matrisi**, **40+ Parametreli Kapsamlı Fabrika Kabul & Doğrulama Motoru**, **İki Dilli (TR/EN) Excel Dışa Aktarma**, **2 Ondalık Hassasiyet Standardı** ve **Gelişmiş Tablo Ergonomisi & Crosshair (Kesişim) Odaklanması** geliştirmelerini içermektedir.
 
 ---
 
-### 💻 İndirme Bağlantıları (v1.1.0)
+### 🌟 v1.2.0 ile Gelen Önemli Yenilikler ve İyileştirmeler
+
+1. **📐 Çoklu Standart Et Kalınlığı & Schedule Seçim Motoru:**
+   - **BOTAŞ Şartnamesi:** Hat ve İstasyon boruları ayrımı, korozyon payı ($c$) ve %12.5 fabrika et kalınlığı eksi toleransı ($t_{\text{nom}} \times 0.875 \ge t_{\text{req}}$) entegrasyonu.
+   - **ASME B31.8 / ASME B31.4 (Gaz & Sıvı İletim Hatları):** $t = \frac{P \cdot D}{2 \cdot S \cdot F \cdot E \cdot T} + c$ formülasyonu ve ASME B36.10M / B36.19M nominal schedule eşleştirmesi.
+   - **ASME B31.3 (Proses Borulaması):** $t = \frac{P \cdot D}{2(S \cdot E \cdot W + P \cdot Y)} + c$ formülasyonu ($W=1.0$, $Y=0.40$).
+   - Bilinmeyen çaplar için güvenli fallback mekanizması (P0-1 NameError güvenliği).
+
+2. **🧪 Paslanmaz ve Dubleks Çelik Malzeme Kütüphanesi:**
+   - Standart malzeme listesine **SS 304 / 304L**, **SS 316 / 316L**, **SS 321**, **Duplex 2205** ve **Super Duplex 2507** kaliteleri eklendi.
+   - Paslanmaz çelikler seçildiğinde otomatik olarak **ASME B36.19M** standardındaki paslanmaz schedule değerleri (5S, 10S, 40S, 80S) devreye girer.
+
+3. **🔍 40+ Parametreli Kapsamlı Doğrulama ve Kabul Motoru:**
+   - Doğrulama modülü 10 parametreden 40+ parametreye genişletildi:
+     - 🧪 **Kimyasal Bileşim:** C, Mn, P, S, Nb, V, Ti, N, CE_IIW, CE_Pcm vb.
+     - 📐 **Boyut & Toleranslar:** Dış Çap, Et Kalınlığı Min/Max, Çevre, Ovalite, Diklik, Çatılaşma.
+     - 💥 **Mekanik Değerler:** Yield Min/Max, Tensile Min/Max, Y/T Oranı, Uzama.
+     - 🔬 **Kaynak & Geometri:** Radial Offset, Misalignment, Kaynak Dikişi Yüksekliği (İç/Dış).
+     - 🛡️ **Tokluk & Testler:** CVN Çentik Darbe, DWTT Yırtılma, Artık Gerilme, Sertlik, Flattening, Tamir Kaynağı.
+     - ⚖️ **Ağırlık & Hidrostatik:** Nominal Birim Ağırlık, $D/t$ Oranı, Fabrika Hidrostatik Test Basıncı.
+
+4. **🎨 Matris Tablosunda Yüksek Okunabilirlik ve Ergonomik Geliştirmeler:**
+   - **Kontrast İyileştirmesi:** Seçili sütun başlıkları ve gövde hücrelerindeki renk çakışmaları giderildi; kristal netliğinde okunabilir tipografi sağlandı.
+   - **Crosshair (Kesişim) Odaklanması:** Fareyle satırlar üzerinde gezinirken seçili sütun ile kesişen hücre aydınlatılarak 40+ parametre arasında göz yorulması engellendi.
+   - **Yapışkan Üst Sütun Seçim Satırı:** Tablonun tepesinde sabitlenen boru seçim rozetleri (`★ SEÇİLİ BORU`).
+   - **Hızlı Sütun Gezgini:** Tablo araç çubuğuna `◀ Önceki` ve `Sonraki ▶` butonları ve klavye yön tuşları ($\leftarrow$ / $\rightarrow$) ile borular arası anında geçiş desteği.
+
+5. **📊 İki Dilli (TR / EN) Excel Raporlayıcı & 2 Decimal Yuvarlama:**
+   - Excel dışa aktarımında 40+ satırın tamamı seçilen dile göre Türkçe veya İngilizce standart maddeleriyle doldurulur.
+   - Tüm mühendislik hesaplama sonuçları ve toleranslar standart olarak 2 ondalık basamağa (`.toFixed(2)`) yuvarlanarak sunulur.
+
+---
+
+### 💻 İndirme Bağlantıları (v1.2.0)
 
 - **🪟 Windows (x64):**  
-  [**`API-5L-Pipe-Windows-x64.exe` İndir**](https://github.com/SLedgehammer-dev12/API-5L-Pipe/releases/download/v1.1.0/API-5L-Pipe-Windows-x64.exe)  
+  [**`API-5L-Pipe-Windows-x64.exe` İndir**](https://github.com/SLedgehammer-dev12/API-5L-Pipe/releases/download/v1.2.0/API-5L-Pipe-Windows-x64.exe)  
   *Tek dosyadır, kurulum gerektirmez. Doğrudan çift tıklayarak çalıştırabilirsiniz.*
 
 - **🍏 macOS (Apple Silicon M1/M2/M3/M4 & Intel):**  
-  [**`API-5L-Pipe-macOS.dmg` İndir**](https://github.com/SLedgehammer-dev12/API-5L-Pipe/releases/download/v1.1.0/API-5L-Pipe-macOS.dmg)  
+  [**`API-5L-Pipe-macOS.dmg` İndir**](https://github.com/SLedgehammer-dev12/API-5L-Pipe/releases/download/v1.2.0/API-5L-Pipe-macOS.dmg)  
   *Disk kalıbını açıp `API-5L-Pipe.app` uygulamasını Applications klasörüne sürükleyin.*

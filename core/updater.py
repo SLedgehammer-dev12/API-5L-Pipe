@@ -5,7 +5,7 @@ Queries GitHub Releases API to detect new versions and provide download links.
 
 import httpx
 import re
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 from version import __version__
 
 GITHUB_REPO = "SLedgehammer-dev12/API-5L-Pipe"
