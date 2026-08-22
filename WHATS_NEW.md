@@ -1,0 +1,79 @@
+# What's New in API 5L Pipe QA/QC & Wall Thickness Suite (v1.2.0)
+## Yenilikler ve Sürüm Özeti - v1.2.0 (2026-08-22)
+
+---
+
+### 🇹🇷 Türkçe Özet
+
+API 5L Pipe QA/QC Suite **v1.2.0** sürümü ile birlikte boru mühendisliği, kalite güvence ve fabrika kabul süreçlerinizi hızlandıracak kapsamlı yenilikler ve performans geliştirmeleri eklenmiştir:
+
+#### 1. 📐 Çoklu Standart Et Kalınlığı & Schedule Seçim Motoru
+- **BOTAŞ Şartnamesi:** Hat ve İstasyon boruları ayrımı, korozyon payı ($c$) ve %12.5 fabrika et kalınlığı toleransı ($t_{\text{nom}} \times 0.875 \ge t_{\text{req}}$) entegre edildi.
+- **ASME B31.8 / ASME B31.4:** $t = \frac{P \cdot D}{2 \cdot S \cdot F \cdot E \cdot T} + c$ formülasyonu ve ASME B36.10M / B36.19M nominal schedule eşleştirmesi.
+- **ASME B31.3 (Proses Borulaması):** $t = \frac{P \cdot D}{2(S \cdot E \cdot W + P \cdot Y)} + c$ formülasyonu ($W=1.0$, $Y=0.40$).
+- Bilinmeyen boru çaplarında oluşabilecek NameError hatalarına karşı güvenli fallback mimarisi.
+
+#### 2. 🧪 Paslanmaz ve Dubleks Çelik Malzeme Kütüphanesi & ASME B36.19M
+- Standart malzeme listesine **SS 304 / 304L**, **SS 316 / 316L**, **SS 321**, **Duplex 2205** ve **Super Duplex 2507** kaliteleri eklendi.
+- Paslanmaz çelikler seçildiğinde otomatik olarak **ASME B36.19M** standardındaki paslanmaz schedule değerleri (5S, 10S, 40S, 80S) devreye girer.
+
+#### 3. 🔍 40+ Parametreli Kapsamlı Fabrika Kabul & Doğrulama Motoru
+- Doğrulama modülü 10 parametreden 40+ parametreye genişletildi:
+  - 🧪 **Kimyasal Analiz:** C, Mn, P, S, Nb, V, Ti, N, Karbon Eşdeğerleri (CE_IIW, CE_Pcm).
+  - 📐 **Boyut ve Toleranslar:** Dış Çap, Et Kalınlığı Min/Max, Çevre, Ovalite, Diklik, Çatılaşma.
+  - 💥 **Mekanik Değerler:** Yield Min/Max, Tensile Min/Max, Y/T Oranı, Uzama.
+  - 🔬 **Kaynak Geometrisi:** Radial Offset, Misalignment, Kaynak Dikişi Yüksekliği (İç/Dış).
+  - 🛡️ **Tokluk ve Testler:** CVN Çentik Darbe, DWTT Yırtılma, Artık Gerilme, Sertlik, Flattening, Tamir Kaynağı.
+  - ⚖️ **Ağırlık ve Hidrostatik:** Nominal Birim Ağırlık, $D/t$ Oranı, Fabrika Hidrostatik Test Basıncı.
+
+#### 4. 🎨 Matris Tablosunda Yüksek Okunabilirlik ve Crosshair Odaklanması
+- **Kontrast ve Renk Çakışması Giderildi:** Seçili sütun başlıkları ve hücrelerindeki renk çakışmaları tamamen çözülerek yüksek kontrastlı okunabilirlik sağlandı.
+- **Crosshair (Kesişim) Odaklanması:** Fareyle satırlar üzerinde gezinirken seçili sütun ile kesişen hücre aydınlatılarak göz yorulması engellendi.
+- **Yapışkan Üst Sütun Seçim Satırı:** Tablonun tepesinde sabitlenen boru seçim rozetleri (`★ SEÇİLİ BORU`).
+- **Hızlı Sütun Gezgini:** Tablo araç çubuğuna `◀ Önceki` ve `Sonraki ▶` butonları ve klavye yön tuşları ($\leftarrow$ / $\rightarrow$) ile borular arası anında geçiş desteği.
+
+#### 5. 📊 İki Dilli (TR / EN) Excel Raporu & 2 Ondalık Basamak Standardı
+- Excel dışa aktarımında 40+ satırın tamamı seçilen dile göre Türkçe veya İngilizce standart maddeleriyle doldurulur.
+- Tüm mühendislik hesaplama sonuçları ve toleranslar standart olarak 2 ondalık basamağa (`.toFixed(2)`) yuvarlanarak sunulur.
+
+---
+
+### 🇬🇧 English Summary
+
+API 5L Pipe QA/QC Suite **v1.2.0** introduces comprehensive pipeline engineering upgrades, full multi-standard wall thickness calculations, expanded material grades, 40+ parameter verification, and ergonomic table navigation:
+
+#### 1. 📐 Multi-Standard Wall Thickness & Schedule Selection Engine
+- **BOTAŞ Specification:** Line Pipe vs. Station Pipe criteria, corrosion allowance ($c$), and %12.5 mill undertolerance ($t_{\text{nom}} \times 0.875 \ge t_{\text{req}}$).
+- **ASME B31.8 / ASME B31.4 (Gas & Liquid Transmission):** Full $t = \frac{P \cdot D}{2 \cdot S \cdot F \cdot E \cdot T} + c$ calculation with nominal schedule selection.
+- **ASME B31.3 (Process Piping):** $t = \frac{P \cdot D}{2(S \cdot E \cdot W + P \cdot Y)} + c$ formulation ($W=1.0$, $Y=0.40$).
+- Safe fallback architecture preventing NameError on custom/non-standard diameters.
+
+#### 2. 🧪 Stainless Steel & Duplex Material Library & ASME B36.19M Schedules
+- Added **SS 304 / 304L**, **SS 316 / 316L**, **SS 321**, **Duplex 2205**, and **Super Duplex 2507** material grades.
+- Automatic switching to **ASME B36.19M** schedules (5S, 10S, 40S, 80S) for stainless steels.
+
+#### 3. 🔍 40+ Parameter Quality Acceptance & Verification Engine
+- Complete verification across 6 inspection categories:
+  - 🧪 **Chemical Analysis:** C, Mn, P, S, Nb, V, Ti, N, Carbon Equivalents (CE_IIW, CE_Pcm).
+  - 📐 **Dimensional Tolerances:** Diameter End/Body, Wall Thickness Min/Max, Circumference, Ovality, Squareness, Peaking.
+  - 💥 **Mechanical Properties:** Yield Min/Max, Tensile Min/Max, Y/T Ratio, Elongation.
+  - 🔬 **Weld & Geometry:** Radial Offset, Misalignment, Weld Seam Height (Inside/Outside).
+  - 🛡️ **Toughness & Tests:** CVN Impact Energy, DWTT Fracture Appearance, Residual Stress, Hardness, Flattening, Weld Repair.
+  - ⚖️ **Weights & Hydrostatic:** Nominal Weight, $D/t$ Ratio, Hydrostatic Mill Test Pressure.
+
+#### 4. 🎨 Enhanced Matrix Ergonomics & Crosshair Highlighting
+- **High-Contrast Readability:** Eliminated overlapping color styles in active headers and body cells.
+- **Crosshair Focus Highlight:** Live intersection spotlight when hovering rows over the active column.
+- **Sticky Top Selection Row:** Pinned column selection badges (`★ SEÇİLİ BORU`).
+- **Quick Column Navigation:** Toolbar buttons (`◀ Prev`, `Next ▶`) and keyboard arrow key ($\leftarrow$ / $\rightarrow$) shortcuts.
+
+#### 5. 📊 Bilingual (TR/EN) Excel Exporter & 2-Decimal Precision
+- Full Turkish and English engineering remarks across all 40+ rows.
+- Standardized 2-decimal rounding (`.toFixed(2)`) across UI and Excel reports.
+
+---
+
+### 📦 Downloads / İndirme
+
+- **Windows x64 (.exe):** [Download API-5L-Pipe-Windows-x64.exe](https://github.com/SLedgehammer-dev12/API-5L-Pipe/releases/download/v1.2.0/API-5L-Pipe-Windows-x64.exe)
+- **macOS (.dmg):** [Download API-5L-Pipe-macOS.dmg](https://github.com/SLedgehammer-dev12/API-5L-Pipe/releases/download/v1.2.0/API-5L-Pipe-macOS.dmg)
