@@ -78,23 +78,25 @@ TRANSLATIONS = {
         'alt_design_press': 'Alternative Design Pressure',
         
         # Actions & Buttons
-        'btn_add_pipe': 'Yeni Boru Ekle',
-        'btn_load_preset_48_18': 'Referans Şablonu Yükle (48" + 18" X65)',
-        'btn_load_botas_std': 'BOTAŞ Standart Şablonu',
-        'btn_export_excel': 'Excel (.xlsx) Olarak İndir',
-        'btn_export_pdf': 'Resmi Rapor / PDF Yazdır',
+        'btn_add_pipe': 'Yeni Boru Sütunu Ekle',
+        'btn_load_preset_48_18': 'Referans Projeyi Yükle (48" + 18" X65)',
+        'btn_load_botas_std': 'BOTAŞ Standart Şartnamesi',
+        'btn_export_excel': 'Excel İndir (.xlsx)',
+        'btn_export_pdf': 'Resmi Kabul Raporu / PDF Yazdır',
         'btn_save_project': 'Projeyi Kaydet (JSON)',
         'btn_load_project': 'Proje Yükle',
-        'btn_verify': 'Test Verilerini Doğrula',
-        'btn_calculate_design': 'Et Kalınlığı Hesapla'
+        'btn_verify': 'Test Ölçüm Değerlerini Doğrula',
+        'btn_calculate_design': 'Et Kalınlığı Hesapla',
+        'btn_feedback': 'Geri Bildirim / İletişim',
+        'feedback_title': 'Sorun, Öneri Bildirimi & Geliştirici ile İletişim'
     },
     'en': {
-        'app_title': 'API 5L PSL2 & BOTAŞ Pipe QA/QC & Inspection Suite',
-        'app_subtitle': 'Pipe Selection, Acceptance Criteria, Factory Acceptance Testing & Wall Thickness Design',
-        'nav_qaqc': 'Pipe QA/QC & Acceptance Matrix',
+        'app_title': 'API 5L PSL2 & BOTAŞ Pipe QA/QC & Acceptance Suite',
+        'app_subtitle': 'Pipe Selection, Acceptance Criteria, Factory Test Verification & Wall Thickness Design Engine',
+        'nav_qaqc': 'QA/QC Acceptance Matrix',
         'nav_verification': 'Factory Test Verification (PASS/FAIL)',
         'nav_wall_thickness': 'Wall Thickness Design Tool (ASME B31.8)',
-        'nav_schematic_2d': '2D Cross-Section & Tolerance Diagram',
+        'nav_schematic_2d': '2D Section & Tolerance Schematic',
         'nav_schematic_3d': '3D Interactive Pipe & Weld Model',
         'nav_projects': 'Project & Revision Management',
         'nav_reports': 'Report Generator & Export',
@@ -104,10 +106,10 @@ TRANSLATIONS = {
         'diameter_mm': 'DIAMETER (mm)',
         'design_pressure_factor': 'Design Pressure / Factor',
         'wall_thickness': 'Wall Thickness (mm)',
-        'manufacturing_process': 'Manufacturing Process',
+        'manufacturing_process': 'Process',
         'material_grade': 'Material Grade',
         'smys_psi': 'SMYS (Psi)',
-        'chemical_analysis': 'Chemical Analysis',
+        'chemical_analysis': 'Chemical Composition',
         'wall_thickness_tolerance': 'Wall Thickness Tolerance',
         'thk_min': 'Wall Thickness Min. (mm)',
         'thk_max': 'Wall Thickness Max. (mm)',
@@ -115,8 +117,8 @@ TRANSLATIONS = {
         'yield_max': 'Yield Max. (Psi-Mpa)',
         'tensile_min': 'Tensile Min (Psi-Mpa)',
         'tensile_max': 'Tensile Max (Psi-Mpa)',
-        'hydro_max': 'Hydro Test Pressure Max (Bar)',
-        'hydro_min': 'Hydro Test Pressure Min (Bar)',
+        'hydro_max': 'Hydro Test Pressure Max.(Bar)',
+        'hydro_min': 'Hydro Test Pressure Min.(Bar)',
         'api_5l_std_press': 'API 5L Standard Test Pressure (Bar)',
         'api_5l_alt_press': 'API 5L Alternative Test Pressure (Bar)',
         'diameter_tolerances': 'Pipe Diameter Tolerances (mm)',
@@ -170,7 +172,9 @@ TRANSLATIONS = {
         'btn_save_project': 'Save Project (JSON)',
         'btn_load_project': 'Load Project',
         'btn_verify': 'Verify Inspection Test Data',
-        'btn_calculate_design': 'Calculate Wall Thickness'
+        'btn_calculate_design': 'Calculate Wall Thickness',
+        'btn_feedback': 'Feedback & Contact',
+        'feedback_title': 'Bug / Feature Report & Contact Developer'
     }
 }
 

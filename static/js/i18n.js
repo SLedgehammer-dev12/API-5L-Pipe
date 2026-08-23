@@ -22,6 +22,7 @@ const I18N_DICTIONARY = {
         btn_snapshot_3d: "📷 3D Görüntüyü Kaydet (PNG)",
         btn_collapse_all: "Tümünü Daralt",
         btn_expand_all: "Tümünü Genişlet",
+        btn_feedback: "💬 Geri Bildirim & İletişim",
         
         search_placeholder: "Tabloda parametre veya standart ara (örn: uzama, ovalite, hydro, C)...",
         kpi_hydro_press: "Maks. Fabrika Test Basıncı",
@@ -60,6 +61,7 @@ const I18N_DICTIONARY = {
         btn_snapshot_3d: "📷 Export 3D Snapshot (PNG)",
         btn_collapse_all: "Collapse All",
         btn_expand_all: "Expand All",
+        btn_feedback: "💬 Feedback & Contact",
         
         search_placeholder: "Search parameter or standard in table (e.g. elongation, ovality, hydro, C)...",
         kpi_hydro_press: "Max Factory Hydro Pressure",

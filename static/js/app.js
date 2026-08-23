@@ -878,3 +878,111 @@ function showToast(msg, type = "info") {
     toast.classList.remove("hidden");
     setTimeout(() => toast.classList.add("hidden"), 3000);
 }
+
+// --- FEEDBACK & DEVELOPER CONTACT MODULE ---
+const DEVELOPER_EMAIL = "omer.erbas@botas.gov.tr";
+
+function openFeedbackModal(type = "bug") {
+    const modal = document.getElementById("feedback-modal");
+    if (!modal) return;
+    
+    const typeSelect = document.getElementById("feedback-type");
+    if (typeSelect && type) {
+        typeSelect.value = type;
+    }
+    
+    const subjInput = document.getElementById("feedback-subject");
+    if (subjInput && !subjInput.value) {
+        const activePipe = (activeProject && activeProject.pipes) ? (activeProject.pipes[selectedPipeIndex] || activeProject.pipes[0]) : null;
+        if (type === "bug") {
+            subjInput.value = activePipe ? `[Hata Bildirimi] ${activePipe.diameter_inch} ${activePipe.material_grade} Boru Hesabı` : "[Hata Bildirimi] Boru Kalite Güvence";
+        } else if (type === "feature") {
+            subjInput.value = "[Öneri] Yeni Boru Standardı / Özellik Talebi";
+        } else {
+            subjInput.value = "[Danışma] API 5L / BOTAŞ Boru Kalite Danışma";
+        }
+    }
+    
+    modal.classList.remove("hidden");
+}
+
+function closeFeedbackModal() {
+    const modal = document.getElementById("feedback-modal");
+    if (modal) modal.classList.add("hidden");
+}
+
+function generateFeedbackDiagnostics() {
+    const activePipe = (activeProject && activeProject.pipes) ? (activeProject.pipes[selectedPipeIndex] || activeProject.pipes[0]) : null;
+    let diag = `\n=== SİSTEM VE TANI BİLGİLERİ ===\n`;
+    diag += `Uygulama Sürümü: v1.2.0\n`;
+    diag += `Kullanıcı Tarayıcısı / OS: ${navigator.userAgent}\n`;
+    diag += `Tarih / Saat: ${new Date().toISOString()}\n`;
+    diag += `Mevcut Dil: ${currentLang}\n`;
+    diag += `Aktif Proje: ${(activeProject && activeProject.project_name) || "API 5L Projesi"}\n`;
+    diag += `Toplam Boru Sayısı: ${(activeProject && activeProject.pipes) ? activeProject.pipes.length : 0}\n`;
+    
+    if (activePipe) {
+        diag += `\n--- AKTİF SEÇİLİ BORU PARAMETRELERİ ---\n`;
+        diag += `Çap: ${activePipe.diameter_inch} (${activePipe.diameter_mm} mm)\n`;
+        diag += `Et Kalınlığı: ${activePipe.wall_thickness_mm} mm\n`;
+        diag += `Malzeme Kalitesi: ${activePipe.material_grade}\n`;
+        diag += `Tasarım Faktörü: ${activePipe.design_factor_str}\n`;
+        diag += `Standart / Şartname: ${activePipe.standard_type}\n`;
+        diag += `İmalat Yöntemi: ${activePipe.manufacturing_process}\n`;
+        diag += `Dizayn Basıncı: ${activePipe.design_pressure_bar} bar\n`;
+    }
+    diag += `================================\n`;
+    return diag;
+}
+
+function handleSendFeedback(e) {
+    e.preventDefault();
+    const type = document.getElementById("feedback-type")?.value || "bug";
+    const name = document.getElementById("feedback-name")?.value?.trim() || "Anonim Kullanıcı";
+    const userEmail = document.getElementById("feedback-email")?.value?.trim() || "";
+    const subject = document.getElementById("feedback-subject")?.value?.trim() || "API 5L Suite Bildirimi";
+    const message = document.getElementById("feedback-message")?.value?.trim() || "";
+    const includeDiag = document.getElementById("chk-include-diagnostics")?.checked;
+    
+    let body = `Kimden: ${name}${userEmail ? ` <${userEmail}>` : ""}\n`;
+    body += `Bildirim Türü: ${type.toUpperCase()}\n\n`;
+    body += `Mesaj / Açıklama:\n${message}\n\n`;
+    
+    if (includeDiag) {
+        body += generateFeedbackDiagnostics();
+    }
+    
+    const mailtoUrl = `mailto:${DEVELOPER_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.location.href = mailtoUrl;
+    
+    showToast("E-posta istemciniz açılıyor...", "success");
+    closeFeedbackModal();
+}
+
+async function copyFeedbackReport() {
+    const type = document.getElementById("feedback-type")?.value || "bug";
+    const name = document.getElementById("feedback-name")?.value?.trim() || "Anonim Kullanıcı";
+    const userEmail = document.getElementById("feedback-email")?.value?.trim() || "";
+    const subject = document.getElementById("feedback-subject")?.value?.trim() || "API 5L Suite Bildirimi";
+    const message = document.getElementById("feedback-message")?.value?.trim() || "";
+    const includeDiag = document.getElementById("chk-include-diagnostics")?.checked;
+    
+    let fullReport = `=== API 5L & BOTAŞ BORU SUITE - GERİ BİLDİRİM RAPORU ===\n`;
+    fullReport += `Hedef: ${DEVELOPER_EMAIL}\n`;
+    fullReport += `Gönderen: ${name} ${userEmail ? `(${userEmail})` : ""}\n`;
+    fullReport += `Tür: ${type.toUpperCase()}\n`;
+    fullReport += `Konu: ${subject}\n\n`;
+    fullReport += `AÇIKLAMA:\n${message || "(Açıklama girilmedi)"}\n\n`;
+    
+    if (includeDiag) {
+        fullReport += generateFeedbackDiagnostics();
+    }
+    
+    try {
+        await navigator.clipboard.writeText(fullReport);
+        showToast("Tanı raporu panoya kopyalandı!", "success");
+    } catch (err) {
+        console.error("Clipboard copy failed:", err);
+        showToast("Panoya kopyalanamadı.", "error");
+    }
+}
