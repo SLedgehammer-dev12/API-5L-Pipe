@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-08-24 (API 5L Tablo 11 Negatif Tolerans Otomasyonu, ASME B31.3 Özel Tolerans & X46)
+
+### 🎉 Eklenen Özellikler (Added)
+- **Boru Üretim Yöntemine Bağlı API 5L Tablo 11 Negatif Tolerans Otomasyonu:** SMLS (-%12.5), ERW/HFW (-%10.0), SAWH/SAWL ($D > 20''$ için -%8.0, $D \le 20''$ için -%10.0) imalat toleranslarının ASME B31.8 / B31.4 hesaplamalarında otomatik uygulanması.
+- **ASME B31.3 El ile Negatif Tolerans Girişi:** Kullanıcının proses borulaması için negatif tolerans oranını (%) el ile dilediği gibi girebilmesi (Varsayılan %12.5).
+- **Paslanmaz Çelik Opsiyonel Toleransı:** ASME B31.8 / B31.4 altında paslanmaz ve dubleks borular için negatif toleransın opsiyonel checkbox ile yönetilmesi.
+- **API 5L X46 Kalite Entegrasyonu:** Malzeme listesine `X46 (L320 - SMYS: 46400 psi / 320 MPa)` kalitesinin eklenmesi.
+- **Dinamik Canlı Tolerans Bilgisi:** Arayüzde form elemanları değiştikçe işletilecek API 5L Tablo 11 kuralının ve minimum et kalınlığı sınırının canlı raporlanması.
+
+---
+
 ## [1.3.0] - 2026-08-23 (Geri Bildirim & İletişim Modülü, ASME B31.3 Düzeltmesi)
 
 ### 🎉 Eklenen Özellikler (Added)

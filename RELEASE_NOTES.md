@@ -1,41 +1,46 @@
-# Sürüm Notları / Release Notes - v1.3.0
+# Sürüm Notları / Release Notes - v1.4.0
 
 ## 🚀 API 5L PSL2 & BOTAŞ Boru Kalite Güvence, Fabrika Kabul ve Çoklu Standart Et Kalınlığı Tasarım Yazılımı
 
-Bu sürüm, **Kullanıcı Geri Bildirimi, Hata / Öneri Bildirimi & Geliştirici İletişim Modülü (omer.erbas@botas.gov.tr)**, **Boru Çapı Seçim ve Kaçış Karakteri Çözümleme Düzeltmesi (ASME B31.3 & Çoklu Standart Hesaplamaları)**, **Dinamik Veritabanı Çap Senkronizasyonu (35 Standart Çap)** ve sistem kararlılık iyileştirmelerini içermektedir.
+Bu sürüm, **Boru Üretim Yöntemine Bağlı API 5L Tablo 11 Negatif Tolerans Otomasyonu (SMLS, ERW, SAWH, SAWL)**, **ASME B31.3 El ile Negatif Tolerans Girişi**, **Paslanmaz Çelik Opsiyonel Tolerans Yönetimi**, **API 5L X46 Malzeme Kalitesi Entegrasyonu** ve arayüz dinamik güncellemelerini içermektedir.
 
 ---
 
-### 🌟 v1.3.0 ile Gelen Önemli Yenilikler ve İyileştirmeler
+### 🌟 v1.4.0 ile Gelen Önemli Yenilikler ve İyileştirmeler
 
-1. **💬 Kullanıcı Geri Bildirimi & Geliştirici İletişim Modülü:**
-   - **Hedef E-posta:** Doğrudan `omer.erbas@botas.gov.tr` (Geliştirici: Ömer ERBAŞ - BOTAŞ) adresine yönlendirilen entegre iletişim kanalı.
-   - **3 Bildirim Kategorisi:**
-     - 🐛 *Hata / Hesaplama Uyuşmazlığı (Bug Report)*
-     - 💡 *Yeni Özellik / Standart Önerisi (Feature Request)*
-     - 💬 *Genel Soru / Danışma (General Inquiry)*
-   - **Otomatik Tanı ve Sistem Raporu:** Matriste o an seçili borunun parametreleri (çap, et kalınlığı, çelik kalitesi, basınç, faktör), uygulama sürümü (`v1.3.0`) ve işletim sistemi bilgisi tek tıkla e-postaya veya tanı raporuna eklenir.
-   - **3 Farklı Gönderim Yöntemi:**
-     - 📩 *E-posta İstemcisiyle Gönder (`mailto:`)*: Outlook, Apple Mail veya varsayılan istemciyi konu ve gövdesi hazır açar.
-     - 📋 *Panoya Kopyala*: Tanı raporunu panoya kopyalar.
-     - 🐙 *GitHub Issues*: Açık kaynak hata kaydı açma desteği.
-   - **Arayüz Entegrasyonu:** Üst menü (Navbar) `Geri Bildirim` butonu, alt bilgi (Footer) hızlı linkleri ve `Hakkında` penceresinde geliştirici kartı.
+1. **🏭 Boru Üretim Yöntemine Göre API 5L Tablo 11 Negatif Tolerans Otomasyonu:**
+   - **ASME B31.8 / ASME B31.4 + API 5L Borusu Seçildiğinde:**
+     - Kullanıcı arayüzden **Boru Üretim Yöntemini (SMLS, ERW/HFW, SAWH, SAWL)** ve **PSL Seviyesini (PSL 1 / PSL 2)** seçer.
+     - **API Spec 5L Tablo 11** standart kuralları otomatik işletilir:
+       - **Dikişsiz (SMLS):** **`-%12.5`**
+       - **Boyuna Kaynaklı (ERW / HFW):** **`-%10.0`**
+       - **Tozaltı Kaynaklı (SAWH / SAWL - $D > 20''$ / $24'' - 60''$):** **`-%8.0`**
+       - **Tozaltı Kaynaklı (SAWH / SAWL - $D \le 20''$):** **`-%10.0`**
+     - ASME B36.10M nominal schedule seçiminde bu tolerans payı düşülerek $t_{\text{nom}} \times (1 - \text{tol}) \ge t_{\text{req}}$ emniyet denetimi yapılır.
 
-2. **🛠️ Boru Çapı Seçim Listesi ve Kaçış Karakteri Düzeltmesi:**
-   - Form seçim kutusundaki kaçış karakteri ayrıştırılarak 24 inç ve diğer çapların ASME B31.3 hesaplamalarında doğru nominal çapla ($610.0\text{ mm}$) çalışması sağlandı.
-   - Et kalınlığı tasarım aracındaki çap seçim listesi veritabanındaki 35 standart çapın tamamını listeleyen dinamik Jinja döngüsüne bağlandı.
+2. **⚙️ ASME B31.3 (Proses Borulaması) El İle Negatif Tolerans Girişi:**
+   - ASME B31.3 seçildiğinde negatif tolerans **varsayılan olarak zorunlu/aktiftir**.
+   - Kullanıcı dilediği **negatif tolerans oranını (%)** (varsayılan: `%12.5`, istenirse `%10.0`, `%15.0` vb.) serbestçe belirleyebilir.
 
-3. **📊 Doğrulanan Hesaplama Sonuçları:**
-   - 24 inç ($610.0\text{ mm}$) X65 borusu için $75\text{ bar}$ basınçta ASME B31.3 teorik kalınlık $t_{\text{req}} = 7.55\text{ mm}$ ve nominal schedule $8.74\text{ mm}$ olarak %100 doğrulandı.
+3. **🧪 Paslanmaz ve Dubleks Çelikler İçin Opsiyonel Tolerans:**
+   - ASME B31.8 / B31.4 altında paslanmaz çelik (SS 304, SS 316, Duplex 2205, Super Duplex 2507) seçildiğinde negatif tolerans **opsiyonel (checkbox)** olarak sunulur; kullanıcı işaretlerse girdiği % oranını düşer, işaretlemezse doğrudan nominal schedule seçilir.
+
+4. **🏷️ API 5L X46 Malzeme Kalitesi Eklendi:**
+   - Tasarım aracındaki malzeme kalitesi listesine **`X46 (L320 - SMYS: 46400 psi / 320 MPa)`** kalitesi eklenmiştir.
+
+5. **📊 Dinamik Bilgi Rozeti ve Şeffaf Sonuç Gösterimi:**
+   - Form üzerinde parametreler değiştikçe hangi API 5L Tablo 11 kuralının işletileceği canlı olarak gösterilir.
+   - Sonuç kartında uygulanan tolerans kuralı ve minimum et kalınlığı sınırı şeffaf şekilde raporlanır.
 
 ---
 
-### 💻 İndirme Bağlantıları (v1.3.0)
+### 💻 İndirme Bağlantıları (v1.4.0)
 
 - **🪟 Windows (x64):**  
-  [**`API-5L-Pipe-Windows-x64.exe` İndir**](https://github.com/SLedgehammer-dev12/API-5L-Pipe/releases/download/v1.3.0/API-5L-Pipe-Windows-x64.exe)  
+  [**`API-5L-Pipe-Windows-x64.exe` İndir**](https://github.com/SLedgehammer-dev12/API-5L-Pipe/releases/download/v1.4.0/API-5L-Pipe-Windows-x64.exe)  
   *Tek dosyadır, kurulum gerektirmez. Doğrudan çift tıklayarak çalıştırabilirsiniz.*
 
 - **🍏 macOS (Apple Silicon M1/M2/M3/M4 & Intel):**  
-  [**`API-5L-Pipe-macOS.dmg` İndir**](https://github.com/SLedgehammer-dev12/API-5L-Pipe/releases/download/v1.3.0/API-5L-Pipe-macOS.dmg)  
+  [**`API-5L-Pipe-macOS.dmg` İndir**](https://github.com/SLedgehammer-dev12/API-5L-Pipe/releases/download/v1.4.0/API-5L-Pipe-macOS.dmg)  
   *Disk kalıbını açıp `API-5L-Pipe.app` uygulamasını Applications klasörüne sürükleyin.*
+

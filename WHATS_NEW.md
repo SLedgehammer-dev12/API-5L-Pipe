@@ -1,11 +1,34 @@
-# What's New in API 5L Pipe QA/QC & Wall Thickness Suite (v1.3.0)
-## Yenilikler ve Sürüm Özeti - v1.3.0 (2026-08-23)
+# What's New in API 5L Pipe QA/QC & Wall Thickness Suite (v1.4.0)
+## Yenilikler ve Sürüm Özeti - v1.4.0 (2026-08-24)
 
 ---
 
 ### 🇹🇷 Türkçe Özet
 
-API 5L Pipe QA/QC Suite **v1.3.0** sürümü ile birlikte kullanıcı geri bildirimi ve iletişim kanalları ile et kalınlığı aracı iyileştirmeleri eklenmiştir:
+API 5L Pipe QA/QC Suite **v1.4.0** sürümü ile birlikte boru üretim yöntemine göre dinamik API 5L Tablo 11 tolerans otomasyonu ve X46 malzeme kalitesi eklenmiştir:
+
+#### 1. 🏭 Boru Üretim Yöntemine Bağlı API 5L Tablo 11 Tolerans Otomasyonu
+- **ASME B31.8 / ASME B31.4 + API 5L:** İmalat yöntemine (SMLS, ERW/HFW, SAWH, SAWL) göre:
+  - **SMLS:** -%12.5
+  - **ERW / HFW:** -%10.0
+  - **SAWH / SAWL ($D > 20''$):** -%8.0
+  - **SAWH / SAWL ($D \le 20''$):** -%10.0
+- ASME B36.10M nominal schedule seçiminde bu tolerans payı düşülerek $t_{\text{nom}} \times (1 - \text{tol}) \ge t_{\text{req}}$ şartı denetlenir.
+
+#### 2. ⚙️ ASME B31.3 El ile Negatif Tolerans Girişi
+- Proses borulaması için negatif tolerans zorunlu olup kullanıcı dilediği tolerans oranını (%) el ile serbestçe girebilir (Varsayılan: %12.5).
+
+#### 3. 🧪 Paslanmaz Çelik Opsiyonel Tolerans Yönetimi
+- ASME B31.8 / B31.4 altında paslanmaz çelikler için negatif tolerans opsiyonel checkbox ile yönetilebilir.
+
+#### 4. 🏷️ API 5L X46 Malzeme Kalitesi Eklendi
+- Tasarım aracına **API 5L X46 (L320 - SMYS: 46400 psi / 320 MPa)** kalitesi eklendi.
+
+---
+
+## Önceki Sürümler / Previous Versions
+
+### Sürüm Özeti - v1.3.0 (2026-08-23)
 
 #### 1. 💬 Kullanıcı Geri Bildirim, Hata / Öneri & İletişim Modülü
 - **Geliştirici İletişimi:** Doğrudan `omer.erbas@botas.gov.tr` (Ömer ERBAŞ - BOTAŞ) adresine yönlendirilen entegre geri bildirim sistemi.
