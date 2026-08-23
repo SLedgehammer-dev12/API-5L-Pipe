@@ -1,11 +1,26 @@
-# What's New in API 5L Pipe QA/QC & Wall Thickness Suite (v1.2.0)
-## Yenilikler ve Sürüm Özeti - v1.2.0 (2026-08-22)
+# What's New in API 5L Pipe QA/QC & Wall Thickness Suite (v1.3.0)
+## Yenilikler ve Sürüm Özeti - v1.3.0 (2026-08-23)
 
 ---
 
 ### 🇹🇷 Türkçe Özet
 
-API 5L Pipe QA/QC Suite **v1.2.0** sürümü ile birlikte boru mühendisliği, kalite güvence ve fabrika kabul süreçlerinizi hızlandıracak kapsamlı yenilikler ve performans geliştirmeleri eklenmiştir:
+API 5L Pipe QA/QC Suite **v1.3.0** sürümü ile birlikte kullanıcı geri bildirimi ve iletişim kanalları ile et kalınlığı aracı iyileştirmeleri eklenmiştir:
+
+#### 1. 💬 Kullanıcı Geri Bildirim, Hata / Öneri & İletişim Modülü
+- **Geliştirici İletişimi:** Doğrudan `omer.erbas@botas.gov.tr` (Ömer ERBAŞ - BOTAŞ) adresine yönlendirilen entegre geri bildirim sistemi.
+- **Otomatik Tanı ve Sistem Raporu:** Matriste o an seçili borunun özellikleri (çap, et kalınlığı, çelik kalitesi, basınç), işletim sistemi ve sürüm bilgisi tek tıkla e-postaya veya tanı raporuna eklenir.
+- **3 İletişim Yöntemi:** Varsayılan e-posta istemcisi (`mailto:`), panoya kopyalama ve GitHub Issues desteği.
+
+#### 2. 🛠️ Boru Çapı ve Çoklu Standart Hesaplama Düzeltmeleri
+- Et kalınlığı formundaki kaçış karakterleri temizlenerek 24" ($610.0\text{ mm}$) ve diğer çapların ASME B31.3 hesaplamalarında doğru işletilmesi sağlandı.
+- Et kalınlığı aracındaki çap seçim kutusu veritabanındaki 35 standart çapın tamamını listeleyecek şekilde dinamikleştirildi.
+
+---
+
+## Önceki Sürümler / Previous Versions
+
+### Sürüm Özeti - v1.2.0 (2026-08-22)
 
 #### 1. 📐 Çoklu Standart Et Kalınlığı & Schedule Seçim Motoru
 - **BOTAŞ Şartnamesi:** Hat ve İstasyon boruları ayrımı, korozyon payı ($c$) ve %12.5 fabrika et kalınlığı toleransı ($t_{\text{nom}} \times 0.875 \ge t_{\text{req}}$) entegre edildi.

@@ -3,6 +3,16 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-08-23 (Geri Bildirim & İletişim Modülü, ASME B31.3 Düzeltmesi)
+
+### 🎉 Eklenen Özellikler (Added)
+- **Kullanıcı Geri Bildirim & İletişim Modülü:** `omer.erbas@botas.gov.tr` doğrudan mailto, panoya kopyalama ve GitHub Issues entegrasyonu.
+- **Otomatik Tanı Raporlama:** Seçili boru parametreleri, işletim sistemi ve sürüm bilgisinin tek tıkla hata raporuna eklenmesi.
+- **Dinamik Çap Listesi:** Et kalınlığı hesaplama aracında tüm 35 standart çapın dinamik yüklenmesi.
+
+### 🛠️ Düzeltmeler (Fixed)
+- Form seçim listelerindeki kaçış karakterleri giderilerek 24" ve diğer çapların ASME B31.3 hesaplamalarında doğru işletilmesi sağlandı.
+
 ---
 
 ## [1.2.0] - 2026-08-22 (Çoklu Standart Et Kalınlığı, Paslanmaz Çelik, 40+ Parametre & Tablo Ergonomisi)
