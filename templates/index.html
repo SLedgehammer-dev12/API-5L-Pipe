@@ -502,13 +502,14 @@
                         </div>
                         <div>
                             <label class="font-bold text-slate-700 block mb-1">Malzeme Kalitesi (Karbon & Paslanmaz Çelik)</label>
-                            <select name="material_grade" class="w-full border border-slate-300 rounded-lg p-2">
-                                <optgroup label="API 5L Karbon Çeliği (BOTAŞ & ASME B31.8)">
+                            <select name="material_grade" id="wt-material-grade" class="w-full border border-slate-300 rounded-lg p-2 font-medium">
+                                <optgroup label="API 5L Karbon Çeliği (BOTAŞ & ASME B31.8 / B31.4)">
                                     <option value="X65" selected>X65 (L450 - SMYS: 65300 psi / 450 MPa)</option>
                                     <option value="X70">X70 (L485 - SMYS: 70300 psi / 485 MPa)</option>
                                     <option value="X60">X60 (L415 - SMYS: 60200 psi / 415 MPa)</option>
                                     <option value="X56">X56 (L390 - SMYS: 56600 psi / 390 MPa)</option>
                                     <option value="X52">X52 (L360 - SMYS: 52200 psi / 360 MPa)</option>
+                                    <option value="X46">X46 (L320 - SMYS: 46400 psi / 320 MPa)</option>
                                     <option value="X42">X42 (L290 - SMYS: 42100 psi / 290 MPa)</option>
                                     <option value="GRADE B">GRADE B (L245 - SMYS: 35500 psi / 245 MPa)</option>
                                 </optgroup>
@@ -521,10 +522,55 @@
                                 </optgroup>
                             </select>
                         </div>
+
+                        <!-- Manufacturing Process & PSL Selection for API 5L Tolerance -->
+                        <div id="wt-process-container">
+                            <label class="font-bold text-slate-700 block mb-1">Boru Üretim Yöntemi (Manufacturing Process)</label>
+                            <select name="manufacturing_process" id="wt-manufacturing-process" class="w-full border border-slate-300 rounded-lg p-2 font-semibold text-slate-800">
+                                <option value="SAWH" selected>SAWH (Spiral Tozaltı Kaynaklı - D > 20" için -%8.0 Tol.)</option>
+                                <option value="ERW HFW">ERW / HFW (Elektrik Direnç / Boyuna Kaynaklı - -%10.0 Tol.)</option>
+                                <option value="SMLS">SMLS (Dikişsiz - -%12.5 Tol.)</option>
+                                <option value="SAWL">SAWL (Boyuna Tozaltı Kaynaklı - -%8.0 / -%10.0 Tol.)</option>
+                            </select>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-2" id="wt-psl-tol-row">
+                            <div id="wt-psl-box">
+                                <label class="font-bold text-slate-700 block mb-1">Kalite Seviyesi</label>
+                                <select name="psl_level" id="wt-psl-level" class="w-full border border-slate-300 rounded-lg p-2 font-semibold">
+                                    <option value="PSL2" selected>PSL 2 (CVN/DWTT Zorunlu)</option>
+                                    <option value="PSL1">PSL 1 (Standart Seviye)</option>
+                                </select>
+                            </div>
+                            <div id="wt-manual-tol-box">
+                                <label class="font-bold text-slate-700 block mb-1">Negatif Tolerans (%)</label>
+                                <input type="number" step="0.1" min="0" max="30" name="manual_negative_tolerance_percent" id="wt-manual-tol" value="12.5" class="w-full border border-slate-300 rounded-lg p-2 font-bold">
+                            </div>
+                        </div>
+
+                        <!-- Dynamic Tolerance Indicator Box -->
+                        <div id="wt-dynamic-tol-info" class="p-2.5 rounded-lg border text-xs bg-slate-50 border-slate-200">
+                            <div id="wt-tol-api5l-text" class="text-blue-900">
+                                <span class="font-bold block text-[11px]">🛡️ API 5L Tablo 11 İmalat Toleransı:</span>
+                                <span id="wt-tol-desc-span" class="text-[11px] text-blue-800">Seçilen çap ve üretim yöntemine göre API 5L Tablo 11 toleransı otomatik işletilir.</span>
+                            </div>
+                            <div id="wt-tol-stainless-opt" class="hidden text-amber-900">
+                                <label class="flex items-center space-x-2 cursor-pointer font-bold text-[11px]">
+                                    <input type="checkbox" name="apply_negative_tolerance" id="chk-apply-stainless-tol" class="w-4 h-4 text-amber-600 rounded">
+                                    <span>Paslanmaz Çelik Negatif İmalat Toleransı Uygula</span>
+                                </label>
+                                <span class="block text-[10px] text-amber-700 mt-0.5 font-normal">İşaretlenirse sağdaki kutudan girilen % toleransı nominal kalınlıktan düşülür.</span>
+                            </div>
+                            <div id="wt-tol-b313-info" class="hidden text-indigo-900">
+                                <span class="font-bold block text-[11px]">⚙️ ASME B31.3 Para. 304.1.2 Kuralı:</span>
+                                <span class="text-[11px] text-indigo-800">Negatif imalat toleransı zorunludur; sağdaki kutudan % oranını dilediğiniz gibi güncelleyebilirsiniz.</span>
+                            </div>
+                        </div>
+
                         <div class="grid grid-cols-2 gap-2">
                             <div>
                                 <label class="font-bold text-slate-700 block mb-1">Tasarım Basıncı (Bar)</label>
-                                <input type="number" step="0.1" name="design_pressure_bar" value="75.0" class="w-full border border-slate-300 rounded-lg p-2">
+                                <input type="number" step="0.1" name="design_pressure_bar" value="75.0" class="w-full border border-slate-300 rounded-lg p-2 font-bold">
                             </div>
                             <div>
                                 <label class="font-bold text-slate-700 block mb-1">Dizayn Faktörü (F)</label>
@@ -549,7 +595,7 @@
                         <div class="grid grid-cols-2 gap-2">
                             <div>
                                 <label class="font-bold text-slate-700 block mb-1">Korozyon Payı c (mm)</label>
-                                <input type="number" step="0.1" name="corrosion_allowance_mm" value="0.0" class="w-full border border-slate-300 rounded-lg p-2">
+                                <input type="number" step="0.1" name="corrosion_allowance_mm" value="0.0" class="w-full border border-slate-300 rounded-lg p-2 font-semibold">
                             </div>
                             <div>
                                 <label class="font-bold text-slate-700 block mb-1">Tesis Türü</label>

@@ -19,6 +19,47 @@ from core.database import (
 
 class WallThicknessEngine:
     @staticmethod
+    def get_api_5l_wall_negative_tolerance(
+        diameter_mm: float,
+        wall_thickness_mm: float = 10.0,
+        manufacturing_process: str = "SAWH"
+    ) -> Dict[str, Any]:
+        """
+        Computes API Spec 5L (46th Edition / ISO 3183) Table 11 negative wall thickness tolerance.
+        
+        Tolerances:
+        - SMLS (Seamless):
+          * Standard: -12.5%
+        - ERW / HFW (Electric Resistance / High Frequency Welded):
+          * Standard: -10.0%
+        - SAWH / SAWL (Submerged-Arc Welded Spiral/Longitudinal):
+          * D <= 508.0 mm (20"): -10.0%
+          * D > 508.0 mm (24"-60"): -8.0% (standard line pipe)
+        """
+        proc_upper = str(manufacturing_process).upper().strip()
+        d = float(diameter_mm)
+        
+        if "SMLS" in proc_upper or "SEAMLESS" in proc_upper or "DIKISSIZ" in proc_upper:
+            pct = 12.5
+            desc = "API 5L Tablo 11: Dikişsiz (SMLS) Negatif İmalat Toleransı (-%12.5)"
+        elif "ERW" in proc_upper or "HFW" in proc_upper:
+            pct = 10.0
+            desc = "API 5L Tablo 11: Boyuna Kaynaklı (ERW/HFW) Negatif İmalat Toleransı (-%10.0)"
+        else:  # SAWH or SAWL
+            if d > 508.0:
+                pct = 8.0
+                desc = "API 5L Tablo 11: Tozaltı Kaynaklı (SAWH/SAWL, D > 20\") Negatif İmalat Toleransı (-%8.0)"
+            else:
+                pct = 10.0
+                desc = "API 5L Tablo 11: Tozaltı Kaynaklı (SAWH/SAWL, D ≤ 20\") Negatif İmalat Toleransı (-%10.0)"
+                
+        return {
+            'tolerance_percent': pct,
+            'rule_description': desc,
+            'standard_ref': "API Spec 5L (46th Ed.) Table 11"
+        }
+
+    @staticmethod
     def calculate_wall_thickness(
         diameter_inch: str,
         material_grade: str = "X65",
@@ -28,7 +69,11 @@ class WallThicknessEngine:
         temperature_derating_factor_t: float = 1.0,
         corrosion_allowance_mm: float = 0.0,
         location_type: str = "Pipeline",  # "Pipeline", "Station", "Pig Or Valve Station"
-        standard_code: str = "BOTAŞ"      # "BOTAŞ", "ASME B31.8 / ASME B31.4", "ASME B31.3"
+        standard_code: str = "BOTAŞ",     # "BOTAŞ", "ASME B31.8 / ASME B31.4", "ASME B31.3"
+        manufacturing_process: str = "SAWH",  # "SMLS", "ERW HFW", "SAWH", "SAWL"
+        apply_negative_tolerance: bool = True,
+        manual_negative_tolerance_percent: float = 12.5,
+        psl_level: str = "PSL2"           # "PSL1", "PSL2"
     ) -> Dict[str, Any]:
         """
         Calculates required wall thickness across BOTAŞ, ASME B31.8/B31.4, or ASME B31.3,
@@ -57,11 +102,13 @@ class WallThicknessEngine:
         std_upper = standard_code.upper().strip()
         formula_name = ""
         formula_latex = ""
+        tolerance_percent_used = 0.0
+        tolerance_rule_description = ""
+        effective_apply_tolerance = False
 
         if "B31.3" in std_upper:
             # ASME B31.3 Process Piping (Paragraph 304.1.2)
             # t = (P * D) / [2 * (S * E * W + P * Y)] + c
-            # S: Allowable stress in MPa
             allowable_s_mpa = smys_info.get('allowable_stress_mpa', smys_mpa / 1.5)
             e_quality = longitudinal_joint_factor_e
             w_factor = 1.0  # Weld joint strength reduction factor
@@ -73,6 +120,12 @@ class WallThicknessEngine:
             formula_name = "ASME B31.3 Para. 304.1.2 [P·D / (2·(S·E·W + P·Y)) + c]"
             formula_latex = r"t = \frac{P \cdot D}{2(S \cdot E \cdot W + P \cdot Y)} + c"
             design_factor_used = f"S_allow = {allowable_s_mpa:.1f} MPa (E={e_quality}, Y={y_coeff})"
+            
+            # ASME B31.3: Mill tolerance is active and user-customizable
+            effective_apply_tolerance = True
+            tolerance_percent_used = float(manual_negative_tolerance_percent) if manual_negative_tolerance_percent > 0 else 12.5
+            tolerance_rule_description = f"ASME B31.3 Para. 304.1.2 Negatif İmalat Toleransı: -%{tolerance_percent_used:.1f}"
+
         elif "B31.8" in std_upper or "B31.4" in std_upper:
             # ASME B31.8 / ASME B31.4 Barlow Pipeline Formula
             # t = (P * D) / (2 * S * F * E * T) + c
@@ -82,6 +135,24 @@ class WallThicknessEngine:
             formula_name = "ASME B31.8 / B31.4 Barlow [P·D / (2·S·F·E·T) + c]"
             formula_latex = r"t = \frac{P \cdot D}{2 \cdot S \cdot F \cdot E \cdot T} + c"
             design_factor_used = f"F = {design_factor_f:.2f}, E = {longitudinal_joint_factor_e:.2f}, T = {temperature_derating_factor_t:.2f}"
+            
+            if is_stainless:
+                # Non-API 5L (Stainless/Duplex): tolerance is optional
+                if apply_negative_tolerance:
+                    effective_apply_tolerance = True
+                    tolerance_percent_used = float(manual_negative_tolerance_percent) if manual_negative_tolerance_percent > 0 else 12.5
+                    tolerance_rule_description = f"Paslanmaz Çelik Negatif İmalat Toleransı: -%{tolerance_percent_used:.1f}"
+                else:
+                    effective_apply_tolerance = False
+                    tolerance_percent_used = 0.0
+                    tolerance_rule_description = "Negatif Tolerans Uygulanmadı (Nominal Schedule Doğrudan Seçildi)"
+            else:
+                # API 5L Carbon Steel: API 5L Table 11 rules by manufacturing process
+                tol_info = WallThicknessEngine.get_api_5l_wall_negative_tolerance(d_mm, t_req, manufacturing_process)
+                tolerance_percent_used = tol_info['tolerance_percent']
+                tolerance_rule_description = tol_info['rule_description']
+                effective_apply_tolerance = True
+
         else:
             # BOTAŞ Specification
             denom = 2.0 * smys_mpa * design_factor_f * longitudinal_joint_factor_e * temperature_derating_factor_t
@@ -90,6 +161,15 @@ class WallThicknessEngine:
             formula_name = f"BOTAŞ Şartnamesi ({location_type}) Barlow Formülü"
             formula_latex = r"t = \frac{P \cdot D}{2 \cdot S \cdot F \cdot E \cdot T} + c"
             design_factor_used = f"F = {design_factor_f:.2f} ({location_type})"
+            
+            if "station" in location_type.lower() or "istasyon" in location_type.lower() or "pig" in location_type.lower():
+                effective_apply_tolerance = True
+                tolerance_percent_used = 12.5
+                tolerance_rule_description = "BOTAŞ İstasyon Şartnamesi Emniyet Payı: -%12.5"
+            else:
+                effective_apply_tolerance = False
+                tolerance_percent_used = 0.0
+                tolerance_rule_description = "BOTAŞ Hat Borusu Standart Şartname Değeri"
 
         # Schedule Table Selection (ASME B36.19M for Stainless, ASME B36.10M for Carbon)
         target_schedule_table = ASME_B36_19_TABLE if is_stainless else ASME_B36_10_TABLE
@@ -124,17 +204,25 @@ class WallThicknessEngine:
             # Fallback series for very large custom diameters
             avail_thks = [5.56, 6.35, 7.14, 7.92, 8.74, 9.53, 10.31, 11.13, 11.91, 12.70, 14.27, 15.88, 17.48, 19.05, 20.62, 22.22, 23.83, 25.40]
 
-        # Select standard nominal thickness where t_nom * 0.875 >= t_req (12.5% mill tolerance)
+        # Select standard nominal thickness based on effective tolerance check
         selected_thk = avail_thks[-1]
         for thk in sorted(avail_thks):
-            if (thk * 0.875) >= t_req:
-                selected_thk = thk
-                break
-            elif thk >= t_req:
-                selected_thk = thk
+            if effective_apply_tolerance and tolerance_percent_used > 0:
+                eff_thk = thk * (1.0 - (tolerance_percent_used / 100.0))
+                if eff_thk >= t_req:
+                    selected_thk = thk
+                    break
+            else:
+                if thk >= t_req:
+                    selected_thk = thk
+                    break
 
-        neg_tolerance_val = round(selected_thk * 0.875, 2)
-        is_safe = neg_tolerance_val >= t_req or selected_thk >= t_req
+        if effective_apply_tolerance and tolerance_percent_used > 0:
+            neg_tolerance_val = round(selected_thk * (1.0 - (tolerance_percent_used / 100.0)), 2)
+            is_safe = neg_tolerance_val >= t_req or selected_thk >= t_req
+        else:
+            neg_tolerance_val = selected_thk
+            is_safe = selected_thk >= t_req
 
         # BOTAŞ standard thickness recommendation from database
         botas_thk_rec = 0.0
@@ -159,7 +247,11 @@ class WallThicknessEngine:
                 'temperature_derating_factor_t': round(temperature_derating_factor_t, 2),
                 'corrosion_allowance_mm': round(corrosion_allowance_mm, 2),
                 'location_type': location_type,
-                'standard_code': standard_code
+                'standard_code': standard_code,
+                'manufacturing_process': manufacturing_process,
+                'psl_level': psl_level,
+                'apply_negative_tolerance': effective_apply_tolerance,
+                'tolerance_percent_used': tolerance_percent_used
             },
             'calculation_results': {
                 'formula_name': formula_name,
@@ -170,6 +262,8 @@ class WallThicknessEngine:
                 'selected_nominal_thickness_asme_b36_10_mm': round(selected_thk, 2),
                 'schedule_standard_used': schedule_standard_name,
                 'negative_tolerance_min_mm': neg_tolerance_val,
+                'tolerance_percent_used': tolerance_percent_used,
+                'tolerance_rule_description': tolerance_rule_description,
                 'botas_standard_thickness_mm': round(botas_thk_rec, 2),
                 'is_nominal_sufficient': is_safe,
                 'available_schedule_thicknesses': [round(x, 2) for x in sorted(avail_thks)]

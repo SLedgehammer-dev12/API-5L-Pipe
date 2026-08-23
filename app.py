@@ -114,7 +114,11 @@ async def calculate_wall_thickness(data: Dict[str, Any] = Body(...)):
         temperature_derating_factor_t=float(data.get("temperature_derating_factor_t", 1.0)),
         corrosion_allowance_mm=float(data.get("corrosion_allowance_mm", 0.0)),
         location_type=data.get("location_type", "Pipeline"),
-        standard_code=data.get("standard_code", "BOTAŞ")
+        standard_code=data.get("standard_code", "BOTAŞ"),
+        manufacturing_process=data.get("manufacturing_process", "SAWH"),
+        apply_negative_tolerance=bool(data.get("apply_negative_tolerance", True)),
+        manual_negative_tolerance_percent=float(data.get("manual_negative_tolerance_percent", 12.5)),
+        psl_level=data.get("psl_level", "PSL2")
     )
     return JSONResponse(content={"status": "success", "data": res})
 

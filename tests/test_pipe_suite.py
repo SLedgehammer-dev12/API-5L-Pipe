@@ -151,11 +151,17 @@ class TestPipeQAQCSuite(unittest.TestCase):
 
     def test_09_multi_standard_wall_thickness_and_stainless_selection(self):
         """Verifies wall thickness calculation across BOTAŞ, ASME B31.8, ASME B31.3 and ASME B36.19M Stainless."""
-        # 1. BOTAŞ Standard: 48" X65 F=0.72 P=75 bar
-        res_botas = WallThicknessEngine.calculate_wall_thickness('48"', 'X65', design_pressure_bar=75.0, design_factor_f=0.72, standard_code='BOTAŞ')
-        self.assertEqual(res_botas['calculation_results']['t_required_asme_b31_8_mm'], 14.11)
-        self.assertEqual(res_botas['calculation_results']['selected_nominal_thickness_asme_b36_10_mm'], 17.48)
-        self.assertEqual(res_botas['calculation_results']['schedule_standard_used'], 'ASME B36.10M (Karbon Çeliği)')
+        # 1. BOTAŞ Standard: 48" X65 F=0.72 P=75 bar (Hat Borusu)
+        res_botas_hat = WallThicknessEngine.calculate_wall_thickness('48"', 'X65', design_pressure_bar=75.0, design_factor_f=0.72, location_type='Pipeline', standard_code='BOTAŞ')
+        self.assertEqual(res_botas_hat['calculation_results']['t_required_asme_b31_8_mm'], 14.11)
+        self.assertEqual(res_botas_hat['calculation_results']['selected_nominal_thickness_asme_b36_10_mm'], 14.27)
+        self.assertEqual(res_botas_hat['calculation_results']['schedule_standard_used'], 'ASME B36.10M (Karbon Çeliği)')
+
+        # 1b. BOTAŞ Standard: 48" X65 F=0.50 P=75 bar (İstasyon Borusu with %12.5 margin)
+        res_botas_ist = WallThicknessEngine.calculate_wall_thickness('48"', 'X65', design_pressure_bar=75.0, design_factor_f=0.50, location_type='Station', standard_code='BOTAŞ')
+        self.assertEqual(res_botas_ist['calculation_results']['t_required_asme_b31_8_mm'], 20.32)
+        self.assertEqual(res_botas_ist['calculation_results']['selected_nominal_thickness_asme_b36_10_mm'], 23.83)
+        self.assertEqual(res_botas_ist['calculation_results']['tolerance_percent_used'], 12.5)
 
         # 2. ASME B31.3 Process Piping: 4" SS 316 / 316L P=50 bar
         res_b313 = WallThicknessEngine.calculate_wall_thickness('4"', 'SS 316 / 316L', design_pressure_bar=50.0, standard_code='ASME B31.3')
@@ -163,15 +169,39 @@ class TestPipeQAQCSuite(unittest.TestCase):
         self.assertEqual(res_b313['calculation_results']['t_required_asme_b31_8_mm'], 2.44)
         self.assertEqual(res_b313['calculation_results']['selected_nominal_thickness_asme_b36_10_mm'], 3.05)
 
-        # 3. ASME B31.8 Pipeline: 24" X70 F=0.60 P=80 bar
-        res_b318 = WallThicknessEngine.calculate_wall_thickness('24"', 'X70', design_pressure_bar=80.0, design_factor_f=0.60, standard_code='ASME B31.8 / ASME B31.4')
-        self.assertGreater(res_b318['calculation_results']['t_required_asme_b31_8_mm'], 0)
+        # 3. ASME B31.8 Pipeline: 24" X70 F=0.60 P=80 bar with SAWH (-%8.0 tol)
+        res_b318_sawh = WallThicknessEngine.calculate_wall_thickness(
+            '24"', 'X70', design_pressure_bar=80.0, design_factor_f=0.60,
+            standard_code='ASME B31.8 / ASME B31.4', manufacturing_process='SAWH'
+        )
+        self.assertGreater(res_b318_sawh['calculation_results']['t_required_asme_b31_8_mm'], 0)
+        self.assertEqual(res_b318_sawh['calculation_results']['tolerance_percent_used'], 8.0)
 
-        # 4. ASME B31.3: 24" X65 P=75 bar (610.0 mm OD)
-        res_b313_24 = WallThicknessEngine.calculate_wall_thickness('24"', 'X65', design_pressure_bar=75.0, standard_code='ASME B31.3')
-        self.assertEqual(res_b313_24['calculation_results']['t_required_asme_b31_8_mm'], 7.55)
-        self.assertEqual(res_b313_24['calculation_results']['selected_nominal_thickness_asme_b36_10_mm'], 8.74)
-        self.assertEqual(res_b313_24['calculation_results']['negative_tolerance_min_mm'], 7.65)
+        # 4. ASME B31.8 Pipeline: 8" X46 F=0.72 P=75 bar with ERW (-%10.0 tol)
+        res_b318_erw = WallThicknessEngine.calculate_wall_thickness(
+            '8"', 'X46', design_pressure_bar=75.0, design_factor_f=0.72,
+            standard_code='ASME B31.8 / ASME B31.4', manufacturing_process='ERW HFW'
+        )
+        self.assertEqual(res_b318_erw['calculation_results']['tolerance_percent_used'], 10.0)
+        self.assertEqual(res_b318_erw['input_parameters']['material_grade'], 'X46')
+        self.assertEqual(res_b318_erw['input_parameters']['smys_mpa'], 320.0)
+
+        # 5. ASME B31.8 Pipeline: 4" Grade B with SMLS (-%12.5 tol)
+        res_b318_smls = WallThicknessEngine.calculate_wall_thickness(
+            '4"', 'GRADE B', design_pressure_bar=75.0, design_factor_f=0.50,
+            standard_code='ASME B31.8 / ASME B31.4', manufacturing_process='SMLS'
+        )
+        self.assertEqual(res_b318_smls['calculation_results']['tolerance_percent_used'], 12.5)
+
+        # 6. ASME B31.3: 24" X65 P=75 bar (610.0 mm OD) with custom 10% tolerance
+        res_b313_24_custom = WallThicknessEngine.calculate_wall_thickness(
+            '24"', 'X65', design_pressure_bar=75.0, standard_code='ASME B31.3',
+            manual_negative_tolerance_percent=10.0
+        )
+        self.assertEqual(res_b313_24_custom['calculation_results']['t_required_asme_b31_8_mm'], 7.55)
+        self.assertEqual(res_b313_24_custom['calculation_results']['tolerance_percent_used'], 10.0)
+        self.assertEqual(res_b313_24_custom['calculation_results']['selected_nominal_thickness_asme_b36_10_mm'], 8.74)
+        self.assertAlmostEqual(res_b313_24_custom['calculation_results']['negative_tolerance_min_mm'], 7.87, places=2)
 
     def test_10_comprehensive_40_parameter_verification(self):
         """Verifies PipeVerificationEngine evaluates chemical, mechanical, dimensional, weld, and test data."""

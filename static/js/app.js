@@ -698,13 +698,37 @@ function setupEventListeners() {
     // Wall Thickness Calculator Form
     const wtForm = document.getElementById("wall-thickness-calc-form");
     if (wtForm) {
+        setupWallThicknessDynamicUI();
         wtForm.addEventListener("submit", async (e) => {
             e.preventDefault();
             const formData = new FormData(wtForm);
+            const stdCode = formData.get("standard_code") || "BOTAŞ";
+            const matGrade = formData.get("material_grade") || "X65";
+            const isStainless = matGrade.includes("SS") || matGrade.includes("Duplex");
+            
+            // Negative tolerance handling
+            let applyTol = true;
+            let manualTol = parseFloat(formData.get("manual_negative_tolerance_percent") || "12.5");
+            
+            if (stdCode.includes("B31.3")) {
+                applyTol = true;
+            } else if (stdCode.includes("B31.8") || stdCode.includes("B31.4")) {
+                if (isStainless) {
+                    const chk = document.getElementById("chk-apply-stainless-tol");
+                    applyTol = chk ? chk.checked : false;
+                } else {
+                    applyTol = true; // API 5L Table 11
+                }
+            }
+
             const reqData = {
-                standard_code: formData.get("standard_code") || "BOTAŞ",
+                standard_code: stdCode,
                 diameter_inch: formData.get("diameter_inch"),
-                material_grade: formData.get("material_grade"),
+                material_grade: matGrade,
+                manufacturing_process: formData.get("manufacturing_process") || "SAWH",
+                psl_level: formData.get("psl_level") || "PSL2",
+                apply_negative_tolerance: applyTol,
+                manual_negative_tolerance_percent: manualTol,
                 design_pressure_bar: parseFloat(formData.get("design_pressure_bar")),
                 design_factor_f: parseFloat(formData.get("design_factor_f")),
                 longitudinal_joint_factor_e: parseFloat(formData.get("longitudinal_joint_factor_e")),
@@ -767,6 +791,94 @@ function setupEventListeners() {
     });
 }
 
+function setupWallThicknessDynamicUI() {
+    const stdSelect = document.querySelector("#wall-thickness-calc-form select[name='standard_code']");
+    const gradeSelect = document.getElementById("wt-material-grade");
+    const procSelect = document.getElementById("wt-manufacturing-process");
+    const diaSelect = document.querySelector("#wall-thickness-calc-form select[name='diameter_inch']");
+    const chkStainlessTol = document.getElementById("chk-apply-stainless-tol");
+    
+    if (!stdSelect) return;
+    
+    function updateVisibility() {
+        const std = stdSelect.value;
+        const grade = gradeSelect ? gradeSelect.value : "X65";
+        const isStainless = grade.includes("SS") || grade.includes("Duplex");
+        const procContainer = document.getElementById("wt-process-container");
+        const pslTolRow = document.getElementById("wt-psl-tol-row");
+        const pslBox = document.getElementById("wt-psl-box");
+        const manualTolBox = document.getElementById("wt-manual-tol-box");
+        const tolApi5lText = document.getElementById("wt-tol-api5l-text");
+        const tolStainlessOpt = document.getElementById("wt-tol-stainless-opt");
+        const tolB313Info = document.getElementById("wt-tol-b313-info");
+        const tolDescSpan = document.getElementById("wt-tol-desc-span");
+        
+        if (std.includes("B31.3")) {
+            // ASME B31.3
+            if (procContainer) procContainer.classList.add("hidden");
+            if (pslTolRow) pslTolRow.classList.remove("hidden");
+            if (pslBox) pslBox.classList.add("hidden");
+            if (manualTolBox) manualTolBox.classList.remove("hidden");
+            if (tolApi5lText) tolApi5lText.classList.add("hidden");
+            if (tolStainlessOpt) tolStainlessOpt.classList.add("hidden");
+            if (tolB313Info) tolB313Info.classList.remove("hidden");
+        } else if (std.includes("B31.8") || std.includes("B31.4")) {
+            // ASME B31.8 / ASME B31.4
+            if (isStainless) {
+                if (procContainer) procContainer.classList.add("hidden");
+                if (pslTolRow) pslTolRow.classList.remove("hidden");
+                if (pslBox) pslBox.classList.add("hidden");
+                if (manualTolBox) manualTolBox.classList.remove("hidden");
+                if (tolApi5lText) tolApi5lText.classList.add("hidden");
+                if (tolStainlessOpt) tolStainlessOpt.classList.remove("hidden");
+                if (tolB313Info) tolB313Info.classList.add("hidden");
+            } else {
+                // API 5L Carbon Steel
+                if (procContainer) procContainer.classList.remove("hidden");
+                if (pslTolRow) pslTolRow.classList.remove("hidden");
+                if (pslBox) pslBox.classList.remove("hidden");
+                if (manualTolBox) manualTolBox.classList.add("hidden");
+                if (tolApi5lText) tolApi5lText.classList.remove("hidden");
+                if (tolStainlessOpt) tolStainlessOpt.classList.add("hidden");
+                if (tolB313Info) tolB313Info.classList.add("hidden");
+                
+                // Calculate live API 5L Tablo 11 description
+                const proc = procSelect ? procSelect.value : "SAWH";
+                const diaText = diaSelect ? diaSelect.value : "24\"";
+                const isLargeDia = !diaText.includes("1/") && !diaText.includes("3/") && parseFloat(diaText) > 20;
+                
+                if (proc.includes("SMLS")) {
+                    if (tolDescSpan) tolDescSpan.innerText = "Dikişsiz (SMLS) borular için API 5L Tablo 11 gereği -%12.5 imalat toleransı uygulanır.";
+                } else if (proc.includes("ERW") || proc.includes("HFW")) {
+                    if (tolDescSpan) tolDescSpan.innerText = "Boyuna kaynaklı (ERW/HFW) borular için API 5L Tablo 11 gereği -%10.0 imalat toleransı uygulanır.";
+                } else {
+                    if (isLargeDia) {
+                        if (tolDescSpan) tolDescSpan.innerText = `Tozaltı kaynaklı (SAWH/SAWL) D > 20" borular için API 5L Tablo 11 gereği -%8.0 imalat toleransı uygulanır.`;
+                    } else {
+                        if (tolDescSpan) tolDescSpan.innerText = `Tozaltı kaynaklı (SAWH/SAWL) D ≤ 20" borular için API 5L Tablo 11 gereği -%10.0 imalat toleransı uygulanır.`;
+                    }
+                }
+            }
+        } else {
+            // BOTAŞ
+            if (procContainer) procContainer.classList.remove("hidden");
+            if (pslTolRow) pslTolRow.classList.add("hidden");
+            if (tolApi5lText) tolApi5lText.classList.remove("hidden");
+            if (tolStainlessOpt) tolStainlessOpt.classList.add("hidden");
+            if (tolB313Info) tolB313Info.classList.add("hidden");
+            if (tolDescSpan) tolDescSpan.innerText = "BOTAŞ Şartnamesi: Hat borularında şartname tablosu, istasyon borularında %12.5 emniyet payı uygulanır.";
+        }
+    }
+    
+    stdSelect.addEventListener("change", updateVisibility);
+    if (gradeSelect) gradeSelect.addEventListener("change", updateVisibility);
+    if (procSelect) procSelect.addEventListener("change", updateVisibility);
+    if (diaSelect) diaSelect.addEventListener("change", updateVisibility);
+    if (chkStainlessTol) chkStainlessTol.addEventListener("change", updateVisibility);
+    
+    updateVisibility();
+}
+
 function renderWallThicknessResult(data) {
     const resDiv = document.getElementById("wt-results-panel");
     if (!resDiv) return;
@@ -774,6 +886,9 @@ function renderWallThicknessResult(data) {
     resDiv.classList.remove("hidden");
     const r = data.calculation_results;
     const inp = data.input_parameters;
+
+    const tolPct = r.tolerance_percent_used || 0;
+    const tolLabel = tolPct > 0 ? `Negatif Tolerans Sınırı (-%${tolPct.toFixed(1)}):` : `Nominal Sınır:`;
 
     resDiv.innerHTML = `
         <div class="p-4 bg-blue-50 border border-blue-200 rounded-lg shadow-sm">
@@ -801,12 +916,17 @@ function renderWallThicknessResult(data) {
                     <span class="font-bold text-blue-900 text-lg">${Number(r.selected_nominal_thickness_asme_b36_10_mm).toFixed(2)} mm</span>
                 </div>
                 <div class="bg-white p-2.5 rounded border border-gray-200">
-                    <span class="text-xs text-gray-500 block">Negatif Tolerans Sınırı (%12.5):</span>
+                    <span class="text-xs text-gray-500 block">${tolLabel}</span>
                     <span class="font-bold text-gray-900 text-lg">${Number(r.negative_tolerance_min_mm).toFixed(2)} mm</span>
                 </div>
             </div>
 
-            <div class="mt-3 flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-blue-100 text-xs">
+            <div class="mt-3 p-2 bg-white/80 rounded border border-blue-100 text-xs text-slate-700 flex flex-wrap items-center justify-between gap-1">
+                <span><strong>Tolerans Kuralı:</strong> ${r.tolerance_rule_description || 'Standart Tolerans Kuralı'}</span>
+                <span class="font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">${inp.manufacturing_process || 'SAWH'} | ${inp.psl_level || 'PSL2'}</span>
+            </div>
+
+            <div class="mt-2 flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-blue-100 text-xs">
                 <span class="text-gray-600">
                     ${!inp.is_stainless && r.botas_standard_thickness_mm > 0 ? `BOTAŞ Standart Tavsiyesi: <strong>${Number(r.botas_standard_thickness_mm).toFixed(2)} mm</strong>` : `Tasarım Kriteri: <strong>${r.design_factor_used}</strong>`}
                 </span>
