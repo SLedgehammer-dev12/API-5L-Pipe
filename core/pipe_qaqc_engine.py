@@ -9,6 +9,9 @@ from typing import Dict, Any, Optional
 from core.database import (
     get_smys_info,
     get_chemical_rules,
+    get_cvn,
+    parse_design_factor,
+    default_design_pressure_for_factor,
     get_pipe_size_by_inch,
     get_pipe_size_by_mm
 )
@@ -175,18 +178,8 @@ class PipeQAQCEngine:
         std_upper = standard_type.upper().strip()
         is_botas_mode = ("BOTAŞ" in std_upper or "BOTAS" in std_upper)
 
-        # Map design factor key for BOTAŞ table lookup
-        factor_key = "0.72_hat"
-        if "0.6" in design_factor_str:
-            factor_key = "0.60_hat"
-        elif "0.5" in design_factor_str and ("ist1" in design_factor_str.lower() or "ist. 1" in design_factor_str.lower()):
-            factor_key = "0.50_ist1"
-        elif "0.5" in design_factor_str and ("ist2" in design_factor_str.lower() or "ist. 2" in design_factor_str.lower()):
-            factor_key = "0.50_ist2"
-        elif "0.5" in design_factor_str and ("ist" in design_factor_str.lower() or "İst" in design_factor_str):
-            factor_key = "0.50_ist1"
-        elif "0.5" in design_factor_str:
-            factor_key = "0.50_hat"
+        # Map design factor (tolerates comma/dot decimal separators and Turkish labels)
+        factor_key, f_factor = parse_design_factor(design_factor_str)
 
         # Determine Material Grade
         if is_botas_mode and (not material_grade or material_grade.strip() == ""):
@@ -217,17 +210,6 @@ class PipeQAQCEngine:
             if t < (botas_req_thk - 0.01):
                 botas_thickness_status = f"BOTAŞ Şartından Düşük (Gereken: {botas_req_thk} mm)"
 
-        # Parse numeric design factor
-        f_factor = 0.72
-        if "0.6" in design_factor_str:
-            f_factor = 0.60
-        elif "0.5" in design_factor_str:
-            f_factor = 0.50
-        elif "0.4" in design_factor_str:
-            f_factor = 0.40
-        elif "0.8" in design_factor_str:
-            f_factor = 0.80
-
         # 3. Material & SMYS Properties
         smys_info = get_smys_info(grade_clean)
         smys_psi = smys_info['smys_psi']
@@ -239,12 +221,13 @@ class PipeQAQCEngine:
         tensile_max_psi = smys_info['tensile_max_psi']
         tensile_max_mpa = smys_info['tensile_max_mpa']
         yt_max = smys_info['yield_tensile_max']
-        cvn_mat = smys_info['cvn_material_j']
-        cvn_weld = smys_info['cvn_weld_j']
+        cvn_info = get_cvn(grade_clean, standard_type)
+        cvn_mat = cvn_info['material_j']
+        cvn_weld = cvn_info['weld_j']
         strain_val = smys_info['strain_value']
 
         # 4. Chemical Composition Rules
-        chem_rules = get_chemical_rules(grade_clean)
+        chem_rules = get_chemical_rules(grade_clean, standard_type)
 
         # 5. Wall Thickness Tolerances (API 5L Table 9 & BOTAŞ)
         if t < 8.71:
@@ -271,7 +254,8 @@ class PipeQAQCEngine:
                 t_max = round(t + 1.5, 2)
 
         # 6. Hydrostatic Test Pressures (Barlow Formula)
-        p_hydro_max = (2.0 * smys_psi * t) / (d_mm * 14.50733)
+        p_hydro_max = (2.0 * smys_psi * t) / (d_mm * 14.5037738)
+        # BOTAŞ special minimum test pressure rule: P_min = P_max - 2.0 bar
         p_hydro_min = p_hydro_max - 2.0 if p_hydro_max > 0 else 0.0
 
         # API 5L Standard Test Pressure Factors
@@ -317,6 +301,16 @@ class PipeQAQCEngine:
         u_val = tensile_min_mpa if tensile_min_mpa > 0 else 535.0
         elongation_mat = 1940.0 * (math.pow(a_cross, 0.2)) / (math.pow(u_val, 0.9))
         elongation_weld = 10.0
+
+        # CVN specimen size (API 5L Table 22) based on wall thickness
+        if t >= 11.0:
+            notch_specimen_size = "Tam boy 10 x 10 x 55 mm"
+        elif t >= 8.0:
+            notch_specimen_size = "3/4 boy 7.5 x 10 x 55 mm"
+        elif t >= 6.0:
+            notch_specimen_size = "2/3 boy 6.67 x 10 x 55 mm"
+        else:
+            notch_specimen_size = "1/2 boy 5 x 10 x 55 mm"
 
         # 9. Radial Offset, Weld Height, Misalignment
         if "SAWH" in proc_upper:
@@ -381,8 +375,8 @@ class PipeQAQCEngine:
         else:
             repair_preheat = "Ön Isıtma Yok"
 
-        # 15. Pipe Weights (kg/m)
-        weight_nom = t * 0.02466 * (d_mm - t)
+        # 15. Pipe Weights (kg/m) — API 5L 9.11.2: W = 0.0246615 * t * (D - t)
+        weight_nom = t * 0.0246615 * (d_mm - t)
         weight_min = weight_nom * 0.965
         weight_max = weight_nom * 1.10
 
@@ -390,14 +384,7 @@ class PipeQAQCEngine:
         if design_pressure_bar and design_pressure_bar > 0:
             p_oper = float(design_pressure_bar)
         else:
-            # Excel 'Design P F' mapping:
-            # F=0.80 -> 75.0 bar, F=0.72 -> 82.5 bar, F=0.60 -> 100.0 bar, F=0.50 -> 100.0 bar
-            if f_factor >= 0.75:
-                p_oper = 75.0
-            elif f_factor >= 0.70:
-                p_oper = 82.5
-            else:
-                p_oper = 100.0
+            p_oper = default_design_pressure_for_factor(f_factor)
 
         oper_press_ratio = (p_oper / p_hydro_max) if p_hydro_max > 0 else 0.0
 
@@ -418,7 +405,7 @@ class PipeQAQCEngine:
         d_over_t = d_mm / t
         if d_over_t < 30.0:
             design_formula_alt = "Alternatif Basınç Dizayn Hesabı Kullanılabilir"
-            alt_design_press = (2.0 * smys_psi * t / ((d_mm - t) * 14.50733)) * f_factor
+            alt_design_press = (2.0 * smys_psi * t / ((d_mm - t) * 14.5037738)) * f_factor
         else:
             design_formula_alt = "Normal Basınç Dizayn Hesabı"
             alt_design_press = "Hesaplamaya Gerek Yok"
@@ -470,7 +457,9 @@ class PipeQAQCEngine:
                 'hydro_test_max_bar': round(p_hydro_max, 2),
                 'hydro_test_min_bar': round(p_hydro_min, 2),
                 'api_5l_std_test_bar': round(api_std_test_press, 2),
-                'api_5l_alt_test_bar': round(alt_design_press, 2) if isinstance(alt_design_press, (int, float)) else "Hesaplamaya Gerek Yok"
+                # API 5L 9.3.1.1: alternative test pressure is by agreement between
+                # purchaser and manufacturer (not the thick-wall design pressure).
+                'api_5l_alt_test_bar': "Anlaşmaya bağlıdır (API 5L 9.3.1.1)"
             },
             'dimensional_tolerances': {
                 'diameter_end_max_mm': round(d_end_max, 2),
@@ -499,7 +488,7 @@ class PipeQAQCEngine:
                 'elongation_weld_min_percent': round(elongation_weld, 2) if isinstance(elongation_weld, (int, float)) else elongation_weld,
                 'notch_impact_mat_j': round(cvn_mat, 2) if isinstance(cvn_mat, (int, float)) else cvn_mat,
                 'notch_impact_weld_j': round(cvn_weld, 2) if isinstance(cvn_weld, (int, float)) else cvn_weld,
-                'notch_specimen_size': "Tablo 22 ye göre düzenle",
+                'notch_specimen_size': notch_specimen_size,
                 'residual_stress_max_mm': round(residual_stress_max, 2) if isinstance(residual_stress_max, (int, float)) else residual_stress_max,
                 'dwtt_test': dwtt,
                 'hardness_test_max': hardness_test,

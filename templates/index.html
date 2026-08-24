@@ -259,6 +259,9 @@
                             <p class="text-xs text-slate-500">Mouse ile 360° döndürün, yakınlaştırın ve kesit alın</p>
                         </div>
                         <div class="flex items-center space-x-1.5">
+                            <button id="btn-toggle-theme-3d" onclick="visualizer3DInstance.toggleTheme()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs px-2.5 py-1 rounded font-semibold transition flex items-center" title="Koyu / Açık tema arasında geçiş yap">
+                                ☀️ Açık Tema
+                            </button>
                             <button id="btn-snapshot-3d" class="bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-300 text-xs px-2.5 py-1 rounded font-semibold transition flex items-center" title="Yüksek çözünürlüklü PNG indir" data-i18n="btn_snapshot_3d">
                                 📷 3D Resmi Kaydet (PNG)
                             </button>
@@ -473,6 +476,17 @@
                     </div>
                 </div>
             </div>
+
+            <!-- API 5L Inspection & Test Plan (ITP) Card -->
+            <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm mt-6">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-base font-bold text-slate-900">API 5L Test & Muayene Planı (ITP)</h3>
+                    <span class="text-[11px] text-slate-400">Numune adedi, alınma yeri ve boyutları</span>
+                </div>
+                <div id="test-plan-panel">
+                    <p class="text-xs text-slate-400 italic">Yükleniyor...</p>
+                </div>
+            </div>
         </div>
 
         <!-- TAB 4: BONUS WALL THICKNESS DESIGN TOOL -->
@@ -662,6 +676,37 @@
                         <input type="date" id="meta-date" value="2026-08-21" class="w-full border border-slate-300 rounded-lg p-2">
                     </div>
                 </div>
+
+                <!-- EN 10204 3.1 Traceability Fields -->
+                <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider mt-5 mb-3">EN 10204 3.1 Sertifika İzlenebilirlik Alanları</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                    <div>
+                        <label class="font-bold text-slate-700 block mb-1">Isı / Döküm No (Heat No)</label>
+                        <input type="text" id="meta-heat-number" placeholder="Örn: 25231A" class="w-full border border-slate-300 rounded-lg p-2">
+                    </div>
+                    <div>
+                        <label class="font-bold text-slate-700 block mb-1">Sertifika No</label>
+                        <input type="text" id="meta-cert-number" placeholder="Örn: 3.1-2026-0147" class="w-full border border-slate-300 rounded-lg p-2">
+                    </div>
+                    <div>
+                        <label class="font-bold text-slate-700 block mb-1">Miktar (Adet / Metre)</label>
+                        <input type="text" id="meta-quantity" placeholder="Örn: 50 adet / 600 m" class="w-full border border-slate-300 rounded-lg p-2">
+                    </div>
+                    <div>
+                        <label class="font-bold text-slate-700 block mb-1">Sipariş No</label>
+                        <input type="text" id="meta-order-number" placeholder="Örn: PO-2026-0451" class="w-full border border-slate-300 rounded-lg p-2">
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="font-bold text-slate-700 block mb-1">Muayene Kuruluşu / TPI</label>
+                        <input type="text" id="meta-inspection-company" placeholder="Örn: Bağımsız Denetim Kuruluşu (Third Party)" class="w-full border border-slate-300 rounded-lg p-2">
+                    </div>
+                </div>
+
+                <div class="mt-5 flex justify-end">
+                    <button onclick="saveProjectMetadata()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-5 py-2 rounded-lg shadow transition text-sm">
+                        Proje ve Sertifika Bilgilerini Kaydet
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -704,7 +749,7 @@
                     <div class="w-8 h-8 rounded-lg bg-blue-600 text-white font-bold flex items-center justify-center text-sm">5L</div>
                     <div>
                         <h3 class="font-bold text-base text-slate-900">API 5L PSL2 & BOTAŞ Boru Kalite Güvence Yazılımı</h3>
-                        <p class="text-[11px] text-slate-500">Sürüm: v{{ app_version | default('1.4.0') }} | Açık Kaynak (MIT License)</p>
+                        <p class="text-[11px] text-slate-500">Sürüm: v{{ app_version | default('1.5.0') }} | Açık Kaynak (MIT License)</p>
                     </div>
                 </div>
                 <button onclick="document.getElementById('about-modal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600 text-lg font-bold">✕</button>
@@ -767,7 +812,7 @@
                 <div class="bg-slate-100 p-3 rounded-lg border border-slate-300 flex items-center justify-between">
                     <div>
                         <span class="font-bold text-slate-800 block">Sürüm ve Güncelleme Takibi</span>
-                        <span id="manual-update-status" class="text-[11px] text-slate-500">Mevcut Sürüm: v{{ app_version | default('1.2.0') }}</span>
+                        <span id="manual-update-status" class="text-[11px] text-slate-500">Mevcut Sürüm: v{{ app_version | default('1.5.0') }}</span>
                     </div>
                     <button onclick="checkForAppUpdates(false)" class="bg-slate-800 hover:bg-slate-700 text-white font-semibold px-3 py-1.5 rounded-lg text-xs transition flex items-center shadow-sm">
                         <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
@@ -967,6 +1012,7 @@
     <div id="app-toast" class="hidden"></div>
 
     <!-- Scripts -->
+    <script>window.APP_VERSION = "{{ app_version }}";</script>
     <script src="/static/js/i18n.js"></script>
     <script src="/static/js/pipe_visualizer_2d.js"></script>
     <script src="/static/js/pipe_visualizer_3d.js"></script>

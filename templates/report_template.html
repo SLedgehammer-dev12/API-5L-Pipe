@@ -29,7 +29,15 @@
         <div class="grid grid-cols-3 gap-2 text-xs text-slate-700">
             <div><strong>İşveren / Müşteri:</strong> {{ project.client }}</div>
             <div><strong>Yüklenici / Üretici:</strong> {{ project.contractor }}</div>
-            <div><strong>Uygulama Sürümü:</strong> v2.0 (API 5L PSL2 & BOTAŞ)</div>
+            <div><strong>Uygulama Sürümü:</strong> v{{ app_version }} (API 5L PSL2 & BOTAŞ)</div>
+        </div>
+        <!-- EN 10204 3.1 Traceability / Certificate Fields -->
+        <div class="grid grid-cols-5 gap-2 text-xs text-slate-700 mt-2 border-t border-slate-300 pt-2">
+            <div><strong>Isı / Döküm No:</strong> {{ project.heat_number or '-' }}</div>
+            <div><strong>Sertifika No:</strong> {{ project.certificate_number or '-' }}</div>
+            <div><strong>Miktar (Adet/Metre):</strong> {{ project.quantity or '-' }}</div>
+            <div><strong>Sipariş No:</strong> {{ project.purchase_order_number or '-' }}</div>
+            <div><strong>Muayene Kuruluşu:</strong> {{ project.inspection_company or '-' }}</div>
         </div>
     </div>
 
@@ -183,7 +191,7 @@
                     {% for p in pipes %}<td>{{ p.weld_and_geometry.weld_height_inside_mm }} / {{ p.weld_and_geometry.weld_height_outside_mm }}</td>{% endfor %}
                 </tr>
                 <tr>
-                    <td colspan="4" class="label-cell">Artık Sress Testi Max (mm)</td>
+                    <td colspan="4" class="label-cell">Artık Stres Testi Max (mm)</td>
                     {% for p in pipes %}<td><strong>{{ p.toughness_and_tests.residual_stress_max_mm }}</strong></td>{% endfor %}
                 </tr>
                 <tr>
@@ -213,6 +221,78 @@
             </tbody>
         </table>
     </div>
+
+    <!-- API 5L Inspection & Test Plan (Sampling Info) -->
+    {% if test_plan %}
+    <div class="mb-6">
+        <h3 class="text-sm font-black text-slate-900 uppercase border-b-2 border-slate-800 pb-1 mb-3">
+            API 5L Test & Muayene Planı (Numune Bilgileri)
+        </h3>
+        <table class="matrix-table text-xs border-2 border-slate-900">
+            <thead>
+                <tr class="th-main">
+                    <th class="px-2 py-1 text-left">Test</th>
+                    <th class="px-2 py-1 text-left">Madde</th>
+                    <th class="px-2 py-1 text-left">Sıklık / Adet</th>
+                    <th class="px-2 py-1 text-left">Alınma Yeri</th>
+                    <th class="px-2 py-1 text-left">Numune Boyutu / Tipi</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for tp in test_plan %}
+                <tr class="border-b border-slate-300">
+                    <td class="px-2 py-1 font-bold">{{ tp.test }}</td>
+                    <td class="px-2 py-1 text-slate-600">{{ tp.clause }}</td>
+                    <td class="px-2 py-1">{{ tp.frequency }}</td>
+                    <td class="px-2 py-1">{{ tp.location }}</td>
+                    <td class="px-2 py-1">{{ tp.specimen }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    <!-- Verification: Actual Values & PASS/FAIL (only if provided) -->
+    {% if verification %}
+    <div class="mb-6">
+        <h3 class="text-sm font-black text-slate-900 uppercase border-b-2 border-slate-800 pb-1 mb-3">
+            Gerçek Test Değerleri & Kabul Sonucu (PASS/FAIL)
+        </h3>
+        <div class="flex items-center gap-3 mb-3 text-xs">
+            <span class="font-bold {{ 'text-emerald-700' if verification.overall_status == 'ACCEPTED' else 'text-red-700' }}">
+                Genel Karar: {{ verification.overall_badge }}
+            </span>
+            <span class="text-slate-600">{{ verification.passed_count }} / {{ verification.checks_count }} Parametre Uygun</span>
+        </div>
+        <table class="matrix-table text-xs border-2 border-slate-900">
+            <thead>
+                <tr class="th-main">
+                    <th class="px-2 py-1 text-left">Kategori</th>
+                    <th class="px-2 py-1 text-left">Parametre</th>
+                    <th class="px-2 py-1 text-center">Ölçülen Değer</th>
+                    <th class="px-2 py-1 text-center">Şartname Limiti</th>
+                    <th class="px-2 py-1 text-center">Sonuç</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in verification.checks %}
+                <tr class="border-b border-slate-300">
+                    <td class="px-2 py-1 text-slate-600">{{ c.category }}</td>
+                    <td class="px-2 py-1 font-bold">{{ c.parameter }}</td>
+                    <td class="px-2 py-1 text-center font-mono">{{ c.actual_value }}</td>
+                    <td class="px-2 py-1 text-center font-mono text-slate-600">{{ c.required_limit }}</td>
+                    <td class="px-2 py-1 text-center">
+                        <span class="font-bold {{ 'text-emerald-700' if c.status == 'PASS' else 'text-red-700' }}">
+                            {{ 'UYGUN' if c.status == 'PASS' else 'RED' }}
+                        </span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
 
     <!-- Signatures Block -->
     <div class="grid grid-cols-3 gap-6 text-xs border-2 border-slate-800 p-4 rounded-lg bg-slate-50 mt-6">

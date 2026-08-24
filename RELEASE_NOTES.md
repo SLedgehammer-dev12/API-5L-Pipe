@@ -1,46 +1,45 @@
-# Sürüm Notları / Release Notes - v1.4.0
+# Sürüm Notları / Release Notes - v1.5.0
 
 ## 🚀 API 5L PSL2 & BOTAŞ Boru Kalite Güvence, Fabrika Kabul ve Çoklu Standart Et Kalınlığı Tasarım Yazılımı
 
-Bu sürüm, **Boru Üretim Yöntemine Bağlı API 5L Tablo 11 Negatif Tolerans Otomasyonu (SMLS, ERW, SAWH, SAWL)**, **ASME B31.3 El ile Negatif Tolerans Girişi**, **Paslanmaz Çelik Opsiyonel Tolerans Yönetimi**, **API 5L X46 Malzeme Kalitesi Entegrasyonu** ve arayüz dinamik güncellemelerini içermektedir.
+Bu sürüm, **EN 10204 3.1 uyumlu resmi kabul raporunu**, **API 5L Test & Muayene Planını (ITP)**, **çift kaynak CVN/kimyasal limitlerini**, **3D koyu/açık tema geçişini** ve bir dizi **kritik hesaplama düzeltmesini** içermektedir.
 
 ---
 
-### 🌟 v1.4.0 ile Gelen Önemli Yenilikler ve İyileştirmeler
+### 🌟 v1.5.0 ile Gelen Önemli Yenilikler ve İyileştirmeler
 
-1. **🏭 Boru Üretim Yöntemine Göre API 5L Tablo 11 Negatif Tolerans Otomasyonu:**
-   - **ASME B31.8 / ASME B31.4 + API 5L Borusu Seçildiğinde:**
-     - Kullanıcı arayüzden **Boru Üretim Yöntemini (SMLS, ERW/HFW, SAWH, SAWL)** ve **PSL Seviyesini (PSL 1 / PSL 2)** seçer.
-     - **API Spec 5L Tablo 11** standart kuralları otomatik işletilir:
-       - **Dikişsiz (SMLS):** **`-%12.5`**
-       - **Boyuna Kaynaklı (ERW / HFW):** **`-%10.0`**
-       - **Tozaltı Kaynaklı (SAWH / SAWL - $D > 20''$ / $24'' - 60''$):** **`-%8.0`**
-       - **Tozaltı Kaynaklı (SAWH / SAWL - $D \le 20''$):** **`-%10.0`**
-     - ASME B36.10M nominal schedule seçiminde bu tolerans payı düşülerek $t_{\text{nom}} \times (1 - \text{tol}) \ge t_{\text{req}}$ emniyet denetimi yapılır.
+1. **📑 EN 10204 3.1 Uyumlu Resmi Kabul Raporu:**
+   - Doğrulama (PASS/FAIL) sonuçları artık rapora entegre edilir: rapor **limit + gerçek ölçüm değeri + UYGUN/RED** kararını birlikte gösterir.
+   - Doğrulama sekmesindeki **"Resmi Rapor / PDF"** butonu ile tek tıkla yazdırılabilir sertifika üretilir.
+   - **Isı/Döküm No, Sertifika No, Miktar, Sipariş No ve Muayene Kuruluşu** alanları eklendi (Proje sekmesi → rapor → proje dosyası).
 
-2. **⚙️ ASME B31.3 (Proses Borulaması) El İle Negatif Tolerans Girişi:**
-   - ASME B31.3 seçildiğinde negatif tolerans **varsayılan olarak zorunlu/aktiftir**.
-   - Kullanıcı dilediği **negatif tolerans oranını (%)** (varsayılan: `%12.5`, istenirse `%10.0`, `%15.0` vb.) serbestçe belirleyebilir.
+2. **🔬 API 5L Test & Muayene Planı (ITP):**
+   - Seçili boruya göre **numune adedi/sıklığı**, **alınma yeri** ve **boyutu** (API 5L Table 18/20/21/22, Şekil 5/6) otomatik üretilir.
+   - Doğrulama sekmesinde özel ITP kartı ve raporda özet blok olarak gösterilir.
 
-3. **🧪 Paslanmaz ve Dubleks Çelikler İçin Opsiyonel Tolerans:**
-   - ASME B31.8 / B31.4 altında paslanmaz çelik (SS 304, SS 316, Duplex 2205, Super Duplex 2507) seçildiğinde negatif tolerans **opsiyonel (checkbox)** olarak sunulur; kullanıcı işaretlerse girdiği % oranını düşer, işaretlemezse doğrudan nominal schedule seçilir.
+3. **⚖️ Çift Kaynak CVN & Kimyasal Limitler:**
+   - Boru sütunu **BOTAŞ** ile oluşturulduysa Excel `Boru SMYS Tablosu` değerleri, **API 5L** ile oluşturulduysa API 5L Table 5/8 değerleri uygulanır.
 
-4. **🏷️ API 5L X46 Malzeme Kalitesi Eklendi:**
-   - Tasarım aracındaki malzeme kalitesi listesine **`X46 (L320 - SMYS: 46400 psi / 320 MPa)`** kalitesi eklenmiştir.
+4. **🎨 3D Koyu/Açık Tema Geçişi:**
+   - 3D boru modelinde matrise uyumlu **yüksek kontrastlı teknik çizim** görünümü için tema butonu (☀️/🌙).
 
-5. **📊 Dinamik Bilgi Rozeti ve Şeffaf Sonuç Gösterimi:**
-   - Form üzerinde parametreler değiştikçe hangi API 5L Tablo 11 kuralının işletileceği canlı olarak gösterilir.
-   - Sonuç kartında uygulanan tolerans kuralı ve minimum et kalınlığı sınırı şeffaf şekilde raporlanır.
+### 🛠️ Kritik Düzeltmeler (Fixed)
+
+- **Ondalık ayraç hatası:** `0,6 (Hat)` gibi virgüllü tasarım faktörleri artık doğru `F=0.60` olarak işleniyor (önceki davranışta yanlışlıkla `0.72` uygulanıyordu).
+- **psi→bar sabiti:** `14.50733` → `14.5037738` (doğru birim dönüşümü).
+- **Birim ağırlık sabiti:** `0.02466` → `0.0246615` (API 5L 9.11.2).
+- **"API 5L Alternative Test Pressure"** kavram ayrıştırması (API 5L 9.3.1.1).
+- CVN numune boyutu placeholder'ının gerçek Table 22 hesabıyla değiştirilmesi.
+- Rapor şablonunda sürüm hardcode'u ve "Artık Sress" yazım hatası giderildi.
 
 ---
 
-### 💻 İndirme Bağlantıları (v1.4.0)
+### 💻 İndirme Bağlantıları (v1.5.0)
 
 - **🪟 Windows (x64):**  
-  [**`API-5L-Pipe-Windows-x64.exe` İndir**](https://github.com/SLedgehammer-dev12/API-5L-Pipe/releases/download/v1.4.0/API-5L-Pipe-Windows-x64.exe)  
+  [**`API-5L-Pipe-Windows-x64.exe` İndir**](https://github.com/SLedgehammer-dev12/API-5L-Pipe/releases/download/v1.5.0/API-5L-Pipe-Windows-x64.exe)  
   *Tek dosyadır, kurulum gerektirmez. Doğrudan çift tıklayarak çalıştırabilirsiniz.*
 
 - **🍏 macOS (Apple Silicon M1/M2/M3/M4 & Intel):**  
-  [**`API-5L-Pipe-macOS.dmg` İndir**](https://github.com/SLedgehammer-dev12/API-5L-Pipe/releases/download/v1.4.0/API-5L-Pipe-macOS.dmg)  
+  [**`API-5L-Pipe-macOS.dmg` İndir**](https://github.com/SLedgehammer-dev12/API-5L-Pipe/releases/download/v1.5.0/API-5L-Pipe-macOS.dmg)  
   *Disk kalıbını açıp `API-5L-Pipe.app` uygulamasını Applications klasörüne sürükleyin.*
-

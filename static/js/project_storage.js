@@ -4,7 +4,7 @@
  */
 class ProjectStorage {
     static STORAGE_KEY = "api5l_active_project";
-    static CURRENT_SCHEMA_VERSION = "1.4.0";
+    static CURRENT_SCHEMA_VERSION = "1.5.0";
 
     static saveToLocalStorage(projectData) {
         try {
@@ -86,6 +86,11 @@ class ProjectStorage {
             revision_date: new Date().toISOString().split('T')[0],
             standard: "BOTAŞ Şartnamesi",
             language: "tr",
+            heat_number: "",
+            certificate_number: "",
+            quantity: "",
+            purchase_order_number: "",
+            inspection_company: "",
             schema_version: this.CURRENT_SCHEMA_VERSION
         }, data.project_info || {});
 

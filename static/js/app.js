@@ -21,7 +21,12 @@ let activeProject = {
         revision: "Rev. 0",
         revision_date: "2026-08-21",
         standard: "BOTAŞ Şartnamesi",
-        language: "tr"
+        language: "tr",
+        heat_number: "",
+        certificate_number: "",
+        quantity: "",
+        purchase_order_number: "",
+        inspection_company: ""
     },
     pipes: []
 };
@@ -29,6 +34,7 @@ let activeProject = {
 let calculatedPipes = [];
 let selectedPipeIndex = 0;
 let visualizer3DInstance = null;
+let lastVerification = null;
 
 document.addEventListener("DOMContentLoaded", async () => {
     const savedLang = localStorage.getItem("api5l_lang") || "tr";
@@ -42,6 +48,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     await calculateAndRenderAll();
+    loadTestPlan();
 
     setTimeout(() => {
         visualizer3DInstance = new PipeVisualizer3D("viewport-3d");
@@ -503,6 +510,7 @@ function selectPipe(idx) {
         renderKPICards(calculatedPipes[idx]);
         updateVisualizers(calculatedPipes[idx]);
     }
+    loadTestPlan();
 }
 
 function selectNextPipe() {
@@ -775,6 +783,7 @@ function setupEventListeners() {
             });
             const res = await resp.json();
             if (res.status === "success") {
+                lastVerification = res.verification;
                 renderVerificationResult(res.verification);
             }
         });
@@ -956,6 +965,12 @@ function renderVerificationResult(data) {
                     ${data.passed_count} / ${data.checks_count} Parametre Uygun
                 </span>
             </div>
+            <div class="flex items-center gap-2 mb-3">
+                <button onclick="generateOfficialReport()" class="bg-slate-800 hover:bg-slate-700 text-white font-bold px-3 py-1.5 rounded text-xs transition flex items-center">
+                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                    Resmi Rapor / PDF
+                </button>
+            </div>
             <div class="overflow-x-auto max-h-[500px] overflow-y-auto">
                 <table class="w-full text-xs text-left border-collapse bg-white rounded border border-gray-300">
                     <thead class="bg-gray-100 text-gray-700 font-bold border-b border-gray-300 sticky top-0">
@@ -999,6 +1014,97 @@ function showToast(msg, type = "info") {
     setTimeout(() => toast.classList.add("hidden"), 3000);
 }
 
+async function generateOfficialReport() {
+    if (!activeProject.pipes || activeProject.pipes.length === 0) {
+        showToast("Rapor için en az bir boru bulunmalıdır!", "error");
+        return;
+    }
+    try {
+        const resp = await fetch("/api/report-view", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                project_info: activeProject.project_info,
+                pipes: activeProject.pipes,
+                lang: currentLang,
+                verification: lastVerification
+            })
+        });
+        const html = await resp.text();
+        const w = window.open("", "_blank");
+        if (w) {
+            w.document.write(html);
+            w.document.close();
+        } else {
+            showToast("Açılır pencere engellendi. Lütfen izin verin.", "error");
+        }
+    } catch (e) {
+        console.error("Report generation error:", e);
+        showToast("Rapor oluşturulurken hata oluştu!", "error");
+    }
+}
+
+function saveProjectMetadata() {
+    const map = {
+        "meta-project-name": "project_name",
+        "meta-project-no": "project_no",
+        "meta-line-name": "line_name",
+        "meta-client": "client",
+        "meta-prepared": "prepared_by",
+        "meta-checked": "checked_by",
+        "meta-revision": "revision",
+        "meta-date": "revision_date",
+        "meta-heat-number": "heat_number",
+        "meta-cert-number": "certificate_number",
+        "meta-quantity": "quantity",
+        "meta-order-number": "purchase_order_number",
+        "meta-inspection-company": "inspection_company"
+    };
+    for (const [id, key] of Object.entries(map)) {
+        const el = document.getElementById(id);
+        if (el) activeProject.project_info[key] = el.value;
+    }
+    ProjectStorage.saveToLocalStorage(activeProject);
+    showToast("Proje ve revizyon bilgileri kaydedildi!", "success");
+}
+
+async function loadTestPlan() {
+    const panel = document.getElementById("test-plan-panel");
+    if (!panel) return;
+    const pipe = (activeProject.pipes && activeProject.pipes.length > 0)
+        ? (activeProject.pipes[selectedPipeIndex] || activeProject.pipes[0])
+        : null;
+    if (!pipe) {
+        panel.innerHTML = `<p class="text-xs text-slate-400 italic">Test planı için önce bir boru ekleyin.</p>`;
+        return;
+    }
+    try {
+        const resp = await fetch("/api/test-plan", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ pipe_config: pipe })
+        });
+        const res = await resp.json();
+        if (res.status !== "success") return;
+        let html = `<p class="text-[11px] text-slate-500 mb-2">Seçili boru: <strong>${pipe.diameter_inch} - ${pipe.material_grade} (${pipe.manufacturing_process})</strong> — API 5L 46th Ed.</p>`;
+        html += `<div class="overflow-x-auto"><table class="w-full text-xs text-left border-collapse bg-white rounded border border-gray-300">`;
+        html += `<thead class="bg-gray-100 text-gray-700 font-bold border-b border-gray-300"><tr>
+            <th class="p-2">Test</th><th class="p-2">Madde</th><th class="p-2">Sıklık / Adet</th><th class="p-2">Alınma Yeri</th><th class="p-2">Numune Boyutu</th></tr></thead><tbody>`;
+        res.test_plan.forEach(tp => {
+            html += `<tr class="border-b border-gray-200">
+                <td class="p-2 font-bold">${tp.test}</td>
+                <td class="p-2 text-slate-600">${tp.clause}</td>
+                <td class="p-2">${tp.frequency}</td>
+                <td class="p-2">${tp.location}</td>
+                <td class="p-2">${tp.specimen}</td></tr>`;
+        });
+        html += `</tbody></table></div>`;
+        panel.innerHTML = html;
+    } catch (e) {
+        console.error("Test plan load error:", e);
+    }
+}
+
 // --- FEEDBACK & DEVELOPER CONTACT MODULE ---
 const DEVELOPER_EMAIL = "omer.erbas@botas.gov.tr";
 
@@ -1034,7 +1140,7 @@ function closeFeedbackModal() {
 function generateFeedbackDiagnostics() {
     const activePipe = (activeProject && activeProject.pipes) ? (activeProject.pipes[selectedPipeIndex] || activeProject.pipes[0]) : null;
     let diag = `\n=== SİSTEM VE TANI BİLGİLERİ ===\n`;
-    diag += `Uygulama Sürümü: v1.2.0\n`;
+    diag += `Uygulama Sürümü: v${window.APP_VERSION || '1.5.0'}\n`;
     diag += `Kullanıcı Tarayıcısı / OS: ${navigator.userAgent}\n`;
     diag += `Tarih / Saat: ${new Date().toISOString()}\n`;
     diag += `Mevcut Dil: ${currentLang}\n`;

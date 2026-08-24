@@ -255,5 +255,55 @@ class TestPipeQAQCSuite(unittest.TestCase):
         self.assertIsNotNone(res_unknown)
         self.assertGreater(res_unknown['calculation_results']['selected_nominal_thickness_asme_b36_10_mm'], 0)
 
+    def test_12_design_factor_comma_dot_parsing(self):
+        """A1 Regression: comma vs dot decimal design factors must parse to the same numeric F."""
+        from core.database import parse_design_factor
+        self.assertEqual(parse_design_factor('0,6 (Hat)'), ('0.60_hat', 0.60))
+        self.assertEqual(parse_design_factor('0.6 (Hat)'), ('0.60_hat', 0.60))
+        self.assertEqual(parse_design_factor('0,5 (İst.)'), ('0.50_ist1', 0.50))
+        self.assertEqual(parse_design_factor('0,5 (İst. 2)'), ('0.50_ist2', 0.50))
+        self.assertEqual(parse_design_factor('0,5 (Hat)'), ('0.50_hat', 0.50))
+        self.assertEqual(parse_design_factor('0,72 (Hat)'), ('0.72_hat', 0.72))
+        self.assertEqual(parse_design_factor('0,4'), ('0.40_hat', 0.40))
+        # End-to-end: a comma factor must yield f=0.6, not 0.72
+        r = PipeQAQCEngine.calculate_pipe_qc('48"', wall_thickness_mm=17.5, design_factor_str='0,6 (Hat)', material_grade='X65')
+        self.assertEqual(r['input_summary']['design_factor_num'], 0.60)
+
+    def test_13_dual_source_cvn_and_chemistry(self):
+        """CVN and chemistry must follow the standard the column was created with."""
+        b = PipeQAQCEngine.calculate_pipe_qc('48"', wall_thickness_mm=14.3, material_grade='X65', standard_type='BOTAŞ')
+        a = PipeQAQCEngine.calculate_pipe_qc('48"', wall_thickness_mm=14.3, material_grade='X65', standard_type='API 5L')
+        # BOTAŞ CVN (from Excel) is stricter than API 5L Table 8 draft
+        self.assertEqual(b['toughness_and_tests']['notch_impact_mat_j'], 60.0)
+        self.assertEqual(a['toughness_and_tests']['notch_impact_mat_j'], 40.0)
+        # Chemistry S limit: BOTAŞ 0.010, API 5L 0.015
+        self.assertEqual(b['chemical_analysis']['S_max'], 0.01)
+        self.assertEqual(a['chemical_analysis']['S_max'], 0.015)
+
+    def test_14_barlow_constant_precision(self):
+        """A2: hydrostatic test uses the correct psi->bar constant (14.5037738)."""
+        r = PipeQAQCEngine.calculate_pipe_qc('48"', wall_thickness_mm=14.3, material_grade='X65')
+        expected = 2.0 * 65300.0 * 14.3 / (1219.0 * 14.5037738)
+        self.assertAlmostEqual(r['hydrostatic_test']['hydro_test_max_bar'], expected, delta=0.01)
+        # BOTAŞ minimum test pressure rule: min = max - 2.0 bar
+        self.assertAlmostEqual(r['hydrostatic_test']['hydro_test_min_bar'], expected - 2.0, delta=0.01)
+
+    def test_15_test_plan_specimen_info(self):
+        """ITP must expose sampling frequency, location and specimen dimensions."""
+        from core.test_plan import get_test_plan
+        plan = get_test_plan({'diameter_mm': 1219.0, 'wall_thickness_mm': 14.3, 'material_grade': 'X65', 'manufacturing_process': 'SAWH'})
+        names = [t['test'] for t in plan]
+        self.assertIn('Çentik Darbe (CVN)', names)
+        self.assertIn('DWTT (Drop Weight Tear Test)', names)
+        # Every entry must carry the three required fields
+        for t in plan:
+            self.assertTrue(t.get('frequency'))
+            self.assertTrue(t.get('location'))
+            self.assertTrue(t.get('specimen'))
+        # API endpoint
+        resp = self.client.post('/api/test-plan', json={'pipe_config': {'diameter_mm': 1219.0, 'wall_thickness_mm': 14.3, 'material_grade': 'X65', 'manufacturing_process': 'SAWH'}})
+        self.assertEqual(resp.status_code, 200)
+        self.assertGreaterEqual(len(resp.json()['test_plan']), 6)
+
 if __name__ == '__main__':
     unittest.main()

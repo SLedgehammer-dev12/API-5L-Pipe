@@ -10,10 +10,14 @@ class PipeVisualizer3D {
         this.renderer = null;
         this.pipeMesh = null;
         this.weldMesh = null;
+        this.pipeMaterial = null;
+        this.gridHelper = null;
+        this.lights = {};
         this.controls = null;
         this.animationFrameId = null;
         this.isCutaway = false;
         this.isRotating = true;
+        this.isDark = true;
         this.currentPipeData = null;
     }
 
@@ -31,7 +35,6 @@ class PipeVisualizer3D {
 
         // Scene
         this.scene = new THREE.Scene();
-        this.scene.background = new THREE.Color(0x0f172a);
 
         // Camera
         this.camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
@@ -42,6 +45,8 @@ class PipeVisualizer3D {
         this.renderer.setSize(width, height);
         this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         this.renderer.shadowMap.enabled = true;
+        this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        this.renderer.toneMappingExposure = 1.25;
         this.container.appendChild(this.renderer.domElement);
 
         // OrbitControls
@@ -51,22 +56,27 @@ class PipeVisualizer3D {
             this.controls.dampingFactor = 0.05;
         }
 
-        // Lighting
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.65);
-        this.scene.add(ambientLight);
+        // Lighting (multi-source for high-contrast technical drawing look)
+        this.lights.ambient = new THREE.AmbientLight(0xffffff, 1.0);
+        this.scene.add(this.lights.ambient);
 
-        const dirLight1 = new THREE.DirectionalLight(0x38bdf8, 1.3);
-        dirLight1.position.set(30, 40, 30);
-        this.scene.add(dirLight1);
+        this.lights.hemisphere = new THREE.HemisphereLight(0xffffff, 0x475569, 1.1);
+        this.scene.add(this.lights.hemisphere);
 
-        const dirLight2 = new THREE.DirectionalLight(0xf59e0b, 0.9);
-        dirLight2.position.set(-30, -20, -30);
-        this.scene.add(dirLight2);
+        this.lights.key = new THREE.DirectionalLight(0xffffff, 1.4);
+        this.lights.key.position.set(30, 40, 30);
+        this.scene.add(this.lights.key);
 
-        // Grid Floor
-        const gridHelper = new THREE.GridHelper(50, 25, 0x334155, 0x1e293b);
-        gridHelper.position.y = -10;
-        this.scene.add(gridHelper);
+        this.lights.rim = new THREE.DirectionalLight(0x7dd3fc, 0.8);
+        this.lights.rim.position.set(-30, -15, -30);
+        this.scene.add(this.lights.rim);
+
+        this.lights.fill = new THREE.DirectionalLight(0xf59e0b, 0.6);
+        this.lights.fill.position.set(0, 10, -40);
+        this.scene.add(this.lights.fill);
+
+        // Apply initial theme (also creates the grid floor)
+        this.applyTheme();
 
         // Resize Listener
         window.addEventListener('resize', () => this.onResize());
@@ -136,11 +146,12 @@ class PipeVisualizer3D {
         geom.center();
 
         const steelMaterial = new THREE.MeshStandardMaterial({
-            color: 0x64748b,
-            metalness: 0.85,
-            roughness: 0.25,
+            color: this.isDark ? 0x94a3b8 : 0x475569,
+            metalness: 0.4,
+            roughness: 0.4,
             side: THREE.DoubleSide
         });
+        this.pipeMaterial = steelMaterial;
 
         this.pipeMesh = new THREE.Mesh(geom, steelMaterial);
         this.pipeMesh.rotation.x = Math.PI / 2;
@@ -167,17 +178,18 @@ class PipeVisualizer3D {
             const spiral = new SpiralCurve(outerRadius + 0.06, length, 2.5);
             const weldGeom = new THREE.TubeGeometry(spiral, 128, 0.28, 8, false);
             const weldMat = new THREE.MeshStandardMaterial({
-                color: 0xd97706,
-                emissive: 0x78350f,
-                metalness: 0.5,
-                roughness: 0.4
+                color: 0xf59e0b,
+                emissive: 0x92400e,
+                emissiveIntensity: 0.6,
+                metalness: 0.4,
+                roughness: 0.35
             });
 
             this.weldMesh = new THREE.Mesh(weldGeom, weldMat);
             this.scene.add(this.weldMesh);
         } else if (process.includes("ERW") || process.includes("HFW") || process.includes("LSAW")) {
-            const weldGeom = new THREE.CylinderGeometry(0.25, 0.25, length, 16);
-            const weldMat = new THREE.MeshStandardMaterial({ color: 0xd97706, metalness: 0.6 });
+            const weldGeom = new THREE.CylinderGeometry(0.35, 0.35, length, 16);
+            const weldMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, emissive: 0x92400e, emissiveIntensity: 0.6, metalness: 0.4, roughness: 0.35 });
             this.weldMesh = new THREE.Mesh(weldGeom, weldMat);
             this.weldMesh.position.set(0, 0, outerRadius + 0.06);
             this.weldMesh.rotation.x = Math.PI / 2;
@@ -199,6 +211,48 @@ class PipeVisualizer3D {
             this.camera.position.set(25, 20, 35);
             this.controls.target.set(0, 0, 0);
             this.controls.update();
+        }
+    }
+
+    toggleTheme() {
+        this.isDark = !this.isDark;
+        this.applyTheme();
+    }
+
+    applyTheme() {
+        if (!this.scene) return;
+
+        // Rebuild grid with theme-appropriate colors
+        if (this.gridHelper) {
+            this.scene.remove(this.gridHelper);
+            this.gridHelper.geometry.dispose();
+            this.gridHelper.material.dispose();
+        }
+        const gridCenter = this.isDark ? 0x475569 : 0x94a3b8;
+        const gridLine = this.isDark ? 0x1e293b : 0xcbd5e1;
+        this.gridHelper = new THREE.GridHelper(50, 25, gridCenter, gridLine);
+        this.gridHelper.position.y = -10;
+        this.scene.add(this.gridHelper);
+
+        if (this.isDark) {
+            this.scene.background = new THREE.Color(0x0f172a);
+            this.renderer.toneMappingExposure = 1.25;
+            if (this.pipeMaterial) this.pipeMaterial.color.set(0x94a3b8);
+            if (this.lights.ambient) this.lights.ambient.intensity = 1.0;
+            if (this.lights.hemisphere) this.lights.hemisphere.intensity = 1.1;
+        } else {
+            this.scene.background = new THREE.Color(0xf1f5f9);
+            this.renderer.toneMappingExposure = 1.35;
+            if (this.pipeMaterial) this.pipeMaterial.color.set(0x475569);
+            if (this.lights.ambient) this.lights.ambient.intensity = 1.35;
+            if (this.lights.hemisphere) this.lights.hemisphere.intensity = 1.35;
+        }
+
+        const btn = document.getElementById("btn-toggle-theme-3d");
+        if (btn) {
+            btn.innerHTML = this.isDark
+                ? '☀️ Açık Tema'
+                : '🌙 Koyu Tema';
         }
     }
 

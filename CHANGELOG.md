@@ -3,6 +3,25 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0] - 2026-08-24 (EN 10204 3.1 Raporu, API 5L ITP, Çift Kaynak CVN/Kimya & Kritik Hesap Düzeltmeleri)
+
+### 🎉 Eklenen Özellikler (Added)
+- **EN 10204 3.1 Uyumlu Resmi Kabul Raporu:** Doğrulama (PASS/FAIL) sonucunun rapora entegre edilmesi — rapor artık *limit + gerçek ölçüm değeri + UYGUN/RED* kararını birlikte gösterir. "Resmi Rapor / PDF" butonu ile tek tıkla yazdırılabilir sertifika üretimi.
+- **EN 10204 3.1 İzlenebilirlik Alanları:** Isı/Döküm No, Sertifika No, Miktar, Sipariş No ve Muayene Kuruluşu alanları (Proje sekmesi + rapor + proje şeması).
+- **API 5L Test & Muayene Planı (ITP):** Seçili boruya göre numune adedi/sıklığı, alınma yeri ve boyutu (Table 18/20/21/22, Şekil 5/6) dinamik olarak üretilir; doğrulama sekmesinde kart ve raporda özet blok olarak gösterilir.
+- **Çift Kaynak CVN & Kimyasal Limitler:** BOTAŞ (Excel `Boru SMYS Tablosu`) ve API 5L (Table 5/8) setlerinin `standard_type` seçimine göre ayrıştırılması.
+- **3D Koyu/Açık Tema Geçişi:** 3D boru modelinde yüksek kontrastlı teknik çizim görünümü için tema butonu.
+
+### 🛠️ Düzeltmeler (Fixed)
+- **Ondalık ayraç (virgül/nokta) tasarım faktörü hatası:** `0,6 (Hat)` gibi virgüllü faktörler artık doğru `F=0.60` olarak işleniyor (önceki davranış: yanlışlıkla 0.72).
+- **psi→bar sabiti:** `14.50733` → `14.5037738` (doğru birim dönüşümü).
+- **Birim ağırlık sabiti:** `0.02466` → `0.0246615` (API 5L 9.11.2).
+- **"API 5L Alternative Test Pressure"** kavram ayrıştırması (tasarım basıncı ile karıştırılmaması; 9.3.1.1 "anlaşmaya bağlı").
+- CVN numune boyutu placeholder'ının gerçek Table 22 hesabıyla değiştirilmesi.
+- Rapor şablonunda sürüm hardcode'u (`v2.0`) ve "Artık Sress" yazım hatası giderildi.
+
+---
+
 ## [1.4.0] - 2026-08-24 (API 5L Tablo 11 Negatif Tolerans Otomasyonu, ASME B31.3 Özel Tolerans & X46)
 
 ### 🎉 Eklenen Özellikler (Added)

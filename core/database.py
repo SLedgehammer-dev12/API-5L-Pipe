@@ -332,6 +332,32 @@ CHEMICAL_COMPOSITION_RULES = {
     'Super Duplex 2507': {'C_max': 0.030, 'Mn_max': 1.20, 'P_max': 0.035, 'S_max': 0.020, 'Nb_min': 0.0, 'Nb_max': 0.0, 'V_max': 0.0, 'Ti_max': 0.0, 'N_max': 0.32, 'CE_IIW_max': 0.0, 'CE_Pcm_max': 0.0}
 }
 
+# API 5L 46th Ed. Table 8 (PSL2) minimum absorbed energy (J), full-size specimen, average of 3, 0 °C.
+# DRAFT — values to be verified against the exact Table 8 of the 46th edition.
+CVN_API5L = {
+    "GRADE A": {"material_j": 27.0, "weld_j": 20.0},
+    "GRADE B": {"material_j": 27.0, "weld_j": 20.0},
+    "X42": {"material_j": 27.0, "weld_j": 20.0},
+    "X46": {"material_j": 27.0, "weld_j": 20.0},
+    "X52": {"material_j": 27.0, "weld_j": 20.0},
+    "X56": {"material_j": 40.0, "weld_j": 27.0},
+    "X60": {"material_j": 40.0, "weld_j": 27.0},
+    "X65": {"material_j": 40.0, "weld_j": 27.0},
+    "X70": {"material_j": 40.0, "weld_j": 27.0},
+    "X80": {"material_j": 68.0, "weld_j": 54.0},
+}
+
+# Design factor canonical key -> numeric F value.
+DESIGN_FACTOR_MAP = {
+    "0.80_hat": 0.80,
+    "0.72_hat": 0.72,
+    "0.60_hat": 0.60,
+    "0.50_hat": 0.50,
+    "0.50_ist1": 0.50,
+    "0.50_ist2": 0.50,
+    "0.40_hat": 0.40,
+}
+
 # Standard Pipe Sizes, Wall Thicknesses & Tolerances (BOTAŞ & ASME B31.8)
 PIPE_SIZES_TABLE = [
     {
@@ -2388,8 +2414,62 @@ def is_stainless_grade(grade: str) -> bool:
 def get_smys_info(grade: str):
     return API_5L_SMYS_TABLE.get(grade.upper().strip(), API_5L_SMYS_TABLE['X65'])
 
-def get_chemical_rules(grade: str):
-    return CHEMICAL_COMPOSITION_RULES.get(grade.upper().strip(), CHEMICAL_COMPOSITION_RULES['X65'])
+def get_chemical_rules(grade: str, standard_type: str = "BOTAŞ"):
+    grade = grade.upper().strip()
+    base = CHEMICAL_COMPOSITION_RULES.get(grade, CHEMICAL_COMPOSITION_RULES['X65'])
+    if "API" in standard_type.upper():
+        # API 5L PSL2 Table 5 (t <= 25 mm) — draft deltas vs BOTAŞ:
+        #   S <= 0.015 (BOTAŞ is 0.010 for most grades), Nb reported as max-only.
+        rules = dict(base)
+        if grade not in ('GRADE A',):
+            rules['S_max'] = 0.015
+        rules['Nb_min'] = 0.0
+        return rules
+    return base
+
+def get_cvn(grade: str, standard_type: str = "BOTAŞ"):
+    """Returns {'material_j': .., 'weld_j': ..} CVN minimums for the given standard."""
+    grade = grade.upper().strip()
+    if "API" in standard_type.upper() and grade in CVN_API5L:
+        return CVN_API5L[grade]
+    info = API_5L_SMYS_TABLE.get(grade, API_5L_SMYS_TABLE['X65'])
+    return {"material_j": info.get('cvn_material_j', 0.0), "weld_j": info.get('cvn_weld_j', 0.0)}
+
+def normalize_design_factor(factor_str) -> str:
+    """Normalize a design factor label (tolerates comma/dot decimal separators and Turkish words)."""
+    if not factor_str:
+        return "0.72_hat"
+    s = str(factor_str).replace(",", ".").lower()
+    # Turkish capital 'İ' lowercases to 'i\u0307' (i + combining dot above); strip the dot.
+    s = s.replace("\u0307", "")
+    has_ist = ("ist" in s) or ("istasyon" in s)
+    has_ist2 = ("ist. 2" in s) or ("ist2" in s) or ("istasyon 2" in s)
+    if "0.8" in s:
+        return "0.80_hat"
+    if "0.6" in s:
+        return "0.60_hat"
+    if "0.5" in s:
+        if has_ist2:
+            return "0.50_ist2"
+        if has_ist:
+            return "0.50_ist1"
+        return "0.50_hat"
+    if "0.4" in s:
+        return "0.40_hat"
+    return "0.72_hat"
+
+def parse_design_factor(factor_str):
+    """Returns (canonical_key, numeric_F) for a design factor string."""
+    key = normalize_design_factor(factor_str)
+    return key, DESIGN_FACTOR_MAP.get(key, 0.72)
+
+def default_design_pressure_for_factor(f_factor: float) -> float:
+    """Excel 'Design P F' mapping: 75 bar -> F=0.8, 82.5 -> F=0.72, 100 -> F=0.6/0.5/0.4."""
+    if f_factor >= 0.80:
+        return 75.0
+    if f_factor >= 0.72:
+        return 82.5
+    return 100.0
 
 FRACTIONS_NORMALIZATION = {
     "1/2": "½", "½": "½", "0.5": "½",

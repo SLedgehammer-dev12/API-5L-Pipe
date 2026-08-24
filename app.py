@@ -15,7 +15,7 @@ from core.verification_engine import PipeVerificationEngine
 from core.wall_thickness_engine import WallThicknessEngine
 from core.project_manager import ProjectManager
 from core.excel_exporter import ExcelExporter
-from core.database import API_5L_SMYS_TABLE, PIPE_SIZES_TABLE
+from core.database import API_5L_SMYS_TABLE, PIPE_SIZES_TABLE, normalize_design_factor
 from core.i18n import TRANSLATIONS, get_text
 from version import __version__, __app_name__
 
@@ -153,13 +153,7 @@ async def lookup_botas_specs(diameter_inch: str, factor: str = "0.72 (Hat)"):
     if not pipe_size:
         return JSONResponse(content={"status": "not_found", "material": "X65", "thickness": 14.30})
 
-    factor_key = "0.72_hat"
-    if "0.6" in factor:
-        factor_key = "0.60_hat"
-    elif "0.5" in factor and ("ist" in factor.lower() or "İst" in factor):
-        factor_key = "0.50_ist1"
-    elif "0.5" in factor:
-        factor_key = "0.50_hat"
+    factor_key = normalize_design_factor(factor)
 
     botas_thk = pipe_size['botas_thk'].get(factor_key, 0.0)
     if botas_thk == 0.0:
@@ -224,6 +218,17 @@ async def export_excel(data: Dict[str, Any] = Body(...)):
         headers=headers
     )
 
+@app.post("/api/test-plan")
+async def get_test_plan(data: Dict[str, Any] = Body(...)):
+    """
+    Returns the API 5L PSL2 inspection & test plan (sampling frequency,
+    location and specimen dimensions) for a given pipe configuration.
+    """
+    from core.test_plan import get_test_plan
+    pipe_config = data.get("pipe_config", {})
+    plan = get_test_plan(pipe_config)
+    return JSONResponse(content={"status": "success", "test_plan": plan})
+
 @app.post("/api/report-view", response_class=HTMLResponse)
 async def generate_html_report(request: Request, data: Dict[str, Any] = Body(...)):
     """
@@ -232,6 +237,7 @@ async def generate_html_report(request: Request, data: Dict[str, Any] = Body(...
     project_info = data.get("project_info", {})
     pipes_input = data.get("pipes", [])
     lang = data.get("lang", "tr")
+    verification = data.get("verification", None)
 
     pipes_calculated = []
     for p in pipes_input:
@@ -247,6 +253,12 @@ async def generate_html_report(request: Request, data: Dict[str, Any] = Body(...
         )
         pipes_calculated.append(res)
 
+    # API 5L inspection & test plan for the first pipe (sampling info)
+    from core.test_plan import get_test_plan
+    test_plan = []
+    if pipes_input:
+        test_plan = get_test_plan(pipes_input[0])
+
     return templates.TemplateResponse(
         request=request,
         name="report_template.html",
@@ -254,6 +266,9 @@ async def generate_html_report(request: Request, data: Dict[str, Any] = Body(...
             "project": project_info,
             "pipes": pipes_calculated,
             "lang": lang,
+            "verification": verification,
+            "test_plan": test_plan,
+            "app_version": __version__,
             "t": lambda key: get_text(key, lang)
         }
     )
