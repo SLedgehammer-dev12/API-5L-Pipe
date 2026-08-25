@@ -483,6 +483,12 @@
                     <h3 class="text-base font-bold text-slate-900">API 5L Test & Muayene Planı (ITP)</h3>
                     <span class="text-[11px] text-slate-400">Numune adedi, alınma yeri ve boyutları</span>
                 </div>
+                <div class="mb-3">
+                    <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">ITP'de İncelenecek Boruyu Seçin:</span>
+                    <div id="itp-pipe-chips" class="flex items-center space-x-2 overflow-x-auto pb-1 mt-1">
+                        <!-- Populated dynamically with pipe chips -->
+                    </div>
+                </div>
                 <div id="test-plan-panel">
                     <p class="text-xs text-slate-400 italic">Yükleniyor...</p>
                 </div>
@@ -1008,6 +1014,22 @@
         </div>
     </div>
 
+    <!-- ITP Info Modal (clause text / specimen drawing) -->
+    <div id="itp-info-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl max-w-3xl w-full p-6 shadow-2xl border border-slate-200 text-xs text-slate-700 max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-200 mb-4">
+                <h3 id="itp-info-title" class="font-bold text-base text-slate-900">API 5L Standart Referansı</h3>
+                <button onclick="closeItpInfoModal()" class="text-slate-400 hover:text-slate-600 text-lg font-bold">✕</button>
+            </div>
+            <div id="itp-info-body" class="space-y-3">
+                <!-- Populated by JS -->
+            </div>
+            <div class="pt-3 flex justify-end border-t border-slate-100 mt-4">
+                <button onclick="closeItpInfoModal()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-1.5 rounded-lg transition">Kapat</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast Notification Element -->
     <div id="app-toast" class="hidden"></div>
 
@@ -1016,6 +1038,7 @@
     <script src="/static/js/i18n.js"></script>
     <script src="/static/js/pipe_visualizer_2d.js"></script>
     <script src="/static/js/pipe_visualizer_3d.js"></script>
+    <script src="/static/js/specimen_drawings.js"></script>
     <script src="/static/js/project_storage.js"></script>
     <script src="/static/js/app.js"></script>
 

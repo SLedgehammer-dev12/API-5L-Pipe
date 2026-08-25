@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.2] - 2026-08-25 (API 5L ITP Geliştirmesi: Boru Seçici, Standart Madde Metni & Numune Çizimleri)
+
+### 🎉 Eklenen Özellikler (Added)
+- **ITP Boru Seçici (Chips):** API 5L Test & Muayene Planı kartına, 3D/2D seçiciyle aynı yatay boru çipleri eklendi — global `selectedPipeIndex` ile senkron (matris/KPI/3D de güncellenir).
+- **Tıkla-Genişle Satırlar:** ITP tablosunda test satırına tıklanınca altında standart madde metni + numune çizimi inline açılır.
+- **Standart Madde Referansı (ℹ️):** "Madde" sütunundaki bilgi ikonu, ilgili API 5L 46th Ed. maddesinin **tam orijinal metnini** modal ile gösterir.
+- **Numune Çizimleri (ℹ️):** "Numune Boyutu" sütunundaki bilgi ikonu, API 5L Şekil 4/5/6 ve standart numune şekillerine çok yakın **SVG şematik çizimleri** (Charpy, çekme şerit/yuvarlak, kılavuzlu bükme, düzleştirme, DWTT, sertlik, numune alım yerleri) modal ile gösterir.
+- **Backend:** `test_plan.py` her teste `clause_ref` (orijinal standart metni) ve `specimen_figure` (çizim anahtarı) alanlarını ekledi.
+
+---
+
 ## [1.6.1] - 2026-08-25 (Windows Auto-Updater Düzeltmesi & Versiyonlu İndirme Dosyaları)
 
 ### 🛠️ Düzeltmeler (Fixed)

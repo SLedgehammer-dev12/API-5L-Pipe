@@ -133,6 +133,7 @@ async function calculateAndRenderAll() {
             renderEmptyState();
             renderPipesManagementList();
             render3DPipeChips();
+            renderITPPipeChips();
             hideKPICards();
             return;
         }
@@ -153,6 +154,7 @@ async function calculateAndRenderAll() {
             renderMatrixTable();
             renderPipesManagementList();
             render3DPipeChips();
+            renderITPPipeChips();
             if (calculatedPipes.length > 0) {
                 updateVisualizers(calculatedPipes[selectedPipeIndex]);
             }
@@ -469,6 +471,32 @@ function render3DPipeChips() {
     container.innerHTML = html;
 }
 
+// ITP pipe selector chips (same pattern as the 3D/2D selector; syncs global selectedPipeIndex)
+function renderITPPipeChips() {
+    const container = document.getElementById("itp-pipe-chips");
+    if (!container) return;
+
+    if (!calculatedPipes || calculatedPipes.length === 0) {
+        container.innerHTML = `<span class="text-xs text-slate-400 italic">Test planı için önce bir boru ekleyin.</span>`;
+        return;
+    }
+
+    let html = "";
+    calculatedPipes.forEach((p, idx) => {
+        const isActive = idx === selectedPipeIndex;
+        html += `
+            <div onclick="selectPipe(${idx})" class="pipe-chip px-3 py-1.5 rounded-lg border text-xs font-semibold flex items-center space-x-2 ${isActive ? 'active' : 'bg-white border-slate-200 text-slate-700'}">
+                <span class="w-5 h-5 rounded-full ${isActive ? 'bg-white text-blue-600' : 'bg-slate-800 text-white'} text-[10px] flex items-center justify-center font-bold">${idx + 1}</span>
+                <div>
+                    <div>${esc(p.input_summary.diameter_inch)} - ${esc(p.input_summary.material_grade)}</div>
+                    <p class="text-[10px] ${isActive ? 'text-blue-100' : 'text-slate-500'}">t=${p.input_summary.wall_thickness_mm.toFixed(2)} mm | ${esc(p.input_summary.design_factor_str)}</p>
+                </div>
+            </div>
+        `;
+    });
+    container.innerHTML = html;
+}
+
 function renderPipesManagementList() {
     const list = document.getElementById("pipes-management-list");
     if (!list) return;
@@ -510,6 +538,7 @@ function selectPipe(idx) {
     renderMatrixTable();
     renderPipesManagementList();
     render3DPipeChips();
+    renderITPPipeChips();
     
     // Update navigator status
     const statusEl = document.getElementById("matrix-col-status");
@@ -1082,6 +1111,8 @@ function saveProjectMetadata() {
 async function loadTestPlan() {
     const panel = document.getElementById("test-plan-panel");
     if (!panel) return;
+    renderITPPipeChips();
+
     const pipe = (activeProject.pipes && activeProject.pipes.length > 0)
         ? (activeProject.pipes[selectedPipeIndex] || activeProject.pipes[0])
         : null;
@@ -1097,23 +1128,70 @@ async function loadTestPlan() {
         });
         const res = await resp.json();
         if (res.status !== "success") return;
-        let html = `<p class="text-[11px] text-slate-500 mb-2">Seçili boru: <strong>${pipe.diameter_inch} - ${pipe.material_grade} (${pipe.manufacturing_process})</strong> — API 5L 46th Ed.</p>`;
+
+        // Store plan for modal lookups
+        window._itpData = res.test_plan;
+
+        let html = `<p class="text-[11px] text-slate-500 mb-2">Seçili boru: <strong>${esc(pipe.diameter_inch)} - ${esc(pipe.material_grade)} (${esc(pipe.manufacturing_process)})</strong> — API 5L 46th Ed. (satıra tıklayın: standart metni + numune çizimi)</p>`;
         html += `<div class="overflow-x-auto"><table class="w-full text-xs text-left border-collapse bg-white rounded border border-gray-300">`;
         html += `<thead class="bg-gray-100 text-gray-700 font-bold border-b border-gray-300"><tr>
             <th class="p-2">Test</th><th class="p-2">Madde</th><th class="p-2">Sıklık / Adet</th><th class="p-2">Alınma Yeri</th><th class="p-2">Numune Boyutu</th></tr></thead><tbody>`;
-        res.test_plan.forEach(tp => {
-            html += `<tr class="border-b border-gray-200">
-                <td class="p-2 font-bold">${tp.test}</td>
-                <td class="p-2 text-slate-600">${tp.clause}</td>
-                <td class="p-2">${tp.frequency}</td>
-                <td class="p-2">${tp.location}</td>
-                <td class="p-2">${tp.specimen}</td></tr>`;
+
+        res.test_plan.forEach((tp, i) => {
+            const hasFig = !!tp.specimen_figure;
+            html += `
+            <tr class="itp-test-row border-b border-gray-200 cursor-pointer hover:bg-blue-50" onclick="toggleItpRow('itp-detail-${i}')">
+                <td class="p-2 font-bold">${esc(tp.test)}</td>
+                <td class="p-2 text-slate-600">
+                    ${esc(tp.clause)}
+                    <button onclick="event.stopPropagation(); openItpInfoModal('clause', ${i})" class="itp-info-btn" title="Standart maddesini göster (ℹ)">ℹ️</button>
+                </td>
+                <td class="p-2">${esc(tp.frequency)}</td>
+                <td class="p-2">${esc(tp.location)}</td>
+                <td class="p-2">
+                    ${esc(tp.specimen)}
+                    ${hasFig ? `<button onclick="event.stopPropagation(); openItpInfoModal('figure', ${i})" class="itp-info-btn" title="Numune çizimini göster (ℹ)">ℹ️</button>` : ''}
+                </td>
+            </tr>
+            <tr id="itp-detail-${i}" class="hidden bg-slate-50 border-b border-gray-200">
+                <td colspan="5" class="p-3">
+                    <div class="text-[11px] text-slate-700 whitespace-pre-line mb-2 leading-relaxed">${esc(tp.clause_ref || '')}</div>
+                    ${hasFig ? `<div class="border border-slate-200 rounded bg-white p-2">${getSpecimenDrawing(tp.specimen_figure)}</div>` : ''}
+                </td>
+            </tr>`;
         });
         html += `</tbody></table></div>`;
         panel.innerHTML = html;
     } catch (e) {
         console.error("Test plan load error:", e);
     }
+}
+
+function toggleItpRow(id) {
+    const row = document.getElementById(id);
+    if (row) row.classList.toggle("hidden");
+}
+
+function openItpInfoModal(type, idx) {
+    const data = (window._itpData || [])[idx];
+    if (!data) return;
+    const modal = document.getElementById("itp-info-modal");
+    const title = document.getElementById("itp-info-title");
+    const body = document.getElementById("itp-info-body");
+    if (!modal || !title || !body) return;
+    if (type === "clause") {
+        title.innerText = data.clause;
+        body.innerHTML = `<div class="whitespace-pre-line text-sm text-slate-700 leading-relaxed">${esc(data.clause_ref || 'Standart metni bulunamadı.')}</div>`;
+    } else {
+        title.innerText = `${data.test} — Numune Çizimi`;
+        body.innerHTML = getSpecimenDrawing(data.specimen_figure) || '<p class="text-xs text-slate-400">Çizim bulunamadı.</p>';
+    }
+    modal.classList.remove("hidden");
+}
+
+function closeItpInfoModal() {
+    const modal = document.getElementById("itp-info-modal");
+    if (modal) modal.classList.add("hidden");
 }
 
 // --- FEEDBACK & DEVELOPER CONTACT MODULE ---

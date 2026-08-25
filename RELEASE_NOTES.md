@@ -1,38 +1,34 @@
-# Sürüm Notları / Release Notes - v1.6.1
+# Sürüm Notları / Release Notes - v1.6.2
 
 ## 🚀 API 5L PSL2 & BOTAŞ Boru Kalite Güvence, Fabrika Kabul ve Çoklu Standart Et Kalınlığı Tasarım Yazılımı
 
-Bu sürüm, **Windows otomatik güncelleme sorununu** giderir ve indirme dosyalarının adlarına **sürüm numarasını** ekleyerek farklı sürümlerin karışmasını önler.
+Bu sürüm, **API 5L Test & Muayene Planını (ITP)** zenginleştirir: boru seçici, standart madde metinleri (tam orijinal) ve numune çizimleri.
 
 ---
 
-### 🛠️ v1.6.1 Düzeltmeleri
+### 🌟 v1.6.2 ile Gelen Yenilikler
 
-1. **🪟 Windows Otomatik Güncelleme Düzeltmesi:**
-   - Windows tek-dosya (`--onefile`) build'inde `httpx`'in çalışma-zamanı bağımlılıkları (`anyio` backend, `httpcore`, `certifi` CA sertifika paketi) toplanmıyordu. Bu yüzden GitHub API isteği sessizce başarısız oluyor ve yeni sürüm görünmüyordu.
-   - Build artık `--collect-all httpx anyio httpcore certifi` ile bu bağımlılıkları tam olarak paketliyor.
+1. **🔀 ITP Boru Seçici (Chips):**
+   - Fabrika Test Doğrulama sekmesindeki ITP kartına, 3D/2D'dekiyle aynı yatay boru çipleri eklendi.
+   - Çipe tıklayınca boru seçimi **global `selectedPipeIndex` ile senkron** çalışır — matris, KPI kartları ve 3D/2D model de aynı boruya geçer.
 
-2. **🔍 Güncelleme Denetimi Teşhisi:**
-   - Güncelleme kontrolü sırasında oluşan hatalar artık sessizce yutulmuyor; `logging.error` ile loglanıyor ve hata detayı kullanıcıya gösteriliyor.
+2. **📖 Standart Madde Metni (ℹ️ + tıkla-genişle):**
+   - ITP tablosundaki **Madde** hücresindeki bilgi ikonu, ilgili API 5L 46th Ed. maddesinin **tam orijinal metnini** modal ile gösterir.
+   - Test satırına tıklanınca madde metni satır altında **inline** açılır.
 
-3. **🏷️ Versiyonlu İndirme Dosyaları:**
-   - `API-5L-Pipe-Windows-x64.exe` → **`API-5L-Pipe-Windows-x64-v1.6.1.exe`**
-   - `API-5L-Pipe-macOS.dmg` → **`API-5L-Pipe-macOS-v1.6.1.dmg`**
-   - Farklı sürümlerin indirme dosyaları artık aynı isme sahip olmayacağı için karışıklık giderildi.
+3. **🖼️ Numune Çizimleri (ℹ️):**
+   - **Numune Boyutu** hücresindeki bilgi ikonu, API 5L Şekil 4/5/6 ve standart numune şekillerine çok yakın **SVG şematik çizimleri** gösterir: Charpy (10×10×55 + alt boyutlar), çekme şerit/yuvarlak çubuk, kılavuzlu bükme, düzleştirme, DWTT, sertlik izleri ve numune alım yerleri.
 
-4. **🛡️ Sağlamlık İyileştirmeleri:**
-   - Pydantic girdi doğrulaması (bilinmeyen kalite / negatif değerler 422 ile reddedilir).
-   - Kullanıcı girdili alanlarda XSS koruması (HTML-escape).
-   - CI'a `ruff` lint eklendi.
+4. **⚙️ Backend:** `test_plan.py` her teste `clause_ref` (orijinal standart metni) ve `specimen_figure` (çizim anahtarı) alanlarını ekledi.
 
 ---
 
-### 💻 İndirme Bağlantıları (v1.6.1)
+### 💻 İndirme Bağlantıları (v1.6.2)
 
 - **🪟 Windows (x64):**  
-  [**`API-5L-Pipe-Windows-x64-v1.6.1.exe` İndir**](https://github.com/SLedgehammer-dev12/API-5L-Pipe/releases/download/v1.6.1/API-5L-Pipe-Windows-x64-v1.6.1.exe)  
+  [**`API-5L-Pipe-Windows-x64-v1.6.2.exe` İndir**](https://github.com/SLedgehammer-dev12/API-5L-Pipe/releases/download/v1.6.2/API-5L-Pipe-Windows-x64-v1.6.2.exe)  
   *Tek dosyadır, kurulum gerektirmez. Doğrudan çift tıklayarak çalıştırabilirsiniz.*
 
 - **🍏 macOS (Apple Silicon M1/M2/M3/M4 & Intel):**  
-  [**`API-5L-Pipe-macOS-v1.6.1.dmg` İndir**](https://github.com/SLedgehammer-dev12/API-5L-Pipe/releases/download/v1.6.1/API-5L-Pipe-macOS-v1.6.1.dmg)  
+  [**`API-5L-Pipe-macOS-v1.6.2.dmg` İndir**](https://github.com/SLedgehammer-dev12/API-5L-Pipe/releases/download/v1.6.2/API-5L-Pipe-macOS-v1.6.2.dmg)  
   *Disk kalıbını açıp `API-5L-Pipe.app` uygulamasını Applications klasörüne sürükleyin.*

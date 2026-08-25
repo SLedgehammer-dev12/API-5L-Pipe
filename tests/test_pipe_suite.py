@@ -291,21 +291,35 @@ class TestPipeQAQCSuite(unittest.TestCase):
         self.assertAlmostEqual(r['hydrostatic_test']['hydro_test_min_bar'], expected - 2.0, delta=0.01)
 
     def test_15_test_plan_specimen_info(self):
-        """ITP must expose sampling frequency, location and specimen dimensions."""
-        from core.test_plan import get_test_plan
+        """ITP must expose sampling frequency, location, specimen dimensions, clause_ref & figure."""
+        from core.test_plan import get_test_plan, VALID_FIGURES
         plan = get_test_plan({'diameter_mm': 1219.0, 'wall_thickness_mm': 14.3, 'material_grade': 'X65', 'manufacturing_process': 'SAWH'})
         names = [t['test'] for t in plan]
         self.assertIn('Çentik Darbe (CVN)', names)
         self.assertIn('DWTT (Drop Weight Tear Test)', names)
-        # Every entry must carry the three required fields
+        # Every entry must carry the required fields
         for t in plan:
             self.assertTrue(t.get('frequency'))
             self.assertTrue(t.get('location'))
             self.assertTrue(t.get('specimen'))
+            # clause_ref (original standard text) must be present & non-empty
+            self.assertTrue(t.get('clause_ref'), f"clause_ref missing for {t['test']}")
+            # specimen_figure must be None or a valid figure key
+            fig = t.get('specimen_figure')
+            if fig is not None:
+                self.assertIn(fig, VALID_FIGURES, f"invalid specimen_figure {fig} for {t['test']}")
+        # Specimen-bearing tests must have a figure; chemical/hydrostatic must not
+        for t in plan:
+            if t['test'] in ('Kimyasal Analiz (Heat & Product)', 'Hidrostatik Test'):
+                self.assertIsNone(t['specimen_figure'])
         # API endpoint
         resp = self.client.post('/api/test-plan', json={'pipe_config': {'diameter_mm': 1219.0, 'wall_thickness_mm': 14.3, 'material_grade': 'X65', 'manufacturing_process': 'SAWH'}})
         self.assertEqual(resp.status_code, 200)
         self.assertGreaterEqual(len(resp.json()['test_plan']), 6)
+        for tp in resp.json()['test_plan']:
+            self.assertTrue(tp.get('clause_ref'))
+            if tp.get('specimen_figure'):
+                self.assertIn(tp['specimen_figure'], VALID_FIGURES)
 
     def test_16_wall_thickness_tolerance_api5l_vs_botas(self):
         """API 5L uses Table 11 negative tolerance; BOTAŞ keeps the Excel formula."""
