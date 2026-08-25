@@ -12,6 +12,7 @@ from core.database import (
     get_cvn,
     parse_design_factor,
     default_design_pressure_for_factor,
+    compute_api5l_tolerances,
     get_pipe_size_by_inch,
     get_pipe_size_by_mm
 )
@@ -229,15 +230,37 @@ class PipeQAQCEngine:
         # 4. Chemical Composition Rules
         chem_rules = get_chemical_rules(grade_clean, standard_type)
 
-        # 5. Wall Thickness Tolerances (API 5L Table 9 & BOTAŞ)
-        if t < 8.71:
-            t_min = round(t - 0.04, 2)
-        elif t < 12.71:
-            t_min = round(t - 0.10, 2)
-        else:
-            t_min = round(t - 0.15, 2)
-
+        # 5. Wall Thickness Tolerances
         proc_upper = manufacturing_process.upper()
+
+        # Negative tolerance differs by standard:
+        #   BOTAŞ  -> fixed small deductions (Excel 'Boru Seçim-Kontrol Aracı')
+        #   API 5L -> Table 11 (process-specific)
+        if is_botas_mode:
+            if t < 8.71:
+                t_min = round(t - 0.04, 2)
+            elif t < 12.71:
+                t_min = round(t - 0.10, 2)
+            else:
+                t_min = round(t - 0.15, 2)
+        elif "SMLS" in proc_upper:
+            # API 5L Table 11 — SMLS: -0.5 / -0.125t / -3.0 (or -0.1t)
+            if t < 4.01:
+                t_min = round(t - 0.5, 2)
+            elif t < 25.0:
+                t_min = round(t - 0.125 * t, 2)
+            else:
+                t_min = round(t - max(3.0, 0.1 * t), 2)
+        else:
+            # API 5L Table 11 — welded: -0.5 / -0.1t / -1.5
+            if t < 5.01:
+                t_min = round(t - 0.5, 2)
+            elif t < 15.0:
+                t_min = round(t - 0.10 * t, 2)
+            else:
+                t_min = round(t - 1.5, 2)
+
+        # Positive tolerance (same for BOTAŞ and API 5L)
         if "SMLS" in proc_upper:
             if t < 4.01:
                 t_max = round(t + 0.6, 2)
@@ -258,24 +281,30 @@ class PipeQAQCEngine:
         # BOTAŞ special minimum test pressure rule: P_min = P_max - 2.0 bar
         p_hydro_min = p_hydro_max - 2.0 if p_hydro_max > 0 else 0.0
 
-        # API 5L Standard Test Pressure Factors
+        # API 5L Standard Test Pressure Factors (Table 26 / Clause 9.3.1)
         if grade_clean == "GRADE B":
             api_std_factor = 0.60
         elif d_mm < 219.2:
             api_std_factor = 0.75
-        elif d_mm < 508.0 and smys_psi < 65000:
+        elif d_mm < 508.0:
             api_std_factor = 0.85
         else:
             api_std_factor = 0.90
         
         api_std_test_press = p_hydro_max * api_std_factor
 
-        # 7. Diameter & Circumference Tolerances (Table 10 & BOTAŞ Table 4)
+        # 7. Diameter & Circumference Tolerances (API 5L Table 10 & BOTAŞ Table 4)
         if is_botas_mode and pipe_size:
             d_end_max = pipe_size['diameter_tol_botas']['end_max']
             d_end_min = pipe_size['diameter_tol_botas']['end_min']
             d_body_max = pipe_size['diameter_tol_botas']['body_max']
             d_body_min = pipe_size['diameter_tol_botas']['body_min']
+        elif not is_botas_mode:
+            tol = compute_api5l_tolerances(d_mm, t)
+            d_end_max = tol['end_max']
+            d_end_min = tol['end_min']
+            d_body_max = tol['body_max']
+            d_body_min = tol['body_min']
         elif pipe_size:
             d_end_max = pipe_size['diameter_tol_asme']['end_max']
             d_end_min = pipe_size['diameter_tol_asme']['end_min']
@@ -292,8 +321,13 @@ class PipeQAQCEngine:
         circ_body_max = round(d_body_max * math.pi, 1)
         circ_body_min = round(d_body_min * math.pi, 1)
 
-        ovality_end = pipe_size['ovality']['end'] if pipe_size else "Anlaşmaya bağlıdır."
-        ovality_body = pipe_size['ovality']['body'] if pipe_size else "18.3"
+        if not is_botas_mode:
+            tol = compute_api5l_tolerances(d_mm, t)
+            ovality_end = tol['ovality_end']
+            ovality_body = tol['ovality_body']
+        else:
+            ovality_end = pipe_size['ovality']['end'] if pipe_size else "Anlaşmaya bağlıdır."
+            ovality_body = pipe_size['ovality']['body'] if pipe_size else "18.3"
 
         # 8. Minimum Elongation (% e)
         # API 5L: e = 1940 * A^0.2 / U^0.9
@@ -313,17 +347,19 @@ class PipeQAQCEngine:
             notch_specimen_size = "1/2 boy 5 x 10 x 55 mm"
 
         # 9. Radial Offset, Weld Height, Misalignment
+        # BOTAŞ applies a 0.75 reduction factor; API 5L uses the Table 14/16/9.13.3 base values.
+        weld_k = 0.75 if is_botas_mode else 1.0
         if "SAWH" in proc_upper:
             if t < 15.01:
-                radial_offset = 1.5 * 0.75
+                radial_offset = 1.5 * weld_k
             elif t < 25.01:
-                radial_offset = 0.1 * 0.75 * t
+                radial_offset = 0.1 * weld_k * t
             else:
-                radial_offset = 2.5 * 0.75
+                radial_offset = 2.5 * weld_k
 
-            weld_h_inside = 3.5 * 0.75
-            weld_h_outside = 4.5 * 0.75 if t > 13.0 else 3.5 * 0.75
-            misalignment = 4.0 * 0.75 if t > 20.0 else 3.0 * 0.75
+            weld_h_inside = 3.5 * weld_k
+            weld_h_outside = 4.5 * weld_k if t > 13.0 else 3.5 * weld_k
+            misalignment = 4.0 * weld_k if t > 20.0 else 3.0 * weld_k
             weld_peaking = round(d_mm * 0.0015, 4)
             weld_repair_single = min(d_mm * 0.2, 150.0)
         else:

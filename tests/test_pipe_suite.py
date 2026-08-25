@@ -305,5 +305,43 @@ class TestPipeQAQCSuite(unittest.TestCase):
         self.assertEqual(resp.status_code, 200)
         self.assertGreaterEqual(len(resp.json()['test_plan']), 6)
 
+    def test_16_wall_thickness_tolerance_api5l_vs_botas(self):
+        """API 5L uses Table 11 negative tolerance; BOTAŞ keeps the Excel formula."""
+        b = PipeQAQCEngine.calculate_pipe_qc('18"', wall_thickness_mm=16.66, manufacturing_process='SAWH', material_grade='X65', standard_type='BOTAŞ')
+        a = PipeQAQCEngine.calculate_pipe_qc('18"', wall_thickness_mm=16.66, manufacturing_process='SAWH', material_grade='X65', standard_type='API 5L')
+        # BOTAŞ: t - 0.15 = 16.51 ; API 5L welded t>=15: t - 1.5 = 15.16
+        self.assertEqual(b['wall_thickness_tolerance']['min_mm'], 16.51)
+        self.assertEqual(a['wall_thickness_tolerance']['min_mm'], 15.16)
+        # Positive tolerance unchanged for both
+        self.assertEqual(b['wall_thickness_tolerance']['max_mm'], 18.16)
+        self.assertEqual(a['wall_thickness_tolerance']['max_mm'], 18.16)
+
+    def test_17_weld_parameters_api5l_vs_botas(self):
+        """API 5L weld seam values are base Table 14/16/9.13.3; BOTAŞ applies 0.75 factor."""
+        b = PipeQAQCEngine.calculate_pipe_qc('18"', wall_thickness_mm=16.66, manufacturing_process='SAWH', material_grade='X65', standard_type='BOTAŞ')
+        a = PipeQAQCEngine.calculate_pipe_qc('18"', wall_thickness_mm=16.66, manufacturing_process='SAWH', material_grade='X65', standard_type='API 5L')
+        self.assertAlmostEqual(b['weld_and_geometry']['radial_offset_max_mm'], 1.25, delta=0.01)
+        self.assertAlmostEqual(a['weld_and_geometry']['radial_offset_max_mm'], 1.67, delta=0.01)
+        self.assertEqual(b['weld_and_geometry']['weld_height_inside_mm'], 2.62)
+        self.assertEqual(a['weld_and_geometry']['weld_height_inside_mm'], 3.5)
+        self.assertEqual(a['weld_and_geometry']['misalignment_max_mm'], 3.0)
+
+    def test_18_api5l_diameter_ovality_table10(self):
+        """API 5L Table 10 diameter & out-of-roundness computed from formula."""
+        from core.database import compute_api5l_tolerances
+        tol = compute_api5l_tolerances(457.0, 16.66)
+        # body = ±0.0075D -> 453.57 / 460.43
+        self.assertAlmostEqual(tol['body_min'], 457 * 0.9925, delta=0.01)
+        self.assertAlmostEqual(tol['body_max'], 457 * 1.0075, delta=0.01)
+        # ovality end = 0.015D = 6.855 ; body = 0.020D = 9.14
+        self.assertAlmostEqual(tol['ovality_end'], 0.015 * 457, delta=0.01)
+        self.assertAlmostEqual(tol['ovality_body'], 0.020 * 457, delta=0.01)
+
+    def test_19_hydrostatic_factor_no_smys_condition(self):
+        """18in X65 (D<508) must use 0.85 factor regardless of SMYS (Excel formula)."""
+        a = PipeQAQCEngine.calculate_pipe_qc('18"', wall_thickness_mm=16.66, manufacturing_process='SAWH', material_grade='X65', standard_type='API 5L')
+        expected = a['hydrostatic_test']['hydro_test_max_bar'] * 0.85
+        self.assertAlmostEqual(a['hydrostatic_test']['api_5l_std_test_bar'], expected, delta=0.01)
+
 if __name__ == '__main__':
     unittest.main()

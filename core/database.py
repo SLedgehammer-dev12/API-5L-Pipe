@@ -2471,6 +2471,53 @@ def default_design_pressure_for_factor(f_factor: float) -> float:
         return 82.5
     return 100.0
 
+def compute_api5l_tolerances(d_mm: float, t_mm: float) -> dict:
+    """
+    API 5L 46th Ed. Table 10 — Tolerances for Diameter and Out-of-roundness (welded pipe, main body).
+
+    Returns {'end_max','end_min','body_max','body_min','ovality_end','ovality_body'}.
+    Out-of-roundness is limited to D/t <= 75 (otherwise "by agreement").
+    """
+    d = float(d_mm)
+    t = float(t_mm) if t_mm else 14.3
+    d_over_t = d / t if t > 0 else 999.0
+
+    # --- Diameter tolerance (welded pipe) ---
+    if d < 60.3:
+        body_max, body_min = d + 0.4, d - 0.8
+        end_max, end_min = d + 0.4, d - 0.8
+    elif d <= 168.3:
+        body_max, body_min = d * 1.0075, d * 0.9925
+        end_max, end_min = d + 1.6, d - 0.4
+    elif d <= 610.0:
+        body_max, body_min = d * 1.0075, d * 0.9925
+        e = min(0.005 * d, 1.6)
+        end_max, end_min = d + e, d - e
+    else:  # 610 < D <= 1422 mm
+        body_max, body_min = d * 1.01, d * 0.99
+        end_max, end_min = d + 1.6, d - 1.6
+
+    # --- Out-of-roundness (ovality), D/t <= 75 ---
+    if d_over_t > 75.0:
+        ovality_end = ovality_body = "Anlaşmaya bağlıdır."
+    else:
+        if d < 60.3:
+            ovality_body, ovality_end = 1.2, 0.9
+        elif d <= 610.0:
+            ovality_body, ovality_end = 0.020 * d, 0.015 * d
+        else:
+            ovality_body = min(0.015 * d, 15.0)
+            ovality_end = min(0.010 * d, 13.0)
+
+    return {
+        'end_max': round(end_max, 2),
+        'end_min': round(end_min, 2),
+        'body_max': round(body_max, 2),
+        'body_min': round(body_min, 2),
+        'ovality_end': round(ovality_end, 2) if isinstance(ovality_end, float) else ovality_end,
+        'ovality_body': round(ovality_body, 2) if isinstance(ovality_body, float) else ovality_body,
+    }
+
 FRACTIONS_NORMALIZATION = {
     "1/2": "½", "½": "½", "0.5": "½",
     "3/4": "¾", "¾": "¾", "0.75": "¾",

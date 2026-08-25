@@ -1,45 +1,44 @@
-# Sürüm Notları / Release Notes - v1.5.0
+# Sürüm Notları / Release Notes - v1.6.0
 
 ## 🚀 API 5L PSL2 & BOTAŞ Boru Kalite Güvence, Fabrika Kabul ve Çoklu Standart Et Kalınlığı Tasarım Yazılımı
 
-Bu sürüm, **EN 10204 3.1 uyumlu resmi kabul raporunu**, **API 5L Test & Muayene Planını (ITP)**, **çift kaynak CVN/kimyasal limitlerini**, **3D koyu/açık tema geçişini** ve bir dizi **kritik hesaplama düzeltmesini** içermektedir.
+Bu sürüm, **API 5L PSL2 ↔ BOTAŞ tolerans ayrımının tamamlanmasını** — et kalınlığı, kaynak parametreleri (radial offset, kaynak yüksekliği, misalignment), çap toleransı ve ovalite — ve kimyasal bileşim boşluklarının doldurulmasını içermektedir. Artık boru sütunu hangi standarda göre oluşturulduysa o standardın (API 5L PSL2 veya BOTAŞ) değerleri uygulanır.
 
 ---
 
-### 🌟 v1.5.0 ile Gelen Önemli Yenilikler ve İyileştirmeler
+### 🌟 v1.6.0 ile Gelen Önemli Yenilikler
 
-1. **📑 EN 10204 3.1 Uyumlu Resmi Kabul Raporu:**
-   - Doğrulama (PASS/FAIL) sonuçları artık rapora entegre edilir: rapor **limit + gerçek ölçüm değeri + UYGUN/RED** kararını birlikte gösterir.
-   - Doğrulama sekmesindeki **"Resmi Rapor / PDF"** butonu ile tek tıkla yazdırılabilir sertifika üretilir.
-   - **Isı/Döküm No, Sertifika No, Miktar, Sipariş No ve Muayene Kuruluşu** alanları eklendi (Proje sekmesi → rapor → proje dosyası).
+1. **📐 Et Kalınlığı Negatif Toleransı Ayrımı:**
+   - **API 5L Table 11:** Kaynaklı boru −0.5 / −0.1·t / −1.5 mm; SMLS −0.5 / −0.125·t / −3.0 mm.
+   - **BOTAŞ:** Excel formülü (−0.04 / −0.10 / −0.15 mm) korunur.
 
-2. **🔬 API 5L Test & Muayene Planı (ITP):**
-   - Seçili boruya göre **numune adedi/sıklığı**, **alınma yeri** ve **boyutu** (API 5L Table 18/20/21/22, Şekil 5/6) otomatik üretilir.
-   - Doğrulama sekmesinde özel ITP kartı ve raporda özet blok olarak gösterilir.
+2. **🔩 Kaynak Parametreleri Ayrımı (SAW borular):**
+   - **Radial offset:** API 5L Table 14 (1.5 / 0.1·t / 2.5 mm); BOTAŞ ×0.75.
+   - **Kaynak yüksekliği:** API 5L Table 16 (iç 3.5; dış 3.5–4.5 mm); BOTAŞ ×0.75.
+   - **Misalignment:** API 5L 9.13.3 (3/4 mm); BOTAŞ ×0.75.
 
-3. **⚖️ Çift Kaynak CVN & Kimyasal Limitler:**
-   - Boru sütunu **BOTAŞ** ile oluşturulduysa Excel `Boru SMYS Tablosu` değerleri, **API 5L** ile oluşturulduysa API 5L Table 5/8 değerleri uygulanır.
+3. **⚪ Çap Toleransı & Ovalite Ayrımı:**
+   - **API 5L Table 10** değerleri (çap gövde ±0.75%·D / uç ±0.5%·D; ovalite gövde 2%·D / uç 1.5%·D) dinamik hesaplanır.
+   - **BOTAŞ** Excel değerlerini korur.
 
-4. **🎨 3D Koyu/Açık Tema Geçişi:**
-   - 3D boru modelinde matrise uyumlu **yüksek kontrastlı teknik çizim** görünümü için tema butonu (☀️/🌙).
+4. **🧪 Kimyasal Bileşim Boşlukları Dolduruldu:**
+   - GRADE A, X70, X80, X90, X100, X120 kaliteleri için C/Mn limitleri API 5L Table 5 PSL2 değerleriyle tamamlandı (Excel'de `"hata"` dönen hücreler giderildi).
 
-### 🛠️ Kritik Düzeltmeler (Fixed)
+5. **📊 Excel Güncellemesi:**
+   - `Pipe Fittings Flange Calc 2026.08.24.xlsx` yeni versiyon olarak kaydedildi; kimya formülleri ve hidrostatik std test basıncı formül referans hatası düzeltildi.
 
-- **Ondalık ayraç hatası:** `0,6 (Hat)` gibi virgüllü tasarım faktörleri artık doğru `F=0.60` olarak işleniyor (önceki davranışta yanlışlıkla `0.72` uygulanıyordu).
-- **psi→bar sabiti:** `14.50733` → `14.5037738` (doğru birim dönüşümü).
-- **Birim ağırlık sabiti:** `0.02466` → `0.0246615` (API 5L 9.11.2).
-- **"API 5L Alternative Test Pressure"** kavram ayrıştırması (API 5L 9.3.1.1).
-- CVN numune boyutu placeholder'ının gerçek Table 22 hesabıyla değiştirilmesi.
-- Rapor şablonunda sürüm hardcode'u ve "Artık Sress" yazım hatası giderildi.
+### 🛠️ Düzeltmeler (Fixed)
+
+- **Hidrostatik test faktörü:** `SMYS<65000` koşulu kaldırıldı (Excel formülüyle birebir uyumlu).
 
 ---
 
-### 💻 İndirme Bağlantıları (v1.5.0)
+### 💻 İndirme Bağlantıları (v1.6.0)
 
 - **🪟 Windows (x64):**  
-  [**`API-5L-Pipe-Windows-x64.exe` İndir**](https://github.com/SLedgehammer-dev12/API-5L-Pipe/releases/download/v1.5.0/API-5L-Pipe-Windows-x64.exe)  
+  [**`API-5L-Pipe-Windows-x64.exe` İndir**](https://github.com/SLedgehammer-dev12/API-5L-Pipe/releases/download/v1.6.0/API-5L-Pipe-Windows-x64.exe)  
   *Tek dosyadır, kurulum gerektirmez. Doğrudan çift tıklayarak çalıştırabilirsiniz.*
 
 - **🍏 macOS (Apple Silicon M1/M2/M3/M4 & Intel):**  
-  [**`API-5L-Pipe-macOS.dmg` İndir**](https://github.com/SLedgehammer-dev12/API-5L-Pipe/releases/download/v1.5.0/API-5L-Pipe-macOS.dmg)  
+  [**`API-5L-Pipe-macOS.dmg` İndir**](https://github.com/SLedgehammer-dev12/API-5L-Pipe/releases/download/v1.6.0/API-5L-Pipe-macOS.dmg)  
   *Disk kalıbını açıp `API-5L-Pipe.app` uygulamasını Applications klasörüne sürükleyin.*

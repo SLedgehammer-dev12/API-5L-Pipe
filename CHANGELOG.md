@@ -3,6 +3,21 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.0] - 2026-08-24 (API 5L PSL2 ↔ BOTAŞ Tam Ayrımı: Et Kalınlığı, Kaynak Parametreleri, Çap/Ovalite)
+
+### 🎉 Eklenen Özellikler (Added)
+- **API 5L ↔ BOTAŞ Tolerans Ayrımı:** Boru sütunu hangi standarda göre oluşturulduysa o standardın toleransları uygulanır.
+- **Et Kalınlığı Negatif Toleransı:** API 5L Table 11 (kaynaklı −0.5/−0.1t/−1.5; SMLS −0.5/−0.125t/−3.0) ile BOTAŞ (−0.04/−0.10/−0.15) ayrıştırıldı.
+- **Kaynak Parametreleri (SAW):** Radial offset (Table 14), kaynak yüksekliği (Table 16), misalignment (9.13.3) API 5L'de katsayısız; BOTAŞ'ta ×0.75 faktörlü.
+- **Çap Toleransı & Ovalite:** API 5L Table 10 değerleri dinamik olarak hesaplanıyor (`compute_api5l_tolerances`); BOTAŞ Excel değerlerini koruyor.
+- **Kimyasal Bileşim Boşlukları:** GRADE A, X70–X120 kaliteleri API 5L Table 5 PSL2 değerleriyle dolduruldu.
+
+### 🛠️ Düzeltmeler (Fixed)
+- **Hidrostatik test faktörü:** `SMYS<65000` koşulu kaldırıldı (Excel formülüyle uyumlu; 18" X65 artık 0.85 faktör).
+- **Excel güncellendi:** Kimya formüllerindeki `"hata"` düzeltildi; std test basıncı formül referans hatası (E→J) giderildi; `Pipe Fittings Flange Calc 2026.08.24.xlsx` olarak kaydedildi.
+
+---
+
 ## [1.5.0] - 2026-08-24 (EN 10204 3.1 Raporu, API 5L ITP, Çift Kaynak CVN/Kimya & Kritik Hesap Düzeltmeleri)
 
 ### 🎉 Eklenen Özellikler (Added)
