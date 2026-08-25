@@ -7,15 +7,17 @@ Supports:
 Standard schedule selection from ASME B36.10M (Carbon Steel) and ASME B36.19M (Stainless Steel).
 """
 
-from typing import Dict, Any, List
+from typing import Any, Dict, List
+
 from core.database import (
     ASME_B36_10_TABLE,
     ASME_B36_19_TABLE,
     PIPE_SIZES_TABLE,
-    get_smys_info,
     get_pipe_size_by_inch,
-    is_stainless_grade
+    get_smys_info,
+    is_stainless_grade,
 )
+
 
 class WallThicknessEngine:
     @staticmethod

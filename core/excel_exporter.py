@@ -4,10 +4,12 @@ Generates fully formatted, colored, print-ready .xlsx workbooks matching exact e
 """
 
 import io
-from typing import Dict, Any, List
+from typing import Any, Dict, List
+
 import openpyxl
-from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
+
 
 class ExcelExporter:
     @staticmethod

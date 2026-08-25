@@ -5,8 +5,10 @@ Adds input validation so malformed requests fail fast with 422 instead of
 crashing with a 500 inside the calculation engines.
 """
 
-from typing import Optional, List
-from pydantic import BaseModel, Field, field_validator, ConfigDict
+from typing import List, Optional
+
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
 from core.database import API_5L_SMYS_TABLE
 
 KNOWN_GRADES = set(API_5L_SMYS_TABLE.keys())

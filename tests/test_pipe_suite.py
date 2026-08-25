@@ -5,14 +5,16 @@ stainless steel ASME B36.19M selection, and 40+ parameter factory verification.
 """
 
 import unittest
+
 from fastapi.testclient import TestClient
 
 from app import app
+from core.excel_exporter import ExcelExporter
 from core.pipe_qaqc_engine import PipeQAQCEngine
+from core.project_manager import ProjectManager
 from core.verification_engine import PipeVerificationEngine
 from core.wall_thickness_engine import WallThicknessEngine
-from core.excel_exporter import ExcelExporter
-from core.project_manager import ProjectManager
+
 
 class TestPipeQAQCSuite(unittest.TestCase):
 

@@ -3,10 +3,12 @@ Automatic Update Checker for API 5L PSL2 & BOTAŞ Pipe QA/QC Suite.
 Queries GitHub Releases API to detect new versions and provide download links.
 """
 
-import httpx
 import logging
 import re
-from typing import Dict, Any
+from typing import Any, Dict
+
+import httpx
+
 from version import __version__
 
 log = logging.getLogger(__name__)

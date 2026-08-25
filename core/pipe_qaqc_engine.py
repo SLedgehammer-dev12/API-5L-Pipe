@@ -5,16 +5,17 @@ safety factors and attaches engineering remarks / standard references for every 
 """
 
 import math
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
+
 from core.database import (
-    get_smys_info,
+    compute_api5l_tolerances,
+    default_design_pressure_for_factor,
     get_chemical_rules,
     get_cvn,
-    parse_design_factor,
-    default_design_pressure_for_factor,
-    compute_api5l_tolerances,
     get_pipe_size_by_inch,
-    get_pipe_size_by_mm
+    get_pipe_size_by_mm,
+    get_smys_info,
+    parse_design_factor,
 )
 
 # Standard references and engineering explanations for every matrix row

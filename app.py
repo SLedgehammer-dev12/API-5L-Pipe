@@ -2,23 +2,24 @@
 Main FastAPI Web Application for API 5L PSL2 & BOTAŞ Pipe QA/QC & Design Suite.
 """
 
-from fastapi import FastAPI, Request, Body
-from fastapi.responses import HTMLResponse, StreamingResponse, JSONResponse
-from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
 import os
 import sys
-from typing import Dict, Any
+from typing import Any, Dict
 
+from fastapi import Body, FastAPI, Request
+from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+
+from core.database import API_5L_SMYS_TABLE, PIPE_SIZES_TABLE, normalize_design_factor
+from core.excel_exporter import ExcelExporter
+from core.i18n import TRANSLATIONS, get_text
 from core.pipe_qaqc_engine import PipeQAQCEngine
+from core.project_manager import ProjectManager
+from core.schemas import CalculateRequest, ExportRequest, PipeInput, ReportRequest
 from core.verification_engine import PipeVerificationEngine
 from core.wall_thickness_engine import WallThicknessEngine
-from core.project_manager import ProjectManager
-from core.excel_exporter import ExcelExporter
-from core.database import API_5L_SMYS_TABLE, PIPE_SIZES_TABLE, normalize_design_factor
-from core.i18n import TRANSLATIONS, get_text
-from core.schemas import PipeInput, CalculateRequest, ExportRequest, ReportRequest
-from version import __version__, __app_name__
+from version import __app_name__, __version__
 
 # Resolve base directory (compatible with PyInstaller one-file and normal runtime)
 BASE_DIR = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))

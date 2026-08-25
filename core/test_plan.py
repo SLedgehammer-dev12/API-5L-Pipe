@@ -14,7 +14,7 @@ References:
     Figures 5/6 — Sample and test piece orientation and locations
 """
 
-from typing import Dict, Any, List
+from typing import Any, Dict, List
 
 
 def _cvn_specimen_size(wall_thickness_mm: float) -> str:
