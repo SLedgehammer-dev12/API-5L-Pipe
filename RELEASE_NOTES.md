@@ -1,44 +1,38 @@
-# Sürüm Notları / Release Notes - v1.6.0
+# Sürüm Notları / Release Notes - v1.6.1
 
 ## 🚀 API 5L PSL2 & BOTAŞ Boru Kalite Güvence, Fabrika Kabul ve Çoklu Standart Et Kalınlığı Tasarım Yazılımı
 
-Bu sürüm, **API 5L PSL2 ↔ BOTAŞ tolerans ayrımının tamamlanmasını** — et kalınlığı, kaynak parametreleri (radial offset, kaynak yüksekliği, misalignment), çap toleransı ve ovalite — ve kimyasal bileşim boşluklarının doldurulmasını içermektedir. Artık boru sütunu hangi standarda göre oluşturulduysa o standardın (API 5L PSL2 veya BOTAŞ) değerleri uygulanır.
+Bu sürüm, **Windows otomatik güncelleme sorununu** giderir ve indirme dosyalarının adlarına **sürüm numarasını** ekleyerek farklı sürümlerin karışmasını önler.
 
 ---
 
-### 🌟 v1.6.0 ile Gelen Önemli Yenilikler
+### 🛠️ v1.6.1 Düzeltmeleri
 
-1. **📐 Et Kalınlığı Negatif Toleransı Ayrımı:**
-   - **API 5L Table 11:** Kaynaklı boru −0.5 / −0.1·t / −1.5 mm; SMLS −0.5 / −0.125·t / −3.0 mm.
-   - **BOTAŞ:** Excel formülü (−0.04 / −0.10 / −0.15 mm) korunur.
+1. **🪟 Windows Otomatik Güncelleme Düzeltmesi:**
+   - Windows tek-dosya (`--onefile`) build'inde `httpx`'in çalışma-zamanı bağımlılıkları (`anyio` backend, `httpcore`, `certifi` CA sertifika paketi) toplanmıyordu. Bu yüzden GitHub API isteği sessizce başarısız oluyor ve yeni sürüm görünmüyordu.
+   - Build artık `--collect-all httpx anyio httpcore certifi` ile bu bağımlılıkları tam olarak paketliyor.
 
-2. **🔩 Kaynak Parametreleri Ayrımı (SAW borular):**
-   - **Radial offset:** API 5L Table 14 (1.5 / 0.1·t / 2.5 mm); BOTAŞ ×0.75.
-   - **Kaynak yüksekliği:** API 5L Table 16 (iç 3.5; dış 3.5–4.5 mm); BOTAŞ ×0.75.
-   - **Misalignment:** API 5L 9.13.3 (3/4 mm); BOTAŞ ×0.75.
+2. **🔍 Güncelleme Denetimi Teşhisi:**
+   - Güncelleme kontrolü sırasında oluşan hatalar artık sessizce yutulmuyor; `logging.error` ile loglanıyor ve hata detayı kullanıcıya gösteriliyor.
 
-3. **⚪ Çap Toleransı & Ovalite Ayrımı:**
-   - **API 5L Table 10** değerleri (çap gövde ±0.75%·D / uç ±0.5%·D; ovalite gövde 2%·D / uç 1.5%·D) dinamik hesaplanır.
-   - **BOTAŞ** Excel değerlerini korur.
+3. **🏷️ Versiyonlu İndirme Dosyaları:**
+   - `API-5L-Pipe-Windows-x64.exe` → **`API-5L-Pipe-Windows-x64-v1.6.1.exe`**
+   - `API-5L-Pipe-macOS.dmg` → **`API-5L-Pipe-macOS-v1.6.1.dmg`**
+   - Farklı sürümlerin indirme dosyaları artık aynı isme sahip olmayacağı için karışıklık giderildi.
 
-4. **🧪 Kimyasal Bileşim Boşlukları Dolduruldu:**
-   - GRADE A, X70, X80, X90, X100, X120 kaliteleri için C/Mn limitleri API 5L Table 5 PSL2 değerleriyle tamamlandı (Excel'de `"hata"` dönen hücreler giderildi).
-
-5. **📊 Excel Güncellemesi:**
-   - `Pipe Fittings Flange Calc 2026.08.24.xlsx` yeni versiyon olarak kaydedildi; kimya formülleri ve hidrostatik std test basıncı formül referans hatası düzeltildi.
-
-### 🛠️ Düzeltmeler (Fixed)
-
-- **Hidrostatik test faktörü:** `SMYS<65000` koşulu kaldırıldı (Excel formülüyle birebir uyumlu).
+4. **🛡️ Sağlamlık İyileştirmeleri:**
+   - Pydantic girdi doğrulaması (bilinmeyen kalite / negatif değerler 422 ile reddedilir).
+   - Kullanıcı girdili alanlarda XSS koruması (HTML-escape).
+   - CI'a `ruff` lint eklendi.
 
 ---
 
-### 💻 İndirme Bağlantıları (v1.6.0)
+### 💻 İndirme Bağlantıları (v1.6.1)
 
 - **🪟 Windows (x64):**  
-  [**`API-5L-Pipe-Windows-x64.exe` İndir**](https://github.com/SLedgehammer-dev12/API-5L-Pipe/releases/download/v1.6.0/API-5L-Pipe-Windows-x64.exe)  
+  [**`API-5L-Pipe-Windows-x64-v1.6.1.exe` İndir**](https://github.com/SLedgehammer-dev12/API-5L-Pipe/releases/download/v1.6.1/API-5L-Pipe-Windows-x64-v1.6.1.exe)  
   *Tek dosyadır, kurulum gerektirmez. Doğrudan çift tıklayarak çalıştırabilirsiniz.*
 
 - **🍏 macOS (Apple Silicon M1/M2/M3/M4 & Intel):**  
-  [**`API-5L-Pipe-macOS.dmg` İndir**](https://github.com/SLedgehammer-dev12/API-5L-Pipe/releases/download/v1.6.0/API-5L-Pipe-macOS.dmg)  
+  [**`API-5L-Pipe-macOS-v1.6.1.dmg` İndir**](https://github.com/SLedgehammer-dev12/API-5L-Pipe/releases/download/v1.6.1/API-5L-Pipe-macOS-v1.6.1.dmg)  
   *Disk kalıbını açıp `API-5L-Pipe.app` uygulamasını Applications klasörüne sürükleyin.*

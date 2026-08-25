@@ -36,6 +36,17 @@ let selectedPipeIndex = 0;
 let visualizer3DInstance = null;
 let lastVerification = null;
 
+// HTML-escape helper to prevent XSS via user-supplied strings injected into innerHTML.
+function esc(str) {
+    if (str === null || str === undefined) return "";
+    return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+}
+
 document.addEventListener("DOMContentLoaded", async () => {
     const savedLang = localStorage.getItem("api5l_lang") || "tr";
     setLanguage(savedLang);
@@ -233,12 +244,12 @@ function renderMatrixTable() {
 
     // SECTION 1: HEADER PARAMETERS (Always visible / uncollapsed)
     const headerRows = [
-        { label: "ÇAP (inch)", exp: getExp('diameter'), extractor: p => `<strong>${p.input_summary.diameter_inch}</strong>` },
-        { label: "ÇAP (mm)", exp: "Boru Gerçek Dış Çapı (OD mm)", extractor: p => `${p.input_summary.diameter_mm.toFixed(2)} mm` },
-        { label: "Design Basıncı / Faktör", exp: getExp('design_factor'), extractor: p => `${p.input_summary.design_factor_str}` },
-        { label: "Et Kalınlığı (mm)", exp: getExp('wall_thickness'), extractor: p => `<strong>${p.input_summary.wall_thickness_mm.toFixed(2)} mm</strong>` },
-        { label: "Üretim Yöntemi", exp: getExp('process'), extractor: p => `${p.input_summary.manufacturing_process}` },
-        { label: "Malzeme Kalitesi", exp: getExp('grade'), extractor: p => `<strong>${p.input_summary.material_grade}</strong>` },
+        { label: "ÇAP (inch)", exp: getExp('diameter'), extractor: p => `<strong>${esc(p.input_summary.diameter_inch)}</strong>` },
+        { label: "ÇAP (mm)", exp: "Boru Gerçek Dış Çapı (OD mm)", extractor: (p, idx) => `<span class="font-semibold">${p.input_summary.diameter_mm}</span>` },
+        { label: "Design Basıncı / Faktör", exp: getExp('design_factor'), extractor: p => `<span class="font-medium text-blue-900">${esc(p.input_summary.design_factor_str)}</span>` },
+        { label: "Et Kalınlığı (mm)", exp: getExp('wall_thickness'), extractor: (p, idx) => `<span class="font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded">${p.input_summary.wall_thickness_mm.toFixed(2)}</span>` },
+        { label: "Üretim Yöntemi", exp: getExp('process'), extractor: p => `<span class="font-semibold text-amber-900">${esc(p.input_summary.manufacturing_process)}</span>` },
+        { label: "Malzeme Kalitesi", exp: getExp('grade'), extractor: p => `<strong>${esc(p.input_summary.material_grade)}</strong>` },
         { label: "SMYS (Psi)", exp: getExp('smys'), extractor: p => `${Number(p.mechanical_properties.smys_psi).toFixed(0)} psi` },
     ];
 
@@ -449,8 +460,8 @@ function render3DPipeChips() {
             <div onclick="selectPipe(${idx})" class="pipe-chip px-3 py-1.5 rounded-lg border text-xs font-semibold flex items-center space-x-2 ${isActive ? 'active' : 'bg-white border-slate-200 text-slate-700'}">
                 <span class="w-5 h-5 rounded-full ${isActive ? 'bg-white text-blue-600' : 'bg-slate-800 text-white'} text-[10px] flex items-center justify-center font-bold">${idx + 1}</span>
                 <div>
-                    <div>${p.input_summary.diameter_inch} - ${p.input_summary.material_grade}</div>
-                    <p class="text-[10px] ${isActive ? 'text-blue-100' : 'text-slate-500'}">t=${p.input_summary.wall_thickness_mm.toFixed(2)} mm | ${p.input_summary.design_factor_str}</p>
+                    <div>${esc(p.input_summary.diameter_inch)} - ${esc(p.input_summary.material_grade)}</div>
+                    <p class="text-[10px] ${isActive ? 'text-blue-100' : 'text-slate-500'}">t=${p.input_summary.wall_thickness_mm.toFixed(2)} mm | ${esc(p.input_summary.design_factor_str)}</p>
                 </div>
             </div>
         `;
@@ -475,8 +486,8 @@ function renderPipesManagementList() {
             <div class="flex items-center space-x-3 cursor-pointer flex-1" onclick="selectPipe(${idx})">
                 <span class="w-6 h-6 rounded-full bg-blue-600 text-white text-xs flex items-center justify-center font-bold">${idx + 1}</span>
                 <div>
-                    <h4 class="text-sm font-bold text-gray-800">${p.diameter_inch} - ${p.material_grade} (${p.manufacturing_process})</h4>
-                    <p class="text-xs text-gray-500">t = ${p.wall_thickness_mm} mm | F = ${p.design_factor_str}</p>
+                    <h4 class="text-sm font-bold text-gray-800">${esc(p.diameter_inch)} - ${esc(p.material_grade)} (${esc(p.manufacturing_process)})</h4>
+                    <p class="text-xs text-gray-500">t = ${p.wall_thickness_mm} mm | F = ${esc(p.design_factor_str)}</p>
                 </div>
             </div>
             <div class="flex items-center space-x-1">
@@ -932,7 +943,7 @@ function renderWallThicknessResult(data) {
 
             <div class="mt-3 p-2 bg-white/80 rounded border border-blue-100 text-xs text-slate-700 flex flex-wrap items-center justify-between gap-1">
                 <span><strong>Tolerans Kuralı:</strong> ${r.tolerance_rule_description || 'Standart Tolerans Kuralı'}</span>
-                <span class="font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">${inp.manufacturing_process || 'SAWH'} | ${inp.psl_level || 'PSL2'}</span>
+                <span class="font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">${esc(inp.manufacturing_process || 'SAWH')} | ${esc(inp.psl_level || 'PSL2')}</span>
             </div>
 
             <div class="mt-2 flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-blue-100 text-xs">
@@ -988,10 +999,10 @@ function renderVerificationResult(data) {
     data.checks.forEach(c => {
         html += `
             <tr class="border-b border-gray-200 hover:bg-gray-50">
-                <td class="p-2 font-medium text-gray-600">${c.category}</td>
-                <td class="p-2 font-bold text-gray-800">${c.parameter}</td>
-                <td class="p-2 text-center font-mono font-semibold">${c.actual_value}</td>
-                <td class="p-2 text-center font-mono text-gray-600">${c.required_limit}</td>
+                <td class="p-2 font-medium text-gray-600">${esc(c.category)}</td>
+                <td class="p-2 font-bold text-gray-800">${esc(c.parameter)}</td>
+                <td class="p-2 text-center font-mono font-semibold">${esc(c.actual_value)}</td>
+                <td class="p-2 text-center font-mono text-gray-600">${esc(c.required_limit)}</td>
                 <td class="p-2 text-center">
                     <span class="${c.status === 'PASS' ? 'badge-pass' : 'badge-fail'} font-bold">
                         ${c.status === 'PASS' ? 'UYGUN' : 'RED'}

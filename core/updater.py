@@ -4,9 +4,12 @@ Queries GitHub Releases API to detect new versions and provide download links.
 """
 
 import httpx
+import logging
 import re
 from typing import Dict, Any
 from version import __version__
+
+log = logging.getLogger(__name__)
 
 GITHUB_REPO = "SLedgehammer-dev12/API-5L-Pipe"
 GITHUB_API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
@@ -93,9 +96,11 @@ async def check_for_updates() -> Dict[str, Any]:
                 result["message"] = "Henüz yayınlanmış bir sürüm bulunamadı."
             else:
                 result["status"] = "rate_limited"
-                result["message"] = "GitHub API yanıt vermedi."
+                result["message"] = f"GitHub API yanıt vermedi (HTTP {resp.status_code})."
     except Exception as e:
+        # Do NOT silently swallow: log the real failure so it can be diagnosed.
+        log.error("Update check failed: %s", e)
         result["status"] = "offline"
-        result["message"] = f"Güncelleme kontrolü yapılamadı (Çevrimdışı): {str(e)}"
+        result["message"] = f"Güncelleme kontrolü yapılamadı: {e}"
 
     return result

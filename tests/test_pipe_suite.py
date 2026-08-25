@@ -343,5 +343,20 @@ class TestPipeQAQCSuite(unittest.TestCase):
         expected = a['hydrostatic_test']['hydro_test_max_bar'] * 0.85
         self.assertAlmostEqual(a['hydrostatic_test']['api_5l_std_test_bar'], expected, delta=0.01)
 
+    def test_20_pydantic_input_validation(self):
+        """Malformed inputs must be rejected with 422 instead of crashing (Pydantic)."""
+        # Unknown material grade
+        r = self.client.post('/api/calculate', json={'pipes': [{'diameter_inch': '48"', 'material_grade': 'X999'}]})
+        self.assertEqual(r.status_code, 422)
+        # Negative design pressure
+        r2 = self.client.post('/api/calculate', json={'pipes': [{'diameter_inch': '48"', 'material_grade': 'X65', 'design_pressure_bar': -5}]})
+        self.assertEqual(r2.status_code, 422)
+        # Empty grade (auto-detect in BOTAŞ mode) must be accepted
+        r3 = self.client.post('/api/calculate', json={'pipes': [{'diameter_inch': '6"', 'material_grade': '', 'standard_type': 'BOTAŞ'}]})
+        self.assertEqual(r3.status_code, 200)
+        # Valid API 5L pipe accepted
+        r4 = self.client.post('/api/calculate', json={'pipes': [{'diameter_inch': '48"', 'material_grade': 'X65', 'wall_thickness_mm': 14.3, 'standard_type': 'API 5L'}]})
+        self.assertEqual(r4.status_code, 200)
+
 if __name__ == '__main__':
     unittest.main()

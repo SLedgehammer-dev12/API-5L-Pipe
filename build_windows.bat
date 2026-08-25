@@ -15,11 +15,15 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 
+:: Read version from version.py
+for /f "delims=" %%i in ('python -c "from version import __version__; print(__version__)"') do set VERSION=%%i
+if "%VERSION%"=="" set VERSION=0.0.0
+
 echo 🔨 Bagimliliklar yukleniyor...
 python -m pip install -r requirements.txt pyinstaller --quiet
 
 echo 🔨 Temiz .exe derleniyor (Antivirus-Safe, No-UPX)...
-pyinstaller --name "API-5L-Pipe" ^
+pyinstaller --name "API-5L-Pipe-Windows-x64-v%VERSION%" ^
     --onefile ^
     --noconfirm ^
     --clean ^
@@ -27,6 +31,16 @@ pyinstaller --name "API-5L-Pipe" ^
     --add-data "static;static" ^
     --add-data "templates;templates" ^
     --add-data "core;core" ^
+    --hidden-import "app" ^
+    --hidden-import "core" ^
+    --hidden-import "core.database" ^
+    --hidden-import "core.pipe_qaqc_engine" ^
+    --hidden-import "core.verification_engine" ^
+    --hidden-import "core.wall_thickness_engine" ^
+    --hidden-import "core.project_manager" ^
+    --hidden-import "core.updater" ^
+    --hidden-import "core.excel_exporter" ^
+    --hidden-import "core.i18n" ^
     --hidden-import "uvicorn" ^
     --hidden-import "uvicorn.logging" ^
     --hidden-import "uvicorn.loops" ^
@@ -40,11 +54,16 @@ pyinstaller --name "API-5L-Pipe" ^
     --hidden-import "openpyxl" ^
     --hidden-import "jinja2" ^
     --hidden-import "pydantic" ^
+    --collect-all httpx ^
+    --collect-all anyio ^
+    --collect-all httpcore ^
+    --collect-all certifi ^
+    --hidden-import "version" ^
     run.py
 
 echo.
 echo ======================================================================
 echo ✅ Windows .exe Dosyasi Basariyla Olusturuldu!
-echo 📍 Konum: dist\API-5L-Pipe.exe
+echo 📍 Konum: dist\API-5L-Pipe-Windows-x64-v%VERSION%.exe
 echo ======================================================================
 pause

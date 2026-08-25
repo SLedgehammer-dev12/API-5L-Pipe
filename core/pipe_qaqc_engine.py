@@ -305,11 +305,6 @@ class PipeQAQCEngine:
             d_end_min = tol['end_min']
             d_body_max = tol['body_max']
             d_body_min = tol['body_min']
-        elif pipe_size:
-            d_end_max = pipe_size['diameter_tol_asme']['end_max']
-            d_end_min = pipe_size['diameter_tol_asme']['end_min']
-            d_body_max = pipe_size['diameter_tol_asme']['body_max']
-            d_body_min = pipe_size['diameter_tol_asme']['body_min']
         else:
             d_end_max = d_mm + 1.6
             d_end_min = d_mm - 1.6

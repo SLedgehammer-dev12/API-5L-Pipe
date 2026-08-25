@@ -3,6 +3,21 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.1] - 2026-08-25 (Windows Auto-Updater Düzeltmesi & Versiyonlu İndirme Dosyaları)
+
+### 🛠️ Düzeltmeler (Fixed)
+- **Windows Otomatik Güncelleme Sorunu:** Windows `--onefile` build'inde `httpx`'in çalışma-zamanı bağımlılıkları (`anyio` backend, `httpcore`, `certifi` CA paketi) toplanmıyordu; bu yüzden GitHub API isteği sessizce başarısız oluyor ve güncelleme banner'ı gösterilmiyordu. Build'e `--collect-all httpx anyio httpcore certifi` eklendi.
+- **Updater teşhisi:** `check_for_updates()` artık hataları `logging.error` ile logluyor ve hata detayını yanıtta döndürüyor (sessiz "offline" kaldırıldı).
+- **Versiyonlu indirme dosyaları:** `.exe`/`.dmg` dosya adlarına sürüm eklendi — `API-5L-Pipe-Windows-x64-v1.6.1.exe`, `API-5L-Pipe-macOS-v1.6.1.dmg` (farklı sürümlerde aynı isim karmaşası giderildi).
+- `build_macos_dmg.sh`'deki hardcoded `VERSION="1.0.0"` düzeltildi; sürüm artık `version.py`'den okunuyor.
+
+### 🛡️ Sağlamlık İyileştirmeleri (Robustness)
+- **Pydantic girdi doğrulaması:** Bilinmeyen kalite / negatif basınç 422 ile reddediliyor (500 yerine).
+- **XSS koruması:** Kullanıcı girdili alanlar HTML-escape ediliyor.
+- **CI lint:** `ruff check` hem Windows hem macOS build job'larına eklendi.
+
+---
+
 ## [1.6.0] - 2026-08-24 (API 5L PSL2 ↔ BOTAŞ Tam Ayrımı: Et Kalınlığı, Kaynak Parametreleri, Çap/Ovalite)
 
 ### 🎉 Eklenen Özellikler (Added)

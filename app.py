@@ -17,6 +17,7 @@ from core.project_manager import ProjectManager
 from core.excel_exporter import ExcelExporter
 from core.database import API_5L_SMYS_TABLE, PIPE_SIZES_TABLE, normalize_design_factor
 from core.i18n import TRANSLATIONS, get_text
+from core.schemas import PipeInput, CalculateRequest, ExportRequest, ReportRequest
 from version import __version__, __app_name__
 
 # Resolve base directory (compatible with PyInstaller one-file and normal runtime)
@@ -38,6 +39,25 @@ os.makedirs(TEMPLATES_DIR, exist_ok=True)
 
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 templates = Jinja2Templates(directory=TEMPLATES_DIR)
+
+def _calculate_pipes(pipes) -> list:
+    """Runs the QA/QC engine over a list of PipeInput models or dicts."""
+    results = []
+    for p in pipes:
+        pd = p.model_dump() if isinstance(p, PipeInput) else p
+        res = PipeQAQCEngine.calculate_pipe_qc(
+            diameter_inch=pd.get("diameter_inch", "48\""),
+            diameter_mm=pd.get("diameter_mm"),
+            wall_thickness_mm=pd.get("wall_thickness_mm"),
+            design_factor_str=pd.get("design_factor_str", "0.72 (Hat)"),
+            material_grade=pd.get("material_grade", "X65"),
+            manufacturing_process=pd.get("manufacturing_process", "SAWH"),
+            standard_type=pd.get("standard_type", "BOTAŞ"),
+            design_pressure_bar=pd.get("design_pressure_bar", 75.0)
+        )
+        res['id'] = pd.get('id', '')
+        results.append(res)
+    return results
 
 @app.get("/", response_class=HTMLResponse)
 async def index_page(request: Request):
@@ -63,29 +83,11 @@ async def check_update_endpoint():
     return JSONResponse(content=update_info)
 
 @app.post("/api/calculate")
-async def calculate_matrix(data: Dict[str, Any] = Body(...)):
+async def calculate_matrix(data: CalculateRequest = Body(...)):
     """
     Calculates full QA/QC acceptance matrix for a list of pipes.
     """
-    pipes = data.get("pipes", [])
-    standard_type = data.get("standard_type", "BOTAŞ")
-    results = []
-
-    for p in pipes:
-        res = PipeQAQCEngine.calculate_pipe_qc(
-            diameter_inch=p.get("diameter_inch", "48\""),
-            diameter_mm=p.get("diameter_mm"),
-            wall_thickness_mm=p.get("wall_thickness_mm"),
-            design_factor_str=p.get("design_factor_str", "0.72 (Hat)"),
-            material_grade=p.get("material_grade", "X65"),
-            manufacturing_process=p.get("manufacturing_process", "SAWH"),
-            standard_type=p.get("standard_type", standard_type),
-            design_pressure_bar=p.get("design_pressure_bar", 75.0)
-        )
-        # Preserve client pipe ID
-        res['id'] = p.get('id', '')
-        results.append(res)
-
+    results = _calculate_pipes(data.pipes)
     return JSONResponse(content={"status": "success", "data": results})
 
 @app.post("/api/verify")
@@ -183,28 +185,14 @@ async def get_botas_all_factors(diameter_inch: str):
     })
 
 @app.post("/api/export-excel")
-async def export_excel(data: Dict[str, Any] = Body(...)):
+async def export_excel(data: ExportRequest = Body(...)):
     """
     Generates and streams formatted Excel spreadsheet.
     """
-    project_info = data.get("project_info", {})
-    pipes_input = data.get("pipes", [])
-    lang = data.get("lang", "tr")
+    project_info = data.project_info
+    lang = data.lang
 
-    # Calculate results
-    pipes_calculated = []
-    for p in pipes_input:
-        res = PipeQAQCEngine.calculate_pipe_qc(
-            diameter_inch=p.get("diameter_inch", "48\""),
-            diameter_mm=p.get("diameter_mm"),
-            wall_thickness_mm=p.get("wall_thickness_mm"),
-            design_factor_str=p.get("design_factor_str", "0.72 (Hat)"),
-            material_grade=p.get("material_grade", "X65"),
-            manufacturing_process=p.get("manufacturing_process", "SAWH"),
-            standard_type=p.get("standard_type", "BOTAŞ"),
-            design_pressure_bar=p.get("design_pressure_bar", 75.0)
-        )
-        pipes_calculated.append(res)
+    pipes_calculated = _calculate_pipes(data.pipes)
 
     excel_file = ExcelExporter.export_matrix_to_excel(project_info, pipes_calculated, lang=lang)
     
@@ -230,34 +218,21 @@ async def get_test_plan(data: Dict[str, Any] = Body(...)):
     return JSONResponse(content={"status": "success", "test_plan": plan})
 
 @app.post("/api/report-view", response_class=HTMLResponse)
-async def generate_html_report(request: Request, data: Dict[str, Any] = Body(...)):
+async def generate_html_report(request: Request, data: ReportRequest = Body(...)):
     """
     Renders printable official inspection certificate / FAT report.
     """
-    project_info = data.get("project_info", {})
-    pipes_input = data.get("pipes", [])
-    lang = data.get("lang", "tr")
-    verification = data.get("verification", None)
+    project_info = data.project_info
+    lang = data.lang
+    verification = data.verification
 
-    pipes_calculated = []
-    for p in pipes_input:
-        res = PipeQAQCEngine.calculate_pipe_qc(
-            diameter_inch=p.get("diameter_inch", "48\""),
-            diameter_mm=p.get("diameter_mm"),
-            wall_thickness_mm=p.get("wall_thickness_mm"),
-            design_factor_str=p.get("design_factor_str", "0.72 (Hat)"),
-            material_grade=p.get("material_grade", "X65"),
-            manufacturing_process=p.get("manufacturing_process", "SAWH"),
-            standard_type=p.get("standard_type", "BOTAŞ"),
-            design_pressure_bar=p.get("design_pressure_bar", 75.0)
-        )
-        pipes_calculated.append(res)
+    pipes_calculated = _calculate_pipes(data.pipes)
 
     # API 5L inspection & test plan for the first pipe (sampling info)
     from core.test_plan import get_test_plan
     test_plan = []
-    if pipes_input:
-        test_plan = get_test_plan(pipes_input[0])
+    if data.pipes:
+        test_plan = get_test_plan(data.pipes[0].model_dump())
 
     return templates.TemplateResponse(
         request=request,
