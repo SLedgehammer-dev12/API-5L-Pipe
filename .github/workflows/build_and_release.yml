@@ -26,7 +26,8 @@ jobs:
           cache: 'pip'
 
       - name: Get Version
-        run: echo "VERSION=$(python -c 'from version import __version__; print(__version__)')" >> $GITHUB_ENV
+        shell: bash
+        run: echo "VERSION=$(python -c 'from version import __version__; print(__version__)')" >> "$GITHUB_ENV"
 
       - name: Install Dependencies
         run: |
@@ -44,7 +45,7 @@ jobs:
 
       - name: Build Windows Executable (.exe)
         run: |
-          pyinstaller --name "API-5L-Pipe-Windows-x64-v${VERSION}" `
+          pyinstaller --name "API-5L-Pipe-Windows-x64-v$env:VERSION" `
             --onefile `
             --noconfirm `
             --clean `
