@@ -94,8 +94,8 @@ jobs:
       - name: Upload Windows Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: API-5L-Pipe-Windows-x64-v${VERSION}.exe
-          path: dist/API-5L-Pipe-Windows-x64-v${VERSION}.exe
+          name: API-5L-Pipe-Windows-x64-v${{ env.VERSION }}.exe
+          path: dist/API-5L-Pipe-Windows-x64-v${{ env.VERSION }}.exe
 
   # --------------------------------------------------------------------------
   # 2. MACOS STANDALONE APP & DMG BUILDER
@@ -132,7 +132,7 @@ jobs:
       - name: Build macOS App Bundle (.app)
         run: |
           pyinstaller \
-            --name "API-5L-Pipe-macOS-v${VERSION}" \
+            --name "API-5L-Pipe" \
             --windowed \
             --noconfirm \
             --clean \
@@ -181,13 +181,13 @@ jobs:
 
       - name: Ad-hoc Code Signing & Permissions
         run: |
-          chmod +x "dist/API-5L-Pipe-macOS-v${VERSION}.app/Contents/MacOS/API-5L-Pipe"
-          codesign --force --deep -s - "dist/API-5L-Pipe-macOS-v${VERSION}.app" || true
+          chmod +x "dist/API-5L-Pipe.app/Contents/MacOS/API-5L-Pipe"
+          codesign --force --deep -s - "dist/API-5L-Pipe.app" || true
 
       - name: Create Apple Disk Image (.dmg)
         run: |
           mkdir -p dist/dmg_root
-          cp -R "dist/API-5L-Pipe-macOS-v${VERSION}.app" dist/dmg_root/
+          cp -R "dist/API-5L-Pipe.app" dist/dmg_root/
           ln -s /Applications dist/dmg_root/Applications
           hdiutil create -volname "API-5L-Pipe v${VERSION}" \
             -srcfolder dist/dmg_root \
@@ -197,8 +197,8 @@ jobs:
       - name: Upload macOS Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: API-5L-Pipe-macOS-v${VERSION}.dmg
-          path: dist/API-5L-Pipe-macOS-v${VERSION}.dmg
+          name: API-5L-Pipe-macOS-v${{ env.VERSION }}.dmg
+          path: dist/API-5L-Pipe-macOS-v${{ env.VERSION }}.dmg
 
   # --------------------------------------------------------------------------
   # 3. ATTACH PACKAGES TO GITHUB RELEASE
@@ -217,21 +217,21 @@ jobs:
       - name: Download Windows Binary
         uses: actions/download-artifact@v4
         with:
-          name: API-5L-Pipe-Windows-x64-v${VERSION}.exe
+          name: API-5L-Pipe-Windows-x64-v${{ env.VERSION }}.exe
           path: release_assets/
 
       - name: Download macOS DMG
         uses: actions/download-artifact@v4
         with:
-          name: API-5L-Pipe-macOS-v${VERSION}.dmg
+          name: API-5L-Pipe-macOS-v${{ env.VERSION }}.dmg
           path: release_assets/
 
       - name: Publish Release Assets to GitHub
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            release_assets/API-5L-Pipe-Windows-x64-v${VERSION}.exe
-            release_assets/API-5L-Pipe-macOS-v${VERSION}.dmg
+            release_assets/API-5L-Pipe-Windows-x64-v${{ env.VERSION }}.exe
+            release_assets/API-5L-Pipe-macOS-v${{ env.VERSION }}.dmg
           body_path: RELEASE_NOTES.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
