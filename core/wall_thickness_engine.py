@@ -27,38 +27,43 @@ class WallThicknessEngine:
         manufacturing_process: str = "SAWH"
     ) -> Dict[str, Any]:
         """
-        Computes API Spec 5L (46th Edition / ISO 3183) Table 11 negative wall thickness tolerance.
-        
-        Tolerances:
+        Computes API Spec 5L (47th Edition) Table 11 negative wall thickness tolerance.
+
+        Table 11 (absolute tolerances, converted to % of t here for schedule selection):
         - SMLS (Seamless):
-          * Standard: -12.5%
-        - ERW / HFW (Electric Resistance / High Frequency Welded):
-          * Standard: -10.0%
-        - SAWH / SAWL (Submerged-Arc Welded Spiral/Longitudinal):
-          * D <= 508.0 mm (20"): -10.0%
-          * D > 508.0 mm (24"-60"): -8.0% (standard line pipe)
+          * t <= 4.0 mm:   -0.5 mm
+          * 4.0 < t < 25 mm: -0.125t
+          * t >= 25 mm:    -3.0 or -0.1t (whichever is greater)
+        - Welded (ERW/HFW/SAW/COW):
+          * t <= 5.0 mm:   -0.5 mm
+          * 5.0 < t < 15 mm: -0.1t
+          * t >= 15 mm:    -1.5 mm
         """
         proc_upper = str(manufacturing_process).upper().strip()
-        d = float(diameter_mm)
-        
+        t = float(wall_thickness_mm or 10.0)
+
         if "SMLS" in proc_upper or "SEAMLESS" in proc_upper or "DIKISSIZ" in proc_upper:
-            pct = 12.5
-            desc = "API 5L Tablo 11: Dikişsiz (SMLS) Negatif İmalat Toleransı (-%12.5)"
-        elif "ERW" in proc_upper or "HFW" in proc_upper:
-            pct = 10.0
-            desc = "API 5L Tablo 11: Boyuna Kaynaklı (ERW/HFW) Negatif İmalat Toleransı (-%10.0)"
-        else:  # SAWH or SAWL
-            if d > 508.0:
-                pct = 8.0
-                desc = "API 5L Tablo 11: Tozaltı Kaynaklı (SAWH/SAWL, D > 20\") Negatif İmalat Toleransı (-%8.0)"
+            if t <= 4.0:
+                tol_mm = 0.5
+            elif t < 25.0:
+                tol_mm = 0.125 * t
             else:
-                pct = 10.0
-                desc = "API 5L Tablo 11: Tozaltı Kaynaklı (SAWH/SAWL, D ≤ 20\") Negatif İmalat Toleransı (-%10.0)"
-                
+                tol_mm = max(3.0, 0.1 * t)
+            desc = "API 5L Tablo 11: Dikişsiz (SMLS) Negatif İmalat Toleransı"
+        else:  # welded pipe (ERW / HFW / SAWH / SAWL)
+            if t <= 5.0:
+                tol_mm = 0.5
+            elif t < 15.0:
+                tol_mm = 0.10 * t
+            else:
+                tol_mm = 1.5
+            desc = "API 5L Tablo 11: Kaynaklı Boru (ERW/HFW/SAW) Negatif İmalat Toleransı"
+
         return {
-            'tolerance_percent': pct,
-            'rule_description': desc,
-            'standard_ref': "API Spec 5L (46th Ed.) Table 11"
+            'tolerance_percent': round(tol_mm / t * 100.0, 2) if t > 0 else 0.0,
+            'tolerance_mm': round(tol_mm, 3),
+            'rule_description': f"{desc} (-{tol_mm:.2f} mm)",
+            'standard_ref': "API Spec 5L (47th Ed.) Table 11"
         }
 
     @staticmethod

@@ -3,6 +3,23 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.0] - 2026-08-28 (API 5L 47. Baskı Uyumu: PSL1 Seçimi, PSL2 Teslim Koşulları, CE Hesabı, Baskı Karşılaştırma Notları)
+
+### 🎉 Eklenen Özellikler (Added)
+- **API 5L PSL1 Boru Seçimi:** "Matrise Yeni Boru Sütunu Ekle" bölümüne API 5L PSL1 seçeneği (BOTAŞ aynen korundu); Tablo 4/6 kimyasal + mekanik, Tablo 17/19 ITP; PSL1'de CVN/Y-T/CE/DWTT zorunlu değil, SAW yasak; "10 adet PSL1" ön ayar şablonu.
+- **PSL2 Teslim Koşulu (R/N/Q/M):** Kimyasal bileşim (Tablo 5) ve Y/T oranı (Tablo 7) teslim koşuluna göre seçilir; M koşulu yalnız kaynaklı boru + Grade B–X120 (Tablo 3); kademe↔teslim çift yönlü filtre.
+- **Otomatik Karbon Eşdeğeri Hesabı:** CE_IIW (Denk. 3) ve CE_Pcm (Denk. 2) formülleri; formda Si/Cr/Mo/Ni/Cu/B alanları; C>%0.12 ise CE_IIW, aksi halde CE_Pcm kontrolü.
+- **t > 25.0 mm Kimya Kuralı (9.2.3):** Kimyasal bileşim "anlaşmaya bağlıdır"; PSL2 + SMLS + t > 20 mm CE anlaşmaya bağlı (Tablo 5 dipnot a).
+- **46 vs 47 Baskı Karşılaştırma Notları (ⓘ):** Her satırda 46. orijinal + 47. güncel değer + kaynak madde; gerçek 46→47 farkları işaretlenir.
+- **Çekme Numune Çizimleri Düzeltildi:** Şerit (paralel kenarlı tam cidar, L0=50 mm, 38,1 mm) ve yuvarlak çubuk (tek silindirik mastar, d=6,4/8,9/12,7 mm) SVG'leri yeniden çizildi; referanslar 47. baskı (guided-bend 9.7, DWTT 9.9).
+- **Hesaplama Sonuçları 2 Ondalık:** KPI, MPa, çevre toleransları, oper/SMYS oranı, rapor ağırlığı.
+
+### 🛠️ Düzeltmeler (Fixed)
+- **API 5L 47. Baskı Tablo Değerleri:** Y/T 0.93 (D>323.9, dipnot c); CVN gövde çap+kademeye bağlı (Tablo 8); CVN kaynak 9.8.3.1 (HFW 20 J); çap toleransı ±3.2 tavanı ve ±0.005D max 4.0 (Tablo 10); hidrostatik D≤141.3→%60 ve 20.5 MPa tavanı (Tablo 26); API modunda hidro min = standart test basıncı; uzama yuvarlak çubuk Axc (Tablo 21); SMLS t≥25 +max(3.7,0.1t); CVN numune boyutu Tablo 22'ye göre; DWTT yalnız kaynaklı D≥508; peaking 9.10.5.1 (≤3.2 mm); et kalınlığı motorunda "%8" kuralı kaldırıldı.
+- **ITP/rapor/Excel:** PSL1 satırları; None güvenli kimya gösterimi; CE satırları; madde referansları 47. baskı.
+
+---
+
 ## [1.6.2] - 2026-08-25 (API 5L ITP Geliştirmesi: Boru Seçici, Standart Madde Metni & Numune Çizimleri)
 
 ### 🎉 Eklenen Özellikler (Added)

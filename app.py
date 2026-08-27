@@ -41,6 +41,18 @@ os.makedirs(TEMPLATES_DIR, exist_ok=True)
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 templates = Jinja2Templates(directory=TEMPLATES_DIR)
 
+
+def _fmt_number(v, dec=2):
+    """None/string-safe number formatting for templates."""
+    if v is None or v == "":
+        return "—"
+    if isinstance(v, (int, float)):
+        return f"{v:.{int(dec)}f}"
+    return str(v)
+
+
+templates.env.filters['fmt'] = _fmt_number
+
 def _calculate_pipes(pipes) -> list:
     """Runs the QA/QC engine over a list of PipeInput models or dicts."""
     results = []
@@ -54,7 +66,9 @@ def _calculate_pipes(pipes) -> list:
             material_grade=pd.get("material_grade", "X65"),
             manufacturing_process=pd.get("manufacturing_process", "SAWH"),
             standard_type=pd.get("standard_type", "BOTAŞ"),
-            design_pressure_bar=pd.get("design_pressure_bar", 75.0)
+            design_pressure_bar=pd.get("design_pressure_bar", 75.0),
+            psl_level=pd.get("psl_level", "PSL2"),
+            delivery_condition=pd.get("delivery_condition", "M")
         )
         res['id'] = pd.get('id', '')
         results.append(res)
@@ -140,6 +154,11 @@ async def get_api5l_10_preset():
     """Returns preset with 10 distinct API 5L PSL2 pipes."""
     return JSONResponse(content=ProjectManager.get_10_api_5l_pipes_preset())
 
+@app.get("/api/presets/api5l-psl1-10")
+async def get_api5l_psl1_10_preset():
+    """Returns preset with 10 distinct API 5L PSL1 pipes."""
+    return JSONResponse(content=ProjectManager.get_10_api_5l_psl1_pipes_preset())
+
 @app.get("/api/botas-lookup")
 async def lookup_botas_specs(diameter_inch: str, factor: str = "0.72 (Hat)"):
     """
@@ -215,7 +234,7 @@ async def get_test_plan(data: Dict[str, Any] = Body(...)):
     """
     from core.test_plan import get_test_plan
     pipe_config = data.get("pipe_config", {})
-    plan = get_test_plan(pipe_config)
+    plan = get_test_plan(pipe_config, psl_level=pipe_config.get("psl_level", "PSL2"))
     return JSONResponse(content={"status": "success", "test_plan": plan})
 
 @app.post("/api/report-view", response_class=HTMLResponse)
@@ -233,7 +252,8 @@ async def generate_html_report(request: Request, data: ReportRequest = Body(...)
     from core.test_plan import get_test_plan
     test_plan = []
     if data.pipes:
-        test_plan = get_test_plan(data.pipes[0].model_dump())
+        pd0 = data.pipes[0].model_dump()
+        test_plan = get_test_plan(pd0, psl_level=pd0.get("psl_level", "PSL2"))
 
     return templates.TemplateResponse(
         request=request,

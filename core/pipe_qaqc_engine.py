@@ -10,13 +10,59 @@ from typing import Any, Dict, Optional
 from core.database import (
     compute_api5l_tolerances,
     default_design_pressure_for_factor,
+    get_api5l_yt_ratio,
     get_chemical_rules,
     get_cvn,
+    get_cvn_specimen_size,
     get_pipe_size_by_inch,
     get_pipe_size_by_mm,
     get_smys_info,
     parse_design_factor,
 )
+from core.edition_notes import build_edition_notes
+
+# Table 21 (47th Ed.): (D_max_mm, t_min for 12.7 mm round bar, t_min for 8.9 mm round bar).
+# A round bar is used for transverse tensile tests of welded pipe; Axc = 130 mm² (12.7/8.9 mm bar)
+# or 65 mm² (6.4 mm bar).
+_TABLE21_ROUNDBAR = [
+    (219.1, None, 28.1), (273.1, 36.1, 25.5), (323.9, 33.5, 23.9), (355.6, 32.3, 23.2),
+    (406.4, 30.9, 22.2), (457.0, 29.7, 21.5), (508.0, 28.8, 21.0), (559.0, 28.1, 20.5),
+    (610.0, 27.5, 20.1), (660.0, 27.0, 19.8), (711.0, 26.5, 19.5), (762.0, 26.2, 19.3),
+    (813.0, 25.8, 19.1), (864.0, 25.5, 18.9), (914.0, 25.3, 18.7), (965.0, 25.1, 18.6),
+    (1016.0, 24.9, 18.5), (1067.0, 24.7, 18.3), (1118.0, 24.5, 18.2), (1168.0, 24.4, 18.1),
+    (1219.0, 24.2, 18.1), (1321.0, 24.0, 17.9), (1422.0, 23.8, 17.8), (1524.0, 23.6, 17.6),
+    (1626.0, 23.4, 17.5), (1727.0, 23.3, 17.4), (1829.0, 23.1, 17.4), (1930.0, 23.0, 17.3),
+    (float("inf"), 22.9, 17.2),
+]
+
+
+def _round_bar_axc(d_mm: float, t_mm: float) -> float:
+    """Axc (mm²) for transverse round-bar tensile test pieces (Table 21)."""
+    d, t = float(d_mm), float(t_mm)
+    t12 = t89 = None
+    for d_max, a, b in _TABLE21_ROUNDBAR:
+        if d <= d_max:
+            t12, t89 = a, b
+            break
+    if t12 is not None and t >= t12:
+        return 130.0
+    if t89 is not None and t >= t89:
+        return 130.0
+    return 65.0
+
+
+def _elongation_axc(d_mm: float, t_mm: float, manufacturing_process: str) -> float:
+    """Applicable tensile test piece cross-sectional area (Axc, mm²) for the elongation formula."""
+    d, t = float(d_mm), float(t_mm)
+    proc = (manufacturing_process or "").upper()
+    is_smls = "SMLS" in proc or "SEAMLESS" in proc or "DIKISSIZ" in proc
+    if is_smls:
+        area = math.pi * t * (d - t)
+        return min(485.0, round(area, -1))
+    if d >= 219.1:
+        return _round_bar_axc(d, t)
+    area = 38.1 * t
+    return min(485.0, round(area, -1))
 
 # Standard references and engineering explanations for every matrix row
 STANDARD_EXPLANATIONS = {
@@ -156,11 +202,13 @@ class PipeQAQCEngine:
         material_grade: Optional[str] = None,
         manufacturing_process: str = "SAWH",
         standard_type: str = "BOTAŞ",
-        design_pressure_bar: Optional[float] = None
+        design_pressure_bar: Optional[float] = None,
+        psl_level: str = "PSL2",
+        delivery_condition: str = "M"
     ) -> Dict[str, Any]:
         """
         Executes complete QA/QC inspection and design calculation for a single pipe configuration.
-        Dynamically applies BOTAŞ specification tables or API 5L PSL2 rules.
+        Dynamically applies BOTAŞ specification tables or API 5L PSL1/PSL2 rules (47th Ed.).
         """
         # 1. Resolve Nominal Diameter (NPS) and Actual Outside Diameter (OD mm)
         pipe_size = get_pipe_size_by_inch(diameter_inch)
@@ -179,6 +227,9 @@ class PipeQAQCEngine:
         # 2. BOTAŞ vs API 5L Logic for Default Material and Wall Thickness
         std_upper = standard_type.upper().strip()
         is_botas_mode = ("BOTAŞ" in std_upper or "BOTAS" in std_upper)
+        is_api_mode = "API" in std_upper
+        is_psl1 = psl_level and "PSL1" in str(psl_level).upper()
+        delivery = (delivery_condition or "M").upper()
 
         # Map design factor (tolerates comma/dot decimal separators and Turkish labels)
         factor_key, f_factor = parse_design_factor(design_factor_str)
@@ -201,7 +252,7 @@ class PipeQAQCEngine:
             else:
                 # Fallback to standard station thickness if hat is None for small diameters
                 t = pipe_size['botas_thk'].get('0.50_ist1', 14.30)
-        
+
         if t is None or t <= 0:
             t = 14.30
 
@@ -212,8 +263,13 @@ class PipeQAQCEngine:
             if t < (botas_req_thk - 0.01):
                 botas_thickness_status = f"BOTAŞ Şartından Düşük (Gereken: {botas_req_thk} mm)"
 
+        # Delivery-condition / process validation (API 5L Table 3)
+        validation_warning = ""
+        if is_api_mode and not is_psl1 and delivery == "M" and "SMLS" in (manufacturing_process or "").upper():
+            validation_warning = "M teslim koşulu yalnız kaynaklı boruya aittir (Tablo 3); SMLS geçerli değildir."
+
         # 3. Material & SMYS Properties
-        smys_info = get_smys_info(grade_clean)
+        smys_info = get_smys_info(grade_clean, psl_level)
         smys_psi = smys_info['smys_psi']
         yield_min_mpa = smys_info['yield_min_mpa']
         yield_max_psi = smys_info['yield_max_psi']
@@ -222,14 +278,22 @@ class PipeQAQCEngine:
         tensile_min_mpa = smys_info['tensile_min_mpa']
         tensile_max_psi = smys_info['tensile_max_psi']
         tensile_max_mpa = smys_info['tensile_max_mpa']
-        yt_max = smys_info['yield_tensile_max']
-        cvn_info = get_cvn(grade_clean, standard_type)
+        # Y/T ratio: API PSL2 -> Table 7 (47th Ed.); BOTAŞ / PSL1 -> table values (0 = no limit)
+        if is_api_mode and not is_psl1:
+            yt_max = get_api5l_yt_ratio(grade_clean, delivery)
+        else:
+            yt_max = smys_info['yield_tensile_max']
+        cvn_info = get_cvn(grade_clean, standard_type, psl_level, d_mm, manufacturing_process)
         cvn_mat = cvn_info['material_j']
         cvn_weld = cvn_info['weld_j']
+        cvn_required = cvn_info['required']
         strain_val = smys_info['strain_value']
 
         # 4. Chemical Composition Rules
-        chem_rules = get_chemical_rules(grade_clean, standard_type)
+        chem_rules = get_chemical_rules(
+            grade_clean, standard_type, psl_level, delivery, manufacturing_process, t
+        )
+        chem_as_agreed = bool(chem_rules.get("as_agreed", False))
 
         # 5. Wall Thickness Tolerances
         proc_upper = manufacturing_process.upper()
@@ -268,7 +332,8 @@ class PipeQAQCEngine:
             elif t < 25.0:
                 t_max = round(t * 1.15, 2)
             else:
-                t_max = round(t + 3.7, 2)
+                # Table 11: +3.7 or +0.1t, whichever is the greater
+                t_max = round(t + max(3.7, 0.1 * t), 2)
         else:
             if t < 5.01:
                 t_max = round(t + 0.5, 2)
@@ -279,20 +344,36 @@ class PipeQAQCEngine:
 
         # 6. Hydrostatic Test Pressures (Barlow Formula)
         p_hydro_max = (2.0 * smys_psi * t) / (d_mm * 14.5037738)
-        # BOTAŞ special minimum test pressure rule: P_min = P_max - 2.0 bar
-        p_hydro_min = p_hydro_max - 2.0 if p_hydro_max > 0 else 0.0
 
-        # API 5L Standard Test Pressure Factors (Table 26 / Clause 9.3.1)
-        if grade_clean == "GRADE B":
+        # API 5L Standard Test Pressure Factors (Table 26 / 10.2.6.4)
+        # 47th Ed. Table 26: A/B -> 60 % any D; X42+ -> 60 % (D<=141.3), 75 % (<=219.1),
+        # 85 % (<508), 90 % (>=508). Standard test pressure need not exceed 20.5 MPa
+        # (17.0/19.0 MPa for A/B), see footnotes a)/b).
+        if grade_clean in ("GRADE A", "GRADE B"):
             api_std_factor = 0.60
+            cap_mpa = 17.0 if d_mm <= 88.9 else 19.0
+        elif d_mm <= 141.3:
+            api_std_factor = 0.60
+            cap_mpa = 20.5
         elif d_mm < 219.2:
             api_std_factor = 0.75
+            cap_mpa = 20.5
         elif d_mm < 508.0:
             api_std_factor = 0.85
+            cap_mpa = 20.5
         else:
             api_std_factor = 0.90
-        
-        api_std_test_press = p_hydro_max * api_std_factor
+            cap_mpa = 20.5
+
+        api_std_test_press = min(p_hydro_max * api_std_factor, cap_mpa * 10.0)
+
+        # Minimum required test pressure:
+        #   BOTAŞ -> P_max - 2.0 bar (Excel 'Boru Seçim-Kontrol Aracı')
+        #   API   -> the standard test pressure (10.2.6.4 / Table 26)
+        if is_botas_mode:
+            p_hydro_min = p_hydro_max - 2.0 if p_hydro_max > 0 else 0.0
+        else:
+            p_hydro_min = api_std_test_press
 
         # 7. Diameter & Circumference Tolerances (API 5L Table 10 & BOTAŞ Table 4)
         if is_botas_mode and pipe_size:
@@ -301,7 +382,7 @@ class PipeQAQCEngine:
             d_body_max = pipe_size['diameter_tol_botas']['body_max']
             d_body_min = pipe_size['diameter_tol_botas']['body_min']
         elif not is_botas_mode:
-            tol = compute_api5l_tolerances(d_mm, t)
+            tol = compute_api5l_tolerances(d_mm, t, manufacturing_process)
             d_end_max = tol['end_max']
             d_end_min = tol['end_min']
             d_body_max = tol['body_max']
@@ -312,13 +393,13 @@ class PipeQAQCEngine:
             d_body_max = d_mm + 4.0
             d_body_min = d_mm - 4.0
 
-        circ_end_max = round(d_end_max * math.pi, 1)
-        circ_end_min = round(d_end_min * math.pi, 1)
-        circ_body_max = round(d_body_max * math.pi, 1)
-        circ_body_min = round(d_body_min * math.pi, 1)
+        circ_end_max = round(d_end_max * math.pi, 2)
+        circ_end_min = round(d_end_min * math.pi, 2)
+        circ_body_max = round(d_body_max * math.pi, 2)
+        circ_body_min = round(d_body_min * math.pi, 2)
 
         if not is_botas_mode:
-            tol = compute_api5l_tolerances(d_mm, t)
+            tol = compute_api5l_tolerances(d_mm, t, manufacturing_process)
             ovality_end = tol['ovality_end']
             ovality_body = tol['ovality_body']
         else:
@@ -326,26 +407,22 @@ class PipeQAQCEngine:
             ovality_body = pipe_size['ovality']['body'] if pipe_size else "18.3"
 
         # 8. Minimum Elongation (% e)
-        # API 5L: e = 1940 * A^0.2 / U^0.9
-        a_cross = round(t * 38.0, -1) if (t * 38.0) < 485.0 else 485.0
+        # API 5L: e = 1940 * Axc^0.2 / U^0.9  (Table 7 footnote f)
+        a_cross = _elongation_axc(d_mm, t, manufacturing_process)
         u_val = tensile_min_mpa if tensile_min_mpa > 0 else 535.0
         elongation_mat = 1940.0 * (math.pow(a_cross, 0.2)) / (math.pow(u_val, 0.9))
         elongation_weld = 10.0
 
-        # CVN specimen size (API 5L Table 22) based on wall thickness
-        if t >= 11.0:
-            notch_specimen_size = "Tam boy 10 x 10 x 55 mm"
-        elif t >= 8.0:
-            notch_specimen_size = "3/4 boy 7.5 x 10 x 55 mm"
-        elif t >= 6.0:
-            notch_specimen_size = "2/3 boy 6.67 x 10 x 55 mm"
+        # CVN specimen size (API 5L Table 22) based on diameter AND wall thickness
+        if not cvn_required:
+            notch_specimen_size = "PSL1'de zorunlu değil"
         else:
-            notch_specimen_size = "1/2 boy 5 x 10 x 55 mm"
+            notch_specimen_size = get_cvn_specimen_size(d_mm, t)['label']
 
         # 9. Radial Offset, Weld Height, Misalignment
         # BOTAŞ applies a 0.75 reduction factor; API 5L uses the Table 14/16/9.13.3 base values.
         weld_k = 0.75 if is_botas_mode else 1.0
-        if "SAWH" in proc_upper:
+        if "SAWH" in proc_upper or "SAWL" in proc_upper:
             if t < 15.01:
                 radial_offset = 1.5 * weld_k
             elif t < 25.01:
@@ -356,7 +433,9 @@ class PipeQAQCEngine:
             weld_h_inside = 3.5 * weld_k
             weld_h_outside = 4.5 * weld_k if t > 13.0 else 3.5 * weld_k
             misalignment = 4.0 * weld_k if t > 20.0 else 3.0 * weld_k
-            weld_peaking = round(d_mm * 0.0015, 4)
+            # Pipe end peaking: measured per 10.2.8.4 (template 0.25D or 200 mm);
+            # acceptance per 9.10.5.1 (geometric deviation <= 3.2 mm).
+            weld_peaking = 3.2
             weld_repair_single = min(d_mm * 0.2, 150.0)
         else:
             radial_offset = "Değer Yok"
@@ -375,11 +454,19 @@ class PipeQAQCEngine:
         else:
             residual_stress_max = "TEST YOK"
 
-        # 11. DWTT (Drop Weight Tear Test - API 5L Cl. 9.8.5)
-        dwtt = "Var" if d_mm >= 508.0 else "TEST YOK"
+        # 11. DWTT (Drop Weight Tear Test - API 5L 9.9 / Table 20): welded pipe only, D >= 508 mm.
+        is_welded = not ("SMLS" in proc_upper or "SEAMLESS" in proc_upper)
+        if is_psl1:
+            dwtt = "TEST YOK (PSL1)"  # PSL 1 has no DWT requirement (Table 19)
+        else:
+            dwtt = "Var" if (is_welded and d_mm >= 508.0) else "TEST YOK"
 
         # 12. Hardness & Bending (Mandrel & Jaw Opening)
-        hardness_test = "300 HV"
+        if is_psl1:
+            # PSL 1: hardness is limited to hard-spot testing (Table 17 item 17 / 9.10.6).
+            hardness_test = "Sadece sert nokta testi (9.10.6)"
+        else:
+            hardness_test = "300 HV"
         if "SAWH" in proc_upper and strain_val > 0:
             denom = ((strain_val * d_mm / t) - (2.0 * strain_val) - 1.0)
             if denom > 0:
@@ -395,7 +482,9 @@ class PipeQAQCEngine:
         if "ERW" in proc_upper or "HFW" in proc_upper:
             weld_open_h = d_mm * 0.66 if (smys_psi > 56600 and t > 12.69) else d_mm * 0.50
             mat_crack_h = d_mm * 0.33 if (d_mm / t > 10.0) else "Soruştur"
-            lamination = "Düzleştirme testinde karşı duvarlar değdiğinde Laminasyon ve Yanık bulunmayacaktır"
+            # 47th Ed. 9.6 a)3): no lack of fusion / incomplete fusion in the weld / laminations
+            lamination = ("Düzleştirme testinde karşı duvarlar değene kadar kaynakta füzyon eksikliği, "
+                          "eksik nüfuziyet veya laminasyon bulunmayacaktır")
         else:
             weld_open_h = "TEST YOK"
             mat_crack_h = "TEST YOK"
@@ -452,21 +541,30 @@ class PipeQAQCEngine:
                 'manufacturing_process': manufacturing_process,
                 'material_grade': grade_clean,
                 'standard_type': standard_type,
+                'psl_level': psl_level if is_api_mode else "BOTAŞ",
+                'delivery_condition': delivery if is_api_mode and not is_psl1 else "—",
                 'design_pressure_bar': round(p_oper, 2),
-                'botas_thickness_status': botas_thickness_status
+                'botas_thickness_status': botas_thickness_status,
+                'validation_warning': validation_warning
             },
             'chemical_analysis': {
-                'C_max': round(chem_rules['C_max'], 2),
-                'Mn_max': round(chem_rules['Mn_max'], 2),
-                'P_max': round(chem_rules['P_max'], 3),
-                'S_max': round(chem_rules['S_max'], 3),
-                'Nb_min_max': f"{chem_rules['Nb_min']:.3f}-{chem_rules['Nb_max']:.3f}" if chem_rules['Nb_min'] > 0 else f"{chem_rules['Nb_max']:.2f}",
-                'Nb_label': "Min%-Max%" if chem_rules['Nb_min'] > 0 else "Max %",
-                'V_max': round(chem_rules['V_max'], 2),
-                'Ti_max': round(chem_rules['Ti_max'], 2),
-                'N_max': round(chem_rules['N_max'], 3),
-                'CE_IIW_max': round(chem_rules.get('CE_IIW_max', 0.43), 2),
-                'CE_Pcm_max': round(chem_rules.get('CE_Pcm_max', 0.25), 2)
+                'as_agreed': chem_as_agreed,
+                'as_agreed_note': chem_rules.get('note', '') if chem_as_agreed else '',
+                'C_max': chem_rules.get('C_max'),
+                'Mn_max': chem_rules.get('Mn_max'),
+                'P_min': chem_rules.get('P_min', 0.0),
+                'P_max': chem_rules.get('P_max'),
+                'S_max': chem_rules.get('S_max'),
+                'Nb_min_max': (f"{chem_rules['Nb_min']:.3f}-{chem_rules['Nb_max']:.3f}"
+                               if chem_rules.get('Nb_min', 0) > 0 and chem_rules.get('Nb_max')
+                               else (f"{chem_rules['Nb_max']:.2f}" if chem_rules.get('Nb_max') is not None else None)),
+                'Nb_label': "Min%-Max%" if chem_rules.get('Nb_min', 0) > 0 else "Max %",
+                'V_max': chem_rules.get('V_max'),
+                'Ti_max': chem_rules.get('Ti_max'),
+                'nb_v_ti_combined_max': chem_rules.get('nb_v_ti_combined_max'),
+                'N_max': chem_rules.get('N_max'),
+                'CE_IIW_max': chem_rules.get('CE_IIW_max'),
+                'CE_Pcm_max': chem_rules.get('CE_Pcm_max')
             },
             'wall_thickness_tolerance': {
                 'nominal_mm': round(t, 2),
@@ -494,10 +592,10 @@ class PipeQAQCEngine:
                 'api_5l_alt_test_bar': "Anlaşmaya bağlıdır (API 5L 9.3.1.1)"
             },
             'dimensional_tolerances': {
-                'diameter_end_max_mm': round(d_end_max, 2),
-                'diameter_end_min_mm': round(d_end_min, 2),
-                'diameter_body_max_mm': round(d_body_max, 2),
-                'diameter_body_min_mm': round(d_body_min, 2),
+                'diameter_end_max_mm': round(d_end_max, 2) if isinstance(d_end_max, (int, float)) else d_end_max,
+                'diameter_end_min_mm': round(d_end_min, 2) if isinstance(d_end_min, (int, float)) else d_end_min,
+                'diameter_body_max_mm': round(d_body_max, 2) if isinstance(d_body_max, (int, float)) else d_body_max,
+                'diameter_body_min_mm': round(d_body_min, 2) if isinstance(d_body_min, (int, float)) else d_body_min,
                 'circ_end_max_mm': round(circ_end_max, 2) if isinstance(circ_end_max, (int, float)) else circ_end_max,
                 'circ_end_min_mm': round(circ_end_min, 2) if isinstance(circ_end_min, (int, float)) else circ_end_min,
                 'circ_body_max_mm': round(circ_body_max, 2) if isinstance(circ_body_max, (int, float)) else circ_body_max,
@@ -518,8 +616,9 @@ class PipeQAQCEngine:
             'toughness_and_tests': {
                 'elongation_mat_min_percent': round(elongation_mat, 2),
                 'elongation_weld_min_percent': round(elongation_weld, 2) if isinstance(elongation_weld, (int, float)) else elongation_weld,
-                'notch_impact_mat_j': round(cvn_mat, 2) if isinstance(cvn_mat, (int, float)) else cvn_mat,
-                'notch_impact_weld_j': round(cvn_weld, 2) if isinstance(cvn_weld, (int, float)) else cvn_weld,
+                'notch_impact_mat_j': round(cvn_mat, 2) if (isinstance(cvn_mat, (int, float)) and cvn_required) else ("PSL1'de zorunlu değil" if not cvn_required else cvn_mat),
+                'notch_impact_weld_j': round(cvn_weld, 2) if (isinstance(cvn_weld, (int, float)) and cvn_required) else ("PSL1'de zorunlu değil" if not cvn_required else cvn_weld),
+                'cvn_required': cvn_required,
                 'notch_specimen_size': notch_specimen_size,
                 'residual_stress_max_mm': round(residual_stress_max, 2) if isinstance(residual_stress_max, (int, float)) else residual_stress_max,
                 'dwtt_test': dwtt,
@@ -537,11 +636,12 @@ class PipeQAQCEngine:
                 'weight_min_kg_m': round(weight_min, 2),
                 'weight_max_kg_m': round(weight_max, 2),
                 'operating_press_over_smys_percent': f"{round(oper_press_ratio * 100.0, 2)}%",
-                'operating_press_over_smys_val': round(oper_press_ratio, 4),
+                'operating_press_over_smys_val': round(oper_press_ratio, 2),
                 'fracture_control_asme_841_1_2': fracture_control,
                 'd_over_t': round(d_over_t, 2),
                 'design_formula_asme_841_1_1': design_formula_alt,
                 'alternative_design_pressure_bar': round(alt_design_press, 2) if isinstance(alt_design_press, (int, float)) else alt_design_press
             },
-            'explanations': STANDARD_EXPLANATIONS
+            'explanations': STANDARD_EXPLANATIONS,
+            'edition_notes': build_edition_notes({})
         }

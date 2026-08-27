@@ -95,15 +95,50 @@ class ProjectManager:
                 'language': 'tr'
             },
             'pipes': [
-                {'id': 'api_1', 'diameter_inch': '2"', 'diameter_mm': 60.3, 'design_factor_str': '0.72 (Hat)', 'wall_thickness_mm': 3.91, 'manufacturing_process': 'SMLS', 'material_grade': 'GRADE B', 'standard_type': 'API 5L', 'design_pressure_bar': 100.0},
-                {'id': 'api_2', 'diameter_inch': '4"', 'diameter_mm': 114.3, 'design_factor_str': '0.72 (Hat)', 'wall_thickness_mm': 4.78, 'manufacturing_process': 'ERW HFW', 'material_grade': 'X42', 'standard_type': 'API 5L', 'design_pressure_bar': 100.0},
-                {'id': 'api_3', 'diameter_inch': '6"', 'diameter_mm': 168.3, 'design_factor_str': '0.72 (Hat)', 'wall_thickness_mm': 7.11, 'manufacturing_process': 'ERW HFW', 'material_grade': 'X52', 'standard_type': 'API 5L', 'design_pressure_bar': 100.0},
-                {'id': 'api_4', 'diameter_inch': '8"', 'diameter_mm': 219.1, 'design_factor_str': '0.60 (Hat)', 'wall_thickness_mm': 8.18, 'manufacturing_process': 'ERW HFW', 'material_grade': 'X56', 'standard_type': 'API 5L', 'design_pressure_bar': 100.0},
-                {'id': 'api_5', 'diameter_inch': '12"', 'diameter_mm': 323.9, 'design_factor_str': '0.72 (Hat)', 'wall_thickness_mm': 9.53, 'manufacturing_process': 'ERW HFW', 'material_grade': 'X60', 'standard_type': 'API 5L', 'design_pressure_bar': 100.0},
-                {'id': 'api_6', 'diameter_inch': '18"', 'diameter_mm': 457.0, 'design_factor_str': '0.72 (Hat)', 'wall_thickness_mm': 16.66, 'manufacturing_process': 'SAWH', 'material_grade': 'X65', 'standard_type': 'API 5L', 'design_pressure_bar': 100.0},
-                {'id': 'api_7', 'diameter_inch': '24"', 'diameter_mm': 610.0, 'design_factor_str': '0.72 (Hat)', 'wall_thickness_mm': 12.70, 'manufacturing_process': 'SAWH', 'material_grade': 'X65', 'standard_type': 'API 5L', 'design_pressure_bar': 100.0},
-                {'id': 'api_8', 'diameter_inch': '30"', 'diameter_mm': 762.0, 'design_factor_str': '0.72 (Hat)', 'wall_thickness_mm': 14.27, 'manufacturing_process': 'SAWH', 'material_grade': 'X70', 'standard_type': 'API 5L', 'design_pressure_bar': 100.0},
-                {'id': 'api_9', 'diameter_inch': '36"', 'diameter_mm': 914.0, 'design_factor_str': '0.72 (Hat)', 'wall_thickness_mm': 15.88, 'manufacturing_process': 'SAWH', 'material_grade': 'X70', 'standard_type': 'API 5L', 'design_pressure_bar': 100.0},
-                {'id': 'api_10', 'diameter_inch': '48"', 'diameter_mm': 1219.0, 'design_factor_str': '0.72 (Hat)', 'wall_thickness_mm': 18.00, 'manufacturing_process': 'SAWH', 'material_grade': 'X80', 'standard_type': 'API 5L', 'design_pressure_bar': 100.0}
+                {'id': 'api_1', 'diameter_inch': '2"', 'diameter_mm': 60.3, 'design_factor_str': '0.72 (Hat)', 'wall_thickness_mm': 3.91, 'manufacturing_process': 'SMLS', 'material_grade': 'GRADE B', 'standard_type': 'API 5L', 'design_pressure_bar': 100.0, 'psl_level': 'PSL2', 'delivery_condition': 'N'},
+                {'id': 'api_2', 'diameter_inch': '4"', 'diameter_mm': 114.3, 'design_factor_str': '0.72 (Hat)', 'wall_thickness_mm': 4.78, 'manufacturing_process': 'ERW HFW', 'material_grade': 'X42', 'standard_type': 'API 5L', 'design_pressure_bar': 100.0, 'psl_level': 'PSL2', 'delivery_condition': 'M'},
+                {'id': 'api_3', 'diameter_inch': '6"', 'diameter_mm': 168.3, 'design_factor_str': '0.72 (Hat)', 'wall_thickness_mm': 7.11, 'manufacturing_process': 'ERW HFW', 'material_grade': 'X52', 'standard_type': 'API 5L', 'design_pressure_bar': 100.0, 'psl_level': 'PSL2', 'delivery_condition': 'M'},
+                {'id': 'api_4', 'diameter_inch': '8"', 'diameter_mm': 219.1, 'design_factor_str': '0.60 (Hat)', 'wall_thickness_mm': 8.18, 'manufacturing_process': 'ERW HFW', 'material_grade': 'X56', 'standard_type': 'API 5L', 'design_pressure_bar': 100.0, 'psl_level': 'PSL2', 'delivery_condition': 'M'},
+                {'id': 'api_5', 'diameter_inch': '12"', 'diameter_mm': 323.9, 'design_factor_str': '0.72 (Hat)', 'wall_thickness_mm': 9.53, 'manufacturing_process': 'ERW HFW', 'material_grade': 'X60', 'standard_type': 'API 5L', 'design_pressure_bar': 100.0, 'psl_level': 'PSL2', 'delivery_condition': 'M'},
+                {'id': 'api_6', 'diameter_inch': '18"', 'diameter_mm': 457.0, 'design_factor_str': '0.72 (Hat)', 'wall_thickness_mm': 16.66, 'manufacturing_process': 'SAWH', 'material_grade': 'X65', 'standard_type': 'API 5L', 'design_pressure_bar': 100.0, 'psl_level': 'PSL2', 'delivery_condition': 'M'},
+                {'id': 'api_7', 'diameter_inch': '24"', 'diameter_mm': 610.0, 'design_factor_str': '0.72 (Hat)', 'wall_thickness_mm': 12.70, 'manufacturing_process': 'SAWH', 'material_grade': 'X65', 'standard_type': 'API 5L', 'design_pressure_bar': 100.0, 'psl_level': 'PSL2', 'delivery_condition': 'M'},
+                {'id': 'api_8', 'diameter_inch': '30"', 'diameter_mm': 762.0, 'design_factor_str': '0.72 (Hat)', 'wall_thickness_mm': 14.27, 'manufacturing_process': 'SAWH', 'material_grade': 'X70', 'standard_type': 'API 5L', 'design_pressure_bar': 100.0, 'psl_level': 'PSL2', 'delivery_condition': 'M'},
+                {'id': 'api_9', 'diameter_inch': '36"', 'diameter_mm': 914.0, 'design_factor_str': '0.72 (Hat)', 'wall_thickness_mm': 15.88, 'manufacturing_process': 'SAWH', 'material_grade': 'X70', 'standard_type': 'API 5L', 'design_pressure_bar': 100.0, 'psl_level': 'PSL2', 'delivery_condition': 'M'},
+                {'id': 'api_10', 'diameter_inch': '48"', 'diameter_mm': 1219.0, 'design_factor_str': '0.72 (Hat)', 'wall_thickness_mm': 18.00, 'manufacturing_process': 'SAWH', 'material_grade': 'X80', 'standard_type': 'API 5L', 'design_pressure_bar': 100.0, 'psl_level': 'PSL2', 'delivery_condition': 'M'}
+            ]
+        }
+
+    @staticmethod
+    def get_10_api_5l_psl1_pipes_preset() -> Dict[str, Any]:
+        """
+        Preset containing 10 distinct API 5L PSL1 pipes (Table 4 / 6, 47th Ed.).
+        PSL 1 has no SAW/COW: processes are SMLS or ERW/HFW.
+        """
+        return {
+            'project_info': {
+                'project_name': 'API 5L PSL1 Doğal Gaz ve Petrol Boru Hattı Kalite Kabul Matrisi (10 Çeşit)',
+                'project_no': 'API5L-PSL1-10PIPES-2026',
+                'line_name': 'Standart (PSL1) İletim Boru Hatları',
+                'client': 'Uluslararası Boru Hattı İşletmesi',
+                'contractor': 'Global Pipe Manufacturing Ltd.',
+                'prepared_by': 'Kıdemli Boru Mühendisi',
+                'checked_by': 'QA/QC Koordinatörü',
+                'approved_by': 'Bağımsız Denetçi (Third Party TPI)',
+                'revision': 'Rev. 0',
+                'revision_date': '2026-08-21',
+                'standard': 'API 5L PSL1',
+                'language': 'tr'
+            },
+            'pipes': [
+                {'id': 'psl1_1', 'diameter_inch': '2"', 'diameter_mm': 60.3, 'design_factor_str': '0.72 (Hat)', 'wall_thickness_mm': 3.91, 'manufacturing_process': 'SMLS', 'material_grade': 'GRADE B', 'standard_type': 'API 5L', 'design_pressure_bar': 100.0, 'psl_level': 'PSL1'},
+                {'id': 'psl1_2', 'diameter_inch': '4"', 'diameter_mm': 114.3, 'design_factor_str': '0.72 (Hat)', 'wall_thickness_mm': 6.02, 'manufacturing_process': 'ERW HFW', 'material_grade': 'GRADE B', 'standard_type': 'API 5L', 'design_pressure_bar': 100.0, 'psl_level': 'PSL1'},
+                {'id': 'psl1_3', 'diameter_inch': '6"', 'diameter_mm': 168.3, 'design_factor_str': '0.72 (Hat)', 'wall_thickness_mm': 7.11, 'manufacturing_process': 'ERW HFW', 'material_grade': 'X42', 'standard_type': 'API 5L', 'design_pressure_bar': 100.0, 'psl_level': 'PSL1'},
+                {'id': 'psl1_4', 'diameter_inch': '8"', 'diameter_mm': 219.1, 'design_factor_str': '0.60 (Hat)', 'wall_thickness_mm': 8.18, 'manufacturing_process': 'ERW HFW', 'material_grade': 'X46', 'standard_type': 'API 5L', 'design_pressure_bar': 100.0, 'psl_level': 'PSL1'},
+                {'id': 'psl1_5', 'diameter_inch': '12"', 'diameter_mm': 323.9, 'design_factor_str': '0.72 (Hat)', 'wall_thickness_mm': 9.53, 'manufacturing_process': 'ERW HFW', 'material_grade': 'X52', 'standard_type': 'API 5L', 'design_pressure_bar': 100.0, 'psl_level': 'PSL1'},
+                {'id': 'psl1_6', 'diameter_inch': '16"', 'diameter_mm': 406.4, 'design_factor_str': '0.72 (Hat)', 'wall_thickness_mm': 12.70, 'manufacturing_process': 'ERW HFW', 'material_grade': 'X56', 'standard_type': 'API 5L', 'design_pressure_bar': 100.0, 'psl_level': 'PSL1'},
+                {'id': 'psl1_7', 'diameter_inch': '20"', 'diameter_mm': 508.0, 'design_factor_str': '0.72 (Hat)', 'wall_thickness_mm': 12.70, 'manufacturing_process': 'SMLS', 'material_grade': 'X60', 'standard_type': 'API 5L', 'design_pressure_bar': 100.0, 'psl_level': 'PSL1'},
+                {'id': 'psl1_8', 'diameter_inch': '24"', 'diameter_mm': 610.0, 'design_factor_str': '0.72 (Hat)', 'wall_thickness_mm': 14.27, 'manufacturing_process': 'SMLS', 'material_grade': 'X65', 'standard_type': 'API 5L', 'design_pressure_bar': 100.0, 'psl_level': 'PSL1'},
+                {'id': 'psl1_9', 'diameter_inch': '30"', 'diameter_mm': 762.0, 'design_factor_str': '0.72 (Hat)', 'wall_thickness_mm': 15.88, 'manufacturing_process': 'SMLS', 'material_grade': 'X65', 'standard_type': 'API 5L', 'design_pressure_bar': 100.0, 'psl_level': 'PSL1'},
+                {'id': 'psl1_10', 'diameter_inch': '36"', 'diameter_mm': 914.0, 'design_factor_str': '0.72 (Hat)', 'wall_thickness_mm': 17.48, 'manufacturing_process': 'SMLS', 'material_grade': 'X70', 'standard_type': 'API 5L', 'design_pressure_bar': 100.0, 'psl_level': 'PSL1'}
             ]
         }

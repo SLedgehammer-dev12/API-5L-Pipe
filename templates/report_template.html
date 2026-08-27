@@ -97,46 +97,62 @@
 
                 <!-- Chemical Block -->
                 <tr>
-                    <td rowspan="8" colspan="2" class="th-side font-bold text-center">Kimyasal Analiz</td>
+                    <td rowspan="10" colspan="2" class="th-side font-bold text-center">Kimyasal Analiz</td>
                     <td class="font-bold text-center">C</td>
                     <td class="text-center text-xs">Max %</td>
-                    {% for p in pipes %}<td>{{ "%.2f"|format(p.chemical_analysis.C_max) }}</td>{% endfor %}
+                    {% for p in pipes %}<td>{{ p.chemical_analysis.C_max | fmt(2) }}</td>{% endfor %}
                 </tr>
                 <tr>
                     <td class="font-bold text-center">Mn</td>
                     <td class="text-center text-xs">Max %</td>
-                    {% for p in pipes %}<td>{{ "%.2f"|format(p.chemical_analysis.Mn_max) }}</td>{% endfor %}
+                    {% for p in pipes %}<td>{{ p.chemical_analysis.Mn_max | fmt(2) }}</td>{% endfor %}
                 </tr>
                 <tr>
                     <td class="font-bold text-center">P</td>
                     <td class="text-center text-xs">Max %</td>
-                    {% for p in pipes %}<td>{{ "%.3f"|format(p.chemical_analysis.P_max) }}</td>{% endfor %}
+                    {% for p in pipes %}<td>{{ p.chemical_analysis.P_max | fmt(3) }}</td>{% endfor %}
                 </tr>
                 <tr>
                     <td class="font-bold text-center">S</td>
                     <td class="text-center text-xs">Max %</td>
-                    {% for p in pipes %}<td>{{ "%.3f"|format(p.chemical_analysis.S_max) }}</td>{% endfor %}
+                    {% for p in pipes %}<td>{{ p.chemical_analysis.S_max | fmt(3) }}</td>{% endfor %}
                 </tr>
                 <tr>
                     <td class="font-bold text-center">Nb</td>
                     <td class="text-center text-xs">{{ pipes[0].chemical_analysis.Nb_label }}</td>
-                    {% for p in pipes %}<td>{{ p.chemical_analysis.Nb_min_max }}</td>{% endfor %}
+                    {% for p in pipes %}<td>{{ p.chemical_analysis.Nb_min_max if p.chemical_analysis.Nb_min_max else "—" }}</td>{% endfor %}
                 </tr>
                 <tr>
                     <td class="font-bold text-center">V</td>
                     <td class="text-center text-xs">Max %</td>
-                    {% for p in pipes %}<td>{{ "%.2f"|format(p.chemical_analysis.V_max) }}</td>{% endfor %}
+                    {% for p in pipes %}<td>{{ p.chemical_analysis.V_max | fmt(2) }}</td>{% endfor %}
                 </tr>
                 <tr>
                     <td class="font-bold text-center">Ti</td>
                     <td class="text-center text-xs">Max %</td>
-                    {% for p in pipes %}<td>{{ "%.2f"|format(p.chemical_analysis.Ti_max) }}</td>{% endfor %}
+                    {% for p in pipes %}<td>{{ p.chemical_analysis.Ti_max | fmt(2) }}</td>{% endfor %}
                 </tr>
                 <tr>
                     <td class="font-bold text-center">N</td>
                     <td class="text-center text-xs">Max %</td>
-                    {% for p in pipes %}<td>{{ "%.3f"|format(p.chemical_analysis.N_max) }}</td>{% endfor %}
+                    {% for p in pipes %}<td>{{ p.chemical_analysis.N_max | fmt(3) }}</td>{% endfor %}
                 </tr>
+                <tr>
+                    <td class="font-bold text-center">CE (IIW)</td>
+                    <td class="text-center text-xs">Max</td>
+                    {% for p in pipes %}<td>{{ p.chemical_analysis.CE_IIW_max | fmt(2) }}</td>{% endfor %}
+                </tr>
+                <tr>
+                    <td class="font-bold text-center">CE (Pcm)</td>
+                    <td class="text-center text-xs">Max</td>
+                    {% for p in pipes %}<td>{{ p.chemical_analysis.CE_Pcm_max | fmt(2) }}</td>{% endfor %}
+                </tr>
+                {% if pipes[0].chemical_analysis.as_agreed %}
+                <tr>
+                    <td colspan="4" class="font-bold text-center text-amber-700">t > 25.0 mm — Kimyasal bileşim anlaşmaya bağlıdır (API 5L 9.2.3)</td>
+                    {% for p in pipes %}<td></td>{% endfor %}
+                </tr>
+                {% endif %}
 
                 <!-- Wall Thickness Tolerance -->
                 <tr>
@@ -204,7 +220,7 @@
                 </tr>
                 <tr>
                     <td colspan="4" class="label-cell">Ağırlık Nominal (Kg/m)</td>
-                    {% for p in pipes %}<td><strong>{{ "%.1f"|format(p.weights_and_safety.weight_nominal_kg_m) }}</strong></td>{% endfor %}
+                    {% for p in pipes %}<td><strong>{{ "%.2f"|format(p.weights_and_safety.weight_nominal_kg_m) }}</strong></td>{% endfor %}
                 </tr>
                 <tr>
                     <td colspan="4" class="label-cell">Operating pressure/ SMYS</td>

@@ -47,6 +47,48 @@ function esc(str) {
         .replace(/'/g, "&#39;");
 }
 
+// Number/string/null-safe formatting for matrix cells ("—" for missing, keeps strings verbatim).
+function fmtNum(v, dec) {
+    if (v === null || v === undefined || v === "") return "—";
+    if (typeof v === "number") return v.toFixed(dec === undefined ? 2 : dec);
+    return String(v);
+}
+
+// Edition-comparison (46th vs 47th) info button for a matrix row.
+function noteBtn(key) {
+    return `<button type="button" onclick="openEditionNote('${key}')" title="46. vs 47. baskı karşılaştırması"
+        class="inline-flex items-center justify-center w-4 h-4 ml-1 rounded-full bg-indigo-100 text-indigo-700 text-[10px] font-bold hover:bg-indigo-200 align-middle">ⓘ</button>`;
+}
+
+// Renders the 46th/47th edition comparison note for a row into the ITP info modal.
+function openEditionNote(key) {
+    const pipe = calculatedPipes[selectedPipeIndex] || (calculatedPipes[0] || null);
+    if (!pipe || !pipe.edition_notes || !pipe.edition_notes[key]) {
+        showToast("Bu satır için baskı karşılaştırma notu tanımlı değil.", "info");
+        return;
+    }
+    const n = pipe.edition_notes[key];
+    const changedBadge = n.changed_46_47
+        ? '<span class="inline-block bg-red-100 text-red-700 text-[10px] font-bold px-2 py-0.5 rounded">47. BASKIDA DEĞİŞTİ</span>'
+        : '<span class="inline-block bg-emerald-100 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded">46. = 47. BASKI</span>';
+    const programNote = n.program_note
+        ? `<div class="p-3 bg-amber-50 border border-amber-200 rounded-lg text-[11px] text-amber-900"><b>Program notu:</b> ${esc(n.program_note)}</div>`
+        : "";
+    document.getElementById("itp-info-title").innerText = `Baskı Karşılaştırması — ${n.title}`;
+    document.getElementById("itp-info-body").innerHTML = `
+        <div class="flex items-center space-x-2">${changedBadge}<span class="text-[11px] text-slate-500">${esc(n.source)}</span></div>
+        <div class="p-3 bg-slate-50 border border-slate-200 rounded-lg">
+            <div class="font-bold text-xs text-slate-700 mb-1">📘 46. Baskı (orijinal)</div>
+            <div class="text-[11px] text-slate-700">${esc(n.edition_46)}</div>
+        </div>
+        <div class="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <div class="font-bold text-xs text-blue-900 mb-1">📗 47. Baskı (güncel — hesaplamada kullanılır)</div>
+            <div class="text-[11px] text-blue-900">${esc(n.edition_47)}</div>
+        </div>
+        ${programNote}`;
+    document.getElementById("itp-info-modal").classList.remove("hidden");
+}
+
 document.addEventListener("DOMContentLoaded", async () => {
     const savedLang = localStorage.getItem("api5l_lang") || "tr";
     setLanguage(savedLang);
@@ -189,13 +231,13 @@ function renderKPICards(pipeData) {
     const p = pipeData;
 
     document.getElementById("kpi-active-pipe-title").innerText = `${p.input_summary.diameter_inch} (${p.input_summary.diameter_mm} mm) - ${p.input_summary.material_grade} | ${p.input_summary.manufacturing_process} | t = ${p.input_summary.wall_thickness_mm.toFixed(2)} mm`;
-    document.getElementById("kpi-hydro-val").innerText = `${p.hydrostatic_test.hydro_test_max_bar.toFixed(1)} Bar`;
-    document.getElementById("kpi-hydro-sub").innerText = `Min: ${p.hydrostatic_test.hydro_test_min_bar.toFixed(1)} | Std: ${p.hydrostatic_test.api_5l_std_test_bar.toFixed(1)} Bar`;
+    document.getElementById("kpi-hydro-val").innerText = `${p.hydrostatic_test.hydro_test_max_bar.toFixed(2)} Bar`;
+    document.getElementById("kpi-hydro-sub").innerText = `Min: ${p.hydrostatic_test.hydro_test_min_bar.toFixed(2)} | Std: ${p.hydrostatic_test.api_5l_std_test_bar.toFixed(2)} Bar`;
     
-    document.getElementById("kpi-weight-val").innerText = `${p.weights_and_safety.weight_nominal_kg_m.toFixed(1)} kg/m`;
-    document.getElementById("kpi-weight-sub").innerText = `Tolerans: [${p.weights_and_safety.weight_min_kg_m.toFixed(1)} - ${p.weights_and_safety.weight_max_kg_m.toFixed(1)}] kg/m`;
+    document.getElementById("kpi-weight-val").innerText = `${p.weights_and_safety.weight_nominal_kg_m.toFixed(2)} kg/m`;
+    document.getElementById("kpi-weight-sub").innerText = `Tolerans: [${p.weights_and_safety.weight_min_kg_m.toFixed(2)} - ${p.weights_and_safety.weight_max_kg_m.toFixed(2)}] kg/m`;
     
-    document.getElementById("kpi-dt-val").innerText = `D/t = ${p.weights_and_safety.d_over_t.toFixed(1)}`;
+    document.getElementById("kpi-dt-val").innerText = `D/t = ${p.weights_and_safety.d_over_t.toFixed(2)}`;
     document.getElementById("kpi-dt-sub").innerText = p.weights_and_safety.design_formula_asme_841_1_1;
     
     document.getElementById("kpi-fracture-val").innerText = p.weights_and_safety.fracture_control_asme_841_1_2.includes("Annex G") ? "Annex G Zorunlu" : "Normal Emniyet";
@@ -252,6 +294,14 @@ function renderMatrixTable() {
         { label: "Et Kalınlığı (mm)", exp: getExp('wall_thickness'), extractor: (p, idx) => `<span class="font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded">${p.input_summary.wall_thickness_mm.toFixed(2)}</span>` },
         { label: "Üretim Yöntemi", exp: getExp('process'), extractor: p => `<span class="font-semibold text-amber-900">${esc(p.input_summary.manufacturing_process)}</span>` },
         { label: "Malzeme Kalitesi", exp: getExp('grade'), extractor: p => `<strong>${esc(p.input_summary.material_grade)}</strong>` },
+        { label: "PSL / Teslim Koşulu", exp: "API 5L Ürün Spesifikasyon Seviyesi ve Teslim Koşulu (R/N/Q/M)", extractor: p => {
+            if (p.input_summary.standard_type && String(p.input_summary.standard_type).toUpperCase().includes("API")) {
+                const psl = p.input_summary.psl_level || "PSL2";
+                const dlv = p.input_summary.delivery_condition && p.input_summary.delivery_condition !== "—" ? p.input_summary.delivery_condition : "";
+                return `<span class="font-bold text-purple-800">${esc(psl)}${dlv ? " / " + esc(dlv) : ""}</span>`;
+            }
+            return `<span class="text-slate-400">BOTAŞ</span>`;
+        } },
         { label: "SMYS (Psi)", exp: getExp('smys'), extractor: p => `${Number(p.mechanical_properties.smys_psi).toFixed(0)} psi` },
     ];
 
@@ -285,39 +335,51 @@ function renderMatrixTable() {
     };
 
     // SECTION 2: CHEMICAL ANALYSIS BLOCK
-    html += renderAccordionSectionHeader("sec-chem", "🧪 KİMYASAL BİLEŞİM ANALİZİ (PSL2 LİMİTLERİ)", "8");
+    const chemTitle = (calculatedPipes[0]?.input_summary.psl_level || "PSL2") === "PSL1"
+        ? "🧪 KİMYASAL BİLEŞİM ANALİZİ (PSL1 LİMİTLERİ — Tablo 4)"
+        : "🧪 KİMYASAL BİLEŞİM ANALİZİ (PSL2 LİMİTLERİ — Tablo 5)";
+    html += renderAccordionSectionHeader("sec-chem", chemTitle, "9");
     const chemRows = [
-        { elem: "C", limitType: "Max %", ext: p => p.chemical_analysis.C_max.toFixed(2) },
-        { elem: "Mn", limitType: "Max %", ext: p => p.chemical_analysis.Mn_max.toFixed(2) },
-        { elem: "P", limitType: "Max %", ext: p => p.chemical_analysis.P_max.toFixed(3) },
-        { elem: "S", limitType: "Max %", ext: p => p.chemical_analysis.S_max.toFixed(3) },
-        { elem: "Nb", limitType: "Min%-Max%", ext: p => p.chemical_analysis.Nb_min_max },
-        { elem: "V", limitType: "Max %", ext: p => p.chemical_analysis.V_max.toFixed(2) },
-        { elem: "Ti", limitType: "Max %", ext: p => p.chemical_analysis.Ti_max.toFixed(2) },
-        { elem: "N", limitType: "Max %", ext: p => p.chemical_analysis.N_max.toFixed(3) }
+        { elem: "C", limitType: "Max %", ext: p => fmtNum(p.chemical_analysis.C_max, 2) },
+        { elem: "Mn", limitType: "Max %", ext: p => fmtNum(p.chemical_analysis.Mn_max, 2) },
+        { elem: "P", limitType: "Max %", ext: p => fmtNum(p.chemical_analysis.P_max, 3) },
+        { elem: "S", limitType: "Max %", ext: p => fmtNum(p.chemical_analysis.S_max, 3) },
+        { elem: "Nb", limitType: "Min%-Max%", ext: p => p.chemical_analysis.Nb_min_max === null || p.chemical_analysis.Nb_min_max === undefined ? "—" : esc(p.chemical_analysis.Nb_min_max) },
+        { elem: "V", limitType: "Max %", ext: p => fmtNum(p.chemical_analysis.V_max, 2) },
+        { elem: "Ti", limitType: "Max %", ext: p => fmtNum(p.chemical_analysis.Ti_max, 2) },
+        { elem: "N", limitType: "Max %", ext: p => fmtNum(p.chemical_analysis.N_max, 3) },
+        { elem: "CE", limitType: "IIW / Pcm", ext: p => `IIW: ${fmtNum(p.chemical_analysis.CE_IIW_max, 2)} | Pcm: ${fmtNum(p.chemical_analysis.CE_Pcm_max, 2)}` },
     ];
 
     chemRows.forEach((cr) => {
+        const isAsAgreed = calculatedPieces => calculatedPieces.chemical_analysis.as_agreed === true;
         html += `<tr class="row-sec-chem border-b border-gray-300 searchable-row">`;
-        html += `<td class="th-side sticky-left text-left font-bold px-3 py-1.5 text-xs">${cr.elem} (${cr.limitType})</td>`;
+        html += `<td class="th-side sticky-left text-left font-bold px-3 py-1.5 text-xs">${cr.elem} (${cr.limitType})${cr.elem === "CE" ? noteBtn("chem_m_grade") : ""}</td>`;
         calculatedPipes.forEach((p, cIdx) => {
             const activeColClass = isColActive(cIdx) ? 'active-pipe-col font-bold' : '';
-            html += `<td onclick="selectPipe(${cIdx})" class="text-center font-mono text-xs px-2 py-1.5 cursor-pointer ${activeColClass}">${cr.ext(p)}</td>`;
+            const cell = isAsAgreed(p) ? '<span class="text-amber-600 italic">Anlaşmaya bağlı</span>' : cr.ext(p);
+            html += `<td onclick="selectPipe(${cIdx})" class="text-center font-mono text-xs px-2 py-1.5 cursor-pointer ${activeColClass}">${cell}</td>`;
         });
         html += `<td class="sticky-right bg-slate-50 text-slate-600 text-[11px] px-3 py-1 italic text-left border-l-2 border-slate-300">${getExp('chemical')}</td></tr>`;
     });
+    if (calculatedPipes.some(p => p.chemical_analysis.as_agreed === true)) {
+        html += `<tr class="row-sec-chem border-b border-gray-200">
+            <td class="th-side sticky-left text-left font-bold px-3 py-1.5 text-xs text-amber-700" colspan="${calculatedPipes.length + 2}">
+                ⚠️ t > 25.0 mm: kimyasal bileşim anlaşmaya bağlıdır (API 5L 9.2.3).
+            </td></tr>`;
+    }
 
     // SECTION 3: MECHANICAL & HYDROSTATIC PRESSURE
     html += renderAccordionSectionHeader("sec-mech", "💥 MEKANİK MUKAVEMET & HİDROSTATİK FABRİKA BASINCI", "8");
     const mechRows = [
-        { label: "Yield Min. (Psi / MPa)", exp: getExp('yield_tensile'), ext: p => `${p.mechanical_properties.yield_min_psi.toFixed(0)} psi / ${p.mechanical_properties.yield_min_mpa.toFixed(1)} MPa` },
-        { label: "Yield Max. (Psi / MPa)", exp: getExp('yield_tensile'), ext: p => `${p.mechanical_properties.yield_max_psi.toFixed(0)} psi / ${p.mechanical_properties.yield_max_mpa.toFixed(1)} MPa` },
-        { label: "Tensile Min. (Psi / MPa)", exp: getExp('yield_tensile'), ext: p => `${p.mechanical_properties.tensile_min_psi.toFixed(0)} psi / ${p.mechanical_properties.tensile_min_mpa.toFixed(1)} MPa` },
-        { label: "Tensile Max. (Psi / MPa)", exp: getExp('yield_tensile'), ext: p => `${p.mechanical_properties.tensile_max_psi.toFixed(0)} psi / ${p.mechanical_properties.tensile_max_mpa.toFixed(1)} MPa` },
-        { label: "Akma / Çekme Oranı Max. (Y/T)", exp: getExp('yt_ratio'), ext: p => p.mechanical_properties.yield_to_tensile_ratio_max.toFixed(2) },
-        { label: "Hydro Test Basıncı Max. (Bar)", exp: getExp('hydro_test'), ext: p => `<span class="font-bold text-blue-700">${p.hydrostatic_test.hydro_test_max_bar.toFixed(2)} Bar</span>` },
-        { label: "Hydro Test Basıncı Min. (Bar)", exp: "P_max - 2.0 Bar (Fabrika Test Alt Sınırı)", ext: p => `${p.hydrostatic_test.hydro_test_min_bar.toFixed(2)} Bar` },
-        { label: "API 5L Standart Test Pressure (Bar)", exp: getExp('api_std_test'), ext: p => `${p.hydrostatic_test.api_5l_std_test_bar.toFixed(2)} Bar` },
+        { label: "Yield Min. (Psi / MPa)", exp: getExp('yield_tensile'), ext: p => `${p.mechanical_properties.yield_min_psi.toFixed(0)} psi / ${p.mechanical_properties.yield_min_mpa.toFixed(2)} MPa` },
+        { label: "Yield Max. (Psi / MPa)", exp: getExp('yield_tensile'), ext: p => `${p.mechanical_properties.yield_max_psi.toFixed(0)} psi / ${p.mechanical_properties.yield_max_mpa.toFixed(2)} MPa` },
+        { label: "Tensile Min. (Psi / MPa)", exp: getExp('yield_tensile'), ext: p => `${p.mechanical_properties.tensile_min_psi.toFixed(0)} psi / ${p.mechanical_properties.tensile_min_mpa.toFixed(2)} MPa` },
+        { label: "Tensile Max. (Psi / MPa)", exp: getExp('yield_tensile'), ext: p => `${p.mechanical_properties.tensile_max_psi.toFixed(0)} psi / ${p.mechanical_properties.tensile_max_mpa.toFixed(2)} MPa` },
+        { label: `Akma / Çekme Oranı Max. (Y/T)${noteBtn("yt_ratio")}`, exp: getExp('yt_ratio'), ext: p => p.mechanical_properties.yield_to_tensile_ratio_max > 0 ? p.mechanical_properties.yield_to_tensile_ratio_max.toFixed(2) : "<span class='text-slate-400'>— (PSL1)</span>" },
+        { label: `Hydro Test Basıncı Max. (Bar)${noteBtn("hydro_factor")}`, exp: getExp('hydro_test'), ext: p => `<span class="font-bold text-blue-700">${p.hydrostatic_test.hydro_test_max_bar.toFixed(2)} Bar</span>` },
+        { label: `Hydro Test Basıncı Min. (Bar)${noteBtn("hydro_factor")}`, exp: "Fabrika Test Alt Sınırı (API: Standart Test Basıncı / BOTAŞ: P_max - 2.0 Bar)", ext: p => `${p.hydrostatic_test.hydro_test_min_bar.toFixed(2)} Bar` },
+        { label: `API 5L Standart Test Pressure (Bar)${noteBtn("hydro_factor")}`, exp: getExp('api_std_test'), ext: p => `${p.hydrostatic_test.api_5l_std_test_bar.toFixed(2)} Bar` },
     ];
     mechRows.forEach(mr => {
         html += `<tr class="row-sec-mech border-b border-gray-300 searchable-row">
@@ -332,17 +394,17 @@ function renderMatrixTable() {
     // SECTION 4: DIMENSIONAL & WELD TOLERANCES
     html += renderAccordionSectionHeader("sec-dim", "📐 BOYUTSAL & KAYNAK TOLERANSLARI", "11");
     const dimRows = [
-        { label: "Et Kalınlığı: Min. (mm)", exp: getExp('wall_thickness_tol'), ext: p => `<span class="font-bold text-red-700">${p.wall_thickness_tolerance.min_mm.toFixed(2)} mm</span>` },
-        { label: "Et Kalınlığı: Max. (mm)", exp: getExp('wall_thickness_tol'), ext: p => `<span class="font-bold text-emerald-700">${p.wall_thickness_tolerance.max_mm.toFixed(2)} mm</span>` },
-        { label: "Boru Çap Toleransı - Boru Ucu Max/Min", exp: getExp('diameter_tol'), ext: p => `[${p.dimensional_tolerances.diameter_end_min_mm.toFixed(2)} - ${p.dimensional_tolerances.diameter_end_max_mm.toFixed(2)}] mm` },
-        { label: "Boru Çap Toleransı - Gövde Max/Min", exp: getExp('diameter_tol'), ext: p => `[${p.dimensional_tolerances.diameter_body_min_mm.toFixed(2)} - ${p.dimensional_tolerances.diameter_body_max_mm.toFixed(2)}] mm` },
+        { label: `Et Kalınlığı: Min. (mm)${noteBtn("smls_wall_tol")}`, exp: getExp('wall_thickness_tol'), ext: p => `<span class="font-bold text-red-700">${p.wall_thickness_tolerance.min_mm.toFixed(2)} mm</span>` },
+        { label: `Et Kalınlığı: Max. (mm)${noteBtn("smls_wall_tol")}`, exp: getExp('wall_thickness_tol'), ext: p => `<span class="font-bold text-emerald-700">${p.wall_thickness_tolerance.max_mm.toFixed(2)} mm</span>` },
+        { label: `Boru Çap Toleransı - Boru Ucu Max/Min${noteBtn("diameter_tol")}`, exp: getExp('diameter_tol'), ext: p => `[${fmtNum(p.dimensional_tolerances.diameter_end_min_mm, 2)} - ${fmtNum(p.dimensional_tolerances.diameter_end_max_mm, 2)}] mm` },
+        { label: `Boru Çap Toleransı - Gövde Max/Min${noteBtn("diameter_tol")}`, exp: getExp('diameter_tol'), ext: p => `[${fmtNum(p.dimensional_tolerances.diameter_body_min_mm, 2)} - ${fmtNum(p.dimensional_tolerances.diameter_body_max_mm, 2)}] mm` },
         { label: "Boru Çevre Toleransı - Boru Ucu (mm)", exp: getExp('circumference_tol'), ext: p => `[${typeof p.dimensional_tolerances.circ_end_min_mm === 'number' ? p.dimensional_tolerances.circ_end_min_mm.toFixed(2) : p.dimensional_tolerances.circ_end_min_mm} - ${typeof p.dimensional_tolerances.circ_end_max_mm === 'number' ? p.dimensional_tolerances.circ_end_max_mm.toFixed(2) : p.dimensional_tolerances.circ_end_max_mm}] mm` },
         { label: "Boru Çevre Toleransı - Gövde (mm)", exp: getExp('circumference_tol'), ext: p => `[${typeof p.dimensional_tolerances.circ_body_min_mm === 'number' ? p.dimensional_tolerances.circ_body_min_mm.toFixed(2) : p.dimensional_tolerances.circ_body_min_mm} - ${typeof p.dimensional_tolerances.circ_body_max_mm === 'number' ? p.dimensional_tolerances.circ_body_max_mm.toFixed(2) : p.dimensional_tolerances.circ_body_max_mm}] mm` },
         { label: "Ovalite - Boru Ucu / Gövde (mm)", exp: getExp('ovality'), ext: p => `Uç: ${p.dimensional_tolerances.ovality_end_mm} mm | Gövde: ${p.dimensional_tolerances.ovality_body_mm} mm` },
         { label: "Radial Offset Max. (mm)", exp: getExp('radial_offset'), ext: p => `${p.weld_and_geometry.radial_offset_max_mm} mm` },
         { label: "Kaynak Yüksekliği - İç / Dış (mm)", exp: getExp('weld_height'), ext: p => `İç: ${p.weld_and_geometry.weld_height_inside_mm} mm | Dış: ${p.weld_and_geometry.weld_height_outside_mm} mm` },
         { label: "Misalignment (mm)", exp: getExp('misalignment'), ext: p => `${p.weld_and_geometry.misalignment_max_mm} mm` },
-        { label: "Boru Ucu Kaynak Çatılaşma / Diklik", exp: `${getExp('peaking')} / ${getExp('squareness')}`, ext: p => `Çatı: ${p.dimensional_tolerances.pipe_end_peaking_max_mm} mm | Diklik: ${p.dimensional_tolerances.pipe_end_squareness_max_mm} mm` },
+        { label: `Boru Ucu Kaynak Çatılaşma / Diklik${noteBtn("peaking")}`, exp: `${getExp('peaking')} / ${getExp('squareness')}`, ext: p => `Çatı: ${fmtNum(p.dimensional_tolerances.pipe_end_peaking_max_mm, 2)} mm | Diklik: ${fmtNum(p.dimensional_tolerances.pipe_end_squareness_max_mm, 2)} mm` },
     ];
     dimRows.forEach(dr => {
         html += `<tr class="row-sec-dim border-b border-gray-300 searchable-row">
@@ -357,14 +419,14 @@ function renderMatrixTable() {
     // SECTION 5: TOUGHNESS & SPECIAL FACTORY TESTS
     html += renderAccordionSectionHeader("sec-tests", "🔬 TOKLUK & ÖZEL FABRİKA KABUL TESTLERİ", "9");
     const testRows = [
-        { label: "Minimum Uzama - Malzeme (%)", exp: getExp('elongation'), ext: p => `<span class="font-bold text-teal-800">${p.toughness_and_tests.elongation_mat_min_percent.toFixed(2)}%</span>` },
+        { label: `Minimum Uzama - Malzeme (%)${noteBtn("elongation")}`, exp: getExp('elongation'), ext: p => `<span class="font-bold text-teal-800">${p.toughness_and_tests.elongation_mat_min_percent.toFixed(2)}%</span>` },
         { label: "Minimum Uzama - Kaynak (%)", exp: "Kaynak Dikişi Min. %10 Uzama", ext: p => `${typeof p.toughness_and_tests.elongation_weld_min_percent === 'number' ? p.toughness_and_tests.elongation_weld_min_percent.toFixed(2) : p.toughness_and_tests.elongation_weld_min_percent}%` },
-        { label: "Çentik Darbe (J) - Malzeme / Kaynak", exp: getExp('cvn'), ext: p => `Gövde: ${p.toughness_and_tests.notch_impact_mat_j} J | Kaynak: ${p.toughness_and_tests.notch_impact_weld_j} J` },
+        { label: `Çentik Darbe (J) - Malzeme / Kaynak${noteBtn("cvn_body")}`, exp: getExp('cvn'), ext: p => `Gövde: ${p.toughness_and_tests.notch_impact_mat_j} J | Kaynak: ${p.toughness_and_tests.notch_impact_weld_j} J` },
         { label: "Artık Gerilme Testi Max (mm)", exp: getExp('residual_stress'), ext: p => `${typeof p.toughness_and_tests.residual_stress_max_mm === 'number' ? p.toughness_and_tests.residual_stress_max_mm.toFixed(2) + ' mm' : p.toughness_and_tests.residual_stress_max_mm}` },
-        { label: "Yırtılma Testi (DWTT)", exp: getExp('dwtt'), ext: p => p.toughness_and_tests.dwtt_test === "Var" ? `<span class="badge-pass font-bold">Var (D ≥ 508mm)</span>` : `<span class="text-slate-400">TEST YOK</span>` },
+        { label: `Yırtılma Testi (DWTT)${noteBtn("dwtt")}`, exp: getExp('dwtt'), ext: p => p.toughness_and_tests.dwtt_test === "Var" ? `<span class="badge-pass font-bold">Var (D ≥ 508mm)</span>` : `<span class="text-slate-400">${esc(p.toughness_and_tests.dwtt_test)}</span>` },
         { label: "Sertlik TESTİ", exp: getExp('hardness'), ext: p => p.toughness_and_tests.hardness_test_max },
         { label: "Mandrel Çapı / Çene Açıklığı (mm)", exp: getExp('mandrel_jaw'), ext: p => `${typeof p.toughness_and_tests.mandrel_dia_max_mm === 'number' ? p.toughness_and_tests.mandrel_dia_max_mm.toFixed(2) : p.toughness_and_tests.mandrel_dia_max_mm} / ${typeof p.toughness_and_tests.jaw_opening_max_mm === 'number' ? p.toughness_and_tests.jaw_opening_max_mm.toFixed(2) : p.toughness_and_tests.jaw_opening_max_mm} mm` },
-        { label: "FLATTENING - Kaynak / Çatlak Açılma", exp: getExp('flattening'), ext: p => `Kaynak: ${p.flattening.weld_opening_height_mm} mm | Çatlak: ${p.flattening.material_crack_height_mm} mm` },
+        { label: `FLATTENING - Kaynak / Çatlak Açılma${noteBtn("flattening")}`, exp: getExp('flattening'), ext: p => `Kaynak: ${p.flattening.weld_opening_height_mm} mm | Çatlak: ${p.flattening.material_crack_height_mm} mm` },
         { label: "Tamir Kaynağı Uzunluğu & Ön Isıtma", exp: getExp('weld_repair'), ext: p => `${p.weld_and_geometry.weld_repair_length_max_mm} mm (${p.weld_and_geometry.weld_repair_preheat})` },
     ];
     testRows.forEach(tr => {
@@ -937,7 +999,7 @@ function renderWallThicknessResult(data) {
     const inp = data.input_parameters;
 
     const tolPct = r.tolerance_percent_used || 0;
-    const tolLabel = tolPct > 0 ? `Negatif Tolerans Sınırı (-%${tolPct.toFixed(1)}):` : `Nominal Sınır:`;
+    const tolLabel = tolPct > 0 ? `Negatif Tolerans Sınırı (-%${tolPct.toFixed(2)}):` : `Nominal Sınır:`;
 
     resDiv.innerHTML = `
         <div class="p-4 bg-blue-50 border border-blue-200 rounded-lg shadow-sm">
@@ -1132,7 +1194,7 @@ async function loadTestPlan() {
         // Store plan for modal lookups
         window._itpData = res.test_plan;
 
-        let html = `<p class="text-[11px] text-slate-500 mb-2">Seçili boru: <strong>${esc(pipe.diameter_inch)} - ${esc(pipe.material_grade)} (${esc(pipe.manufacturing_process)})</strong> — API 5L 46th Ed. (satıra tıklayın: standart metni + numune çizimi)</p>`;
+        let html = `<p class="text-[11px] text-slate-500 mb-2">Seçili boru: <strong>${esc(pipe.diameter_inch)} - ${esc(pipe.material_grade)} (${esc(pipe.manufacturing_process)})</strong> — API 5L 47th Ed. (satıra tıklayın: standart metni + numune çizimi)</p>`;
         html += `<div class="overflow-x-auto"><table class="w-full text-xs text-left border-collapse bg-white rounded border border-gray-300">`;
         html += `<thead class="bg-gray-100 text-gray-700 font-bold border-b border-gray-300"><tr>
             <th class="p-2">Test</th><th class="p-2">Madde</th><th class="p-2">Sıklık / Adet</th><th class="p-2">Alınma Yeri</th><th class="p-2">Numune Boyutu</th></tr></thead><tbody>`;

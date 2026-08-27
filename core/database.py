@@ -332,8 +332,432 @@ CHEMICAL_COMPOSITION_RULES = {
     'Super Duplex 2507': {'C_max': 0.030, 'Mn_max': 1.20, 'P_max': 0.035, 'S_max': 0.020, 'Nb_min': 0.0, 'Nb_max': 0.0, 'V_max': 0.0, 'Ti_max': 0.0, 'N_max': 0.32, 'CE_IIW_max': 0.0, 'CE_Pcm_max': 0.0}
 }
 
+# =====================================================================
+# API 5L PSL 1 — Table 6 (47th Ed.): Pipe Body Tensile (min yield / min tensile only).
+# PSL 1 has no max yield, no max tensile and no yield-to-tensile ratio limit.
+# Strain values per Table 23 (guided-bend test).
+# =====================================================================
+API_5L_PSL1_SMYS_TABLE = {
+    "A25": {
+        "grade": "A25", "iso_grade": "L175",
+        "yield_min_mpa": 175.0, "yield_min_psi": 25400.0,
+        "tensile_min_mpa": 310.0, "tensile_min_psi": 45000.0,
+        "yield_max_mpa": 0.0, "yield_max_psi": 0.0,
+        "tensile_max_mpa": 0.0, "tensile_max_psi": 0.0,
+        "yield_tensile_max": 0.0, "cvn_material_j": 0.0, "cvn_weld_j": 0.0,
+        "strain_value": 0.0,
+    },
+    "A25P": {
+        "grade": "A25P", "iso_grade": "L175P",
+        "yield_min_mpa": 175.0, "yield_min_psi": 25400.0,
+        "tensile_min_mpa": 310.0, "tensile_min_psi": 45000.0,
+        "yield_max_mpa": 0.0, "yield_max_psi": 0.0,
+        "tensile_max_mpa": 0.0, "tensile_max_psi": 0.0,
+        "yield_tensile_max": 0.0, "cvn_material_j": 0.0, "cvn_weld_j": 0.0,
+        "strain_value": 0.0,
+    },
+    "GRADE A": {
+        "grade": "GRADE A", "iso_grade": "L210",
+        "yield_min_mpa": 210.0, "yield_min_psi": 30500.0,
+        "tensile_min_mpa": 335.0, "tensile_min_psi": 48600.0,
+        "yield_max_mpa": 0.0, "yield_max_psi": 0.0,
+        "tensile_max_mpa": 0.0, "tensile_max_psi": 0.0,
+        "yield_tensile_max": 0.0, "cvn_material_j": 0.0, "cvn_weld_j": 0.0,
+        "strain_value": 0.1650,
+    },
+    "GRADE B": {
+        "grade": "GRADE B", "iso_grade": "L245",
+        "yield_min_mpa": 245.0, "yield_min_psi": 35500.0,
+        "tensile_min_mpa": 415.0, "tensile_min_psi": 60200.0,
+        "yield_max_mpa": 0.0, "yield_max_psi": 0.0,
+        "tensile_max_mpa": 0.0, "tensile_max_psi": 0.0,
+        "yield_tensile_max": 0.0, "cvn_material_j": 0.0, "cvn_weld_j": 0.0,
+        "strain_value": 0.1375,
+    },
+    "X42": {
+        "grade": "X42", "iso_grade": "L290",
+        "yield_min_mpa": 290.0, "yield_min_psi": 42100.0,
+        "tensile_min_mpa": 415.0, "tensile_min_psi": 60200.0,
+        "yield_max_mpa": 0.0, "yield_max_psi": 0.0,
+        "tensile_max_mpa": 0.0, "tensile_max_psi": 0.0,
+        "yield_tensile_max": 0.0, "cvn_material_j": 0.0, "cvn_weld_j": 0.0,
+        "strain_value": 0.1375,
+    },
+    "X46": {
+        "grade": "X46", "iso_grade": "L320",
+        "yield_min_mpa": 320.0, "yield_min_psi": 46400.0,
+        "tensile_min_mpa": 435.0, "tensile_min_psi": 63100.0,
+        "yield_max_mpa": 0.0, "yield_max_psi": 0.0,
+        "tensile_max_mpa": 0.0, "tensile_max_psi": 0.0,
+        "yield_tensile_max": 0.0, "cvn_material_j": 0.0, "cvn_weld_j": 0.0,
+        "strain_value": 0.1325,
+    },
+    "X52": {
+        "grade": "X52", "iso_grade": "L360",
+        "yield_min_mpa": 360.0, "yield_min_psi": 52200.0,
+        "tensile_min_mpa": 460.0, "tensile_min_psi": 66700.0,
+        "yield_max_mpa": 0.0, "yield_max_psi": 0.0,
+        "tensile_max_mpa": 0.0, "tensile_max_psi": 0.0,
+        "yield_tensile_max": 0.0, "cvn_material_j": 0.0, "cvn_weld_j": 0.0,
+        "strain_value": 0.1250,
+    },
+    "X56": {
+        "grade": "X56", "iso_grade": "L390",
+        "yield_min_mpa": 390.0, "yield_min_psi": 56600.0,
+        "tensile_min_mpa": 490.0, "tensile_min_psi": 71100.0,
+        "yield_max_mpa": 0.0, "yield_max_psi": 0.0,
+        "tensile_max_mpa": 0.0, "tensile_max_psi": 0.0,
+        "yield_tensile_max": 0.0, "cvn_material_j": 0.0, "cvn_weld_j": 0.0,
+        "strain_value": 0.1175,
+    },
+    "X60": {
+        "grade": "X60", "iso_grade": "L415",
+        "yield_min_mpa": 415.0, "yield_min_psi": 60200.0,
+        "tensile_min_mpa": 520.0, "tensile_min_psi": 75400.0,
+        "yield_max_mpa": 0.0, "yield_max_psi": 0.0,
+        "tensile_max_mpa": 0.0, "tensile_max_psi": 0.0,
+        "yield_tensile_max": 0.0, "cvn_material_j": 0.0, "cvn_weld_j": 0.0,
+        "strain_value": 0.1125,
+    },
+    "X65": {
+        "grade": "X65", "iso_grade": "L450",
+        "yield_min_mpa": 450.0, "yield_min_psi": 65300.0,
+        "tensile_min_mpa": 535.0, "tensile_min_psi": 77600.0,
+        "yield_max_mpa": 0.0, "yield_max_psi": 0.0,
+        "tensile_max_mpa": 0.0, "tensile_max_psi": 0.0,
+        "yield_tensile_max": 0.0, "cvn_material_j": 0.0, "cvn_weld_j": 0.0,
+        "strain_value": 0.1100,
+    },
+    "X70": {
+        "grade": "X70", "iso_grade": "L485",
+        "yield_min_mpa": 485.0, "yield_min_psi": 70300.0,
+        "tensile_min_mpa": 570.0, "tensile_min_psi": 82700.0,
+        "yield_max_mpa": 0.0, "yield_max_psi": 0.0,
+        "tensile_max_mpa": 0.0, "tensile_max_psi": 0.0,
+        "yield_tensile_max": 0.0, "cvn_material_j": 0.0, "cvn_weld_j": 0.0,
+        "strain_value": 0.1025,
+    },
+}
+
+# =====================================================================
+# API 5L PSL 1 — Table 4 (47th Ed.): Chemical Composition (t <= 25.0 mm).
+# CE is NOT required for PSL 1. Seamless vs Welded rows differ in C (and Mn for X65/X70).
+# V/Nb/Ti footnotes: c) Nb+V <= 0.06 (unless agreed); d) Nb+V+Ti <= 0.15; f) unless agreed Nb+V+Ti <= 0.15.
+# =====================================================================
+CHEMICAL_COMPOSITION_PSL1_RULES = {
+    "A25": {
+        "C_max_seamless": 0.21, "C_max_welded": 0.21,
+        "Mn_max_seamless": 0.60, "Mn_max_welded": 0.60,
+        "P_max": 0.030, "S_max": 0.030,
+        "V_max": None, "Nb_max": None, "Ti_max": None, "nb_v_ti_combined_max": None,
+        "CE_IIW_max": None, "CE_Pcm_max": None,
+    },
+    "A25P": {
+        "C_max_seamless": 0.21, "C_max_welded": 0.21,
+        "Mn_max_seamless": 0.60, "Mn_max_welded": 0.60,
+        "P_min": 0.045, "P_max": 0.080, "S_max": 0.030,
+        "V_max": None, "Nb_max": None, "Ti_max": None, "nb_v_ti_combined_max": None,
+        "CE_IIW_max": None, "CE_Pcm_max": None,
+    },
+    "GRADE A": {
+        "C_max_seamless": 0.22, "C_max_welded": 0.22,
+        "Mn_max_seamless": 0.90, "Mn_max_welded": 0.90,
+        "P_max": 0.030, "S_max": 0.030,
+        "V_max": None, "Nb_max": None, "Ti_max": None, "nb_v_ti_combined_max": None,
+        "CE_IIW_max": None, "CE_Pcm_max": None,
+    },
+    "GRADE B": {
+        "C_max_seamless": 0.28, "C_max_welded": 0.26,
+        "Mn_max_seamless": 1.20, "Mn_max_welded": 1.20,
+        "P_max": 0.030, "S_max": 0.030,
+        "V_max": 0.05, "Nb_max": 0.05, "Ti_max": 0.05, "nb_v_ti_combined_max": 0.15,
+        "CE_IIW_max": None, "CE_Pcm_max": None,
+    },
+    "X42": {
+        "C_max_seamless": 0.28, "C_max_welded": 0.26,
+        "Mn_max_seamless": 1.30, "Mn_max_welded": 1.30,
+        "P_max": 0.030, "S_max": 0.030,
+        "V_max": 0.05, "Nb_max": 0.05, "Ti_max": 0.05, "nb_v_ti_combined_max": 0.15,
+        "CE_IIW_max": None, "CE_Pcm_max": None,
+    },
+    "X46": {
+        "C_max_seamless": 0.28, "C_max_welded": 0.26,
+        "Mn_max_seamless": 1.40, "Mn_max_welded": 1.40,
+        "P_max": 0.030, "S_max": 0.030,
+        "V_max": 0.05, "Nb_max": 0.05, "Ti_max": 0.05, "nb_v_ti_combined_max": 0.15,
+        "CE_IIW_max": None, "CE_Pcm_max": None,
+    },
+    "X52": {
+        "C_max_seamless": 0.28, "C_max_welded": 0.26,
+        "Mn_max_seamless": 1.40, "Mn_max_welded": 1.40,
+        "P_max": 0.030, "S_max": 0.030,
+        "V_max": 0.05, "Nb_max": 0.05, "Ti_max": 0.05, "nb_v_ti_combined_max": 0.15,
+        "CE_IIW_max": None, "CE_Pcm_max": None,
+    },
+    "X56": {
+        "C_max_seamless": 0.28, "C_max_welded": 0.26,
+        "Mn_max_seamless": 1.40, "Mn_max_welded": 1.40,
+        "P_max": 0.030, "S_max": 0.030,
+        "V_max": 0.05, "Nb_max": 0.05, "Ti_max": 0.05, "nb_v_ti_combined_max": 0.15,
+        "CE_IIW_max": None, "CE_Pcm_max": None,
+    },
+    "X60": {
+        "C_max_seamless": 0.28, "C_max_welded": 0.26,
+        "Mn_max_seamless": 1.40, "Mn_max_welded": 1.40,
+        "P_max": 0.030, "S_max": 0.030,
+        "V_max": 0.05, "Nb_max": 0.05, "Ti_max": 0.05, "nb_v_ti_combined_max": 0.15,
+        "CE_IIW_max": None, "CE_Pcm_max": None,
+    },
+    "X65": {
+        "C_max_seamless": 0.28, "C_max_welded": 0.26,
+        "Mn_max_seamless": 1.40, "Mn_max_welded": 1.45,
+        "P_max": 0.030, "S_max": 0.030,
+        "V_max": 0.05, "Nb_max": 0.05, "Ti_max": 0.05, "nb_v_ti_combined_max": 0.15,
+        "CE_IIW_max": None, "CE_Pcm_max": None,
+    },
+    "X70": {
+        "C_max_seamless": 0.28, "C_max_welded": 0.26,
+        "Mn_max_seamless": 1.40, "Mn_max_welded": 1.65,
+        "P_max": 0.030, "S_max": 0.030,
+        "V_max": 0.05, "Nb_max": 0.05, "Ti_max": 0.05, "nb_v_ti_combined_max": 0.15,
+        "CE_IIW_max": None, "CE_Pcm_max": None,
+    },
+}
+
+# =====================================================================
+# API 5L PSL 2 — Table 5 (47th Ed.): Chemical Composition (t <= 25.0 mm), keyed by DELIVERY CONDITION.
+# Footnote handling: c) Nb+V<=0.06; d) Nb+V+Ti<=0.15; g) unless agreed Nb+V+Ti<=0.15;
+#   m) C+Nb<=0.20 (M grades); n) Al_total<=0.070, N<=0.015 (M grades); CE "as agreed" where noted.
+# =====================================================================
+CHEMICAL_COMPOSITION_PSL2 = {
+    "R": {
+        "GRADE B": {"C_max": 0.24, "Si_max": 0.40, "Mn_max": 1.20, "P_max": 0.025, "S_max": 0.015,
+                    "V_max": None, "Nb_max": None, "Ti_max": 0.04, "nb_v_combined_max": 0.06,
+                    "CE_IIW_max": 0.43, "CE_Pcm_max": 0.25},
+        "X42": {"C_max": 0.24, "Si_max": 0.40, "Mn_max": 1.20, "P_max": 0.025, "S_max": 0.015,
+                "V_max": 0.06, "Nb_max": 0.05, "Ti_max": 0.04,
+                "CE_IIW_max": 0.43, "CE_Pcm_max": 0.25},
+    },
+    "N": {
+        "GRADE B": {"C_max": 0.24, "Si_max": 0.40, "Mn_max": 1.20, "P_max": 0.025, "S_max": 0.015,
+                    "V_max": None, "Nb_max": None, "Ti_max": 0.04, "nb_v_combined_max": 0.06,
+                    "CE_IIW_max": 0.43, "CE_Pcm_max": 0.25},
+        "X42": {"C_max": 0.24, "Si_max": 0.40, "Mn_max": 1.20, "P_max": 0.025, "S_max": 0.015,
+                "V_max": 0.06, "Nb_max": 0.05, "Ti_max": 0.04,
+                "CE_IIW_max": 0.43, "CE_Pcm_max": 0.25},
+        "X46": {"C_max": 0.24, "Si_max": 0.40, "Mn_max": 1.40, "P_max": 0.025, "S_max": 0.015,
+                "V_max": 0.07, "Nb_max": 0.05, "Ti_max": 0.04, "nb_v_ti_combined_max": 0.15,
+                "CE_IIW_max": 0.43, "CE_Pcm_max": 0.25},
+        "X52": {"C_max": 0.24, "Si_max": 0.45, "Mn_max": 1.40, "P_max": 0.025, "S_max": 0.015,
+                "V_max": 0.10, "Nb_max": 0.05, "Ti_max": 0.04, "nb_v_ti_combined_max": 0.15,
+                "CE_IIW_max": 0.43, "CE_Pcm_max": 0.25},
+        "X56": {"C_max": 0.24, "Si_max": 0.45, "Mn_max": 1.40, "P_max": 0.025, "S_max": 0.015,
+                "V_max": 0.10, "Nb_max": 0.05, "Ti_max": 0.04, "nb_v_ti_combined_max": 0.15,
+                "CE_IIW_max": 0.43, "CE_Pcm_max": 0.25},
+        "X60": {"C_max": 0.24, "Si_max": 0.45, "Mn_max": 1.40, "P_max": 0.025, "S_max": 0.015,
+                "V_max": 0.10, "Nb_max": 0.05, "Ti_max": 0.04, "nb_v_ti_combined_max": 0.15,
+                "CE_IIW_max": None, "CE_Pcm_max": None},  # CE "as agreed"
+    },
+    "Q": {
+        "GRADE B": {"C_max": 0.18, "Si_max": 0.45, "Mn_max": 1.40, "P_max": 0.025, "S_max": 0.015,
+                    "V_max": 0.05, "Nb_max": 0.05, "Ti_max": 0.04,
+                    "CE_IIW_max": 0.43, "CE_Pcm_max": 0.25},
+        "X42": {"C_max": 0.18, "Si_max": 0.45, "Mn_max": 1.40, "P_max": 0.025, "S_max": 0.015,
+                "V_max": 0.05, "Nb_max": 0.05, "Ti_max": 0.04,
+                "CE_IIW_max": 0.43, "CE_Pcm_max": 0.25},
+        "X46": {"C_max": 0.18, "Si_max": 0.45, "Mn_max": 1.40, "P_max": 0.025, "S_max": 0.015,
+                "V_max": 0.05, "Nb_max": 0.05, "Ti_max": 0.04,
+                "CE_IIW_max": 0.43, "CE_Pcm_max": 0.25},
+        "X52": {"C_max": 0.18, "Si_max": 0.45, "Mn_max": 1.50, "P_max": 0.025, "S_max": 0.015,
+                "V_max": 0.05, "Nb_max": 0.05, "Ti_max": 0.04,
+                "CE_IIW_max": 0.43, "CE_Pcm_max": 0.25},
+        "X56": {"C_max": 0.18, "Si_max": 0.45, "Mn_max": 1.50, "P_max": 0.025, "S_max": 0.015,
+                "V_max": 0.07, "Nb_max": 0.05, "Ti_max": 0.04, "nb_v_ti_combined_max": 0.15,
+                "CE_IIW_max": 0.43, "CE_Pcm_max": 0.25},
+        "X60": {"C_max": 0.18, "Si_max": 0.45, "Mn_max": 1.70, "P_max": 0.025, "S_max": 0.015,
+                "V_max": None, "Nb_max": None, "Ti_max": None, "nb_v_ti_combined_max": 0.15,
+                "CE_IIW_max": 0.43, "CE_Pcm_max": 0.25},
+        "X65": {"C_max": 0.18, "Si_max": 0.45, "Mn_max": 1.70, "P_max": 0.025, "S_max": 0.015,
+                "V_max": None, "Nb_max": None, "Ti_max": None, "nb_v_ti_combined_max": 0.15,
+                "CE_IIW_max": 0.43, "CE_Pcm_max": 0.25},
+        "X70": {"C_max": 0.18, "Si_max": 0.45, "Mn_max": 1.80, "P_max": 0.025, "S_max": 0.015,
+                "V_max": None, "Nb_max": None, "Ti_max": None, "nb_v_ti_combined_max": 0.15,
+                "CE_IIW_max": 0.43, "CE_Pcm_max": 0.25},
+        "X80": {"C_max": 0.18, "Si_max": 0.45, "Mn_max": 1.90, "P_max": 0.025, "S_max": 0.015,
+                "V_max": None, "Nb_max": None, "Ti_max": None, "nb_v_ti_combined_max": 0.15,
+                "CE_IIW_max": None, "CE_Pcm_max": None},  # CE "as agreed"
+        "X90": {"C_max": 0.16, "Si_max": 0.45, "Mn_max": 1.90, "P_max": 0.020, "S_max": 0.010,
+                "V_max": None, "Nb_max": None, "Ti_max": None, "nb_v_ti_combined_max": 0.15,
+                "CE_IIW_max": None, "CE_Pcm_max": None},  # CE "as agreed"
+        "X100": {"C_max": 0.16, "Si_max": 0.45, "Mn_max": 1.90, "P_max": 0.020, "S_max": 0.010,
+                 "V_max": None, "Nb_max": None, "Ti_max": None, "nb_v_ti_combined_max": 0.15,
+                 "CE_IIW_max": None, "CE_Pcm_max": None},  # CE "as agreed"
+    },
+    "M": {
+        "GRADE B": {"C_max": 0.22, "Si_max": 0.45, "Mn_max": 1.20, "P_max": 0.025, "S_max": 0.015,
+                    "V_max": 0.05, "Nb_max": 0.05, "Ti_max": 0.04,
+                    "CE_IIW_max": 0.43, "CE_Pcm_max": 0.25},
+        "X42": {"C_max": 0.22, "Si_max": 0.45, "Mn_max": 1.30, "P_max": 0.025, "S_max": 0.015,
+                "V_max": 0.05, "Nb_max": 0.05, "Ti_max": 0.04,
+                "CE_IIW_max": 0.43, "CE_Pcm_max": 0.25},
+        "X46": {"C_max": 0.22, "Si_max": 0.45, "Mn_max": 1.30, "P_max": 0.025, "S_max": 0.015,
+                "V_max": 0.05, "Nb_max": 0.05, "Ti_max": 0.04,
+                "CE_IIW_max": 0.43, "CE_Pcm_max": 0.25},
+        "X52": {"C_max": 0.22, "Si_max": 0.45, "Mn_max": 1.40, "P_max": 0.025, "S_max": 0.015,
+                "V_max": None, "Nb_max": None, "Ti_max": None, "nb_v_ti_combined_max": 0.15,
+                "CE_IIW_max": 0.43, "CE_Pcm_max": 0.25},
+        "X56": {"C_max": 0.22, "Si_max": 0.45, "Mn_max": 1.40, "P_max": 0.025, "S_max": 0.015,
+                "V_max": None, "Nb_max": None, "Ti_max": None, "nb_v_ti_combined_max": 0.15,
+                "CE_IIW_max": 0.43, "CE_Pcm_max": 0.25},
+        "X60": {"C_max": 0.12, "Si_max": 0.45, "Mn_max": 1.60, "P_max": 0.025, "S_max": 0.015,
+                "V_max": None, "Nb_max": None, "Ti_max": 0.06, "nb_v_ti_combined_max": 0.15,
+                "c_nb_max": 0.20, "Al_max": 0.070, "N_max": 0.015,
+                "CE_IIW_max": 0.43, "CE_Pcm_max": 0.25},
+        "X65": {"C_max": 0.12, "Si_max": 0.45, "Mn_max": 1.60, "P_max": 0.025, "S_max": 0.015,
+                "V_max": None, "Nb_max": None, "Ti_max": 0.06, "nb_v_ti_combined_max": 0.15,
+                "c_nb_max": 0.20, "Al_max": 0.070, "N_max": 0.015,
+                "CE_IIW_max": 0.43, "CE_Pcm_max": 0.25},
+        "X70": {"C_max": 0.12, "Si_max": 0.45, "Mn_max": 1.70, "P_max": 0.025, "S_max": 0.015,
+                "V_max": None, "Nb_max": None, "Ti_max": 0.06, "nb_v_ti_combined_max": 0.15,
+                "c_nb_max": 0.20, "Al_max": 0.070, "N_max": 0.015,
+                "CE_IIW_max": 0.43, "CE_Pcm_max": 0.25},
+        "X80": {"C_max": 0.12, "Si_max": 0.45, "Mn_max": 1.85, "P_max": 0.025, "S_max": 0.015,
+                "V_max": None, "Nb_max": None, "Ti_max": 0.06, "nb_v_ti_combined_max": 0.15,
+                "c_nb_max": 0.20, "Al_max": 0.070, "N_max": 0.015,
+                "CE_IIW_max": 0.43, "CE_Pcm_max": 0.25},
+        "X90": {"C_max": 0.10, "Si_max": 0.55, "Mn_max": 2.10, "P_max": 0.020, "S_max": 0.010,
+                "V_max": None, "Nb_max": None, "Ti_max": 0.06, "nb_v_ti_combined_max": 0.15,
+                "c_nb_max": 0.20, "Al_max": 0.070, "N_max": 0.015,
+                "CE_IIW_max": None, "CE_Pcm_max": 0.25},  # CE_IIW "—" (not applicable)
+        "X100": {"C_max": 0.10, "Si_max": 0.55, "Mn_max": 2.10, "P_max": 0.020, "S_max": 0.010,
+                 "V_max": None, "Nb_max": None, "Ti_max": 0.06, "nb_v_ti_combined_max": 0.15,
+                 "c_nb_max": 0.20, "Al_max": 0.070, "N_max": 0.015,
+                 "CE_IIW_max": None, "CE_Pcm_max": 0.25},  # CE_IIW "—"
+        "X120": {"C_max": 0.10, "Si_max": 0.55, "Mn_max": 2.10, "P_max": 0.020, "S_max": 0.010,
+                 "V_max": None, "Nb_max": None, "Ti_max": 0.06, "nb_v_ti_combined_max": 0.15,
+                 "c_nb_max": 0.20, "Al_max": 0.070, "N_max": 0.015,
+                 "CE_IIW_max": None, "CE_Pcm_max": 0.25},  # CE_IIW "—"
+    },
+}
+
+# Grade availability per PSL / delivery condition (API 5L 47th Ed. Table 1).
+PSL1_GRADES = ["A25", "A25P", "GRADE A", "GRADE B", "X42", "X46", "X52", "X56", "X60", "X65", "X70"]
+
+PSL2_DELIVERY_GRADES = {
+    "R": ["GRADE B", "X42"],
+    "N": ["GRADE B", "X42", "X46", "X52", "X56", "X60"],
+    "Q": ["GRADE B", "X42", "X46", "X52", "X56", "X60", "X65", "X70", "X80", "X90", "X100"],
+    "M": ["GRADE B", "X42", "X46", "X52", "X56", "X60", "X65", "X70", "X80", "X90", "X100", "X120"],
+}
+
+# PSL 1 has no SAW/COW (API 5L 47th Ed. Table 2).
+PSL1_PROCESSES = ["SMLS", "ERW HFW"]
+# PSL 2 delivery M is welded-only (API 5L 47th Ed. Table 3: SMLS has no M route).
+PSL2_M_PROCESSES = ["ERW HFW", "SAWH", "SAWL"]
+
+# =====================================================================
 # API 5L 46th Ed. Table 8 (PSL2) minimum absorbed energy (J), full-size specimen, average of 3, 0 °C.
 # DRAFT — values to be verified against the exact Table 8 of the 46th edition.
+# ---------------------------------------------------------------------
+# CVN (PSL 2) — API 5L 47th Ed. Table 8: pipe body energy depends on BOTH
+# outside diameter and grade. Table 8 is identical in the 46th and 47th editions.
+# Weld & HAZ/HTZ energy per 9.8.3.1 (47th Ed.): HFW = 20 J; non-HFW D<1422 mm
+# and grade <= X80 = 27 J; non-HFW D >= 1422 mm OR grade > X80 = 40 J.
+# ---------------------------------------------------------------------
+_CVN_BODY_TABLE_47 = [
+    (508.0, [27, 27, 27, 40, 40, 40, 40]),
+    (762.0, [27, 27, 27, 40, 40, 40, 40]),
+    (914.0, [40, 40, 40, 40, 40, 54, 54]),
+    (1219.0, [40, 40, 40, 40, 40, 54, 68]),
+    (1422.0, [40, 54, 54, 54, 54, 68, 81]),
+    (float("inf"), [40, 54, 68, 68, 81, 95, 108]),
+]
+
+
+# Table 22 (47th Ed.): (D_max_mm, t_min_full, t_min_3over4, t_min_2over3) for CVN test piece size.
+_CVN_SPECIMEN_TABLE_22 = [
+    (114.3, 12.6, 11.3, 10.9),
+    (141.3, 11.9, 9.8, 9.4),
+    (168.3, 11.7, 9.2, 8.5),
+    (219.1, 11.4, 8.9, 8.1),
+    (273.1, 11.2, 8.7, 7.9),
+    (323.9, 11.1, 8.6, 7.8),
+    (355.6, 11.1, 8.6, 7.7),
+    (406.4, 11.0, 8.5, 7.7),
+    (float("inf"), 11.0, 8.5, 7.7),
+]
+_CVN_SIZE_FACTOR = {"Full": 1.0, "3/4": 0.75, "2/3": 2.0 / 3.0, "1/2": 0.5}
+_CVN_SIZE_LABEL = {
+    "Full": "Tam boy 10 x 10 x 55 mm",
+    "3/4": "3/4 boy 7.5 x 10 x 55 mm",
+    "2/3": "2/3 boy 6.67 x 10 x 55 mm",
+    "1/2": "1/2 boy 5 x 10 x 55 mm",
+}
+
+
+def get_cvn_specimen_size(d_mm: float, t_mm: float) -> dict:
+    """Required CVN test piece size per Table 22 (47th Ed.): depends on BOTH D and t."""
+    d = float(d_mm or 1219.0)
+    t = float(t_mm or 14.3)
+    for d_max, t_full, t_34, t_23 in _CVN_SPECIMEN_TABLE_22:
+        if d <= d_max:
+            if t >= t_full:
+                size = "Full"
+            elif t >= t_34:
+                size = "3/4"
+            elif t >= t_23:
+                size = "2/3"
+            else:
+                size = "1/2"
+            break
+    else:
+        size = "Full"
+    return {
+        "size": size,
+        "label": _CVN_SIZE_LABEL[size],
+        "width_ratio": _CVN_SIZE_FACTOR[size],
+    }
+
+
+def cvn_grade_col(grade: str) -> int:
+    """Column index in Table 8 (0=X60, 1=X65, 2=X70, 3=X80, 4=X90, 5=X100, 6=X120)."""
+    g = grade.upper().strip()
+    if g in ("X90",):
+        return 4
+    if g == "X100":
+        return 5
+    if g == "X120":
+        return 6
+    if g == "X80":
+        return 3
+    if g == "X70":
+        return 2
+    if g == "X65":
+        return 1
+    return 0  # GRADE A / B / X42 / X46 / X52 / X56 / X60
+
+
+def get_cvn_body_api5l(grade: str, d_mm: float) -> float:
+    """Pipe body CVN minimum (J) per Table 8 (47th Ed.), full-size specimen at 0 °C."""
+    col = cvn_grade_col(grade)
+    for d_max, values in _CVN_BODY_TABLE_47:
+        if d_mm <= d_max:
+            return float(values[col])
+    return 40.0
+
+
+def get_cvn_weld_api5l(manufacturing_process: str, d_mm: float, grade: str) -> float:
+    """Weld / HAZ / HTZ CVN minimum (J) per 9.8.3.1 (47th Ed.)."""
+    proc = (manufacturing_process or "").upper()
+    if "HFW" in proc or "ERW" in proc:
+        return 20.0
+    if d_mm >= 1422.0:
+        return 40.0
+    if cvn_grade_col(grade) >= 4:  # > L555 or X80
+        return 40.0
+    return 27.0
+
+
 CVN_API5L = {
     "GRADE A": {"material_j": 27.0, "weld_j": 20.0},
     "GRADE B": {"material_j": 27.0, "weld_j": 20.0},
@@ -346,6 +770,19 @@ CVN_API5L = {
     "X70": {"material_j": 40.0, "weld_j": 27.0},
     "X80": {"material_j": 68.0, "weld_j": 54.0},
 }
+
+
+def get_api5l_yt_ratio(grade: str, delivery_condition: str = "M") -> float:
+    """
+    PSL 2 yield-to-tensile ratio (Table 7, 47th Ed.). Applies only for D > 323.9 mm
+    (footnote c). Grade <= X80 -> 0.93; X90 -> 0.95 (M) / 0.97 (Q); X100 -> 0.97; X120 -> 0.99.
+    """
+    g = grade.upper().strip()
+    if g in ("X90",):
+        return 0.97 if (delivery_condition or "").upper() == "Q" else 0.95
+    if g in ("X100", "X120"):
+        return 0.97 if g == "X100" else 0.99
+    return 0.93
 
 # Design factor canonical key -> numeric F value.
 DESIGN_FACTOR_MAP = {
@@ -2411,29 +2848,182 @@ def is_stainless_grade(grade: str) -> bool:
     return "SS" in g or "304" in g or "316" in g or "321" in g or "DUPLEX" in g
 
 # Helper functions
-def get_smys_info(grade: str):
-    return API_5L_SMYS_TABLE.get(grade.upper().strip(), API_5L_SMYS_TABLE['X65'])
+def get_smys_info(grade: str, psl_level: str = "PSL2"):
+    g = grade.upper().strip()
+    if psl_level and "PSL1" in str(psl_level).upper():
+        info = dict(API_5L_PSL1_SMYS_TABLE.get(g, API_5L_PSL1_SMYS_TABLE['GRADE B']))
+    else:
+        info = dict(API_5L_SMYS_TABLE.get(g, API_5L_SMYS_TABLE['X65']))
+    info.setdefault('smys_psi', info.get('yield_min_psi', 0.0))
+    return info
 
-def get_chemical_rules(grade: str, standard_type: str = "BOTAŞ"):
+
+def get_chemical_rules(
+    grade: str,
+    standard_type: str = "BOTAŞ",
+    psl_level: str = "PSL2",
+    delivery_condition: str = "M",
+    manufacturing_process: str = "SAWH",
+    t_mm: float = None,
+):
+    """
+    Returns chemical-composition limits for the selected standard/PSL/delivery.
+
+    - PSL 1        -> Table 4 (CE is not required; seamless/welded rows differ in C/Mn).
+    - PSL 2 + API  -> Table 5 row selected by DELIVERY CONDITION (R/N/Q/M) (47th Ed.).
+    - BOTAŞ        -> unchanged BOTAŞ limits.
+    - t > 25.0 mm (API) -> 'as agreed' per API 5L 9.2.3.
+    - PSL 2 SMLS t > 20.0 mm -> CE limits 'as agreed' (Table 5, footnote a).
+    """
     grade = grade.upper().strip()
-    base = CHEMICAL_COMPOSITION_RULES.get(grade, CHEMICAL_COMPOSITION_RULES['X65'])
-    if "API" in standard_type.upper():
-        # API 5L PSL2 Table 5 (t <= 25 mm) — draft deltas vs BOTAŞ:
-        #   S <= 0.015 (BOTAŞ is 0.010 for most grades), Nb reported as max-only.
-        rules = dict(base)
-        if grade not in ('GRADE A',):
-            rules['S_max'] = 0.015
-        rules['Nb_min'] = 0.0
+    is_api = "API" in str(standard_type).upper()
+    is_psl1 = psl_level and "PSL1" in str(psl_level).upper()
+
+    if is_api and t_mm is not None and float(t_mm) > 25.0:
+        return {
+            "as_agreed": True,
+            "note": ("API 5L 9.2.3: t > 25.0 mm olduğundan kimyasal bileşim "
+                     "anlaşmaya bağlıdır (Tablo 4/5 gerekirse tadil edilerek uygulanır)."),
+        }
+
+    if is_psl1:
+        base = CHEMICAL_COMPOSITION_PSL1_RULES.get(grade)
+        if not base:
+            base = CHEMICAL_COMPOSITION_PSL1_RULES['GRADE B']
+        proc = (manufacturing_process or "").upper()
+        is_smls = "SMLS" in proc or "SEAMLESS" in proc or "DIKISSIZ" in proc
+        key_c = "C_max_seamless" if is_smls else "C_max_welded"
+        key_mn = "Mn_max_seamless" if is_smls else "Mn_max_welded"
+        return {
+            "C_max": base.get(key_c, base.get("C_max_welded")),
+            "Mn_max": base.get(key_mn, base.get("Mn_max_welded")),
+            "P_min": base.get("P_min", 0.0),
+            "P_max": base.get("P_max", 0.030),
+            "S_max": base.get("S_max", 0.030),
+            "Nb_min": 0.0,
+            "Nb_max": base.get("Nb_max"),
+            "V_max": base.get("V_max"),
+            "Ti_max": base.get("Ti_max"),
+            "nb_v_ti_combined_max": base.get("nb_v_ti_combined_max"),
+            "N_max": None,
+            "CE_IIW_max": None,
+            "CE_Pcm_max": None,
+            "as_agreed": False,
+        }
+
+    if is_api:
+        delivery = (delivery_condition or "M").upper()
+        if delivery not in CHEMICAL_COMPOSITION_PSL2:
+            delivery = "M"
+        rules = CHEMICAL_COMPOSITION_PSL2.get(delivery, {}).get(grade)
+        if not rules:
+            rules = CHEMICAL_COMPOSITION_PSL2.get("M", {}).get(grade)
+        if not rules:
+            rules = CHEMICAL_COMPOSITION_PSL2.get("M", {}).get("GRADE B")
+        rules = dict(rules)
+        rules["Nb_min"] = 0.0
+        rules.setdefault("N_max", rules.get("N_max"))  # present only for M grades (footnote n)
+        proc = (manufacturing_process or "").upper()
+        is_smls = "SMLS" in proc or "SEAMLESS" in proc or "DIKISSIZ" in proc
+        if is_smls and t_mm is not None and float(t_mm) > 20.0:
+            # Table 5, footnote a: for seamless pipe with t > 20.0 mm, CE limits as agreed.
+            rules["CE_IIW_max"] = None
+            rules["CE_Pcm_max"] = None
+        rules["as_agreed"] = False
         return rules
+
+    base = dict(CHEMICAL_COMPOSITION_RULES.get(grade, CHEMICAL_COMPOSITION_RULES['X65']))
+    base["as_agreed"] = False
     return base
 
-def get_cvn(grade: str, standard_type: str = "BOTAŞ"):
-    """Returns {'material_j': .., 'weld_j': ..} CVN minimums for the given standard."""
+
+def get_cvn(
+    grade: str,
+    standard_type: str = "BOTAŞ",
+    psl_level: str = "PSL2",
+    d_mm: float = None,
+    manufacturing_process: str = "SAWH",
+):
+    """
+    Returns {'material_j': .., 'weld_j': .., 'required': bool} CVN minimums.
+    PSL 1 -> not required (CVN is a PSL 2 requirement only).
+    """
     grade = grade.upper().strip()
-    if "API" in standard_type.upper() and grade in CVN_API5L:
-        return CVN_API5L[grade]
+    is_api = "API" in str(standard_type).upper()
+    is_psl1 = psl_level and "PSL1" in str(psl_level).upper()
+
+    if is_psl1:
+        return {"material_j": None, "weld_j": None, "required": False}
+    if is_api:
+        if d_mm is None:
+            d_mm = 1219.0
+        return {
+            "material_j": get_cvn_body_api5l(grade, d_mm),
+            "weld_j": get_cvn_weld_api5l(manufacturing_process, d_mm, grade),
+            "required": True,
+        }
     info = API_5L_SMYS_TABLE.get(grade, API_5L_SMYS_TABLE['X65'])
-    return {"material_j": info.get('cvn_material_j', 0.0), "weld_j": info.get('cvn_weld_j', 0.0)}
+    return {
+        "material_j": info.get('cvn_material_j', 0.0),
+        "weld_j": info.get('cvn_weld_j', 0.0),
+        "required": True,
+    }
+
+
+# ---------------------------------------------------------------------
+# Carbon equivalent calculators (API 5L 47th Ed. Eq. 2 / Eq. 3)
+# CE_IIW  = C + Mn/6 + (Cr+Mo+V)/5 + (Ni+Cu)/15        -> applies when C > 0.12 %
+# CE_Pcm  = C + Si/30 + (Mn+Cu+Cr)/20 + Ni/60 + Mo/15 + V/10 + 5B   -> applies when C <= 0.12 %
+# ---------------------------------------------------------------------
+def _num(analysis, key, default=0.0):
+    try:
+        v = analysis.get(key)
+        return float(v) if v is not None else default
+    except (TypeError, ValueError):
+        return default
+
+
+def compute_ce_iww(analysis: dict) -> float:
+    return (_num(analysis, "C")
+            + _num(analysis, "Mn") / 6.0
+            + (_num(analysis, "Cr") + _num(analysis, "Mo") + _num(analysis, "V")) / 5.0
+            + (_num(analysis, "Ni") + _num(analysis, "Cu")) / 15.0)
+
+
+def compute_ce_pcm(analysis: dict) -> float:
+    return (_num(analysis, "C")
+            + _num(analysis, "Si") / 30.0
+            + (_num(analysis, "Mn") + _num(analysis, "Cu") + _num(analysis, "Cr")) / 20.0
+            + _num(analysis, "Ni") / 60.0
+            + _num(analysis, "Mo") / 15.0
+            + _num(analysis, "V") / 10.0
+            + 5.0 * _num(analysis, "B"))
+
+
+# ---------------------------------------------------------------------
+# Grade / delivery / process availability helpers (47th Ed. Table 1 / 2 / 3)
+# ---------------------------------------------------------------------
+def get_psl1_grades() -> list:
+    return list(PSL1_GRADES)
+
+
+def get_psl2_grades_for_delivery(delivery: str) -> list:
+    return list(PSL2_DELIVERY_GRADES.get((delivery or "M").upper(), PSL2_DELIVERY_GRADES["M"]))
+
+
+def get_deliveries_for_grade(grade: str) -> list:
+    g = grade.upper().strip()
+    return [d for d, grades in PSL2_DELIVERY_GRADES.items() if g in grades]
+
+
+def get_psl1_processes() -> list:
+    return list(PSL1_PROCESSES)
+
+
+def get_psl2_processes_for_delivery(delivery: str) -> list:
+    if (delivery or "").upper() == "M":
+        return list(PSL2_M_PROCESSES)
+    return ["SMLS", "ERW HFW", "SAWH", "SAWL"]
 
 def normalize_design_factor(factor_str) -> str:
     """Normalize a design factor label (tolerates comma/dot decimal separators and Turkish words)."""
@@ -2471,9 +3061,11 @@ def default_design_pressure_for_factor(f_factor: float) -> float:
         return 82.5
     return 100.0
 
-def compute_api5l_tolerances(d_mm: float, t_mm: float) -> dict:
+def compute_api5l_tolerances(d_mm: float, t_mm: float, manufacturing_process: str = "SAWH") -> dict:
     """
-    API 5L 46th Ed. Table 10 — Tolerances for Diameter and Out-of-roundness (welded pipe, main body).
+    API 5L 47th Ed. Table 10 — Tolerances for Diameter and Out-of-roundness
+    (SMLS vs Welded distinguished; caps applied: body welded max ±3.2 mm and
+     ±0.005D max ±4.0 mm; end welded ±0.005D max ±1.6 mm / ±1.6 mm).
 
     Returns {'end_max','end_min','body_max','body_min','ovality_end','ovality_body'}.
     Out-of-roundness is limited to D/t <= 75 (otherwise "by agreement").
@@ -2481,8 +3073,10 @@ def compute_api5l_tolerances(d_mm: float, t_mm: float) -> dict:
     d = float(d_mm)
     t = float(t_mm) if t_mm else 14.3
     d_over_t = d / t if t > 0 else 999.0
+    proc = (manufacturing_process or "").upper()
+    is_smls = "SMLS" in proc or "SEAMLESS" in proc or "DIKISSIZ" in proc
 
-    # --- Diameter tolerance (welded pipe) ---
+    # --- Diameter tolerance ---
     if d < 60.3:
         body_max, body_min = d + 0.4, d - 0.8
         end_max, end_min = d + 0.4, d - 0.8
@@ -2490,12 +3084,21 @@ def compute_api5l_tolerances(d_mm: float, t_mm: float) -> dict:
         body_max, body_min = d * 1.0075, d * 0.9925
         end_max, end_min = d + 1.6, d - 0.4
     elif d <= 610.0:
-        body_max, body_min = d * 1.0075, d * 0.9925
+        if is_smls:
+            body_max, body_min = d * 1.0075, d * 0.9925
+        else:
+            body_max, body_min = min(d * 1.0075, d + 3.2), max(d * 0.9925, d - 3.2)
         e = min(0.005 * d, 1.6)
         end_max, end_min = d + e, d - e
-    else:  # 610 < D <= 1422 mm
-        body_max, body_min = d * 1.01, d * 0.99
-        end_max, end_min = d + 1.6, d - 1.6
+    elif d <= 1422.0:
+        if is_smls:
+            body_max, body_min = d * 1.01, d * 0.99
+            end_max, end_min = d + 2.0, d - 2.0
+        else:
+            body_max, body_min = d + min(0.005 * d, 4.0), d - min(0.005 * d, 4.0)
+            end_max, end_min = d + 1.6, d - 1.6
+    else:  # D > 1422 mm — as agreed
+        body_max = body_min = end_max = end_min = "Anlaşmaya bağlıdır."
 
     # --- Out-of-roundness (ovality), D/t <= 75 ---
     if d_over_t > 75.0:
@@ -2510,10 +3113,10 @@ def compute_api5l_tolerances(d_mm: float, t_mm: float) -> dict:
             ovality_end = min(0.010 * d, 13.0)
 
     return {
-        'end_max': round(end_max, 2),
-        'end_min': round(end_min, 2),
-        'body_max': round(body_max, 2),
-        'body_min': round(body_min, 2),
+        'end_max': round(end_max, 2) if isinstance(end_max, float) else end_max,
+        'end_min': round(end_min, 2) if isinstance(end_min, float) else end_min,
+        'body_max': round(body_max, 2) if isinstance(body_max, float) else body_max,
+        'body_min': round(body_min, 2) if isinstance(body_min, float) else body_min,
         'ovality_end': round(ovality_end, 2) if isinstance(ovality_end, float) else ovality_end,
         'ovality_body': round(ovality_body, 2) if isinstance(ovality_body, float) else ovality_body,
     }

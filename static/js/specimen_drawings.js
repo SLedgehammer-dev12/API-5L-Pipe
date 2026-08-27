@@ -1,6 +1,6 @@
 /**
  * API 5L Specimen Schematic Drawings (SVG).
- * Simplified engineering schematics closely modeled on API 5L 46th Ed.
+ * Simplified engineering schematics closely modeled on API 5L 47th Ed.
  * Figures 4/5/6 and standard specimen shapes (Charpy, tensile, guided-bend,
  * flattening, DWTT, hardness). Rendered inline — works offline and prints.
  */
@@ -132,10 +132,11 @@ const SPECIMEN_DRAWINGS = {
     </svg>`,
 
     // ------------------------------------------------------------------
-    // Tensile strip specimen (38.1 mm wide, full thickness)
+    // Tensile strip specimen (38.1 mm wide, full wall thickness)
+    // API 5L 10.2.3.2.1 — rectangular test piece, full wall, ISO 6892-1 / ASTM A370
     // ------------------------------------------------------------------
     tensile_strip: () => `
-    <svg viewBox="0 0 640 240" xmlns="http://www.w3.org/2000/svg" class="w-full h-auto max-h-[240px]">
+    <svg viewBox="0 0 640 250" xmlns="http://www.w3.org/2000/svg" class="w-full h-auto max-h-[250px]">
       <style>
         .sd-line{stroke:#334155;stroke-width:1.5;fill:none}
         .sd-dim{stroke:#3b82f6;stroke-width:1;stroke-dasharray:3,3}
@@ -148,32 +149,43 @@ const SPECIMEN_DRAWINGS = {
           <path d="M0,0 L7,3 L0,6 Z" fill="#3b82f6"/>
         </marker>
       </defs>
-      <!-- Strip specimen: shoulders + reduced gauge -->
-      <path d="M 30 60 L 150 60 L 170 45 L 470 45 L 490 60 L 610 60 L 610 100 L 490 100 L 470 115 L 170 115 L 150 100 L 30 100 Z"
-            fill="#e2e8f0" stroke="#334155" stroke-width="2"/>
-      <!-- Gauge section -->
-      <rect x="240" y="45" width="160" height="70" fill="none" stroke="#3b82f6" stroke-width="1.5" stroke-dasharray="4,3"/>
-      <!-- width dimension -->
-      <line x1="470" y1="130" x2="610" y2="130" class="sd-dim" marker-start="url(#sd-arr3)" marker-end="url(#sd-arr3)"/>
-      <text x="540" y="148" text-anchor="middle" class="sd-dimtxt">38,1 mm</text>
-      <!-- thickness dimension -->
-      <line x1="628" y1="45" x2="628" y2="115" class="sd-dim"/>
-      <text x="633" y="85" class="sd-dimtxt">t (tam cidar)</text>
-      <!-- gauge length -->
-      <line x1="240" y1="132" x2="400" y2="132" class="sd-dim"/>
-      <text x="320" y="150" text-anchor="middle" class="sd-dimtxt">Mastar Boyu L0 = 50 mm</text>
-      <!-- labels -->
-      <text x="320" y="24" text-anchor="middle" class="sd-txt" font-weight="bold" font-size="12">Çekme Şerit Numunesi (API 5L Table 20/21)</text>
-      <text x="300" y="80" text-anchor="middle" class="sd-lbl">Mastar (gauge) bölgesi</text>
-      <text x="100" y="86" text-anchor="middle" class="sd-lbl" fill="#475569">Tutma</text>
-      <text x="540" y="86" text-anchor="middle" class="sd-lbl" fill="#475569">Tutma</text>
+
+      <!-- Parallel-sided full-wall strip (top view: length x width) -->
+      <rect x="50" y="66" width="540" height="64" fill="#e2e8f0" stroke="#334155" stroke-width="2"/>
+      <!-- gauge section -->
+      <rect x="270" y="66" width="120" height="64" fill="none" stroke="#3b82f6" stroke-width="1.5" stroke-dasharray="4,3"/>
+      <line x1="270" y1="58" x2="270" y2="138" class="sd-line" stroke="#3b82f6" stroke-width="1.5"/>
+      <line x1="390" y1="58" x2="390" y2="138" class="sd-line" stroke="#3b82f6" stroke-width="1.5"/>
+      <!-- gauge length dimension -->
+      <line x1="270" y1="152" x2="390" y2="152" class="sd-dim" marker-start="url(#sd-arr3)" marker-end="url(#sd-arr3)"/>
+      <text x="330" y="170" text-anchor="middle" class="sd-dimtxt">Mastar Boyu L0 = 50 mm</text>
+      <!-- width dimension (across the strip) -->
+      <line x1="606" y1="66" x2="606" y2="130" class="sd-dim"/>
+      <line x1="600" y1="66" x2="612" y2="66" class="sd-dim"/>
+      <line x1="600" y1="130" x2="612" y2="130" class="sd-dim"/>
+      <text x="612" y="102" class="sd-dimtxt">38,1 mm</text>
+      <!-- grip labels -->
+      <text x="150" y="102" text-anchor="middle" class="sd-lbl" fill="#475569">Tutma</text>
+      <text x="510" y="102" text-anchor="middle" class="sd-lbl" fill="#475569">Tutma</text>
+      <!-- end view (thickness) inset -->
+      <g transform="translate(420,180)">
+        <text x="0" y="12" class="sd-lbl">Uç görünümü (tam cidar)</text>
+        <rect x="0" y="22" width="46" height="16" fill="#e2e8f0" stroke="#334155" stroke-width="2"/>
+        <line x1="54" y1="22" x2="54" y2="38" class="sd-dim"/>
+        <text x="60" y="34" class="sd-dimtxt">t</text>
+        <line x1="-6" y1="46" x2="52" y2="46" class="sd-dim" marker-start="url(#sd-arr3)" marker-end="url(#sd-arr3)"/>
+        <text x="23" y="60" text-anchor="middle" class="sd-dimtxt">38,1 mm</text>
+      </g>
+      <!-- caption -->
+      <text x="320" y="24" text-anchor="middle" class="sd-txt" font-weight="bold" font-size="12">Çekme Şerit Numunesi — Dikdörtgen, tam cidar (API 5L 10.2.3.2.1)</text>
+      <text x="320" y="44" text-anchor="middle" class="sd-txt" fill="#64748b" font-size="10">ISO 6892-1 / ASTM A370 — genişlik 38,1 mm x t (et kalınlığı); uzama 50 mm esası</text>
     </svg>`,
 
     // ------------------------------------------------------------------
-    // Tensile round-bar specimen (Table 21)
+    // Tensile round-bar specimen — API 5L 10.2.3.2.5 / Table 21 (6.4 / 8.9 / 12.7 mm)
     // ------------------------------------------------------------------
     tensile_round: () => `
-    <svg viewBox="0 0 640 220" xmlns="http://www.w3.org/2000/svg" class="w-full h-auto max-h-[220px]">
+    <svg viewBox="0 0 640 240" xmlns="http://www.w3.org/2000/svg" class="w-full h-auto max-h-[240px]">
       <style>
         .sd-line{stroke:#334155;stroke-width:1.5;fill:none}
         .sd-dim{stroke:#3b82f6;stroke-width:1;stroke-dasharray:3,3}
@@ -186,29 +198,48 @@ const SPECIMEN_DRAWINGS = {
           <path d="M0,0 L7,3 L0,6 Z" fill="#3b82f6"/>
         </marker>
       </defs>
-      <!-- Round bar: threaded ends + reduced gauge -->
-      <path d="M 40 80 L 130 80 L 145 70 L 210 70 L 210 110 L 145 110 L 130 120 L 40 120 Z"
-            fill="#e2e8f0" stroke="#334155" stroke-width="2"/>
-      <path d="M 210 70 L 290 70 L 290 110 L 210 110 Z" fill="#fef3c7" stroke="#334155" stroke-width="2"/>
-      <path d="M 290 70 L 360 70 L 360 110 L 290 110 Z" fill="#e2e8f0" stroke="#334155" stroke-width="2"/>
-      <path d="M 360 70 L 430 70 L 430 110 L 360 110 Z" fill="#fef3c7" stroke="#334155" stroke-width="2"/>
-      <path d="M 430 70 L 510 70 L 525 80 L 600 80 L 600 120 L 525 120 L 510 110 L 430 110 Z"
-            fill="#e2e8f0" stroke="#334155" stroke-width="2"/>
-      <!-- gauge length -->
-      <line x1="210" y1="130" x2="290" y2="130" class="sd-dim"/>
-      <text x="250" y="150" text-anchor="middle" class="sd-dimtxt">L0 (mastar)</text>
-      <!-- diameter dimension -->
-      <line x1="320" y1="66" x2="330" y2="66" class="sd-dim"/>
-      <line x1="330" y1="66" x2="330" y2="44" class="sd-dim"/>
-      <line x1="332" y1="44" x2="352" y2="44" class="sd-dim" marker-start="url(#sd-arr4)" marker-end="url(#sd-arr4)"/>
-      <line x1="352" y1="44" x2="352" y2="70" class="sd-dim"/>
-      <text x="385" y="47" class="sd-dimtxt">d (Table 21: 8,9 / 12,7 mm)</text>
+
+      <!-- Left threaded grip -->
+      <rect x="40" y="70" width="110" height="60" fill="#e2e8f0" stroke="#334155" stroke-width="2"/>
+      <!-- left shoulder -->
+      <path d="M 150 70 L 172 85 L 172 115 L 150 130 Z" fill="#cbd5e1" stroke="#334155" stroke-width="2"/>
+      <!-- gauge (single reduced cylinder) -->
+      <rect x="172" y="85" width="156" height="30" fill="#fef3c7" stroke="#b45309" stroke-width="2"/>
+      <!-- right shoulder -->
+      <path d="M 328 85 L 350 70 L 350 130 L 328 115 Z" fill="#cbd5e1" stroke="#334155" stroke-width="2"/>
+      <!-- right threaded grip -->
+      <rect x="350" y="70" width="210" height="60" fill="#e2e8f0" stroke="#334155" stroke-width="2"/>
+
+      <!-- thread ticks -->
+      <g stroke="#64748b" stroke-width="1.5">
+        <line x1="58" y1="72" x2="58" y2="128"/><line x1="74" y1="72" x2="74" y2="128"/>
+        <line x1="90" y1="72" x2="90" y2="128"/><line x1="106" y1="72" x2="106" y2="128"/>
+        <line x1="122" y1="72" x2="122" y2="128"/><line x1="138" y1="72" x2="138" y2="128"/>
+        <line x1="372" y1="72" x2="372" y2="128"/><line x1="392" y1="72" x2="392" y2="128"/>
+        <line x1="412" y1="72" x2="412" y2="128"/><line x1="432" y1="72" x2="432" y2="128"/>
+        <line x1="452" y1="72" x2="452" y2="128"/><line x1="472" y1="72" x2="472" y2="128"/>
+        <line x1="492" y1="72" x2="492" y2="128"/><line x1="512" y1="72" x2="512" y2="128"/>
+        <line x1="532" y1="72" x2="532" y2="128"/><line x1="552" y1="72" x2="552" y2="128"/>
+      </g>
+
+      <!-- gauge diameter dimension -->
+      <line x1="250" y1="85" x2="250" y2="82" class="sd-dim"/>
+      <line x1="248" y1="82" x2="252" y2="82" class="sd-dim"/>
+      <line x1="252" y1="82" x2="272" y2="82" class="sd-dim" marker-end="url(#sd-arr4)"/>
+      <text x="280" y="79" class="sd-dimtxt">d = 6,4 / 8,9 / 12,7 mm (Çizelge 21)</text>
+
+      <!-- gauge length dimension -->
+      <line x1="172" y1="158" x2="328" y2="158" class="sd-dim" marker-start="url(#sd-arr4)" marker-end="url(#sd-arr4)"/>
+      <text x="250" y="176" text-anchor="middle" class="sd-dimtxt">Mastar Boyu L0 = 50 mm</text>
+
       <!-- labels -->
-      <text x="320" y="24" text-anchor="middle" class="sd-txt" font-weight="bold" font-size="12">Yuvarlak Çubuk Çekme Numunesi (API 5L Table 21)</text>
-      <text x="110" y="106" text-anchor="middle" class="sd-lbl" fill="#475569">Dişli uç</text>
-      <text x="250" y="94" text-anchor="middle" class="sd-lbl" fill="#b45309">Mastar</text>
-      <text x="325" y="94" text-anchor="middle" class="sd-lbl" fill="#b45309">Mastar</text>
-      <text x="475" y="106" text-anchor="middle" class="sd-lbl" fill="#475569">Dişli uç</text>
+      <text x="95" y="100" text-anchor="middle" class="sd-lbl" fill="#475569">Dişli uç</text>
+      <text x="250" y="132" text-anchor="middle" class="sd-lbl" fill="#b45309">Mastar (gauge)</text>
+      <text x="505" y="100" text-anchor="middle" class="sd-lbl" fill="#475569">Dişli uç</text>
+
+      <!-- caption -->
+      <text x="320" y="26" text-anchor="middle" class="sd-txt" font-weight="bold" font-size="12">Yuvarlak Çubuk Çekme Numunesi (API 5L 10.2.3.2.5 / Tablo 21)</text>
+      <text x="320" y="46" text-anchor="middle" class="sd-txt" fill="#64748b" font-size="10">ISO 6892-1 / ASTM A370 — çap Tablo 21'e göre; uzama 50 mm esası</text>
     </svg>`,
 
     // ------------------------------------------------------------------
@@ -246,7 +277,7 @@ const SPECIMEN_DRAWINGS = {
         <line x1="170" y1="150" x2="205" y2="132" class="sd-dim"/>
         <text x="212" y="128" class="sd-dimtxt">ra</text>
       </g>
-      <text x="320" y="24" text-anchor="middle" class="sd-txt" font-weight="bold" font-size="12">Kılavuzlu Bükme Testi (API 5L 9.5 / ISO 5173)</text>
+      <text x="320" y="24" text-anchor="middle" class="sd-txt" font-weight="bold" font-size="12">Kılavuzlu Bükme Testi (API 5L 9.7 / ISO 5173)</text>
       <text x="320" y="48" text-anchor="middle" class="sd-txt" fill="#64748b" font-size="10">Kök bükme: kaynak dış (gerilme) yüzeyde • Kapak bükme: kaynak iç yüzeyde</text>
     </svg>`,
 
@@ -313,7 +344,7 @@ const SPECIMEN_DRAWINGS = {
         <text x="521" y="110" class="sd-dimtxt">t (tam cidar)</text>
         <text x="250" y="210" text-anchor="middle" class="sd-txt" fill="#64748b" font-size="10">Kırılma yüzeyi sünek alan oranı değerlendirilir</text>
       </g>
-      <text x="340" y="26" text-anchor="middle" class="sd-txt" font-weight="bold" font-size="12">DWTT Numunesi (API 5L 9.8)</text>
+      <text x="340" y="26" text-anchor="middle" class="sd-txt" font-weight="bold" font-size="12">DWTT Numunesi (API 5L 9.9)</text>
     </svg>`,
 
     // ------------------------------------------------------------------

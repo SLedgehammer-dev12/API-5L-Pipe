@@ -113,17 +113,26 @@ class ExcelExporter:
             row_remarks_map[current_r] = remark
             current_r += 1
 
-        # 2. Chemical Analysis Block (C, Mn, P, S, Nb, V, Ti, N)
+        # 2. Chemical Analysis Block (C, Mn, P, S, Nb, V, Ti, N, CE IIW, CE Pcm)
+        def _fmt(v, dec):
+            if v is None or v == "":
+                return "—"
+            if isinstance(v, (int, float)):
+                return f"{v:.{dec}f}"
+            return str(v)
+
         chem_start_r = current_r
         chem_items = [
-            ("C", "Max %", lambda p: f"{p['chemical_analysis']['C_max']:.2f}"),
-            ("Mn", "Max %", lambda p: f"{p['chemical_analysis']['Mn_max']:.2f}"),
-            ("P", "Max %", lambda p: f"{p['chemical_analysis']['P_max']:.3f}"),
-            ("S", "Max %", lambda p: f"{p['chemical_analysis']['S_max']:.3f}"),
-            ("Nb", "Min%-Max%", lambda p: str(p['chemical_analysis']['Nb_min_max'])),
-            ("V", "Max %", lambda p: f"{p['chemical_analysis']['V_max']:.2f}"),
-            ("Ti", "Max %", lambda p: f"{p['chemical_analysis']['Ti_max']:.2f}"),
-            ("N", "Max %", lambda p: f"{p['chemical_analysis']['N_max']:.3f}")
+            ("C", "Max %", lambda p: _fmt(p['chemical_analysis'].get('C_max'), 2)),
+            ("Mn", "Max %", lambda p: _fmt(p['chemical_analysis'].get('Mn_max'), 2)),
+            ("P", "Max %", lambda p: _fmt(p['chemical_analysis'].get('P_max'), 3)),
+            ("S", "Max %", lambda p: _fmt(p['chemical_analysis'].get('S_max'), 3)),
+            ("Nb", "Min%-Max%", lambda p: str(p['chemical_analysis'].get('Nb_min_max')) if p['chemical_analysis'].get('Nb_min_max') else "—"),
+            ("V", "Max %", lambda p: _fmt(p['chemical_analysis'].get('V_max'), 2)),
+            ("Ti", "Max %", lambda p: _fmt(p['chemical_analysis'].get('Ti_max'), 2)),
+            ("N", "Max %", lambda p: _fmt(p['chemical_analysis'].get('N_max'), 3)),
+            ("CE (IIW)", "Max", lambda p: _fmt(p['chemical_analysis'].get('CE_IIW_max'), 2)),
+            ("CE (Pcm)", "Max", lambda p: _fmt(p['chemical_analysis'].get('CE_Pcm_max'), 2))
         ]
 
         for elem, limit_type, ext in chem_items:

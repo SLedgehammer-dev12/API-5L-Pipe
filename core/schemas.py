@@ -9,9 +9,10 @@ from typing import List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from core.database import API_5L_SMYS_TABLE
+from core.database import API_5L_PSL1_SMYS_TABLE, API_5L_SMYS_TABLE
 
-KNOWN_GRADES = set(API_5L_SMYS_TABLE.keys())
+KNOWN_GRADES = set(API_5L_SMYS_TABLE.keys()) | set(API_5L_PSL1_SMYS_TABLE.keys())
+KNOWN_DELIVERIES = {"R", "N", "Q", "M"}
 
 # Manufacturing processes recognized by the engine (case-insensitive match).
 KNOWN_PROCESSES = {
@@ -34,6 +35,28 @@ class PipeInput(BaseModel):
     manufacturing_process: str = "SAWH"
     standard_type: str = "BOTAŞ"
     design_pressure_bar: Optional[float] = None
+    psl_level: Optional[str] = "PSL2"
+    delivery_condition: Optional[str] = "M"
+
+    @field_validator("psl_level")
+    @classmethod
+    def _check_psl(cls, v):
+        if v is None or str(v).strip() == "":
+            return v
+        s = str(v).upper().strip()
+        if s not in ("PSL1", "PSL2"):
+            raise ValueError("psl_level must be 'PSL1' or 'PSL2'")
+        return s
+
+    @field_validator("delivery_condition")
+    @classmethod
+    def _check_delivery(cls, v):
+        if v is None or str(v).strip() == "":
+            return v
+        s = str(v).upper().strip()
+        if s not in KNOWN_DELIVERIES:
+            raise ValueError(f"delivery_condition must be one of {sorted(KNOWN_DELIVERIES)}")
+        return s
 
     @field_validator("material_grade")
     @classmethod

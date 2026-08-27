@@ -171,29 +171,31 @@ class TestPipeQAQCSuite(unittest.TestCase):
         self.assertEqual(res_b313['calculation_results']['t_required_asme_b31_8_mm'], 2.44)
         self.assertEqual(res_b313['calculation_results']['selected_nominal_thickness_asme_b36_10_mm'], 3.05)
 
-        # 3. ASME B31.8 Pipeline: 24" X70 F=0.60 P=80 bar with SAWH (-%8.0 tol)
+        # 3. ASME B31.8 Pipeline: 24" X70 F=0.60 P=80 bar with SAWH (Table 11 welded: 5<t<15 -> -10%)
         res_b318_sawh = WallThicknessEngine.calculate_wall_thickness(
             '24"', 'X70', design_pressure_bar=80.0, design_factor_f=0.60,
             standard_code='ASME B31.8 / ASME B31.4', manufacturing_process='SAWH'
         )
         self.assertGreater(res_b318_sawh['calculation_results']['t_required_asme_b31_8_mm'], 0)
-        self.assertEqual(res_b318_sawh['calculation_results']['tolerance_percent_used'], 8.0)
+        self.assertEqual(res_b318_sawh['calculation_results']['tolerance_percent_used'], 10.0)
 
-        # 4. ASME B31.8 Pipeline: 8" X46 F=0.72 P=75 bar with ERW (-%10.0 tol)
+        # 4. ASME B31.8 Pipeline: 8" X46 F=0.72 P=75 bar with ERW (Table 11 welded: t<=5 -> -0.5 mm)
         res_b318_erw = WallThicknessEngine.calculate_wall_thickness(
             '8"', 'X46', design_pressure_bar=75.0, design_factor_f=0.72,
             standard_code='ASME B31.8 / ASME B31.4', manufacturing_process='ERW HFW'
         )
-        self.assertEqual(res_b318_erw['calculation_results']['tolerance_percent_used'], 10.0)
+        # t_req = 7.5*219.1/(2*320*0.72) = 3.57 mm <= 5.0 -> -0.5 mm -> 14.02 %
+        self.assertAlmostEqual(res_b318_erw['calculation_results']['tolerance_percent_used'], 14.02, delta=0.01)
         self.assertEqual(res_b318_erw['input_parameters']['material_grade'], 'X46')
         self.assertEqual(res_b318_erw['input_parameters']['smys_mpa'], 320.0)
 
-        # 5. ASME B31.8 Pipeline: 4" Grade B with SMLS (-%12.5 tol)
+        # 5. ASME B31.8 Pipeline: 4" Grade B with SMLS (Table 11 SMLS: t<=4 -> -0.5 mm)
         res_b318_smls = WallThicknessEngine.calculate_wall_thickness(
             '4"', 'GRADE B', design_pressure_bar=75.0, design_factor_f=0.50,
             standard_code='ASME B31.8 / ASME B31.4', manufacturing_process='SMLS'
         )
-        self.assertEqual(res_b318_smls['calculation_results']['tolerance_percent_used'], 12.5)
+        # t_req = 7.5*114.3/(2*245*0.5) = 3.50 mm <= 4.0 -> -0.5 mm -> 14.29 %
+        self.assertAlmostEqual(res_b318_smls['calculation_results']['tolerance_percent_used'], 14.29, delta=0.01)
 
         # 6. ASME B31.3: 24" X65 P=75 bar (610.0 mm OD) with custom 10% tolerance
         res_b313_24_custom = WallThicknessEngine.calculate_wall_thickness(
@@ -343,21 +345,33 @@ class TestPipeQAQCSuite(unittest.TestCase):
         self.assertEqual(a['weld_and_geometry']['misalignment_max_mm'], 3.0)
 
     def test_18_api5l_diameter_ovality_table10(self):
-        """API 5L Table 10 diameter & out-of-roundness computed from formula."""
+        """API 5L Table 10 (47th Ed.) diameter & out-of-roundness with welded-pipe caps."""
         from core.database import compute_api5l_tolerances
-        tol = compute_api5l_tolerances(457.0, 16.66)
-        # body = ±0.0075D -> 453.57 / 460.43
-        self.assertAlmostEqual(tol['body_min'], 457 * 0.9925, delta=0.01)
-        self.assertAlmostEqual(tol['body_max'], 457 * 1.0075, delta=0.01)
+        # 18" welded: body = ±0.0075D but max ±3.2 -> 460.2 / 453.8
+        tol = compute_api5l_tolerances(457.0, 16.66, 'SAWH')
+        self.assertAlmostEqual(tol['body_max'], 460.2, delta=0.01)
+        self.assertAlmostEqual(tol['body_min'], 453.8, delta=0.01)
         # ovality end = 0.015D = 6.855 ; body = 0.020D = 9.14
         self.assertAlmostEqual(tol['ovality_end'], 0.015 * 457, delta=0.01)
         self.assertAlmostEqual(tol['ovality_body'], 0.020 * 457, delta=0.01)
+        # 48" welded: body = ±0.005D max 4.0 -> 1223.0 / 1215.0 (NOT ±0.01D)
+        tol48 = compute_api5l_tolerances(1219.0, 14.3, 'SAWH')
+        self.assertAlmostEqual(tol48['body_max'], 1223.0, delta=0.01)
+        self.assertAlmostEqual(tol48['body_min'], 1215.0, delta=0.01)
+        # 48" SMLS: body = ±0.01D -> 1231.19 / 1206.81
+        tol48s = compute_api5l_tolerances(1219.0, 14.3, 'SMLS')
+        self.assertAlmostEqual(tol48s['body_max'], 1219 * 1.01, delta=0.01)
+        self.assertAlmostEqual(tol48s['body_min'], 1219 * 0.99, delta=0.01)
 
     def test_19_hydrostatic_factor_no_smys_condition(self):
-        """18in X65 (D<508) must use 0.85 factor regardless of SMYS (Excel formula)."""
+        """Table 26 (47th Ed.): 18in X65 (D<508) standard test = 0.85, capped at 20.5 MPa (205 bar)."""
         a = PipeQAQCEngine.calculate_pipe_qc('18"', wall_thickness_mm=16.66, manufacturing_process='SAWH', material_grade='X65', standard_type='API 5L')
-        expected = a['hydrostatic_test']['hydro_test_max_bar'] * 0.85
+        expected = min(a['hydrostatic_test']['hydro_test_max_bar'] * 0.85, 205.0)
         self.assertAlmostEqual(a['hydrostatic_test']['api_5l_std_test_bar'], expected, delta=0.01)
+        # 4" X42 (D <= 141.3) -> 0.60 factor per Table 26
+        x42 = PipeQAQCEngine.calculate_pipe_qc('4"', wall_thickness_mm=6.02, manufacturing_process='SAWH', material_grade='X42', standard_type='API 5L')
+        self.assertAlmostEqual(x42['hydrostatic_test']['api_5l_std_test_bar'],
+                               min(x42['hydrostatic_test']['hydro_test_max_bar'] * 0.60, 205.0), delta=0.01)
 
     def test_20_pydantic_input_validation(self):
         """Malformed inputs must be rejected with 422 instead of crashing (Pydantic)."""
@@ -373,6 +387,95 @@ class TestPipeQAQCSuite(unittest.TestCase):
         # Valid API 5L pipe accepted
         r4 = self.client.post('/api/calculate', json={'pipes': [{'diameter_inch': '48"', 'material_grade': 'X65', 'wall_thickness_mm': 14.3, 'standard_type': 'API 5L'}]})
         self.assertEqual(r4.status_code, 200)
+        # Invalid delivery condition rejected
+        r5 = self.client.post('/api/calculate', json={'pipes': [{'diameter_inch': '48"', 'material_grade': 'X65', 'standard_type': 'API 5L', 'delivery_condition': 'X'}]})
+        self.assertEqual(r5.status_code, 422)
+
+    def test_21_psl1_preset_and_psl1_rules(self):
+        """PSL 1 pipes: no CVN / Y-T / CE; Table 4 & 6 values; no SAW."""
+        preset = ProjectManager.get_10_api_5l_psl1_pipes_preset()
+        self.assertEqual(len(preset['pipes']), 10)
+        for p in preset['pipes']:
+            self.assertNotIn('SAWH', p['manufacturing_process'])
+            res = PipeQAQCEngine.calculate_pipe_qc(
+                diameter_inch=p['diameter_inch'], wall_thickness_mm=p['wall_thickness_mm'],
+                material_grade=p['material_grade'], manufacturing_process=p['manufacturing_process'],
+                standard_type='API 5L', psl_level='PSL1')
+            # PSL 1: no CE, no Y/T max, no CVN
+            self.assertIsNone(res['chemical_analysis']['CE_IIW_max'])
+            self.assertEqual(res['mechanical_properties']['yield_to_tensile_ratio_max'], 0.0)
+            self.assertFalse(res['toughness_and_tests']['cvn_required'])
+            self.assertEqual(res['toughness_and_tests']['dwtt_test'], 'TEST YOK (PSL1)')
+            # X70 welded PSL1: C 0.26, Mn 1.65 (Table 4)
+        x70 = PipeQAQCEngine.calculate_pipe_qc('36"', wall_thickness_mm=17.48, material_grade='X70',
+                                               manufacturing_process='SMLS', standard_type='API 5L', psl_level='PSL1')
+        self.assertAlmostEqual(x70['chemical_analysis']['C_max'], 0.28, delta=0.001)  # seamless
+        self.assertAlmostEqual(x70['mechanical_properties']['yield_min_mpa'], 485.0, delta=0.01)
+        self.assertAlmostEqual(x70['mechanical_properties']['tensile_min_mpa'], 570.0, delta=0.01)
+
+    def test_22_psl2_delivery_chemistry_table5(self):
+        """Table 5 (47th Ed.) chemistry depends on delivery condition (R/N/Q/M)."""
+        n = PipeQAQCEngine.calculate_pipe_qc('12"', wall_thickness_mm=9.53, material_grade='X52',
+                                             manufacturing_process='SMLS', standard_type='API 5L',
+                                             psl_level='PSL2', delivery_condition='N')
+        m = PipeQAQCEngine.calculate_pipe_qc('12"', wall_thickness_mm=9.53, material_grade='X52',
+                                             manufacturing_process='ERW HFW', standard_type='API 5L',
+                                             psl_level='PSL2', delivery_condition='M')
+        q = PipeQAQCEngine.calculate_pipe_qc('12"', wall_thickness_mm=9.53, material_grade='X52',
+                                             manufacturing_process='SMLS', standard_type='API 5L',
+                                             psl_level='PSL2', delivery_condition='Q')
+        self.assertAlmostEqual(n['chemical_analysis']['C_max'], 0.24, delta=0.001)
+        self.assertAlmostEqual(m['chemical_analysis']['C_max'], 0.22, delta=0.001)
+        self.assertAlmostEqual(q['chemical_analysis']['C_max'], 0.18, delta=0.001)
+        # X65 M: C 0.12, Mn 1.60, CE 0.43/0.25
+        x65m = PipeQAQCEngine.calculate_pipe_qc('48"', wall_thickness_mm=14.3, material_grade='X65',
+                                                manufacturing_process='SAWH', standard_type='API 5L',
+                                                psl_level='PSL2', delivery_condition='M')
+        self.assertAlmostEqual(x65m['chemical_analysis']['C_max'], 0.12, delta=0.001)
+        self.assertAlmostEqual(x65m['chemical_analysis']['Mn_max'], 1.60, delta=0.001)
+        self.assertAlmostEqual(x65m['chemical_analysis']['CE_IIW_max'], 0.43, delta=0.001)
+        # Y/T ratio = 0.93 for PSL2 (Table 7)
+        self.assertAlmostEqual(x65m['mechanical_properties']['yield_to_tensile_ratio_max'], 0.93, delta=0.001)
+
+    def test_23_chemistry_as_agreed_t_gt_25(self):
+        """t > 25.0 mm -> chemistry 'as agreed' (API 5L 9.2.3)."""
+        res = PipeQAQCEngine.calculate_pipe_qc('48"', wall_thickness_mm=30.0, material_grade='X65',
+                                               manufacturing_process='SAWH', standard_type='API 5L',
+                                               psl_level='PSL2', delivery_condition='M')
+        self.assertTrue(res['chemical_analysis']['as_agreed'])
+        self.assertIsNone(res['chemical_analysis']['C_max'])
+        # PSL2 SMLS t > 20 mm -> CE as agreed (Table 5 footnote a)
+        res2 = PipeQAQCEngine.calculate_pipe_qc('24"', wall_thickness_mm=22.0, material_grade='X65',
+                                                manufacturing_process='SMLS', standard_type='API 5L',
+                                                psl_level='PSL2', delivery_condition='Q')
+        self.assertFalse(res2['chemical_analysis']['as_agreed'])
+        self.assertIsNone(res2['chemical_analysis']['CE_IIW_max'])
+
+    def test_24_carbon_equivalent_calculation(self):
+        """CE_IIW and CE_Pcm formulas (API 5L 47th Ed. Eq. 2/3)."""
+        from core.database import compute_ce_iww, compute_ce_pcm
+        a = {'C': 0.10, 'Si': 0.25, 'Mn': 1.45, 'Cr': 0.05, 'Mo': 0.02, 'V': 0.03,
+             'Ni': 0.05, 'Cu': 0.05, 'B': 0.0003}
+        # CE_Pcm = 0.10 + 0.25/30 + (1.45+0.05+0.05)/20 + 0.05/60 + 0.02/15 + 0.03/10 + 5*0.0003
+        expected_pcm = (0.10 + 0.25/30 + (1.45+0.05+0.05)/20 + 0.05/60 + 0.02/15 + 0.03/10 + 5*0.0003)
+        self.assertAlmostEqual(compute_ce_pcm(a), expected_pcm, delta=1e-9)
+        # CE_IIW = C + Mn/6 + (Cr+Mo+V)/5 + (Ni+Cu)/15
+        expected_iww = 0.10 + 1.45/6 + (0.05+0.02+0.03)/5 + (0.05+0.05)/15
+        self.assertAlmostEqual(compute_ce_iww(a), expected_iww, delta=1e-9)
+
+    def test_25_psl1_verification_skips_cvn_yt_ce(self):
+        """Verification for PSL 1 must not emit CVN / Y-T / CE checks."""
+        from core.verification_engine import PipeVerificationEngine
+        cfg = {'diameter_inch': '48"', 'diameter_mm': 1219.0, 'wall_thickness_mm': 14.3,
+               'material_grade': 'X65', 'manufacturing_process': 'SAWH', 'standard_type': 'API 5L',
+               'psl_level': 'PSL1'}
+        data = {'C': 0.10, 'Mn': 1.45, 'yield_strength_actual': 480.0, 'tensile_strength_actual': 560.0,
+                'cvn_mat_actual': 45.0, 'cvn_weld_actual': 30.0}
+        ver = PipeVerificationEngine.verify_pipe_test_results(cfg, data)
+        names = [c['parameter'] for c in ver['checks']]
+        self.assertNotIn('Akma/Çekme Oranı (Y/T)', names)
+        self.assertNotIn('Çentik Darbe - Gövde (CVN J)', names)
+        self.assertNotIn('Karbon Eşdeğeri (CE IIW)', names)
 
 if __name__ == '__main__':
     unittest.main()
