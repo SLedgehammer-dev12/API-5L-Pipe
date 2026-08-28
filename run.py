@@ -16,6 +16,16 @@ import logging
 # 1. Critical: Freeze support for PyInstaller multiprocessing on Windows & macOS
 multiprocessing.freeze_support()
 
+# Use the operating system trust store (Windows cert store / macOS keychain) in addition
+# to certifi roots. Resolves "self-signed certificate in certificate chain" failures
+# caused by corporate TLS-inspecting proxies / antivirus web protection on Windows.
+# Guarded: a missing truststore must never break the app.
+try:
+    import truststore
+    truststore.inject_into_ssl()
+except Exception:
+    pass
+
 # 2. Critical: Ensure stdout and stderr exist even in --windowed / --noconsole GUI mode
 class DummyWriter:
     def write(self, s):

@@ -14,6 +14,86 @@ def _subsize_cvn_factor(d_mm: float, t_mm: float) -> float:
     return get_cvn_specimen_size(d_mm, t_mm)["width_ratio"]
 
 
+def applicable_parameter_keys(limits: Dict[str, Any]) -> List[str]:
+    """
+    Returns the list of parameters that ARE applicable for this pipe configuration
+    (independent of whether actual measurement data was entered). Used to show the
+    total parameter count in the verification summary (e.g. "12 / 31 Parametre Uygun").
+    """
+    inp = limits.get("input_summary", {})
+    chem = limits.get("chemical_analysis", {})
+    mech = limits.get("mechanical_properties", {})
+    dim = limits.get("dimensional_tolerances", {})
+    weld = limits.get("weld_and_geometry", {})
+    tough = limits.get("toughness_and_tests", {})
+
+    is_psl1 = inp.get("psl_level") and "PSL1" in str(inp.get("psl_level")).upper()
+    std = str(inp.get("standard_type", "")).upper()
+    is_api = "API" in std
+    d = float(inp.get("diameter_mm", 1219.0))
+    proc = str(inp.get("manufacturing_process", "")).upper()
+    is_saw = any(k in proc for k in ("SAW", "COW"))
+    yt_max = mech.get("yield_to_tensile_ratio_max", 0)
+
+    keys: List[str] = []
+
+    def _num(dct, k):
+        return isinstance(dct.get(k), (int, float))
+
+    # --- Chemistry (skipped entirely when 'as agreed' for t > 25.0 mm) ---
+    if not chem.get("as_agreed"):
+        for k, key in (("C_max", "C"), ("Mn_max", "Mn"), ("P_max", "P"), ("S_max", "S"),
+                       ("Nb_max", "Nb"), ("V_max", "V"), ("Ti_max", "Ti"), ("N_max", "N")):
+            if _num(chem, k):
+                keys.append(key)
+        if chem.get("nb_v_ti_combined_max"):
+            keys.append("nb_v_ti_combined")
+        if chem.get("nb_v_combined_max"):
+            keys.append("nb_v_combined")
+        if _num(chem, "CE_IIW_max") or _num(chem, "CE_Pcm_max"):
+            keys.append("CE")
+
+    # --- Dimensions ---
+    keys += ["wall_thickness", "diameter_end", "diameter_body"]
+    if _num(dim, "ovality_end_mm"):
+        keys.append("ovality_end")
+    if _num(dim, "ovality_body_mm"):
+        keys.append("ovality_body")
+    if _num(dim, "pipe_end_peaking_max_mm") and is_saw:
+        keys.append("peaking")
+    keys.append("squareness")
+
+    # --- Mechanical ---
+    keys += ["yield", "tensile"]
+    if (not is_psl1) and yt_max > 0 and (not is_api or d > 323.9):
+        keys.append("yt_ratio")
+    keys.append("elongation")
+
+    # --- Toughness & special tests ---
+    if tough.get("cvn_required"):
+        if _num(tough, "notch_impact_mat_j"):
+            keys.append("cvn_mat")
+        if _num(tough, "notch_impact_weld_j"):
+            keys.append("cvn_weld")
+    if _num(tough, "residual_stress_max_mm") and is_saw:
+        keys.append("residual_stress")
+    keys.append("hardness")
+
+    # --- Weld geometry (SAW/COW only) ---
+    if is_saw:
+        for k, key in (("radial_offset_max_mm", "radial_offset"),
+                       ("weld_height_inside_mm", "weld_height_inside"),
+                       ("weld_height_outside_mm", "weld_height_outside"),
+                       ("misalignment_max_mm", "misalignment")):
+            if _num(weld, k):
+                keys.append(key)
+
+    # --- Weight & hydrostatic ---
+    keys += ["weight", "hydro"]
+
+    return keys
+
+
 class PipeVerificationEngine:
     @staticmethod
     def verify_pipe_test_results(
@@ -335,6 +415,8 @@ class PipeVerificationEngine:
         # Summary
         passed_count = sum(1 for c in checks if c['status'] == 'PASS')
         failed_count = sum(1 for c in checks if c['status'] == 'FAIL')
+        total_applicable = len(applicable_parameter_keys(limits))
+        unchecked_count = max(0, total_applicable - len(checks))
 
         return {
             'overall_status': 'ACCEPTED' if is_all_passed else 'REJECTED',
@@ -342,6 +424,8 @@ class PipeVerificationEngine:
             'checks_count': len(checks),
             'passed_count': passed_count,
             'failed_count': failed_count,
+            'total_applicable': total_applicable,
+            'unchecked_count': unchecked_count,
             'checks': checks,
             'pipe_summary': limits['input_summary']
         }

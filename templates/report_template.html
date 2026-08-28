@@ -279,7 +279,7 @@
             <span class="font-bold {{ 'text-emerald-700' if verification.overall_status == 'ACCEPTED' else 'text-red-700' }}">
                 Genel Karar: {{ verification.overall_badge }}
             </span>
-            <span class="text-slate-600">{{ verification.passed_count }} / {{ verification.checks_count }} Parametre Uygun</span>
+            <span class="text-slate-600">{{ verification.passed_count }} / {{ verification.total_applicable }} Parametre Uygun (Kontrol edilen: {{ verification.checks_count }})</span>
         </div>
         <table class="matrix-table text-xs border-2 border-slate-900">
             <thead>

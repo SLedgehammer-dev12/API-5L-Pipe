@@ -243,43 +243,22 @@ const SPECIMEN_DRAWINGS = {
     </svg>`,
 
     // ------------------------------------------------------------------
-    // Guided-bend test (root & cap) — mandrel + die
+    // Guided-bend test — API 5L Şekil 9 (test aparatları) + Şekil 8 (numune parçaları)
+    // Orijinal standard şekilleri static/img altından çevrimdışı gösterilir.
     // ------------------------------------------------------------------
     guided_bend: () => `
-    <svg viewBox="0 0 640 260" xmlns="http://www.w3.org/2000/svg" class="w-full h-auto max-h-[260px]">
-      <style>
-        .sd-line{stroke:#334155;stroke-width:1.5;fill:none}
-        .sd-dim{stroke:#3b82f6;stroke-width:1;stroke-dasharray:3,3}
-        .sd-txt{font-family:'JetBrains Mono',monospace;font-size:11px;fill:#0f172a}
-        .sd-lbl{font-family:'Inter',sans-serif;font-size:10.5px;font-weight:600;fill:#1e3a8a}
-        .sd-dimtxt{font-family:'JetBrains Mono',monospace;font-size:10px;fill:#2563eb}
-      </style>
-      <g transform="translate(40,30)">
-        <!-- die rollers -->
-        <circle cx="80" cy="170" r="34" fill="#cbd5e1" stroke="#334155" stroke-width="2"/>
-        <circle cx="300" cy="170" r="34" fill="#cbd5e1" stroke="#334155" stroke-width="2"/>
-        <circle cx="80" cy="170" r="6" fill="#475569"/>
-        <circle cx="300" cy="170" r="6" fill="#475569"/>
-        <!-- mandrel -->
-        <circle cx="170" cy="150" r="36" fill="#fbbf24" stroke="#b45309" stroke-width="2.5"/>
-        <circle cx="170" cy="150" r="8" fill="#92400e"/>
-        <!-- bent specimen wrapped around mandrel -->
-        <path d="M 46 172 A 34 34 0 0 1 108 148 L 170 120 L 210 130 L 252 148 A 34 34 0 0 1 314 172"
-              fill="none" stroke="#ef4444" stroke-width="9" stroke-linecap="round"/>
-        <!-- weld position marks -->
-        <rect x="164" y="112" width="12" height="14" fill="#b91c1c"/>
-        <text x="170" y="104" text-anchor="middle" class="sd-lbl" fill="#b91c1c">Kaynak (kök/kapak)</text>
-        <!-- labels -->
-        <text x="170" y="230" text-anchor="middle" class="sd-lbl">Mandrel Çapı (ra)</text>
-        <text x="80" y="225" text-anchor="middle" class="sd-lbl" fill="#475569">Çene / Kalıp</text>
-        <text x="300" y="225" text-anchor="middle" class="sd-lbl" fill="#475569">Çene / Kalıp</text>
-        <!-- mandrel radius dim -->
-        <line x1="170" y1="150" x2="205" y2="132" class="sd-dim"/>
-        <text x="212" y="128" class="sd-dimtxt">ra</text>
-      </g>
-      <text x="320" y="24" text-anchor="middle" class="sd-txt" font-weight="bold" font-size="12">Kılavuzlu Bükme Testi (API 5L 9.7 / ISO 5173)</text>
-      <text x="320" y="48" text-anchor="middle" class="sd-txt" fill="#64748b" font-size="10">Kök bükme: kaynak dış (gerilme) yüzeyde • Kapak bükme: kaynak iç yüzeyde</text>
-    </svg>`,
+    <div class="space-y-3">
+      <div class="border border-slate-200 rounded bg-white p-2">
+        <div class="text-[11px] font-bold text-slate-700 mb-1">API 5L Şekil 9 — Kılavuzlu Bükme Test Aparatları (plunger tip)</div>
+        <img src="/static/img/fig9_guided_bend_jigs.png" alt="API 5L Şekil 9 — Jigs for Guided-bend Test" class="w-full h-auto" />
+        <div class="text-[10px] text-slate-500 mt-1">B = Agb + 2t + 3,2 mm • ra: mandrel yarıçapı • rb: kalıp yarıçapı (API 5L 10.2.4.6.2 / ISO 5173, ASTM A370)</div>
+      </div>
+      <div class="border border-slate-200 rounded bg-white p-2">
+        <div class="text-[11px] font-bold text-slate-700 mb-1">API 5L Şekil 8 — Kılavuzlu Bükme Numune Parçaları (kök/kapak bükme)</div>
+        <img src="/static/img/fig8_guided_bend_pieces.png" alt="API 5L Şekil 8 — Guided-bend Test Pieces" class="w-full h-auto" />
+        <div class="text-[10px] text-slate-500 mt-1">a) SAW/COW • b) LW (D ≥ 323,9 mm) • c/d) indirgenmiş kalınlık (t &gt; 19,0 mm) — kök bükme: kaynak dış yüzeyde, kapak bükme: kaynak iç yüzeyde</div>
+      </div>
+    </div>`,
 
     // ------------------------------------------------------------------
     // Flattening test (ring between plates) — H distance

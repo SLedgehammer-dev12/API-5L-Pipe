@@ -60,6 +60,7 @@ pyinstaller \
     --collect-all anyio \
     --collect-all httpcore \
     --collect-all certifi \
+    --hidden-import truststore \
     --hidden-import "version" \
     run.py
 

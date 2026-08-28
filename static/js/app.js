@@ -419,7 +419,9 @@ function renderMatrixTable() {
     // SECTION 5: TOUGHNESS & SPECIAL FACTORY TESTS
     html += renderAccordionSectionHeader("sec-tests", "🔬 TOKLUK & ÖZEL FABRİKA KABUL TESTLERİ", "9");
     const testRows = [
-        { label: `Minimum Uzama - Malzeme (%)${noteBtn("elongation")}`, exp: getExp('elongation'), ext: p => `<span class="font-bold text-teal-800">${p.toughness_and_tests.elongation_mat_min_percent.toFixed(2)}%</span>` },
+        { label: `Minimum Uzama - Malzeme (%)${noteBtn("elongation")}`, exp: getExp('elongation'), ext: p => p.toughness_and_tests.tensile_dual_option
+            ? `Şerit: <span class="font-bold text-teal-800">${p.toughness_and_tests.elongation_strip_percent.toFixed(2)}%</span> | Yuvarlak: <span class="font-bold text-teal-800">${p.toughness_and_tests.elongation_round_percent.toFixed(2)}%</span>`
+            : `<span class="font-bold text-teal-800">${p.toughness_and_tests.elongation_mat_min_percent.toFixed(2)}%</span>` },
         { label: "Minimum Uzama - Kaynak (%)", exp: "Kaynak Dikişi Min. %10 Uzama", ext: p => `${typeof p.toughness_and_tests.elongation_weld_min_percent === 'number' ? p.toughness_and_tests.elongation_weld_min_percent.toFixed(2) : p.toughness_and_tests.elongation_weld_min_percent}%` },
         { label: `Çentik Darbe (J) - Malzeme / Kaynak${noteBtn("cvn_body")}`, exp: getExp('cvn'), ext: p => `Gövde: ${p.toughness_and_tests.notch_impact_mat_j} J | Kaynak: ${p.toughness_and_tests.notch_impact_weld_j} J` },
         { label: "Artık Gerilme Testi Max (mm)", exp: getExp('residual_stress'), ext: p => `${typeof p.toughness_and_tests.residual_stress_max_mm === 'number' ? p.toughness_and_tests.residual_stress_max_mm.toFixed(2) + ' mm' : p.toughness_and_tests.residual_stress_max_mm}` },
@@ -1064,8 +1066,14 @@ function renderVerificationResult(data) {
                     Genel Fabrika Kabul Kararı: ${data.overall_badge}
                 </h4>
                 <span class="text-xs font-semibold px-2.5 py-1 rounded ${data.overall_status === 'ACCEPTED' ? 'bg-emerald-200 text-emerald-900' : 'bg-red-200 text-red-900'}">
-                    ${data.passed_count} / ${data.checks_count} Parametre Uygun
+                    ${data.passed_count} / ${data.total_applicable} Parametre Uygun
                 </span>
+            </div>
+            <div class="text-[11px] text-slate-600 mb-3">
+                Kontrol edilen: <strong>${data.checks_count}</strong> &nbsp;•&nbsp; Uygun: <strong class="text-emerald-700">${data.passed_count}</strong>
+                &nbsp;•&nbsp; Red: <strong class="text-red-700">${data.failed_count}</strong>
+                &nbsp;•&nbsp; Bekleyen: <strong>${data.unchecked_count}</strong>
+                ${data.checks_count === 0 ? '<span class="text-amber-700 font-semibold">— Lütfen yukarıdaki forma ölçüm verisi girin.</span>' : ''}
             </div>
             <div class="flex items-center gap-2 mb-3">
                 <button onclick="generateOfficialReport()" class="bg-slate-800 hover:bg-slate-700 text-white font-bold px-3 py-1.5 rounded text-xs transition flex items-center">

@@ -252,6 +252,68 @@ class TestPipeQAQCSuite(unittest.TestCase):
         self.assertEqual(ver_res['overall_status'], 'ACCEPTED')
         self.assertGreaterEqual(ver_res['passed_count'], 20)
         self.assertEqual(ver_res['failed_count'], 0)
+        # Total applicable parameter count is exposed (fixes "0 / 0 Parametre Uygun").
+        self.assertGreater(ver_res['total_applicable'], 0)
+        self.assertEqual(ver_res['unchecked_count'],
+                         ver_res['total_applicable'] - ver_res['checks_count'])
+
+    def test_26_verification_total_applicable(self):
+        """Empty verification form -> 0 checks but a non-zero applicable parameter count."""
+        from core.verification_engine import PipeVerificationEngine
+        cfg = {'diameter_inch': '48"', 'diameter_mm': 1219.0, 'wall_thickness_mm': 14.3,
+               'material_grade': 'X65', 'manufacturing_process': 'SAWH', 'standard_type': 'BOTAŞ'}
+        # No measurement data entered -> no checks, but the total parameter count is still shown.
+        ver = PipeVerificationEngine.verify_pipe_test_results(cfg, {})
+        self.assertEqual(ver['checks_count'], 0)
+        self.assertGreater(ver['total_applicable'], 20)
+        self.assertEqual(ver['unchecked_count'], ver['total_applicable'])
+        # PSL1 skips CVN / Y-T / CE -> fewer applicable parameters than the PSL2 equivalent.
+        cfg_psl1 = dict(cfg, standard_type='API 5L', psl_level='PSL1')
+        ver_psl1 = PipeVerificationEngine.verify_pipe_test_results(cfg_psl1, {})
+        cfg_psl2 = dict(cfg, standard_type='API 5L', psl_level='PSL2', delivery_condition='M')
+        ver_psl2 = PipeVerificationEngine.verify_pipe_test_results(cfg_psl2, {})
+        self.assertLess(ver_psl1['total_applicable'], ver_psl2['total_applicable'])
+
+    def test_27_tensile_dual_rows(self):
+        """Welded D>=219.1 mm -> two tensile rows (strip + round bar); otherwise a single row."""
+        from core.test_plan import get_test_plan
+        # 48" SAWH -> dual rows
+        plan = get_test_plan({'diameter_mm': 1219.0, 'wall_thickness_mm': 14.3,
+                              'material_grade': 'X65', 'manufacturing_process': 'SAWH'})
+        names = [t['test'] for t in plan]
+        self.assertIn('Çekme Testi (Şerit)', names)
+        self.assertIn('Çekme Testi (Yuvarlak Çubuk)', names)
+        strip = next(t for t in plan if t['test'] == 'Çekme Testi (Şerit)')
+        rnd = next(t for t in plan if t['test'] == 'Çekme Testi (Yuvarlak Çubuk)')
+        self.assertEqual(strip['specimen_figure'], 'tensile_strip')
+        self.assertEqual(rnd['specimen_figure'], 'tensile_round')
+        # 4" ERW (D<219.1) -> single strip row
+        plan4 = get_test_plan({'diameter_mm': 114.3, 'wall_thickness_mm': 6.02,
+                               'material_grade': 'X42', 'manufacturing_process': 'ERW HFW'})
+        names4 = [t['test'] for t in plan4]
+        self.assertIn('Çekme Testi (Tensile)', names4)
+        self.assertNotIn('Çekme Testi (Yuvarlak Çubuk)', names4)
+        # SMLS t >= 19 mm -> mandatory 12.7 mm round bar
+        plan_smls = get_test_plan({'diameter_mm': 508.0, 'wall_thickness_mm': 22.0,
+                                   'material_grade': 'X65', 'manufacturing_process': 'SMLS'})
+        names_smls = [t['test'] for t in plan_smls]
+        self.assertIn('Çekme Testi (Yuvarlak Çubuk)', names_smls)
+        self.assertNotIn('Çekme Testi (Şerit)', names_smls)
+
+    def test_28_elongation_dual_values(self):
+        """Both elongation minima are exposed when strip and round bar are both permitted."""
+        res = PipeQAQCEngine.calculate_pipe_qc('48"', wall_thickness_mm=14.3, material_grade='X65',
+                                               manufacturing_process='SAWH', standard_type='API 5L',
+                                               psl_level='PSL2', delivery_condition='M')
+        tt = res['toughness_and_tests']
+        self.assertTrue(tt['tensile_dual_option'])
+        # Strip (Axc=485) requires more elongation than the 6.4 mm round bar (Axc=65).
+        self.assertGreater(tt['elongation_strip_percent'], tt['elongation_round_percent'])
+        # Non-dual pipe: flag is False and the primary value equals the applicable one.
+        res4 = PipeQAQCEngine.calculate_pipe_qc('4"', wall_thickness_mm=6.02, material_grade='X42',
+                                                manufacturing_process='ERW HFW', standard_type='API 5L',
+                                                psl_level='PSL2', delivery_condition='M')
+        self.assertFalse(res4['toughness_and_tests']['tensile_dual_option'])
 
     def test_11_unknown_diameter_nameerror_safety(self):
         """P0-1 Regression Test: Ensures unknown diameter does not raise NameError in WallThicknessEngine."""

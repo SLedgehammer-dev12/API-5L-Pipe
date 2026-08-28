@@ -3,6 +3,15 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### 🛠️ Düzeltmeler (Fixed)
+- **Windows güncelleme kontrolü SSL hatası:** Kurumsal TLS araya-girme (proxy/antivirüs) kaynaklı `CERTIFICATE_VERIFY_FAILED (self-signed certificate in certificate chain)` için **`truststore`** ile işletim sistemi güven deposu kullanılır (`run.py` + `core/updater.py`); hata teşhis logu (proxy/certifi/truststore durumu) ve net Türkçe mesaj eklenir. Build'lere `--hidden-import truststore` eklendi.
+- **Doğrulama "0 / 0 Parametre Uygun" sorunu:** `verification_engine` artık boru konfigürasyonuna göre **toplam uygulanabilir parametre sayısını** (`total_applicable`) ve bekleyen parametre sayısını (`unchecked_count`) döndürür; arayüz ve rapor "X / N Parametre Uygun" gösterir, form boşsa "Lütfen ölçüm verisi girin" uyarısı çıkar.
+- **Çekme numunesi çift tip:** Kaynaklı D≥219,1 mm borularda (iki tip serbest, 10.2.3.2.3) ITP **iki ayrı satır** üretir — "Çekme Testi (Şerit)" ve "Çekme Testi (Yuvarlak Çubuk)"; uzama satırında her iki Af değeri gösterilir. SMLS t≥19 mm için 12,7 mm yuvarlak çubuk zorunlu (10.2.3.2.5).
+
+---
+
 ## [1.7.0] - 2026-08-28 (API 5L 47. Baskı Uyumu: PSL1 Seçimi, PSL2 Teslim Koşulları, CE Hesabı, Baskı Karşılaştırma Notları)
 
 ### 🎉 Eklenen Özellikler (Added)

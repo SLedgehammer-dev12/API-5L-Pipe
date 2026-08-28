@@ -413,6 +413,23 @@ class PipeQAQCEngine:
         elongation_mat = 1940.0 * (math.pow(a_cross, 0.2)) / (math.pow(u_val, 0.9))
         elongation_weld = 10.0
 
+        # Elongation for both specimen types when both are permitted (10.2.3.2.3):
+        # welded pipe D >= 219.1 mm -> strip (Axc = 38.1 x t) or round bar (Table 21).
+        _proc_u = (manufacturing_process or "").upper()
+        _is_smls_here = "SMLS" in _proc_u or "SEAMLESS" in _proc_u or "DIKISSIZ" in _proc_u
+        _tensile_dual = (not _is_smls_here) and d_mm >= 219.1
+        if _is_smls_here:
+            _strip_axc = min(485.0, round(math.pi * t * (d_mm - t), -1))  # full-section
+        else:
+            _strip_axc = min(485.0, round(38.1 * t, -1))                  # strip
+        _round_axc = _round_bar_axc(d_mm, t)
+
+        def _af(axc_val):
+            return 1940.0 * (math.pow(axc_val, 0.2)) / (math.pow(u_val, 0.9))
+
+        elongation_strip_pct = _af(_strip_axc)
+        elongation_round_pct = _af(_round_axc)
+
         # CVN specimen size (API 5L Table 22) based on diameter AND wall thickness
         if not cvn_required:
             notch_specimen_size = "PSL1'de zorunlu değil"
@@ -615,6 +632,9 @@ class PipeQAQCEngine:
             },
             'toughness_and_tests': {
                 'elongation_mat_min_percent': round(elongation_mat, 2),
+                'elongation_strip_percent': round(elongation_strip_pct, 2),
+                'elongation_round_percent': round(elongation_round_pct, 2),
+                'tensile_dual_option': _tensile_dual,
                 'elongation_weld_min_percent': round(elongation_weld, 2) if isinstance(elongation_weld, (int, float)) else elongation_weld,
                 'notch_impact_mat_j': round(cvn_mat, 2) if (isinstance(cvn_mat, (int, float)) and cvn_required) else ("PSL1'de zorunlu değil" if not cvn_required else cvn_mat),
                 'notch_impact_weld_j': round(cvn_weld, 2) if (isinstance(cvn_weld, (int, float)) and cvn_required) else ("PSL1'de zorunlu değil" if not cvn_required else cvn_weld),

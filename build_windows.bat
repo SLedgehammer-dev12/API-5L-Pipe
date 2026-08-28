@@ -58,6 +58,7 @@ pyinstaller --name "API-5L-Pipe-Windows-x64-v%VERSION%" ^
     --collect-all anyio ^
     --collect-all httpcore ^
     --collect-all certifi ^
+    --hidden-import "truststore" ^
     --hidden-import "version" ^
     run.py
 

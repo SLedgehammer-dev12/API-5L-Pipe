@@ -5,6 +5,8 @@ Queries GitHub Releases API to detect new versions and provide download links.
 
 import logging
 import re
+import ssl
+import urllib.request
 from typing import Any, Dict
 
 import httpx
@@ -15,6 +17,40 @@ log = logging.getLogger(__name__)
 
 GITHUB_REPO = "SLedgehammer-dev12/API-5L-Pipe"
 GITHUB_API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
+
+# Use the operating system trust store (Windows cert store / macOS keychain) in addition
+# to the bundled certifi roots. This makes httpx honor corporate / proxy / antivirus CAs
+# installed on the machine, resolving "self-signed certificate in certificate chain"
+# errors during TLS verification. Guarded so a missing truststore never breaks the app.
+try:
+    import truststore
+    truststore.inject_into_ssl()
+    _HAVE_TRUSTSTORE = True
+except Exception:
+    _HAVE_TRUSTSTORE = False
+
+
+def _active_proxy() -> str:
+    """Best-effort summary of the active HTTPS proxy configuration."""
+    try:
+        proxies = urllib.request.getproxies()
+        for k in ("https", "all", "http"):
+            v = proxies.get(k)
+            if v:
+                return v
+    except Exception:
+        pass
+    return "none"
+
+
+def _certifi_ok() -> bool:
+    """True if the bundled certifi CA bundle is present."""
+    try:
+        import certifi
+        import os
+        return os.path.exists(certifi.where())
+    except Exception:
+        return False
 
 def parse_semver(version_str: str) -> tuple:
     """Extracts (major, minor, patch) integer tuple from version string."""
@@ -100,9 +136,34 @@ async def check_for_updates() -> Dict[str, Any]:
                 result["status"] = "rate_limited"
                 result["message"] = f"GitHub API yanıt vermedi (HTTP {resp.status_code})."
     except Exception as e:
-        # Do NOT silently swallow: log the real failure so it can be diagnosed.
-        log.error("Update check failed: %s", e)
-        result["status"] = "offline"
-        result["message"] = f"Güncelleme kontrolü yapılamadı: {e}"
+        # Detect a TLS certificate-verification failure anywhere in the exception chain
+        # (httpx may wrap the underlying ssl error in httpx.ConnectError).
+        is_ssl = False
+        cause = e
+        while cause is not None:
+            if isinstance(cause, ssl.SSLError) or "CERTIFICATE_VERIFY_FAILED" in str(cause):
+                is_ssl = True
+                break
+            cause = cause.__cause__
+
+        if is_ssl:
+            # Corporate proxy / antivirus that inspects HTTPS with its own self-signed CA.
+            log.error("Update check TLS verification failed: %s", e)
+            log.error(
+                "Diagnostics: truststore=%s active_proxy=%s certifi_bundle_ok=%s",
+                _HAVE_TRUSTSTORE, _active_proxy(), _certifi_ok(),
+            )
+            result["status"] = "ssl_verify"
+            result["message"] = (
+                "Güncelleme kontrolü TLS doğrulamasında başarısız oldu (kurumsal güvenlik duvarı/"
+                "proxy veya antivirüs sertifikası güvenilir değil). İşletim sistemi güven deposu "
+                "(truststore) etkinleştirildi. Sorun sürerse ağ yöneticinizden kurumsal CA'nın "
+                "Windows sertifika deposuna kurulmasını isteyin."
+            )
+        else:
+            # Do NOT silently swallow: log the real failure so it can be diagnosed.
+            log.error("Update check failed: %s", e)
+            result["status"] = "offline"
+            result["message"] = f"Güncelleme kontrolü yapılamadı: {e}"
 
     return result

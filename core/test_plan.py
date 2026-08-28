@@ -143,6 +143,69 @@ def _tensile_figure(diameter_mm: float, manufacturing_process: str = "SAWH") -> 
     return "tensile_strip"
 
 
+def _tensile_rows(d_mm: float, t_mm: float, process: str, is_smls: bool, tbl: str) -> List[Dict[str, Any]]:
+    """
+    Tensile test row(s) per API 5L 10.2.3.2 / Table 19/20:
+    - Welded pipe D >= 219.1 mm: transverse test; BOTH strip and round bar are
+      permitted (10.2.3.2.3) -> two separate rows.
+    - SMLS longitudinal with t >= 19.0 mm: 12.7 mm round bar is mandatory (10.2.3.2.5).
+    - Otherwise: strip / full-section (longitudinal or transverse) -> one row.
+    """
+    proc = (process or "").upper()
+    tbl_t = "Table 19" if tbl == "Table 17" else "Table 20"
+
+    if not is_smls and d_mm >= 219.1:
+        return [
+            {
+                "test": "Çekme Testi (Şerit)",
+                "clause": f"API 5L 9.3 / {tbl_t}",
+                "clause_ref": CLAUSE_REFERENCES["Çekme Testi (Tensile)"],
+                "specimen_figure": "tensile_strip",
+                "frequency": "Test ünitesi (lot) başına 1 set",
+                "location": "Gövde - enine (düzleştirilmiş numune)",
+                "specimen": "Şerit 38,1 mm x t (tam cidar)",
+                "note": "10.2.3.2.3 — üretici seçimine bağlı",
+            },
+            {
+                "test": "Çekme Testi (Yuvarlak Çubuk)",
+                "clause": f"API 5L 9.3 / {tbl_t}",
+                "clause_ref": CLAUSE_REFERENCES["Çekme Testi (Tensile)"],
+                "specimen_figure": "tensile_round",
+                "frequency": "Test ünitesi (lot) başına 1 set",
+                "location": "Gövde - enine (düzleştirilmemiş numune)",
+                "specimen": "Yuvarlak çubuk, çap Tablo 21'e göre (6,4/8,9/12,7 mm)",
+                "note": "10.2.3.2.3 / Tablo 21 — üretici seçimine bağlı",
+            },
+        ]
+
+    if is_smls and t_mm >= 19.0:
+        return [
+            {
+                "test": "Çekme Testi (Yuvarlak Çubuk)",
+                "clause": f"API 5L 9.3 / {tbl_t}",
+                "clause_ref": CLAUSE_REFERENCES["Çekme Testi (Tensile)"],
+                "specimen_figure": "tensile_round",
+                "frequency": "Test ünitesi (lot) başına 1 set",
+                "location": "Gövde - boyuna",
+                "specimen": "Yuvarlak çubuk, çap 12,7 mm",
+                "note": "10.2.3.2.5 — boyuna testte t >= 19,0 mm için 12,7 mm zorunlu",
+            },
+        ]
+
+    return [
+        {
+            "test": "Çekme Testi (Tensile)",
+            "clause": f"API 5L 9.3 / {tbl_t}",
+            "clause_ref": CLAUSE_REFERENCES["Çekme Testi (Tensile)"],
+            "specimen_figure": _tensile_figure(d_mm, proc),
+            "frequency": "Test ünitesi (lot) başına 1 set",
+            "location": "Gövde - boyuna" if is_smls else ("Gövde - enine" if d_mm >= 219.1 else "Gövde - boyuna"),
+            "specimen": _tensile_specimen(d_mm, t_mm, proc),
+            "note": "Rt0.5 (yield), Rm (tensile) ve uzama raporlanır",
+        },
+    ]
+
+
 def get_test_plan(pipe_config: Dict[str, Any], psl_level: str = "PSL2") -> List[Dict[str, Any]]:
     """
     Returns the API 5L inspection & test plan for the given pipe configuration.
@@ -173,17 +236,9 @@ def get_test_plan(pipe_config: Dict[str, Any], psl_level: str = "PSL2") -> List[
             "specimen": "Spektrometrik / ıslak analiz",
             "note": "C, Mn, P, S, V, Nb, Ti" + ("" if is_psl1 else " + CE raporlanır"),
         },
-        {
-            "test": "Çekme Testi (Tensile)",
-            "clause": f"API 5L 9.3 / {'Table 19' if is_psl1 else 'Table 20'}",
-            "clause_ref": CLAUSE_REFERENCES["Çekme Testi (Tensile)"],
-            "specimen_figure": _tensile_figure(d_mm, process),
-            "frequency": "Test ünitesi (lot) başına 1 set",
-            "location": "Gövde - enine" if not is_smls else "Gövde - boyuna",
-            "specimen": _tensile_specimen(d_mm, t_mm, process),
-            "note": "Rt0.5 (yield), Rm (tensile) ve uzama raporlanır",
-        },
-        {
+    ]
+    plan += _tensile_rows(d_mm, t_mm, process, is_smls, tbl)
+    plan.append({
             "test": "Hidrostatik Test",
             "clause": "API 5L 9.4 / 10.2.6",
             "clause_ref": CLAUSE_REFERENCES["Hidrostatik Test"],
@@ -192,8 +247,7 @@ def get_test_plan(pipe_config: Dict[str, Any], psl_level: str = "PSL2") -> List[
             "location": "Boru tam boyu",
             "specimen": "—",
             "note": "Stabilizasyon: 5 s (D<=457 mm) / 10 s (D>457 mm)",
-        },
-    ]
+        })
 
     if is_psl1:
         # PSL 1: no CVN, no DWTT, no hardness row. Flattening for EW/HFW; bend for D <= 60.3 mm.
