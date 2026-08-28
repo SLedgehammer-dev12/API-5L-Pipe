@@ -3,7 +3,7 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.7.1] - 2026-08-28 (Windows SSL Güncelleme Düzeltmesi, Doğrulama Parametre Sayısı & Çekme Numunesi Çift-Tip)
 
 ### 🛠️ Düzeltmeler (Fixed)
 - **Windows güncelleme kontrolü SSL hatası:** Kurumsal TLS araya-girme (proxy/antivirüs) kaynaklı `CERTIFICATE_VERIFY_FAILED (self-signed certificate in certificate chain)` için **`truststore`** ile işletim sistemi güven deposu kullanılır (`run.py` + `core/updater.py`); hata teşhis logu (proxy/certifi/truststore durumu) ve net Türkçe mesaj eklenir. Build'lere `--hidden-import truststore` eklendi.
