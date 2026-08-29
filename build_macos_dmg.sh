@@ -27,6 +27,7 @@ pyinstaller \
     --windowed \
     --noconfirm \
     --noupx \
+    --icon "static/icon/app_icon.icns" \
     --workpath "$BUILD_DIR" \
     --distpath "$DIST_DIR" \
     --specpath "$BUILD_DIR" \

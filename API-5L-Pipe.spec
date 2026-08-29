@@ -1,5 +1,6 @@
 # -*- mode: python ; coding: utf-8 -*-
 
+from version import __version__
 
 a = Analysis(
     ['run.py'],
@@ -21,7 +22,7 @@ exe = EXE(
     a.scripts,
     [],
     exclude_binaries=True,
-    name='API-5L-Pipe',
+    name=f'API-5L-Pipe-v{__version__}',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -32,6 +33,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
+    icon='static/icon/app_icon.ico',
 )
 coll = COLLECT(
     exe,
@@ -40,11 +42,11 @@ coll = COLLECT(
     strip=False,
     upx=False,
     upx_exclude=[],
-    name='API-5L-Pipe',
+    name=f'API-5L-Pipe-v{__version__}',
 )
 app = BUNDLE(
     coll,
-    name='API-5L-Pipe.app',
-    icon=None,
+    name=f'API-5L-Pipe-v{__version__}.app',
+    icon='static/icon/app_icon.icns',
     bundle_identifier=None,
 )

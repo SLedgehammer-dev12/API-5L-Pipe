@@ -50,6 +50,7 @@ jobs:
             --noconfirm `
             --clean `
             --noupx `
+            --icon "static\icon\app_icon.ico" `
             --add-data "static;static" `
             --add-data "templates;templates" `
             --add-data "core;core" `
@@ -134,11 +135,12 @@ jobs:
       - name: Build macOS App Bundle (.app)
         run: |
           pyinstaller \
-            --name "API-5L-Pipe" \
+            --name "API-5L-Pipe-v${VERSION}" \
             --windowed \
             --noconfirm \
             --clean \
             --noupx \
+            --icon "static/icon/app_icon.icns" \
             --add-data "static:static" \
             --add-data "templates:templates" \
             --add-data "core:core" \
@@ -184,13 +186,13 @@ jobs:
 
       - name: Ad-hoc Code Signing & Permissions
         run: |
-          chmod +x "dist/API-5L-Pipe.app/Contents/MacOS/API-5L-Pipe"
-          codesign --force --deep -s - "dist/API-5L-Pipe.app" || true
+          chmod +x "dist/API-5L-Pipe-v${VERSION}.app/Contents/MacOS/API-5L-Pipe-v${VERSION}"
+          codesign --force --deep -s - "dist/API-5L-Pipe-v${VERSION}.app" || true
 
       - name: Create Apple Disk Image (.dmg)
         run: |
           mkdir -p dist/dmg_root
-          cp -R "dist/API-5L-Pipe.app" dist/dmg_root/
+          cp -R "dist/API-5L-Pipe-v${VERSION}.app" dist/dmg_root/
           ln -s /Applications dist/dmg_root/Applications
           hdiutil create -volname "API-5L-Pipe v${VERSION}" \
             -srcfolder dist/dmg_root \

@@ -226,6 +226,27 @@ async def export_excel(data: ExportRequest = Body(...)):
         headers=headers
     )
 
+@app.post("/api/sawh-strip")
+async def sawh_strip(data: Dict[str, Any] = Body(...)):
+    """
+    SAWH spiral strip width & helix angle calculation.
+    Body: {diameter_mm, wall_thickness_mm?, strip_width_mm? | helix_angle_deg?}.
+    Returns B, alpha, pitch, practical ranges and validity status.
+    """
+    from core.sawh_engine import compute_sawh_calc
+
+    def _opt(key):
+        v = data.get(key)
+        return float(v) if v not in (None, "") else None
+
+    res = compute_sawh_calc(
+        float(data.get("diameter_mm") or 1219.0),
+        _opt("wall_thickness_mm") or 0.0,
+        strip_width_mm=_opt("strip_width_mm"),
+        helix_angle_deg=_opt("helix_angle_deg"),
+    )
+    return JSONResponse(content={"status": "success", "data": res})
+
 @app.post("/api/test-plan")
 async def get_test_plan(data: Dict[str, Any] = Body(...)):
     """

@@ -281,6 +281,57 @@
                     </div>
                 </div>
             </div>
+
+            <!-- SAWH Spiral Strip Width & Helix Angle Card -->
+            <div id="sawh-card" class="mt-6 bg-white p-5 rounded-xl border border-slate-200 shadow-sm hidden">
+                <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+                    <div>
+                        <h3 class="text-sm font-bold text-slate-800" data-i18n="sawh_title">SAWH Spiral Bant Genişliği & Büküm Açısı</h3>
+                        <p class="text-xs text-slate-500" data-i18n="sawh_sub">B = π·D_mid·cos(α) • α = arccos(B/(π·D_mid)) • D_mid = D − t</p>
+                    </div>
+                    <span id="sawh-badge" class="text-xs font-bold px-2.5 py-1 rounded bg-slate-100 text-slate-700"></span>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                    <!-- Inputs & results -->
+                    <div class="space-y-3 text-xs">
+                        <div class="grid grid-cols-3 gap-2">
+                            <div><label class="font-semibold text-slate-600 block mb-0.5">D (mm)</label><div id="sawh-d" class="font-bold text-base"></div></div>
+                            <div><label class="font-semibold text-slate-600 block mb-0.5">t (mm)</label><div id="sawh-t" class="font-bold text-base"></div></div>
+                            <div><label class="font-semibold text-slate-600 block mb-0.5">D_mid (mm)</label><div id="sawh-dmid" class="font-bold text-base"></div></div>
+                        </div>
+                        <div>
+                            <label class="font-semibold text-slate-600 block mb-1">Rulolar Bant Genişliği B (mm)</label>
+                            <input type="range" id="sawh-strip-range" min="200" max="6000" step="10" class="w-full accent-blue-600">
+                            <input type="number" id="sawh-strip-input" step="10" class="w-full border border-slate-300 rounded p-1.5 mt-1 font-bold">
+                        </div>
+                        <div>
+                            <label class="font-semibold text-slate-600 block mb-1">Helis Açısı α (derece)</label>
+                            <div id="sawh-alpha" class="text-2xl font-black text-blue-700"></div>
+                            <div id="sawh-note" class="text-[11px] text-slate-500 mt-1"></div>
+                        </div>
+                        <div class="text-[11px] text-slate-500 border-t border-slate-100 pt-2">
+                            Adım (P): <span id="sawh-pitch" class="font-bold text-slate-700"></span> mm &nbsp;•&nbsp;
+                            Pratik aralık B: <span id="sawh-range" class="font-bold text-slate-700"></span> mm
+                        </div>
+                    </div>
+
+                    <!-- Canvas 2D live diagram -->
+                    <div>
+                        <canvas id="sawh-canvas" width="520" height="400" class="w-full border border-slate-200 rounded bg-slate-50"></canvas>
+                    </div>
+
+                    <!-- SVG wrap animation -->
+                    <div class="flex flex-col items-center justify-center border border-slate-200 rounded bg-slate-50 p-2">
+                        <div id="sawh-svg"></div>
+                        <p class="text-[11px] text-slate-500 mt-2 text-center" data-i18n="sawh_anim">Şeridin boruya sarımı (animasyon)</p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="sawh-not-applicable" class="mt-6 bg-white p-5 rounded-xl border border-slate-200 shadow-sm text-sm text-slate-500 hidden">
+                ⚠️ <span data-i18n="sawh_na">SAWH borular için geçerlidir</span> (seçili boru: <span id="sawh-na-process" class="font-semibold"></span>).
+            </div>
         </div>
 
         <!-- TAB 3: VERIFICATION (PASS/FAIL ANALYSIS) -->

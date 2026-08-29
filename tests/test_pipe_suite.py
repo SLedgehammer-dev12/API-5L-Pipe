@@ -315,6 +315,54 @@ class TestPipeQAQCSuite(unittest.TestCase):
                                                 psl_level='PSL2', delivery_condition='M')
         self.assertFalse(res4['toughness_and_tests']['tensile_dual_option'])
 
+    def test_29_sawh_strip_roundtrip(self):
+        """B(alpha) followed by alpha(B) returns the original angle (48\" X65 t=14.3)."""
+        from core.sawh_engine import compute_helix_angle, compute_strip_width
+        d, t, alpha = 1219.0, 14.3, 55.0
+        B = compute_strip_width(d, alpha, t)
+        self.assertAlmostEqual(compute_helix_angle(d, B, t), alpha, delta=0.01)
+        # B = pi * (D - t) * cos(55)
+        self.assertAlmostEqual(B, 3.141592653589793 * (d - t) * 0.573576436, delta=1.0)
+
+    def test_30_sawh_boundaries(self):
+        """Boundary conditions: alpha=0 -> pi*D_mid; B=pi*D_mid -> alpha=0; small B -> ~90 deg."""
+        from core.sawh_engine import compute_helix_angle, compute_strip_width
+        d, t = 1219.0, 14.3
+        piD = 3.141592653589793 * (d - t)
+        # alpha = 0 -> B = pi * D_mid
+        self.assertAlmostEqual(compute_strip_width(d, 0.0, t), piD, delta=1e-6)
+        # B = pi * D_mid -> alpha = 0
+        self.assertAlmostEqual(compute_helix_angle(d, piD, t), 0.0, delta=1e-6)
+        # tiny B -> alpha -> 90 deg
+        self.assertAlmostEqual(compute_helix_angle(d, 1.0, t), 90.0, delta=0.05)
+        # over-wide B (larger than pi*D_mid) is clamped to alpha = 0
+        self.assertAlmostEqual(compute_helix_angle(d, piD * 1.5, t), 0.0, delta=1e-6)
+
+    def test_31_sawh_practical_range(self):
+        """Practical SAWH range: alpha in [30,65] -> B in [pi*D_mid*cos65, pi*D_mid*cos30]."""
+        from core.sawh_engine import compute_sawh_calc
+        d, t = 1219.0, 14.3
+        piD = 3.141592653589793 * (d - t)
+        res = compute_sawh_calc(d, t)  # default alpha = 55
+        self.assertAlmostEqual(res['helix_angle_deg'], 55.0, delta=1e-6)
+        self.assertTrue(res['valid'])
+        self.assertAlmostEqual(res['b_min_mm'], piD * 0.422618262, delta=1.0)
+        self.assertAlmostEqual(res['b_max_mm'], piD * 0.866025404, delta=1.0)
+        # at the lower bound (30 deg) valid, beyond (25 deg) invalid
+        self.assertTrue(compute_sawh_calc(d, t, helix_angle_deg=30.0)['valid'])
+        self.assertFalse(compute_sawh_calc(d, t, helix_angle_deg=25.0)['valid'])
+
+    def test_32_sawh_endpoint(self):
+        """POST /api/sawh-strip returns strip width + helix angle + ranges."""
+        r = self.client.post('/api/sawh-strip', json={'diameter_mm': 1219.0, 'wall_thickness_mm': 14.3})
+        self.assertEqual(r.status_code, 200)
+        data = r.json()['data']
+        self.assertAlmostEqual(data['helix_angle_deg'], 55.0, delta=1e-6)
+        self.assertGreater(data['strip_width_mm'], 0)
+        r2 = self.client.post('/api/sawh-strip', json={'diameter_mm': 1219.0, 'wall_thickness_mm': 14.3, 'strip_width_mm': data['strip_width_mm']})
+        self.assertEqual(r2.status_code, 200)
+        self.assertAlmostEqual(r2.json()['data']['helix_angle_deg'], 55.0, delta=0.5)
+
     def test_11_unknown_diameter_nameerror_safety(self):
         """P0-1 Regression Test: Ensures unknown diameter does not raise NameError in WallThicknessEngine."""
         res_unknown = WallThicknessEngine.calculate_wall_thickness('999"', 'X65')

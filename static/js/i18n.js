@@ -9,6 +9,10 @@ const I18N_DICTIONARY = {
         nav_verification: "Fabrika Test Doğrulama (PASS/FAIL)",
         nav_wall_thickness: "Et Kalınlığı Tasarım Aracı (ASME B31.8)",
         nav_schematic_3d: "2D / 3D Şematik Gösterim",
+        sawh_title: "SAWH Spiral Bant Genişliği & Büküm Açısı",
+        sawh_sub: "B = π·D_mid·cos(α) • α = arccos(B/(π·D_mid)) • D_mid = D − t",
+        sawh_anim: "Şeridin boruya sarımı (animasyon)",
+        sawh_na: "SAWH borular için geçerlidir",
         nav_projects: "Proje & Revizyon",
         nav_about: "Hakkında & Yasal Uyarı",
         
@@ -48,6 +52,10 @@ const I18N_DICTIONARY = {
         nav_verification: "Factory Test Verification (PASS/FAIL)",
         nav_wall_thickness: "Wall Thickness Design Tool (ASME B31.8)",
         nav_schematic_3d: "2D / 3D Schematic Models",
+        sawh_title: "SAWH Spiral Strip Width & Helix Angle",
+        sawh_sub: "B = π·D_mid·cos(α) • α = arccos(B/(π·D_mid)) • D_mid = D − t",
+        sawh_anim: "Strip wrapping onto the pipe (animation)",
+        sawh_na: "Applies to SAWH pipes only",
         nav_projects: "Project & Revision",
         nav_about: "About & Legal Disclaimer",
         

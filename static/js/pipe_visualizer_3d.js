@@ -175,7 +175,13 @@ class PipeVisualizer3D {
                 }
             }
 
-            const spiral = new SpiralCurve(outerRadius + 0.06, length, 2.5);
+            // Spiral weld: number of turns derived from the helix angle alpha
+            // (turns = length * tan(alpha) / (2*pi*radius)); fallback 2.5 when not set.
+            const spiralRadius = outerRadius + 0.06;
+            const spiralTurns = (this.helixAngleDeg !== null && this.helixAngleDeg !== undefined)
+                ? (length * Math.tan(this.helixAngleDeg * Math.PI / 180)) / (2 * Math.PI * spiralRadius)
+                : 2.5;
+            const spiral = new SpiralCurve(spiralRadius, length, spiralTurns);
             const weldGeom = new THREE.TubeGeometry(spiral, 128, 0.28, 8, false);
             const weldMat = new THREE.MeshStandardMaterial({
                 color: 0xf59e0b,
@@ -204,6 +210,12 @@ class PipeVisualizer3D {
 
     toggleRotation() {
         this.isRotating = !this.isRotating;
+    }
+
+    // Update the spiral weld seam to the given helix angle (deg) and re-render.
+    setHelixAngle(deg) {
+        this.helixAngleDeg = (deg === null || deg === undefined) ? null : Number(deg);
+        if (this.currentPipeData) this.renderPipe(this.currentPipeData);
     }
 
     resetCamera() {

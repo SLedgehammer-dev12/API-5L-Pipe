@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.0] - 2026-08-28 (SAWH Spiral Bant Genişliği & Büküm Açısı, Uygulama İkonu, Sürümlü Çalıştırma Dosyası Adları)
+
+### 🎉 Eklenen Özellikler (Added)
+- **SAWH Spiral Bant Genişliği & Büküm Açısı:** 2D/3D şematik sekmesinde tam genişlik kart (yalnız SAWH/SAWL); `B = π·D_mid·cos(α)` / `α = arccos(B/(π·D_mid))`; canlı **Canvas 2D diyagram** (açılmış yüzey + α + şerit bandı), **3D model spiral dikiş eğimi** entegrasyonu (`setHelixAngle`) ve **SVG sarım animasyonu**; `core/sawh_engine.py` + `POST /api/sawh-strip`.
+- **Uygulama İkonu:** 3D boru + "API" tasarımı (`tools/make_icon.py`, `.ico`/`.icns`); Windows/macOS build'lerine bağlandı.
+- **Sürümlü çalıştırma dosyası adları:** spec + workflow macOS dahil tüm yollarda `-v<version>` soneki.
+
+### 🛠️ Düzeltmeler (Fixed)
+- (1.7.1'den devralındı) Windows SSL truststore, doğrulama parametre sayısı, çekme numunesi çift-tip.
+
+---
+
 ## [1.7.1] - 2026-08-28 (Windows SSL Güncelleme Düzeltmesi, Doğrulama Parametre Sayısı & Çekme Numunesi Çift-Tip)
 
 ### 🛠️ Düzeltmeler (Fixed)

@@ -652,6 +652,162 @@ function updateVisualizers(pipeData) {
     if (visualizer3DInstance) {
         visualizer3DInstance.renderPipe(pipeData);
     }
+    renderSawhCard(pipeData);
+}
+
+// ============================================================================
+// SAWH Spiral Strip Width & Helix Angle card (schematic tab)
+// Visuals: Canvas 2D live diagram + 3D seam-pitch integration + SVG wrap animation.
+// ============================================================================
+function sawhCompute(d, t, B) {
+    const dm = d - t;
+    const piD = Math.PI * dm;
+    const r = Math.min(1, Math.max(0, B / piD));
+    const alphaDeg = Math.acos(r) * 180 / Math.PI;
+    const alphaRad = alphaDeg * Math.PI / 180;
+    const pitch = (Math.sin(alphaRad) > 1e-9) ? piD / Math.tan(alphaRad) : Infinity;
+    const bMin = piD * Math.cos(65 * Math.PI / 180);
+    const bMax = piD * Math.cos(30 * Math.PI / 180);
+    return { dm, piD, alphaDeg, alphaRad, pitch, bMin, bMax };
+}
+
+function drawSawhCanvas(cv, d, t, B) {
+    const ctx = cv.getContext("2d");
+    if (!ctx) return;
+    const W = cv.width, H = cv.height;
+    ctx.clearRect(0, 0, W, H);
+    const g = sawhCompute(d, t, B);
+    const piD = g.piD, alphaRad = g.alphaRad, alphaDeg = g.alphaDeg, pitch = g.pitch;
+    const pad = 36;
+
+    // --- Top: developed rectangle (one full turn) ---
+    const topH = H * 0.5 - pad * 2;
+    const scale = Math.min((W - pad * 2) / piD, topH / Math.max(pitch, 60));
+    const rw = piD * scale, rh = Math.max(24, pitch * scale);
+    const ox = pad + (W - pad * 2 - rw) / 2;
+    const oy = pad + topH - rh;
+    ctx.strokeStyle = "#334155"; ctx.lineWidth = 2;
+    ctx.strokeRect(ox, oy, rw, rh);
+    ctx.beginPath(); ctx.moveTo(ox, oy + rh); ctx.lineTo(ox + rw, oy); ctx.stroke();
+    ctx.strokeStyle = "#2563eb"; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(ox, oy + rh, Math.min(26, rh * 0.5), -Math.PI / 2, -Math.PI / 2 + alphaRad); ctx.stroke();
+    ctx.fillStyle = "#2563eb"; ctx.font = "bold 12px Inter, sans-serif";
+    ctx.fillText("α=" + alphaDeg.toFixed(1) + "°", ox + 32, oy + rh - 10);
+    ctx.fillStyle = "#0f172a"; ctx.font = "10px Inter, sans-serif";
+    ctx.fillText("π·D_mid = " + piD.toFixed(0) + " mm", ox + rw / 2 - 70, oy + rh + 16);
+    ctx.fillText("P = " + (isFinite(pitch) ? pitch.toFixed(0) : "—") + " mm", ox + 6, oy + rh / 2);
+    ctx.fillStyle = "#64748b";
+    ctx.fillText("Açılmış yüzey — bir tur", ox + rw / 2 - 58, oy - 8);
+
+    // --- Bottom: unrolled strip band (parallelogram) ---
+    const botY = H * 0.5 + pad;
+    const botH = H - botY - pad;
+    const s2 = Math.min((W - pad * 2) / piD, botH / Math.max(pitch, 60));
+    const bw = piD * s2, bh = Math.max(24, pitch * s2);
+    const bx = pad + (W - pad * 2 - bw) / 2;
+    const P1x = bx, P1y = botY + bh, P2x = bx + bw, P2y = botY;
+    const off = Math.min(B * s2, bw * 0.85);
+    const qx = off * Math.cos(alphaRad), qy = off * (-Math.sin(alphaRad));
+    const Q1x = P1x + qx, Q1y = P1y + qy, Q2x = P2x + qx, Q2y = P2y + qy;
+    ctx.fillStyle = "rgba(245,158,11,0.18)";
+    ctx.strokeStyle = "#f59e0b"; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.moveTo(P1x, P1y); ctx.lineTo(P2x, P2y); ctx.lineTo(Q2x, Q2y); ctx.lineTo(Q1x, Q1y); ctx.closePath();
+    ctx.fill(); ctx.stroke();
+    ctx.strokeStyle = "#2563eb"; ctx.lineWidth = 1.5; ctx.setLineDash([4, 3]);
+    ctx.beginPath(); ctx.moveTo(P1x, P1y); ctx.lineTo(Q1x, Q1y); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = "#2563eb"; ctx.font = "bold 12px Inter, sans-serif";
+    ctx.fillText("B=" + B.toFixed(0) + " mm", (P1x + Q1x) / 2 + 10, (P1y + Q1y) / 2 - 8);
+    ctx.fillStyle = "#64748b"; ctx.font = "10px Inter, sans-serif";
+    ctx.fillText("Açılmış şerit (bant)", bx + bw / 2 - 55, botY + bh + 16);
+}
+
+function sawhSvg() {
+    return `
+  <svg width="240" height="150" viewBox="0 0 240 150" xmlns="http://www.w3.org/2000/svg">
+    <style>
+      @keyframes sawh-wrap { 0% { transform: translate(45px,70px) rotate(0deg); } 100% { transform: translate(-65px,-20px) rotate(-120deg); } }
+      .sawh-strip { animation: sawh-wrap 2.6s linear infinite; transform-origin: 120px 75px; }
+      @keyframes sawh-fade { 0%,100%{opacity:1} 50%{opacity:0.55} }
+      .sawh-pipe { animation: sawh-fade 2.6s linear infinite; }
+    </style>
+    <ellipse class="sawh-pipe" cx="120" cy="75" rx="95" ry="36" fill="none" stroke="#334155" stroke-width="2.5"/>
+    <path d="M 25 75 A 95 36 0 0 1 215 75" fill="none" stroke="#2563eb" stroke-width="1.5" stroke-dasharray="3,3"/>
+    <g class="sawh-strip"><rect x="0" y="0" width="70" height="14" rx="3" fill="#f59e0b" stroke="#b45309" stroke-width="1"/></g>
+  </svg>`;
+}
+
+function renderSawhCard(pipeData) {
+    const card = document.getElementById("sawh-card");
+    const na = document.getElementById("sawh-not-applicable");
+    if (!card || !na) return;
+    const process = (pipeData.input_summary.manufacturing_process || "").toUpperCase();
+    const isSawh = process.includes("SAWH") || process.includes("SAWL");
+    if (!isSawh) {
+        card.classList.add("hidden");
+        na.classList.remove("hidden");
+        const p = document.getElementById("sawh-na-process");
+        if (p) p.innerText = pipeData.input_summary.manufacturing_process || "—";
+        return;
+    }
+    na.classList.add("hidden");
+    card.classList.remove("hidden");
+
+    const d = pipeData.input_summary.diameter_mm || 1219.0;
+    const t = pipeData.input_summary.wall_thickness_mm || 14.3;
+    const dm = d - t;
+    const piD = Math.PI * dm;
+    const B55 = piD * Math.cos(55 * Math.PI / 180);
+    const bMin = piD * Math.cos(65 * Math.PI / 180);
+    const bMax = piD * Math.cos(30 * Math.PI / 180);
+
+    document.getElementById("sawh-d").innerText = d.toFixed(1);
+    document.getElementById("sawh-t").innerText = t.toFixed(2);
+    document.getElementById("sawh-dmid").innerText = dm.toFixed(1);
+
+    const range = document.getElementById("sawh-strip-range");
+    const input = document.getElementById("sawh-strip-input");
+    range.min = Math.round(bMin * 0.9);
+    range.max = Math.round(piD);
+    range.value = Math.round(B55);
+    input.value = Math.round(B55);
+
+    const svgEl = document.getElementById("sawh-svg");
+    if (svgEl && !svgEl.dataset.painted) { svgEl.innerHTML = sawhSvg(); svgEl.dataset.painted = "1"; }
+
+    sawhRedraw();
+
+    const rewire = () => { range.oninput = (e) => { input.value = e.target.value; sawhRedraw(); };
+                           input.oninput = (e) => { range.value = e.target.value; sawhRedraw(); }; };
+    rewire();
+}
+
+function sawhRedraw() {
+    const range = document.getElementById("sawh-strip-range");
+    const input = document.getElementById("sawh-strip-input");
+    const dEl = document.getElementById("sawh-d");
+    const tEl = document.getElementById("sawh-t");
+    if (!range || !input || !dEl) return;
+    const d = parseFloat(dEl.innerText) || 1219;
+    const t = parseFloat(tEl.innerText) || 14.3;
+    const B = Math.max(0, parseFloat(input.value) || 0);
+    const g = sawhCompute(d, t, B);
+
+    document.getElementById("sawh-alpha").innerText = g.alphaDeg.toFixed(1) + "°";
+    document.getElementById("sawh-pitch").innerText = isFinite(g.pitch) ? g.pitch.toFixed(0) : "—";
+    document.getElementById("sawh-range").innerText = g.bMin.toFixed(0) + " – " + g.bMax.toFixed(0);
+
+    const valid = g.alphaDeg >= 30 && g.alphaDeg <= 65;
+    const badge = document.getElementById("sawh-badge");
+    badge.className = "text-xs font-bold px-2.5 py-1 rounded " + (valid ? "bg-emerald-100 text-emerald-800" : "bg-red-100 text-red-700");
+    badge.innerText = valid ? "UYGUN (α ∈ [30°,65°])" : "ARALIK DIŞI";
+    document.getElementById("sawh-note").innerText = valid
+        ? "Helis açısı pratik SAWH aralığında."
+        : "Helis açısı pratik SAWH aralığının dışında (α ∈ [30°, 65°] önerilir).";
+
+    const cv = document.getElementById("sawh-canvas");
+    if (cv) drawSawhCanvas(cv, d, t, B);
+
+    if (visualizer3DInstance) visualizer3DInstance.setHelixAngle(g.alphaDeg);
 }
 
 // BOTAŞ auto-lookup for modal inputs

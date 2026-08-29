@@ -28,6 +28,7 @@ pyinstaller --name "API-5L-Pipe-Windows-x64-v%VERSION%" ^
     --noconfirm ^
     --clean ^
     --noupx ^
+    --icon "static\icon\app_icon.ico" ^
     --add-data "static;static" ^
     --add-data "templates;templates" ^
     --add-data "core;core" ^
