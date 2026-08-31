@@ -176,15 +176,15 @@ class TestPipeQAQCSuite(unittest.TestCase):
         self.assertEqual(res_botas_hat['calculation_results']['botas_standard_thickness_mm'], 14.30)
         self.assertEqual(res_botas_hat['calculation_results']['botas_standard_label'], 'BOTAŞ Şartnamesi (Hat F=0.72)')
 
-        # 1b. BOTAŞ Standard: 48" X65 F=0.50 P=75 bar (İstasyon Borusu 75 Bar with %12.5 margin)
+        # 1b. BOTAŞ Standard: 48" X65 F=0.50 P=75 bar (İstasyon Borusu 75 Bar - BOTAŞ Matrix standard)
         res_botas_ist_75 = WallThicknessEngine.calculate_wall_thickness('48"', 'X65', design_pressure_bar=75.0, design_factor_f=0.50, location_type='Station', standard_code='BOTAŞ')
         self.assertEqual(res_botas_ist_75['calculation_results']['t_required_asme_b31_8_mm'], 20.32)
-        self.assertEqual(res_botas_ist_75['calculation_results']['selected_nominal_thickness_asme_b36_10_mm'], 23.83)
-        self.assertEqual(res_botas_ist_75['calculation_results']['tolerance_percent_used'], 12.5)
+        self.assertEqual(res_botas_ist_75['calculation_results']['selected_nominal_thickness_asme_b36_10_mm'], 20.62)
+        self.assertEqual(res_botas_ist_75['calculation_results']['tolerance_percent_used'], 0.0)
         self.assertEqual(res_botas_ist_75['calculation_results']['botas_standard_thickness_mm'], 22.20)
         self.assertEqual(res_botas_ist_75['calculation_results']['botas_standard_label'], 'BOTAŞ Şartnamesi (İstasyon - 75 Bar)')
 
-        # 1c. BOTAŞ Standard: 48" X65 F=0.50 P=82.5 bar (İstasyon Borusu 82.5 Bar with %12.5 margin)
+        # 1c. BOTAŞ Standard: 48" X65 F=0.50 P=82.5 bar (İstasyon Borusu 82.5 Bar)
         res_botas_ist_825 = WallThicknessEngine.calculate_wall_thickness('48"', 'X65', design_pressure_bar=82.5, design_factor_f=0.50, location_type='Station', standard_code='BOTAŞ')
         self.assertEqual(res_botas_ist_825['calculation_results']['botas_standard_thickness_mm'], 23.80)
         self.assertEqual(res_botas_ist_825['calculation_results']['botas_standard_label'], 'BOTAŞ Şartnamesi (İstasyon - 82.5 Bar)')
@@ -214,6 +214,15 @@ class TestPipeQAQCSuite(unittest.TestCase):
         self.assertGreater(res_b318_sawh['calculation_results']['t_required_asme_b31_8_mm'], 0)
         self.assertEqual(res_b318_sawh['calculation_results']['tolerance_percent_used'], 10.0)
 
+        # 3b. ASME B31.8 SAWH with explicit 0% tolerance (Must NOT fallback to 8% or Table 11)
+        res_b318_0pct = WallThicknessEngine.calculate_wall_thickness(
+            '24"', 'X70', design_pressure_bar=80.0, design_factor_f=0.60,
+            standard_code='ASME B31.8 / ASME B31.4', manufacturing_process='SAWH',
+            manual_negative_tolerance_percent=0.0
+        )
+        self.assertEqual(res_b318_0pct['calculation_results']['tolerance_percent_used'], 0.0)
+        self.assertFalse(res_b318_0pct['input_parameters']['apply_negative_tolerance'])
+
         # 4. ASME B31.8 Pipeline: 8" X46 F=0.72 P=75 bar with ERW (Table 11 welded: t<=5 -> -0.5 mm)
         res_b318_erw = WallThicknessEngine.calculate_wall_thickness(
             '8"', 'X46', design_pressure_bar=75.0, design_factor_f=0.72,
@@ -242,18 +251,18 @@ class TestPipeQAQCSuite(unittest.TestCase):
         self.assertEqual(res_b313_24_custom['calculation_results']['selected_nominal_thickness_asme_b36_10_mm'], 8.74)
         self.assertAlmostEqual(res_b313_24_custom['calculation_results']['negative_tolerance_min_mm'], 7.87, places=2)
 
-        # 7. BOTAŞ with Custom Corrosion Allowance (c=2.0 mm) and Custom Negative Tolerance (15%)
+        # 7. BOTAŞ with Custom Corrosion Allowance (c=2.0 mm)
         res_botas_custom = WallThicknessEngine.calculate_wall_thickness(
             '48"', 'X65', design_pressure_bar=75.0, design_factor_f=0.72,
             location_type='Pipeline', standard_code='BOTAŞ',
-            corrosion_allowance_mm=2.0, manual_negative_tolerance_percent=15.0
+            corrosion_allowance_mm=2.0
         )
         self.assertEqual(res_botas_custom['calculation_results']['t_theoretical_mm'], 14.11)
         self.assertEqual(res_botas_custom['calculation_results']['corrosion_allowance_mm'], 2.0)
         self.assertEqual(res_botas_custom['calculation_results']['t_required_asme_b31_8_mm'], 16.11)
-        self.assertEqual(res_botas_custom['calculation_results']['tolerance_percent_used'], 15.0)
-        self.assertEqual(res_botas_custom['calculation_results']['selected_nominal_thickness_asme_b36_10_mm'], 19.05)
-        self.assertAlmostEqual(res_botas_custom['calculation_results']['negative_tolerance_min_mm'], 16.19, places=2)
+        self.assertEqual(res_botas_custom['calculation_results']['tolerance_percent_used'], 0.0)
+        self.assertEqual(res_botas_custom['calculation_results']['selected_nominal_thickness_asme_b36_10_mm'], 17.48)
+        self.assertEqual(res_botas_custom['calculation_results']['negative_tolerance_min_mm'], 17.48)
 
     def test_10_comprehensive_40_parameter_verification(self):
         """Verifies PipeVerificationEngine evaluates chemical, mechanical, dimensional, weld, and test data."""
@@ -635,5 +644,208 @@ class TestPipeQAQCSuite(unittest.TestCase):
         self.assertNotIn('Çentik Darbe - Gövde (CVN J)', names)
         self.assertNotIn('Karbon Eşdeğeri (CE IIW)', names)
 
+    def test_26_comprehensive_itp_specification_frequencies(self):
+        """API 5L 47th Ed. Table 17/18/19/20 comprehensive inspection matrix rules."""
+        from core.test_plan import get_comprehensive_itp_specification
+
+        # 48" X65 PSL2 SAWH (Welded D >= 508 mm - API 5L)
+        spec_48 = get_comprehensive_itp_specification({
+            'diameter_mm': 1219.0, 'diameter_inch': '48"', 'wall_thickness_mm': 14.3,
+            'material_grade': 'X65', 'manufacturing_process': 'SAWH', 'psl_level': 'PSL2'
+        })
+        self.assertEqual(len(spec_48), 17)
+        dwtt_48 = next(s for s in spec_48 if s['test_key'] == 'dwtt')
+        self.assertTrue(dwtt_48['is_mandatory'])
+        self.assertIn("Table 18", dwtt_48['table_ref'])
+
+        hydro_48 = next(s for s in spec_48 if s['test_key'] == 'hydrostatic')
+        self.assertIn("10 saniye", hydro_48['standard_acceptance_criteria'])
+
+        # 48" X65 BOTAŞ Specification (BOTAŞ 4-NGTL-0-GN-P-002-5120 R7)
+        spec_botas_48 = get_comprehensive_itp_specification({
+            'diameter_mm': 1219.0, 'diameter_inch': '48"', 'wall_thickness_mm': 14.3,
+            'material_grade': 'X65', 'manufacturing_process': 'SAWH', 'standard_type': 'BOTAŞ'
+        })
+        self.assertEqual(len(spec_botas_48), 19)
+        hydro_botas = next(s for s in spec_botas_48 if s['test_key'] == 'hydrostatic')
+        self.assertIn("20 saniye", hydro_botas['standard_acceptance_criteria'])
+        cvn_botas = next(s for s in spec_botas_48 if s['test_key'] == 'cvn_body')
+        self.assertIn("-20 °C", cvn_botas['standard_acceptance_criteria'])
+        self.assertIn("60 J", cvn_botas['standard_acceptance_criteria'])
+        res_stress_botas = next(s for s in spec_botas_48 if s['test_key'] == 'residual_stress')
+        self.assertTrue(res_stress_botas['is_mandatory'])
+        self.assertIn("BOTAŞ", res_stress_botas['clause_ref'])
+
+        # 12" X52 PSL2 SMLS (Seamless D < 508 mm)
+        spec_12_smls = get_comprehensive_itp_specification({
+            'diameter_mm': 323.9, 'diameter_inch': '12"', 'wall_thickness_mm': 9.53,
+            'material_grade': 'X52', 'manufacturing_process': 'SMLS', 'psl_level': 'PSL2'
+        })
+        self.assertFalse(any(s['test_key'] == 'dwtt' for s in spec_12_smls))
+        hydro_12 = next(s for s in spec_12_smls if s['test_key'] == 'hydrostatic')
+        self.assertIn("5 saniye", hydro_12['standard_acceptance_criteria'])
+
+    def test_27_unlimited_ocr_parser_fallback(self):
+        """UnlimitedOCREngine parses text and produces standardized ITP dictionary items."""
+        from core.unlimited_ocr_engine import UnlimitedOCREngine
+
+        sample_text = (
+            "KIMYASAL ANALIZ DOKUM: Isı başına 1 analiz, C max 0.16%, P max 0.020%\n"
+            "GOVDE CEKME TESTI: Her test unitesi basina 1 set, Rt0.5 >= 450 MPa\n"
+            "HIDROSTATIK TEST: Her boru 100%, Min 110 bar, 10 saniye tutma\n"
+            "DWTT DENEYI: Isı başına 1 test, Ortalama sünek kırılma >= 85%"
+        )
+        parsed = UnlimitedOCREngine._parse_text_into_itp_rows(sample_text)
+        self.assertGreaterEqual(len(parsed), 3)
+
+        fallback = UnlimitedOCREngine._heuristic_extract_fallback("demo")
+        self.assertGreaterEqual(len(fallback), 10)
+        self.assertTrue(any(it['test_name'].startswith('Fabrika Hidrostatik') for it in fallback))
+
+    def test_28_itp_audit_engine_compliance_and_discrepancies(self):
+        """ITPAuditEngine audits manufacturer ITP items against API 5L 47th Ed. limits."""
+        from core.itp_audit_engine import ITPAuditEngine
+
+        pipe_cfg = {
+            'diameter_mm': 1219.0, 'diameter_inch': '48"', 'wall_thickness_mm': 14.3,
+            'material_grade': 'X65', 'manufacturing_process': 'SAWH', 'psl_level': 'PSL2'
+        }
+
+        # 1. Non-compliant: 5 seconds hydro holding time instead of 10s & insufficient CVN energy (27 J instead of 40 J)
+        flawed_items = [
+            {
+                'test_name': 'Fabrika Hidrostatik Basınç Testi',
+                'test_frequency': 'Her boru (%100)',
+                'acceptance_criteria': 'Min 100 bar, 5 saniye tutma süresi'
+            },
+            {
+                'test_name': 'Gövde Çentik Darbe Testi (CVN Body)',
+                'test_frequency': 'Lot başına 1 set',
+                'acceptance_criteria': 'Min Ort. 27 J (0 °C)'
+            }
+        ]
+        audit_res = ITPAuditEngine.audit_itp(flawed_items, pipe_cfg)
+        self.assertGreater(audit_res['kpi']['non_compliant_count'], 0)
+        self.assertEqual(audit_res['kpi']['overall_verdict'], 'REJECTED')
+        
+        # Verify specific critical findings
+        findings_msgs = [f['message'] for f in audit_res['findings']]
+        self.assertTrue(any("YETERSİZ TEST SÜRESİ" in m for m in findings_msgs))
+        self.assertTrue(any("YETERSİZ DARBE ENERJİSİ" in m for m in findings_msgs))
+
+    def test_29_itp_excel_report_export(self):
+        """ExcelExporter.export_itp_audit_report creates a valid Excel spreadsheet."""
+        from core.excel_exporter import ExcelExporter
+        from core.itp_audit_engine import ITPAuditEngine
+        from core.unlimited_ocr_engine import UnlimitedOCREngine
+
+        pipe_cfg = {
+            'diameter_mm': 1219.0, 'diameter_inch': '48"', 'wall_thickness_mm': 14.3,
+            'material_grade': 'X65', 'manufacturing_process': 'SAWH', 'psl_level': 'PSL2'
+        }
+        demo_items = UnlimitedOCREngine._heuristic_extract_fallback("demo")
+        audit_res = ITPAuditEngine.audit_itp(demo_items, pipe_cfg)
+
+        stream = ExcelExporter.export_itp_audit_report(audit_res, lang='tr')
+        self.assertGreater(len(stream.getvalue()), 1000)
+
+    def test_30_itp_fastapi_endpoints(self):
+        """FastAPI endpoints for ITP upload, manual audit, reference frequencies, and export."""
+        # 1. Reference Frequencies GET
+        r_freq = self.client.get('/api/itp/reference-frequencies?diameter_mm=1219.0&material_grade=X65&psl_level=PSL2')
+        self.assertEqual(r_freq.status_code, 200)
+        self.assertEqual(len(r_freq.json()['master_specification']), 17)
+
+        # 2. Upload & Audit POST (Demo Mode)
+        r_demo = self.client.post('/api/itp/upload-and-audit', data={'use_demo': 'true'})
+        self.assertEqual(r_demo.status_code, 200)
+        res_data = r_demo.json()
+        self.assertEqual(res_data['status'], 'success')
+        self.assertIn('audit_result', res_data)
+
+        # 3. Export Audit Report POST
+        audit_res = res_data['audit_result']
+        r_exp = self.client.post('/api/itp/export-audit-report', json={'audit_result': audit_res, 'lang': 'tr'})
+        self.assertEqual(r_exp.status_code, 200)
+        self.assertIn('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', r_exp.headers['content-type'])
+
+    def test_31_botas_and_asme_negative_tolerance_zero_percent(self):
+        """Ensures BOTAŞ does not apply double tolerance and ASME strictly respects 0% tolerance without falling back to 8%."""
+        # 1. BOTAŞ Standard calculation -> tolerance must be strictly 0%
+        res_botas = WallThicknessEngine.calculate_wall_thickness(
+            '48"', 'X65', design_pressure_bar=75.0, design_factor_f=0.72,
+            location_type='Pipeline', standard_code='BOTAŞ'
+        )
+        self.assertEqual(res_botas['calculation_results']['tolerance_percent_used'], 0.0)
+        self.assertFalse(res_botas['input_parameters']['apply_negative_tolerance'])
+        self.assertIn("BOTAŞ Şartnamesi Standart Et Kalınlığı Matrisi", res_botas['calculation_results']['tolerance_rule_description'])
+
+        # 2. ASME B31.8 SAWH D > 20" with explicit manual_negative_tolerance_percent = 0.0
+        res_asme_0 = WallThicknessEngine.calculate_wall_thickness(
+            '48"', 'X65', design_pressure_bar=75.0, design_factor_f=0.72,
+            standard_code='ASME B31.8 / ASME B31.4', manufacturing_process='SAWH',
+            manual_negative_tolerance_percent=0.0
+        )
+        self.assertEqual(res_asme_0['calculation_results']['tolerance_percent_used'], 0.0)
+        self.assertFalse(res_asme_0['input_parameters']['apply_negative_tolerance'])
+        self.assertEqual(res_asme_0['calculation_results']['selected_nominal_thickness_asme_b36_10_mm'], 14.27)
+
+        # 3. ASME B31.8 SAWH D > 20" with manual_negative_tolerance_percent = 8.0
+        res_asme_8 = WallThicknessEngine.calculate_wall_thickness(
+            '48"', 'X65', design_pressure_bar=75.0, design_factor_f=0.72,
+            standard_code='ASME B31.8 / ASME B31.4', manufacturing_process='SAWH',
+            manual_negative_tolerance_percent=8.0
+        )
+        self.assertEqual(res_asme_8['calculation_results']['tolerance_percent_used'], 8.0)
+        self.assertTrue(res_asme_8['input_parameters']['apply_negative_tolerance'])
+        self.assertEqual(res_asme_8['calculation_results']['selected_nominal_thickness_asme_b36_10_mm'], 15.88)
+
+        # 4. API endpoint /api/wall-thickness with 0% tolerance
+        r_api = self.client.post('/api/wall-thickness', json={
+            'diameter_inch': '48"',
+            'material_grade': 'X65',
+            'standard_code': 'ASME B31.8 / ASME B31.4',
+            'manufacturing_process': 'SAWH',
+            'manual_negative_tolerance_percent': 0.0,
+            'design_pressure_bar': 75.0,
+            'design_factor_f': 0.72,
+            'longitudinal_joint_factor_e': 1.0,
+            'temperature_derating_factor_t': 1.0
+        })
+        self.assertEqual(r_api.status_code, 200)
+        self.assertEqual(r_api.json()['data']['calculation_results']['tolerance_percent_used'], 0.0)
+
+    def test_32_botas_itp_audit_frequencies_and_criteria(self):
+        """ITPAuditEngine properly evaluates BOTAŞ-specific specifications (20s hydro, -20C CVN, residual stress)."""
+        from core.itp_audit_engine import ITPAuditEngine
+
+        botas_cfg = {
+            'diameter_mm': 1219.0, 'diameter_inch': '48"', 'wall_thickness_mm': 14.3,
+            'material_grade': 'X65', 'manufacturing_process': 'SAWH', 'standard_type': 'BOTAŞ'
+        }
+
+        # 1. Test with 10s hydro (Passes API 5L, but Fails BOTAŞ 20s requirement)
+        itp_items = [
+            {
+                'test_name': 'Fabrika Hidrostatik Basınç Testi',
+                'test_frequency': 'Her boru (%100)',
+                'acceptance_criteria': 'Min 110 bar, 10 saniye tutma süresi'
+            },
+            {
+                'test_name': 'Gövde Çentik Darbe Testi',
+                'test_frequency': 'Lot başına 1 set',
+                'acceptance_criteria': 'Min Ort. 45 J (-20 °C)'
+            }
+        ]
+        audit_res = ITPAuditEngine.audit_itp(itp_items, botas_cfg)
+        self.assertEqual(audit_res['kpi']['overall_verdict'], 'REJECTED')
+        findings_msgs = [f['message'] for f in audit_res['findings']]
+        self.assertTrue(any("20 SANİYE" in m for m in findings_msgs))
+        self.assertTrue(any("60 J" in m for m in findings_msgs))
+
+        # Check missing mandatory residual stress test
+        self.assertTrue(any(f['issue_type'] == 'MISSING_MANDATORY_TEST' and 'Artık Stres' in f['test_name'] for f in audit_res['findings']))
+
 if __name__ == '__main__':
     unittest.main()
+

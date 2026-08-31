@@ -7,7 +7,7 @@ Supports:
 Standard schedule selection from ASME B36.10M (Carbon Steel) and ASME B36.19M (Stainless Steel).
 """
 
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from core.database import (
     ASME_B36_10_TABLE,
@@ -79,7 +79,7 @@ class WallThicknessEngine:
         standard_code: str = "BOTAŞ",     # "BOTAŞ", "ASME B31.8 / ASME B31.4", "ASME B31.3"
         manufacturing_process: str = "SAWH",  # "SMLS", "ERW HFW", "SAWH", "SAWL"
         apply_negative_tolerance: bool = True,
-        manual_negative_tolerance_percent: float = 0.0,
+        manual_negative_tolerance_percent: Optional[float] = None,
         psl_level: str = "PSL2"           # "PSL1", "PSL2"
     ) -> Dict[str, Any]:
         """
@@ -113,7 +113,23 @@ class WallThicknessEngine:
         tolerance_rule_description = ""
         effective_apply_tolerance = False
 
-        if "B31.3" in std_upper:
+        if "BOTAŞ" in std_upper or "BOTAS" in std_upper:
+            # BOTAŞ Specification:
+            # Theoretical Barlow formula: t = (P * D) / (2 * S * F * E * T) + c
+            # BOTAŞ specifies fixed nominal wall thickness directly in the standard matrix.
+            # No ad-hoc negative mill tolerance is subtracted from BOTAŞ nominals.
+            denom = 2.0 * smys_mpa * design_factor_f * longitudinal_joint_factor_e * temperature_derating_factor_t
+            t_base = (p_mpa * d_mm) / denom if denom > 0 else 0.0
+            t_req = t_base + corrosion_allowance_mm
+            formula_name = f"BOTAŞ Şartnamesi ({location_type}) Barlow Formülü"
+            formula_latex = r"t = \frac{P \cdot D}{2 \cdot S \cdot F \cdot E \cdot T} + c"
+            design_factor_used = f"F = {design_factor_f:.2f} ({location_type})"
+            
+            effective_apply_tolerance = False
+            tolerance_percent_used = 0.0
+            tolerance_rule_description = "BOTAŞ Şartnamesi Standart Et Kalınlığı Matrisi (Negatif Tolerans Düşümü Yapılmaz)"
+
+        elif "B31.3" in std_upper:
             # ASME B31.3 Process Piping (Paragraph 304.1.2)
             # t = (P * D) / [2 * (S * E * W + P * Y)] + c
             allowable_s_mpa = smys_info.get('allowable_stress_mpa', smys_mpa / 1.5)
@@ -128,12 +144,20 @@ class WallThicknessEngine:
             formula_latex = r"t = \frac{P \cdot D}{2(S \cdot E \cdot W + P \cdot Y)} + c"
             design_factor_used = f"S_allow = {allowable_s_mpa:.1f} MPa (E={e_quality}, Y={y_coeff})"
             
-            # ASME B31.3: Mill tolerance is active and user-customizable
-            effective_apply_tolerance = True
-            tolerance_percent_used = float(manual_negative_tolerance_percent) if (manual_negative_tolerance_percent is not None and manual_negative_tolerance_percent > 0) else 12.5
-            tolerance_rule_description = f"ASME B31.3 Para. 304.1.2 Negatif İmalat Toleransı: -%{tolerance_percent_used:.1f}"
+            if not apply_negative_tolerance or (manual_negative_tolerance_percent is not None and float(manual_negative_tolerance_percent) == 0.0):
+                effective_apply_tolerance = False
+                tolerance_percent_used = 0.0
+                tolerance_rule_description = "Negatif Tolerans Uygulanmadı (%0 - Nominal Schedule Doğrudan Seçildi)"
+            elif manual_negative_tolerance_percent is not None and float(manual_negative_tolerance_percent) > 0:
+                effective_apply_tolerance = True
+                tolerance_percent_used = float(manual_negative_tolerance_percent)
+                tolerance_rule_description = f"ASME B31.3 Kullanıcı Tanımlı Negatif İmalat Toleransı: -%{tolerance_percent_used:.1f}"
+            else:
+                effective_apply_tolerance = True
+                tolerance_percent_used = 12.5
+                tolerance_rule_description = "ASME B31.3 Para. 304.1.2 Standart Negatif İmalat Toleransı: -%12.5"
 
-        elif "B31.8" in std_upper or "B31.4" in std_upper:
+        else:
             # ASME B31.8 / ASME B31.4 Barlow Pipeline Formula
             # t = (P * D) / (2 * S * F * E * T) + c
             denom = 2.0 * smys_mpa * design_factor_f * longitudinal_joint_factor_e * temperature_derating_factor_t
@@ -144,49 +168,39 @@ class WallThicknessEngine:
             design_factor_used = f"F = {design_factor_f:.2f}, E = {longitudinal_joint_factor_e:.2f}, T = {temperature_derating_factor_t:.2f}"
             
             if is_stainless:
-                # Non-API 5L (Stainless/Duplex): tolerance is optional
-                if apply_negative_tolerance:
+                if not apply_negative_tolerance or (manual_negative_tolerance_percent is not None and float(manual_negative_tolerance_percent) == 0.0):
+                    effective_apply_tolerance = False
+                    tolerance_percent_used = 0.0
+                    tolerance_rule_description = "Negatif Tolerans Uygulanmadı (%0 - Nominal Schedule Doğrudan Seçildi)"
+                elif manual_negative_tolerance_percent is not None and float(manual_negative_tolerance_percent) > 0:
                     effective_apply_tolerance = True
-                    tolerance_percent_used = float(manual_negative_tolerance_percent) if (manual_negative_tolerance_percent is not None and manual_negative_tolerance_percent > 0) else 12.5
+                    tolerance_percent_used = float(manual_negative_tolerance_percent)
                     tolerance_rule_description = f"Paslanmaz Çelik Negatif İmalat Toleransı: -%{tolerance_percent_used:.1f}"
+                elif apply_negative_tolerance:
+                    effective_apply_tolerance = True
+                    tolerance_percent_used = 12.5
+                    tolerance_rule_description = "Paslanmaz Çelik Negatif İmalat Toleransı: -%12.5"
                 else:
                     effective_apply_tolerance = False
                     tolerance_percent_used = 0.0
-                    tolerance_rule_description = "Negatif Tolerans Uygulanmadı (Nominal Schedule Doğrudan Seçildi)"
+                    tolerance_rule_description = "Negatif Tolerans Uygulanmadı (%0)"
             else:
-                # API 5L Carbon Steel: User-defined manual % OR API 5L Table 11 rules by manufacturing process
-                if manual_negative_tolerance_percent is not None and manual_negative_tolerance_percent > 0:
+                # Carbon Steel (API 5L):
+                # When 0% or disabled is specified by user, strictly do not apply tolerance
+                if not apply_negative_tolerance or (manual_negative_tolerance_percent is not None and float(manual_negative_tolerance_percent) == 0.0):
+                    effective_apply_tolerance = False
+                    tolerance_percent_used = 0.0
+                    tolerance_rule_description = "Negatif İmalat Toleransı Uygulanmadı (%0 - Nominal Schedule Doğrudan Seçildi)"
+                elif manual_negative_tolerance_percent is not None and float(manual_negative_tolerance_percent) > 0:
                     effective_apply_tolerance = True
                     tolerance_percent_used = float(manual_negative_tolerance_percent)
                     tolerance_rule_description = f"Kullanıcı Tanımlı Negatif İmalat Toleransı: -%{tolerance_percent_used:.1f}"
                 else:
+                    # Automatic API 5L Table 11
                     tol_info = WallThicknessEngine.get_api_5l_wall_negative_tolerance(d_mm, t_req, manufacturing_process)
                     tolerance_percent_used = tol_info['tolerance_percent']
                     tolerance_rule_description = tol_info['rule_description']
                     effective_apply_tolerance = True
-
-        else:
-            # BOTAŞ Specification
-            denom = 2.0 * smys_mpa * design_factor_f * longitudinal_joint_factor_e * temperature_derating_factor_t
-            t_base = (p_mpa * d_mm) / denom if denom > 0 else 0.0
-            t_req = t_base + corrosion_allowance_mm
-            formula_name = f"BOTAŞ Şartnamesi ({location_type}) Barlow Formülü"
-            formula_latex = r"t = \frac{P \cdot D}{2 \cdot S \cdot F \cdot E \cdot T} + c"
-            design_factor_used = f"F = {design_factor_f:.2f} ({location_type})"
-            
-            is_station = any(k in str(location_type).lower() for k in ("station", "istasyon", "pig", "vana", "valve"))
-            if manual_negative_tolerance_percent is not None and manual_negative_tolerance_percent > 0:
-                effective_apply_tolerance = True
-                tolerance_percent_used = float(manual_negative_tolerance_percent)
-                tolerance_rule_description = f"BOTAŞ Negatif İmalat Toleransı / Emniyet Payı: -%{tolerance_percent_used:.1f}"
-            elif is_station:
-                effective_apply_tolerance = True
-                tolerance_percent_used = 12.5
-                tolerance_rule_description = "BOTAŞ İstasyon Şartnamesi Emniyet Payı: -%12.5"
-            else:
-                effective_apply_tolerance = False
-                tolerance_percent_used = 0.0
-                tolerance_rule_description = "BOTAŞ Hat Borusu Standart Şartname Değeri"
 
         # Schedule Table Selection (ASME B36.19M for Stainless, ASME B36.10M for Carbon)
         target_schedule_table = ASME_B36_19_TABLE if is_stainless else ASME_B36_10_TABLE

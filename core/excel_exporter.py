@@ -334,3 +334,108 @@ class ExcelExporter:
         wb.save(output)
         output.seek(0)
         return output
+
+    @staticmethod
+    def export_itp_audit_report(
+        audit_data: Dict[str, Any],
+        lang: str = "tr"
+    ) -> io.BytesIO:
+        """
+        Exports the ITP comparison and audit findings to a styled Excel report.
+        """
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "ITP Denetim ve Sapma Raporu"
+        ws.views.sheetView[0].showGridLines = True
+
+        font_title = Font(name="Arial", size=13, bold=True, color="1E3A8A")
+        font_header = Font(name="Arial", size=9, bold=True, color="FFFFFF")
+        font_bold = Font(name="Arial", size=9, bold=True)
+        font_regular = Font(name="Arial", size=9)
+        font_small = Font(name="Arial", size=8, italic=True, color="475569")
+
+        fill_header = PatternFill(start_color="1E3A8A", end_color="1E3A8A", fill_type="solid")
+        fill_pass = PatternFill(start_color="DCFCE7", end_color="DCFCE7", fill_type="solid")
+        fill_warn = PatternFill(start_color="FEF9C3", end_color="FEF9C3", fill_type="solid")
+        fill_fail = PatternFill(start_color="FEE2E2", end_color="FEE2E2", fill_type="solid")
+        fill_zebra = PatternFill(start_color="F8FAFC", end_color="F8FAFC", fill_type="solid")
+
+        border_thin = Side(border_style="thin", color="CBD5E1")
+        border_all = Border(left=border_thin, right=border_thin, top=border_thin, bottom=border_thin)
+
+        align_left = Alignment(horizontal="left", vertical="center", wrap_text=True)
+        align_center = Alignment(horizontal="center", vertical="center", wrap_text=True)
+
+        pipe = audit_data.get("pipe_summary", {})
+        kpi = audit_data.get("kpi", {})
+
+        # Header Title
+        ws.merge_cells("A1:G1")
+        ws.cell(1, 1, "API 5L 47. BASKI & BOTAŞ - ITP AKILLI DENETİM VE SAPMA RAPORU").font = font_title
+        ws.cell(1, 1).alignment = align_left
+
+        # Pipe Metadata Box
+        ws.merge_cells("A2:G2")
+        meta_str = (
+            f"Boru Özellikleri: {pipe.get('diameter_inch', '48\"')} ({pipe.get('diameter_mm')} mm) x {pipe.get('wall_thickness_mm')} mm | "
+            f"Kalite: {pipe.get('material_grade')} {pipe.get('psl_level')} | Üretim: {pipe.get('manufacturing_process')} | "
+            f"Uyum Puanı: %{kpi.get('compliance_score_percent', 0.0)} ({kpi.get('overall_verdict')})"
+        )
+        ws.cell(2, 1, meta_str).font = font_small
+        ws.cell(2, 1).alignment = align_left
+
+        # Table Column Headers
+        headers = [
+            "Muayene / Test Adı",
+            "Disiplin",
+            "İmalatçı ITP Frekansı",
+            "API 5L 47. Baskı / BOTAŞ Frekansı",
+            "İmalatçı Kabul Kriteri",
+            "Standart Kabul Kriteri (Limit Değer)",
+            "Denetim Durumu & Bulgular",
+        ]
+        
+        ws.row_dimensions[4].height = 28
+        for col_idx, text in enumerate(headers, 1):
+            c = ws.cell(4, col_idx, text)
+            c.font = font_header
+            c.fill = fill_header
+            c.alignment = align_center
+            c.border = border_all
+
+        # Populate Rows
+        current_r = 5
+        for row in audit_data.get("audit_rows", []):
+            ws.row_dimensions[current_r].height = 36
+            status = row.get("status", "COMPLIANT")
+            
+            c_name = ws.cell(current_r, 1, row.get("test_name", "—"))
+            c_cat = ws.cell(current_r, 2, row.get("category", "—"))
+            c_up_f = ws.cell(current_r, 3, row.get("uploaded_frequency", "—"))
+            c_st_f = ws.cell(current_r, 4, row.get("standard_frequency", "—"))
+            c_up_c = ws.cell(current_r, 5, row.get("uploaded_criteria", "—"))
+            c_st_c = ws.cell(current_r, 6, row.get("standard_criteria", "—"))
+            c_rem = ws.cell(current_r, 7, row.get("audit_remarks", "—"))
+
+            status_fill = fill_pass if status == "COMPLIANT" else (fill_warn if status == "MORE_STRINGENT" else fill_fail)
+
+            for cell in (c_name, c_cat, c_up_f, c_st_f, c_up_c, c_st_c, c_rem):
+                cell.font = font_regular
+                cell.border = border_all
+                cell.alignment = align_left
+
+            c_rem.fill = status_fill
+            c_rem.font = font_bold if status != "COMPLIANT" else font_regular
+            c_name.fill = fill_zebra if current_r % 2 == 0 else PatternFill(fill_type=None)
+
+            current_r += 1
+
+        # Column Widths
+        widths = [26, 16, 26, 32, 28, 38, 45]
+        for idx, w in enumerate(widths, 1):
+            ws.column_dimensions[get_column_letter(idx)].width = w
+
+        output = io.BytesIO()
+        wb.save(output)
+        output.seek(0)
+        return output

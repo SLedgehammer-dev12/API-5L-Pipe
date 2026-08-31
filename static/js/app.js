@@ -197,6 +197,7 @@ async function calculateAndRenderAll() {
             renderPipesManagementList();
             render3DPipeChips();
             renderITPPipeChips();
+            if (typeof updateITPTargetPipes === "function") updateITPTargetPipes();
             if (calculatedPipes.length > 0) {
                 updateVisualizers(calculatedPipes[selectedPipeIndex]);
             }
@@ -967,6 +968,10 @@ function setupEventListeners() {
     const wtForm = document.getElementById("wall-thickness-calc-form");
     if (wtForm) {
         setupWallThicknessDynamicUI();
+    }
+    setupITPAuditUI();
+
+    if (wtForm) {
         wtForm.addEventListener("submit", async (e) => {
             e.preventDefault();
             const formData = new FormData(wtForm);
@@ -975,18 +980,22 @@ function setupEventListeners() {
             const isStainless = matGrade.includes("SS") || matGrade.includes("Duplex");
             
             // Negative tolerance handling
-            let manualTol = parseFloat(formData.get("manual_negative_tolerance_percent") || "0.0");
-            let applyTol = manualTol > 0 || stdCode.includes("B31.3");
+            let manualTolRaw = formData.get("manual_negative_tolerance_percent");
+            let manualTol = (manualTolRaw !== null && manualTolRaw !== "" && !isNaN(parseFloat(manualTolRaw))) ? parseFloat(manualTolRaw) : null;
+            let applyTol = true;
             
-            if (stdCode.includes("B31.8") || stdCode.includes("B31.4")) {
+            if (stdCode.includes("BOTAŞ") || stdCode.includes("BOTAS")) {
+                applyTol = false;
+                manualTol = 0.0;
+            } else if (stdCode.includes("B31.8") || stdCode.includes("B31.4")) {
                 if (isStainless) {
                     const chk = document.getElementById("chk-apply-stainless-tol");
-                    applyTol = chk ? chk.checked : (manualTol > 0);
+                    applyTol = chk ? chk.checked : (manualTol !== null && manualTol > 0);
                 } else {
-                    applyTol = true; // API 5L Table 11 or custom manual %
+                    applyTol = manualTol === null || manualTol > 0;
                 }
-            } else if (stdCode.includes("BOTAŞ")) {
-                applyTol = true;
+            } else if (stdCode.includes("B31.3")) {
+                applyTol = manualTol === null || manualTol > 0;
             }
 
             const reqData = {
@@ -1073,6 +1082,8 @@ function setupWallThicknessDynamicUI() {
         const std = stdSelect.value;
         const grade = gradeSelect ? gradeSelect.value : "X65";
         const isStainless = grade.includes("SS") || grade.includes("Duplex");
+        const isBotas = std.includes("BOTAŞ") || std.includes("BOTAS");
+        const isB313 = std.includes("B31.3");
         const procContainer = document.getElementById("wt-process-container");
         const pslTolRow = document.getElementById("wt-psl-tol-row");
         const pslBox = document.getElementById("wt-psl-box");
@@ -1082,20 +1093,31 @@ function setupWallThicknessDynamicUI() {
         const tolB313Info = document.getElementById("wt-tol-b313-info");
         const tolDescSpan = document.getElementById("wt-tol-desc-span");
         
-        // Tolerans kutusu her standartta kullanıcı erişimine açık tutulur
-        if (pslTolRow) pslTolRow.classList.remove("hidden");
-        if (manualTolBox) manualTolBox.classList.remove("hidden");
-        
-        if (std.includes("B31.3")) {
+        if (isBotas) {
+            // BOTAŞ Specification: No negative tolerance input
+            if (procContainer) procContainer.classList.remove("hidden");
+            if (pslTolRow) pslTolRow.classList.add("hidden");
+            if (pslBox) pslBox.classList.add("hidden");
+            if (manualTolBox) manualTolBox.classList.add("hidden");
+            if (tolApi5lText) tolApi5lText.classList.remove("hidden");
+            if (tolStainlessOpt) tolStainlessOpt.classList.add("hidden");
+            if (tolB313Info) tolB313Info.classList.add("hidden");
+            if (tolDescSpan) tolDescSpan.innerText = "BOTAŞ Şartnamesi: Et kalınlıkları BOTAŞ standart şartname çizelgesinden doğrudan belirlenir (negatif tolerans düşümü yapılmaz).";
+        } else if (isB313) {
             // ASME B31.3
             if (procContainer) procContainer.classList.add("hidden");
+            if (pslTolRow) pslTolRow.classList.remove("hidden");
             if (pslBox) pslBox.classList.add("hidden");
+            if (manualTolBox) manualTolBox.classList.remove("hidden");
             if (tolApi5lText) tolApi5lText.classList.add("hidden");
             if (tolStainlessOpt) tolStainlessOpt.classList.add("hidden");
             if (tolB313Info) tolB313Info.classList.remove("hidden");
-            if (tolDescSpan) tolDescSpan.innerText = "ASME B31.3 Para. 304.1.2: Negatif imalat toleransı zorunludur (%12.5 önerilen; özel değer girebilirsiniz).";
-        } else if (std.includes("B31.8") || std.includes("B31.4")) {
+            if (tolDescSpan) tolDescSpan.innerText = "ASME B31.3 Para. 304.1.2: Negatif imalat toleransı uygulanır (%12.5 standart; dilediğiniz oranı veya %0 seçebilirsiniz).";
+        } else {
             // ASME B31.8 / ASME B31.4
+            if (pslTolRow) pslTolRow.classList.remove("hidden");
+            if (manualTolBox) manualTolBox.classList.remove("hidden");
+            
             if (isStainless) {
                 if (procContainer) procContainer.classList.add("hidden");
                 if (pslBox) pslBox.classList.add("hidden");
@@ -1116,25 +1138,17 @@ function setupWallThicknessDynamicUI() {
                 const isLargeDia = !diaText.includes("1/") && !diaText.includes("3/") && parseFloat(diaText) > 20;
                 
                 if (proc.includes("SMLS")) {
-                    if (tolDescSpan) tolDescSpan.innerText = "Dikişsiz (SMLS) borular için API 5L Tablo 11 gereği standart -%12.5 veya yukarıdan özel tolerans uygulanır.";
+                    if (tolDescSpan) tolDescSpan.innerText = "Dikişsiz (SMLS) borular için API 5L Tablo 11 gereği standart -%12.5 veya yukarıdaki kutudan %0 ya da özel tolerans uygulanır.";
                 } else if (proc.includes("ERW") || proc.includes("HFW")) {
-                    if (tolDescSpan) tolDescSpan.innerText = "Boyuna kaynaklı (ERW/HFW) borular için API 5L Tablo 11 gereği standart -%10.0 veya yukarıdan özel tolerans uygulanır.";
+                    if (tolDescSpan) tolDescSpan.innerText = "Boyuna kaynaklı (ERW/HFW) borular için API 5L Tablo 11 gereği standart -%10.0 veya yukarıdaki kutudan %0 ya da özel tolerans uygulanır.";
                 } else {
                     if (isLargeDia) {
-                        if (tolDescSpan) tolDescSpan.innerText = `Tozaltı kaynaklı (SAWH/SAWL) D > 20" borular için API 5L Tablo 11 gereği standart -%8.0 veya yukarıdan özel tolerans uygulanır.`;
+                        if (tolDescSpan) tolDescSpan.innerText = `Tozaltı kaynaklı (SAWH/SAWL) D > 20" borular için API 5L Tablo 11 gereği standart -%8.0 veya yukarıdaki kutudan %0 ya da özel tolerans uygulanır.`;
                     } else {
-                        if (tolDescSpan) tolDescSpan.innerText = `Tozaltı kaynaklı (SAWH/SAWL) D ≤ 20" borular için API 5L Tablo 11 gereği standart -%10.0 veya yukarıdan özel tolerans uygulanır.`;
+                        if (tolDescSpan) tolDescSpan.innerText = `Tozaltı kaynaklı (SAWH/SAWL) D ≤ 20" borular için API 5L Tablo 11 gereği standart -%10.0 veya yukarıdaki kutudan %0 ya da özel tolerans uygulanır.`;
                     }
                 }
             }
-        } else {
-            // BOTAŞ
-            if (procContainer) procContainer.classList.remove("hidden");
-            if (pslBox) pslBox.classList.add("hidden");
-            if (tolApi5lText) tolApi5lText.classList.remove("hidden");
-            if (tolStainlessOpt) tolStainlessOpt.classList.add("hidden");
-            if (tolB313Info) tolB313Info.classList.add("hidden");
-            if (tolDescSpan) tolDescSpan.innerText = "BOTAŞ Şartnamesi: Hat borularında şartname tablosu, istasyon borularında standart %12.5 emniyet payı veya yukarıdan girilen özel tolerans uygulanır.";
         }
     }
     
@@ -1362,7 +1376,10 @@ async function loadTestPlan() {
         // Store plan for modal lookups
         window._itpData = res.test_plan;
 
-        let html = `<p class="text-[11px] text-slate-500 mb-2">Seçili boru: <strong>${esc(pipe.diameter_inch)} - ${esc(pipe.material_grade)} (${esc(pipe.manufacturing_process)})</strong> — API 5L 47th Ed. (satıra tıklayın: standart metni + numune çizimi)</p>`;
+        const isBotasPipe = pipe.standard_type && (pipe.standard_type.includes("BOTAŞ") || pipe.standard_type.includes("BOTAS"));
+        const stdLabel = isBotasPipe ? "BOTAŞ Çelik Boru Şartnamesi (4-NGTL-0-GN-P-002-5120 R7)" : "API Spec 5L 47. Baskı / ISO 3183";
+
+        let html = `<p class="text-[11px] text-slate-500 mb-2">Seçili boru: <strong>${esc(pipe.diameter_inch)} - ${esc(pipe.material_grade)} (${esc(pipe.manufacturing_process)})</strong> — <span class="text-indigo-700 font-semibold">${stdLabel}</span> (satıra tıklayın: standart metni + numune çizimi)</p>`;
         html += `<div class="overflow-x-auto"><table class="w-full text-xs text-left border-collapse bg-white rounded border border-gray-300">`;
         html += `<thead class="bg-gray-100 text-gray-700 font-bold border-b border-gray-300"><tr>
             <th class="p-2">Test</th><th class="p-2">Madde</th><th class="p-2">Sıklık / Adet</th><th class="p-2">Alınma Yeri</th><th class="p-2">Numune Boyutu</th></tr></thead><tbody>`;
@@ -1531,3 +1548,298 @@ async function copyFeedbackReport() {
         showToast("Panoya kopyalanamadı.", "error");
     }
 }
+
+// ============================================================================
+// ITP SMART AUDITOR (UNLIMITED-OCR & API 5L 47TH EDITION / BOTAŞ)
+// ============================================================================
+
+let currentITPAuditResult = null;
+let currentITPFilter = "ALL";
+
+function setupITPAuditUI() {
+    const fileInput = document.getElementById("itp-file-input");
+    const dropzoneLabel = document.getElementById("itp-dropzone-label");
+    const statusText = document.getElementById("itp-upload-status-text");
+    const btnStart = document.getElementById("btn-start-itp-audit");
+    const btnDemo = document.getElementById("btn-load-demo-itp");
+    const btnExportExcel = document.getElementById("btn-export-itp-excel");
+
+    if (fileInput && dropzoneLabel) {
+        fileInput.addEventListener("change", () => {
+            if (fileInput.files && fileInput.files.length > 0) {
+                const f = fileInput.files[0];
+                dropzoneLabel.innerHTML = `📄 <strong>${esc(f.name)}</strong> (${(f.size / 1024).toFixed(1)} KB)`;
+                if (statusText) statusText.innerText = `Seçildi: ${f.name}. "Unlimited-OCR ile Oku & Denetle" butonuna basın.`;
+            }
+        });
+    }
+
+    if (btnDemo) {
+        btnDemo.addEventListener("click", async () => {
+            await startITPAudit(null, true);
+        });
+    }
+
+    if (btnStart) {
+        btnStart.addEventListener("click", async () => {
+            const file = fileInput?.files?.[0];
+            if (!file) {
+                showToast("Lütfen önce bir ITP PDF dokümanı seçin veya örnek doküman yükleyin.", "warning");
+                return;
+            }
+            await startITPAudit(file, false);
+        });
+    }
+
+    if (btnExportExcel) {
+        btnExportExcel.addEventListener("click", async () => {
+            if (!currentITPAuditResult) return;
+            try {
+                const resp = await fetch("/api/itp/export-audit-report", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        audit_result: currentITPAuditResult,
+                        lang: localStorage.getItem("api5l_lang") || "tr"
+                    })
+                });
+                if (!resp.ok) throw new Error("Excel raporu oluşturulamadı.");
+                const blob = await resp.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `ITP_Audit_Report_${Date.now()}.xlsx`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                showToast("Excel ITP Sapma Raporu başarıyla indirildi!", "success");
+            } catch (err) {
+                console.error("Export error:", err);
+                showToast("Rapor indirme hatası: " + err.message, "error");
+            }
+        });
+    }
+
+    updateITPTargetPipes();
+}
+
+function updateITPTargetPipes() {
+    const select = document.getElementById("itp-target-pipe-select");
+    if (!select) return;
+    select.innerHTML = "";
+
+    if (!activeProject.pipes || activeProject.pipes.length === 0) {
+        const opt = document.createElement("option");
+        opt.value = "default";
+        opt.text = '48" (1219.0 mm) x 14.30 mm - X65 PSL2 SAWH (Varsayılan Referans)';
+        select.appendChild(opt);
+        return;
+    }
+
+    activeProject.pipes.forEach((p, idx) => {
+        const opt = document.createElement("option");
+        opt.value = idx;
+        const dStr = p.diameter_inch || `${p.diameter_mm} mm`;
+        const tStr = p.wall_thickness_mm ? `${p.wall_thickness_mm} mm` : "";
+        const gStr = p.material_grade || "X65";
+        const pStr = p.manufacturing_process || "SAWH";
+        const pslStr = p.psl_level || "PSL2";
+        opt.text = `${idx + 1}. Boru: ${dStr} x ${tStr} | ${gStr} ${pslStr} ${pStr}`;
+        if (idx === selectedPipeIndex) opt.selected = true;
+        select.appendChild(opt);
+    });
+}
+
+async function startITPAudit(file = null, useDemo = false) {
+    const statusText = document.getElementById("itp-upload-status-text");
+    const btnStart = document.getElementById("btn-start-itp-audit");
+    const select = document.getElementById("itp-target-pipe-select");
+
+    let pipeConfig = {
+        diameter_mm: 1219.0,
+        diameter_inch: '48"',
+        wall_thickness_mm: 14.30,
+        material_grade: "X65",
+        manufacturing_process: "SAWH",
+        psl_level: "PSL2",
+        standard_type: "API"
+    };
+
+    if (activeProject.pipes && activeProject.pipes.length > 0) {
+        const pipeIdx = parseInt(select?.value || "0");
+        pipeConfig = activeProject.pipes[isNaN(pipeIdx) ? 0 : pipeIdx] || pipeConfig;
+    }
+
+    if (statusText) statusText.innerText = "⏳ Unlimited-OCR dokümanı okuyor ve tabloları analiz ediyor...";
+    if (btnStart) btnStart.disabled = true;
+
+    try {
+        const formData = new FormData();
+        if (file) formData.append("file", file);
+        formData.append("use_demo", useDemo ? "true" : "false");
+        formData.append("pipe_config_json", JSON.stringify(pipeConfig));
+
+        const resp = await fetch("/api/itp/upload-and-audit", {
+            method: "POST",
+            body: formData
+        });
+        const res = await resp.json();
+
+        if (res.status === "success") {
+            currentITPAuditResult = res.audit_result;
+            renderITPAuditResult(res.audit_result);
+            if (statusText) statusText.innerText = `✓ Denetim tamamlandı (${res.source || "ITP"}).`;
+            showToast("ITP dokümanı başarıyla okundu ve denetlendi!", "success");
+        } else {
+            throw new Error(res.message || "Denetim başarısız oldu.");
+        }
+    } catch (err) {
+        console.error("ITP Audit error:", err);
+        if (statusText) statusText.innerText = "❌ Hata: " + err.message;
+        showToast("ITP Denetim hatası: " + err.message, "error");
+    } finally {
+        if (btnStart) btnStart.disabled = false;
+    }
+}
+
+function renderITPAuditResult(auditData) {
+    if (!auditData) return;
+    const kpi = auditData.kpi || {};
+    const rows = auditData.audit_rows || [];
+
+    // KPI Cards
+    const elTotal = document.getElementById("itp-kpi-total");
+    const elPass = document.getElementById("itp-kpi-pass");
+    const elMore = document.getElementById("itp-kpi-more");
+    const elFail = document.getElementById("itp-kpi-fail");
+    const elScore = document.getElementById("itp-score-percent");
+    const elBar = document.getElementById("itp-score-bar");
+    const elVerdict = document.getElementById("itp-verdict-badge");
+    const btnExcel = document.getElementById("btn-export-itp-excel");
+
+    if (elTotal) elTotal.innerText = kpi.total_tests_audited || rows.length;
+    if (elPass) elPass.innerText = kpi.compliant_count || 0;
+    if (elMore) elMore.innerText = kpi.more_stringent_count || 0;
+    if (elFail) elFail.innerText = kpi.non_compliant_count || 0;
+    
+    const score = kpi.compliance_score_percent !== undefined ? kpi.compliance_score_percent : 100.0;
+    if (elScore) elScore.innerText = `%${score.toFixed(1)}`;
+    if (elBar) elBar.style.width = `${score}%`;
+
+    if (elVerdict) {
+        if (kpi.non_compliant_count > 0) {
+            elVerdict.className = "px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-100 text-rose-800 border border-rose-200";
+            elVerdict.innerText = `⚠ ${kpi.non_compliant_count} Sapma Tespit Edildi (Revizyon Gerekli)`;
+        } else if (kpi.more_stringent_count > 0) {
+            elVerdict.className = "px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200";
+            elVerdict.innerText = "✓ Şartnameye Uygun (Üstün Taahhütler Var)";
+        } else {
+            elVerdict.className = "px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200";
+            elVerdict.innerText = "✓ Tam Uyumlu (%100 Standart Uyumu)";
+        }
+    }
+
+    if (btnExcel) btnExcel.disabled = false;
+
+    renderITPAuditTable(rows);
+}
+
+function renderITPAuditTable(rows) {
+    const tbody = document.getElementById("itp-audit-table-body");
+    const countLabel = document.getElementById("itp-table-count-label");
+    if (!tbody) return;
+
+    let filteredRows = rows;
+    if (currentITPFilter && currentITPFilter !== "ALL") {
+        filteredRows = rows.filter(r => r.status === currentITPFilter);
+    }
+
+    if (countLabel) {
+        countLabel.innerText = `Gösterilen: ${filteredRows.length} / ${rows.length} test maddesi`;
+    }
+
+    if (filteredRows.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="6" class="text-center py-8 text-slate-400 text-xs">
+                    Bu filtreleme kriterine uygun test maddesi bulunamadı.
+                </td>
+            </tr>`;
+        return;
+    }
+
+    let html = "";
+    filteredRows.forEach((row, i) => {
+        const st = row.status || "COMPLIANT";
+        let badgeHtml = "";
+        let rowBg = i % 2 === 0 ? "bg-white" : "bg-slate-50/50";
+
+        if (st === "NON_COMPLIANT") {
+            badgeHtml = `<span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-rose-100 text-rose-800 border border-rose-200">🔴 Uyumsuz / Hata</span>`;
+            rowBg = "bg-rose-50/40";
+        } else if (st === "MORE_STRINGENT") {
+            badgeHtml = `<span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-200">🟡 Daha Sıkı</span>`;
+            rowBg = "bg-amber-50/30";
+        } else {
+            badgeHtml = `<span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">🟢 Uyumlu</span>`;
+        }
+
+        html += `
+            <tr class="${rowBg} hover:bg-indigo-50/30 transition">
+                <td class="py-2.5 px-3 align-top border-b border-slate-100">
+                    <span class="font-bold text-slate-900 block">${esc(row.test_name)}</span>
+                    <span class="text-[10px] text-slate-500 font-semibold">${esc(row.category || "Muayene")}</span>
+                </td>
+                <td class="py-2.5 px-3 align-top border-b border-slate-100 text-slate-700">
+                    <span class="font-semibold block">${esc(row.uploaded_frequency || "—")}</span>
+                </td>
+                <td class="py-2.5 px-3 align-top border-b border-slate-100 text-blue-950 bg-blue-50/30 font-semibold">
+                    <span class="block">${esc(row.standard_frequency || "—")}</span>
+                    <span class="text-[10px] text-blue-700 font-normal block mt-0.5">${esc(row.table_ref || "")}</span>
+                </td>
+                <td class="py-2.5 px-3 align-top border-b border-slate-100 text-slate-700">
+                    <span class="font-semibold block">${esc(row.uploaded_criteria || "—")}</span>
+                </td>
+                <td class="py-2.5 px-3 align-top border-b border-slate-100 text-indigo-950 bg-indigo-50/30 font-semibold">
+                    <span class="block">${esc(row.standard_criteria || "—")}</span>
+                </td>
+                <td class="py-2.5 px-3 align-top border-b border-slate-100">
+                    <div class="mb-1">${badgeHtml}</div>
+                    <p class="text-[11px] leading-snug font-normal ${st === 'NON_COMPLIANT' ? 'text-rose-900 font-semibold' : 'text-slate-600'}">${esc(row.audit_remarks || "")}</p>
+                    <span class="text-[10px] text-slate-400 block mt-1 font-mono">${esc(row.clause_ref || "")}</span>
+                </td>
+            </tr>`;
+    });
+
+    tbody.innerHTML = html;
+}
+
+function filterITPTable(filterType) {
+    currentITPFilter = filterType;
+
+    const btnAll = document.getElementById("filter-btn-all");
+    const btnFail = document.getElementById("filter-btn-fail");
+    const btnMore = document.getElementById("filter-btn-more");
+    const btnPass = document.getElementById("filter-btn-pass");
+
+    const btns = [
+        { el: btnAll, active: filterType === "ALL", cls: "bg-slate-800 text-white" },
+        { el: btnFail, active: filterType === "NON_COMPLIANT", cls: "bg-rose-700 text-white" },
+        { el: btnMore, active: filterType === "MORE_STRINGENT", cls: "bg-amber-700 text-white" },
+        { el: btnPass, active: filterType === "COMPLIANT", cls: "bg-emerald-700 text-white" }
+    ];
+
+    btns.forEach(b => {
+        if (!b.el) return;
+        if (b.active) {
+            b.el.className = `px-2 py-0.5 rounded-md font-bold text-[11px] shadow ${b.cls}`;
+        } else {
+            b.el.className = "px-2 py-0.5 rounded-md font-semibold text-[11px] text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200";
+        }
+    });
+
+    if (currentITPAuditResult && currentITPAuditResult.audit_rows) {
+        renderITPAuditTable(currentITPAuditResult.audit_rows);
+    }
+}
+
