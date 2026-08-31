@@ -13,10 +13,9 @@ extracting structured Inspection & Test Plan (ITP) tables containing:
     - Clause Reference (Şartname Maddesi)
 """
 
-import os
-import re
 import json
 import logging
+import re
 from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)

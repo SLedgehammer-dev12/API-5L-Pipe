@@ -14,7 +14,7 @@ Detects:
 """
 
 import re
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 from core.test_plan import get_comprehensive_itp_specification
 
 
@@ -66,7 +66,6 @@ class ITPAuditEngine:
         for master_item in master_spec:
             test_key = master_item["test_key"]
             matched_uploaded_item = None
-            matched_idx = -1
 
             # Match against uploaded items
             for idx, up_item in enumerate(uploaded_items):
@@ -76,7 +75,6 @@ class ITPAuditEngine:
                 keywords = cls.TEST_MATCHER_KEYWORDS.get(test_key, [])
                 if any(kw in up_name for kw in keywords):
                     matched_uploaded_item = up_item
-                    matched_idx = idx
                     matched_uploaded_indices.add(idx)
                     break
 

@@ -15,7 +15,7 @@ from core.itp_audit_engine import ITPAuditEngine
 from core.pipe_qaqc_engine import PipeQAQCEngine
 from core.project_manager import ProjectManager
 from core.schemas import CalculateRequest, ExportRequest, PipeInput, ReportRequest
-from core.test_plan import get_comprehensive_itp_specification, get_test_plan
+from core.test_plan import get_comprehensive_itp_specification, get_test_plan as compute_test_plan
 from core.unlimited_ocr_engine import UnlimitedOCREngine
 from core.verification_engine import PipeVerificationEngine
 from core.wall_thickness_engine import WallThicknessEngine
@@ -262,14 +262,13 @@ async def sawh_strip(data: Dict[str, Any] = Body(...)):
     return JSONResponse(content={"status": "success", "data": res})
 
 @app.post("/api/test-plan")
-async def get_test_plan(data: Dict[str, Any] = Body(...)):
+async def api_get_test_plan(data: Dict[str, Any] = Body(...)):
     """
     Returns the API 5L PSL2 inspection & test plan (sampling frequency,
     location and specimen dimensions) for a given pipe configuration.
     """
-    from core.test_plan import get_test_plan
     pipe_config = data.get("pipe_config", {})
-    plan = get_test_plan(pipe_config, psl_level=pipe_config.get("psl_level", "PSL2"))
+    plan = compute_test_plan(pipe_config, psl_level=pipe_config.get("psl_level", "PSL2"))
     return JSONResponse(content={"status": "success", "test_plan": plan})
 
 @app.post("/api/report-view", response_class=HTMLResponse)
