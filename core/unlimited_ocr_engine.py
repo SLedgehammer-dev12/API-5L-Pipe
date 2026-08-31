@@ -131,6 +131,21 @@ class UnlimitedOCREngine:
                 except Exception as e_tab:
                     logger.debug(f"fitz find_tables error on page: {e_tab}")
 
+            # If digital text extraction returned no text (scanned image PDF), attempt OCR on rasterized pages
+            if not text_content.strip() and not extracted_rows:
+                try:
+                    import pytesseract
+                    from PIL import Image
+                    import io
+                    for page in doc:
+                        pix = page.get_pixmap(dpi=200)
+                        img = Image.open(io.BytesIO(pix.tobytes("png")))
+                        ocr_txt = pytesseract.image_to_string(img, lang="tur+eng")
+                        if ocr_txt:
+                            text_content += ocr_txt + "\n"
+                except Exception as e_tess:
+                    logger.debug(f"Local pytesseract fallback unavailable: {e_tess}")
+
         except Exception as e_fitz:
             try:
                 import io
@@ -146,7 +161,8 @@ class UnlimitedOCREngine:
     @classmethod
     def _parse_table_matrix_into_itp(cls, table_data: List[List[Optional[str]]]) -> List[Dict[str, Any]]:
         """
-        Dynamically analyzes table headers and extracts structured ITP rows with column isolation.
+        Dynamically analyzes table headers and extracts structured ITP rows with column isolation
+        after verifying Header Confidence Score (matched_columns >= 2).
         """
         if not table_data or len(table_data) < 2:
             return []
@@ -162,11 +178,11 @@ class UnlimitedOCREngine:
         idx_clause = -1
 
         for col_i, col_text in enumerate(header_row):
-            if idx_name == -1 and any(k in col_text for k in ("activity", "test", "inspection", "muayene", "deney", "item", "tanım", "faaliyet")):
+            if idx_name == -1 and any(k in col_text for k in ("activity", "test", "inspection", "muayene", "deney", "item", "tanım", "faaliyet", "scope")):
                 idx_name = col_i
-            elif idx_freq == -1 and any(k in col_text for k in ("freq", "extent", "frekans", "sıklık", "adet", "rate", "aralık")):
+            elif idx_freq == -1 and any(k in col_text for k in ("freq", "extent", "frekans", "sıklık", "adet", "rate", "aralık", "frequency")):
                 idx_freq = col_i
-            elif idx_loc == -1 and any(k in col_text for k in ("location", "specimen", "yer", "numune", "yön", "örnek")):
+            elif idx_loc == -1 and any(k in col_text for k in ("location", "specimen", "yer", "numune", "yön", "örnek", "position")):
                 idx_loc = col_i
             elif idx_std == -1 and any(k in col_text for k in ("standard", "method", "metot", "prosedür", "code", "standart")):
                 idx_std = col_i
@@ -175,13 +191,11 @@ class UnlimitedOCREngine:
             elif idx_clause == -1 and any(k in col_text for k in ("clause", "madde", "ref", "section", "spec", "referans")):
                 idx_clause = col_i
 
-        # Fallback default positions if headers not cleanly labeled
-        if idx_name == -1 and len(header_row) > 1:
-            idx_name = 1 if len(header_row) > 2 else 0
-        if idx_freq == -1 and len(header_row) > 2:
-            idx_freq = 2
-        if idx_crit == -1 and len(header_row) > 5:
-            idx_crit = 5
+        # Header Confidence Score Check (R2 Solution)
+        # If fewer than 2 relevant column headers are recognized, reject table to prevent false mappings
+        matched_columns = sum(1 for idx in (idx_name, idx_freq, idx_std, idx_crit, idx_clause) if idx != -1)
+        if matched_columns < 2 or idx_name == -1:
+            return []
 
         items: List[Dict[str, Any]] = []
 

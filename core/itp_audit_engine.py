@@ -18,6 +18,39 @@ from typing import Any, Dict, List
 from core.test_plan import get_comprehensive_itp_specification
 
 
+class FrequencyCanonical:
+    EVERY_PIPE_100 = "EVERY_PIPE_100"
+    PER_HEAT = "PER_HEAT"
+    PER_TEST_UNIT = "PER_TEST_UNIT"
+    PER_COIL_ENDS = "PER_COIL_ENDS"
+    PERIODIC_SHIFT = "PERIODIC_SHIFT"
+    INADEQUATE_SAMPLING = "INADEQUATE_SAMPLING"
+    UNKNOWN = "UNKNOWN"
+
+
+class FrequencyNormalizer:
+    """Normalizes raw unstructured frequency text into a canonical engineering classification."""
+
+    @staticmethod
+    def normalize(freq_text: str) -> str:
+        t = (freq_text or "").lower().strip()
+        if not t or t == "—":
+            return FrequencyCanonical.UNKNOWN
+        if any(k in t for k in ("1 per 5", "1 per 10", "1/5", "1/10", "spot", "örneklem", "5%", "10%", "10 boruda 1", "5 boruda 1", "20 boruda 1", "sample 1 per shift")):
+            return FrequencyCanonical.INADEQUATE_SAMPLING
+        if any(k in t for k in ("her boru", "%100", "100%", "each pipe", "all pipes", "tüm borular", "istisnasız", "every pipe", "her kaynaklı boru")):
+            return FrequencyCanonical.EVERY_PIPE_100
+        if any(k in t for k in ("her döküm", "döküm başına", "dokum", "heat", "ısı başına", "isi basina", "pota", "per heat", "her dökümde")):
+            return FrequencyCanonical.PER_HEAT
+        if any(k in t for k in ("rulo", "bobin", "crop end", "coil")):
+            return FrequencyCanonical.PER_COIL_ENDS
+        if any(k in t for k in ("vardiya", "shift")):
+            return FrequencyCanonical.PERIODIC_SHIFT
+        if any(k in t for k in ("test ünitesi", "test unitesi", "lot", "unit", "ebat bazında")):
+            return FrequencyCanonical.PER_TEST_UNIT
+        return FrequencyCanonical.UNKNOWN
+
+
 class ITPAuditEngine:
     """
     Automated ITP Audit and Discrepancy Evaluation Engine.
@@ -299,11 +332,13 @@ class ITPAuditEngine:
         up_std_lower = up_std.lower()
         full_up_text = f"{up_crit_lower} {up_std_lower}"
 
-        # --- 1. Comprehensive Frequency Evaluation ---
+        # --- 1. Comprehensive Canonical Frequency Evaluation (R4 Solution) ---
+        canon_freq = FrequencyNormalizer.normalize(up_freq)
+
         if test_key in ("hydrostatic", "ndt_weld_seam", "visual_surface", "dimensional_wall_thickness",
                         "dimensional_length_straightness_bevel", "ndt_pipe_ends", "ndt_bevel_mt",
                         "quality_marking_surface_prep", "dimensional_diameter_ovality", "dimensional_weight"):
-            if any(term in up_freq_lower for term in ("lot başına", "10 boruda 1", "5 boruda 1", "5% of pipes", "10% of pipes", "örneklem", "sample 1 per shift", "spot check", "per unit")):
+            if canon_freq in (FrequencyCanonical.INADEQUATE_SAMPLING, FrequencyCanonical.PER_TEST_UNIT, FrequencyCanonical.PERIODIC_SHIFT):
                 status = "NON_COMPLIANT"
                 issue_type = "INADEQUATE_FREQUENCY"
                 remarks.append(f"🔴 FREKANS YETERSİZ: Standart gereği bu test İSTİSNASIZ HER BORUDA (%100) yapılmalıdır; '{up_freq}' kabul edilemez.")
@@ -313,12 +348,12 @@ class ITPAuditEngine:
                 issue_type = "INADEQUATE_FREQUENCY"
                 remarks.append("🔴 FREKANS YETERSİZ: Ürün analizi ısı başına en az 2 adet (ayrı borulardan) yapılmalıdır (API 5L 9.2).")
         elif test_key == "chemical_heat":
-            if "1 per 5" in up_freq_lower or "1 per 10" in up_freq_lower:
+            if canon_freq == FrequencyCanonical.INADEQUATE_SAMPLING or any(k in up_freq_lower for k in ("1 per 5", "1 per 10", "1/5", "1/10")):
                 status = "NON_COMPLIANT"
                 issue_type = "INADEQUATE_FREQUENCY"
                 remarks.append("🔴 FREKANS YETERSİZ: Döküm analizi istisnasız her dökümde (per heat) yapılmalıdır!")
         elif test_key == "residual_stress":
-            if is_botas and not any(k in up_freq_lower for k in ("döküm", "dokum", "heat", "her dökümde", "per heat")) and any(k in up_freq_lower for k in ("lot", "örneklem", "sample", "test ünitesi")):
+            if is_botas and canon_freq != FrequencyCanonical.PER_HEAT and any(k in up_freq_lower for k in ("lot", "örneklem", "sample", "test ünitesi")):
                 status = "NON_COMPLIANT"
                 issue_type = "INADEQUATE_FREQUENCY"
                 remarks.append("🔴 FREKANS YETERSİZ: BOTAŞ Şartnamesi Madde 3.3.9 uyarınca artık stres testi HER DÖKÜMDE (HEAT) zorunludur.")

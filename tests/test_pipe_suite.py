@@ -1004,8 +1004,71 @@ class TestPipeQAQCSuite(unittest.TestCase):
         self.assertIn("Geçersiz dosya formatı", r_bad_ext.json()['message'])
 
 
+    def test_37_granular_negative_audit_scenarios_proof(self):
+        """Verifies all granular negative branches: repair > 150mm, weight +15%, weld height > 2.625mm, hardness > 300HV, residual stress > 45MPa, and NDT level."""
+        from core.itp_audit_engine import ITPAuditEngine, FrequencyNormalizer, FrequencyCanonical
+
+        # 1. FrequencyNormalizer Tests
+        self.assertEqual(FrequencyNormalizer.normalize("İstisnasız her boruda (%100)"), FrequencyCanonical.EVERY_PIPE_100)
+        self.assertEqual(FrequencyNormalizer.normalize("Her dökümde (per heat) 1 analiz"), FrequencyCanonical.PER_HEAT)
+        self.assertEqual(FrequencyNormalizer.normalize("1 per 5 heats sample"), FrequencyCanonical.INADEQUATE_SAMPLING)
+        self.assertEqual(FrequencyNormalizer.normalize("10 boruda 1 adet numune"), FrequencyCanonical.INADEQUATE_SAMPLING)
+        self.assertEqual(FrequencyNormalizer.normalize("Vardiyada 2 kez ölçüm"), FrequencyCanonical.PERIODIC_SHIFT)
+
+        botas_cfg = {
+            'diameter_mm': 1219.0, 'diameter_inch': '48"', 'wall_thickness_mm': 14.30,
+            'material_grade': 'X65', 'manufacturing_process': 'SAWH', 'standard_type': 'BOTAŞ',
+            'psl_level': 'PSL2'
+        }
+
+        negative_items = [
+            {
+                'test_name': 'Kaynak ve Gövde Tamir Kuralları',
+                'test_frequency': 'Tamir oldukça',
+                'acceptance_criteria': 'Tek tamir boyu azami 250 mm tamir yapılabilir'
+            },
+            {
+                'test_name': 'Boru Birim Ağırlığı ve Toleransı',
+                'test_frequency': 'Her boruda (%100)',
+                'acceptance_criteria': 'Birim ağırlık toleransı -%5.0 / +%15.0'
+            },
+            {
+                'test_name': 'Kaynak Geometrisi ve Kaçıklık',
+                'test_frequency': 'Her boruda',
+                'acceptance_criteria': 'Kaynak dikiş yüksekliği azami 3.5 mm'
+            },
+            {
+                'test_name': 'Sertlik Testi (Hardness)',
+                'test_frequency': 'Lot başına 1 adet',
+                'acceptance_criteria': 'Azami 340 HV10 sertlik'
+            },
+            {
+                'test_name': 'Artık Stres Testi (Residual Stress)',
+                'test_frequency': 'Her dökümde 1 test',
+                'acceptance_criteria': 'Azami artık stres 58.0 MPa'
+            },
+            {
+                'test_name': 'Kaynak Dikişi %100 NDT',
+                'test_frequency': 'Her boruda %100',
+                'acceptance_criteria': 'AUT Seviye U3 ve Class A film çekimi'
+            }
+        ]
+
+        audit_res = ITPAuditEngine.audit_itp(negative_items, botas_cfg)
+        self.assertEqual(audit_res['kpi']['overall_verdict'], 'REJECTED')
+        msgs = [f['message'] for f in audit_res['findings']]
+
+        self.assertTrue(any("TAMİR BOY LİMİTİ AŞILDI" in m for m in msgs))
+        self.assertTrue(any("AĞIRLIK TOLERANSI AŞILDI" in m for m in msgs))
+        self.assertTrue(any("KAYNAK YÜKSEKLİK LİMİTİ" in m for m in msgs))
+        self.assertTrue(any("YÜKSEK SERTLİK LİMİTİ" in m for m in msgs))
+        self.assertTrue(any("ARTIK GERİLME LİMİTİ AŞILDI" in m for m in msgs))
+        self.assertTrue(any("YETERSİZ NDT KABUL SEVİYESİ" in m for m in msgs))
+
+
 if __name__ == '__main__':
     unittest.main()
+
 
 
 

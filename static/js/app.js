@@ -112,6 +112,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }, 400);
 
     setupEventListeners();
+    loadSavedITPAuditFromStorage();
 
     // Automatic update check on startup (runs asynchronously in background)
     setTimeout(() => {
@@ -1688,6 +1689,18 @@ async function startITPAudit(file = null, useDemo = false) {
         if (res.status === "success" || res.status === "warning") {
             currentITPAuditResult = res.audit_result;
             renderITPAuditResult(res.audit_result);
+
+            // Persist latest audit in browser LocalStorage (R3 Solution)
+            try {
+                localStorage.setItem("api5l_latest_itp_audit", JSON.stringify({
+                    source: res.source || "ITP Document",
+                    timestamp: new Date().toISOString(),
+                    audit_result: res.audit_result
+                }));
+            } catch (e) {
+                console.warn("LocalStorage save error for ITP audit:", e);
+            }
+
             if (res.is_fallback) {
                 if (statusText) statusText.innerHTML = `<span class="text-amber-600 font-semibold">${res.warning_message}</span>`;
                 showToast(res.warning_message || "Referans ITP şablonu yüklendi.", "warning");
@@ -1852,6 +1865,23 @@ function filterITPTable(filterType) {
 
     if (currentITPAuditResult && currentITPAuditResult.audit_rows) {
         renderITPAuditTable(currentITPAuditResult.audit_rows);
+    }
+}
+
+function loadSavedITPAuditFromStorage() {
+    try {
+        const saved = localStorage.getItem("api5l_latest_itp_audit");
+        if (saved) {
+            const data = JSON.parse(saved);
+            if (data && data.audit_result) {
+                currentITPAuditResult = data.audit_result;
+                renderITPAuditResult(data.audit_result);
+                const statusText = document.getElementById("itp-status-text");
+                if (statusText) statusText.innerText = `📁 Kayıtlı denetim yüklendi (${data.source || "ITP"}).`;
+            }
+        }
+    } catch (e) {
+        console.warn("Could not load saved ITP audit from localStorage:", e);
     }
 }
 
