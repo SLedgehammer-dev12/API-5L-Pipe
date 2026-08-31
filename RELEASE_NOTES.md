@@ -1,40 +1,45 @@
-# Sürüm Notları / Release Notes - v2.0.0
+# Sürüm Notları / Release Notes - v2.1.0
 
-## 🚀 API 5L PSL1/PSL2 & BOTAŞ Boru Kalite Güvence, Et Kalınlığı Tasarım ve Akıllı ITP Denetim Süiti (v2.0.0)
+## 🚀 API 5L PSL1/PSL2 & BOTAŞ Boru Kalite Güvence, Et Kalınlığı Tasarım ve Akıllı ITP Denetim Süiti (v2.1.0)
 
-Bu ana sürüm (**v2.0.0**), **BOTAŞ Çelik Boru Şartnamesi (`4-NGTL-0-GN-P-002-5120 Rev. 7`) Tam Entegrasyonunu**, **Sekme 5: Akıllı ITP Denetim ve AI Doküman Okuma Motorunu (Unlimited-OCR & PyMuPDF)** ve **Boru Et Kalınlığı Negatif Tolerans İyileştirmelerini** sunar.
-
----
-
-### 🌟 v2.0.0 ile Gelen Başlıca Yenilikler
-
-1. **📑 BOTAŞ Çelik Boru Şartnamesi (`4-NGTL-0-GN-P-002-5120 Rev. 7`) Standart ve Test Planı Entegrasyonu:**
-   - **20 Saniye Hidrostatik Test:** Fabrika hidrostatik test tutma süresi tüm boru çapları için asgari 20 saniye olarak tanımlandı (Madde 8.4.1).
-   - **$-20\ ^\circ\text{C}$ Çentik Darbe (CVN) Tokluğu:** X65 için Gövde min 60 J / tekil 45 J, Kaynak min 45 J / tekil 34 J şartı getirildi (Madde 3.3.5 & Tablo-3).
-   - **Artık Stres Testi (Residual Stress Ring Test):** Kaynaklı borularda (SAWH/LSAW) her dökümde (heat) zorunlu 150 mm halka testi ($S \le 0.10 \times SMYS$) kuralları eklendi (Madde 3.3.9).
-   - **Gövde UT Laminasyon Muayenesi:** Gövde yüzeyinin en az %40'ını tarayacak UT (ISO 12094 B1) ve boru uçlarında min 50 mm laminasyon kontrolü zorunlu kılındı (Madde 8.8.4.4).
-   - **Çap, Doğrusallık ve Sertlik:** Boru ucu ovallik (API 5L Çizelge 10'un %50'si), doğrusallık sapması ($\le \%0.10 L$), dairesellik sapması ($\le \%0.15 D$) ve sertlik ($300\text{ HV10}$, aşılması halinde o dökümdeki boruların %100'ünü test etme kuralı) eklendi.
-   - **$D \ge 20"$ Borularda %100 Muayene:** $D \ge 20"$ borularda istisnasız %100 görsel ve boyutsal kontrol zorunluluğu tanımlandı (Madde 8.1.2).
-
-2. **🤖 Sekme 5: ITP Akıllı Denetim ve Doküman Okuma Motoru (Unlimited-OCR & PyMuPDF):**
-   - İmalatçı ITP dokümanlarını (dijital/taranmış PDF veya resim) 0.02 saniyede okuyabilen hibrit mimari (`PyMuPDF / fitz` + Semantik NLP Regex ayrıştırıcı).
-   - Yüklenen ITP'deki test frekanslarını, sürelerini ve kabul kriterlerini API 5L 47. Baskı ve BOTAŞ 5120 R7 şartnameleriyle otomatik karşılaştırma (`ITPAuditEngine`).
-   - Yetersiz test frekansı, eksik zorunlu test, kısa hidrostatik test süresi ve düşük darbe enerjisi kusurlarını kırmızı uyarılarla anlık yakalama.
-   - Renk kodlu, şartname referanslı profesyonel Excel denetim raporu çıktısı (`.xlsx`).
-
-3. **⚙️ Boru Et Kalınlığı Tasarım Aracı Negatif Tolerans Düzeltmeleri:**
-   - BOTAŞ standardı için negatif toleransın 2 defa düşülmesi (çift tolerans tenzili) önlendi.
-   - BOTAŞ seçildiğinde kullanıcıyı yanıltmamak adına tolerans kutusu dinamik gizlendi.
-   - ASME B31.8 / B31.4 / B31.3 standartlarında kullanıcının `%0` tolerans girmesi halinde SAWH borularda otomatik %8 düşümüne kayma engellendi ve kesin 0% işletildi.
+Bu sürüm (**v2.1.0**), **Çok Sütunlu Gerçek Tablo Ekstraksiyonunu (PyMuPDF 1.23+ `find_tables()`)**, **Maksimum Ağırlıklı İki Kümeli Eşleştiriciyi (Maximum-Weight Bipartite Matcher)**, **Tüm 24 Disiplin İçin Kapsamlı Sayısal Kriter Denetimini** ve **Kapsamlı Kod Sağlığı / Güvenilirlik Refaktörünü (C1-C18, F1-F13, B1-B6)** sunar.
 
 ---
 
-### 💻 İndirme Bağlantıları (v2.0.0)
+### 🌟 v2.1.0 ile Gelen Başlıca Yenilikler
+
+1. **📑 Çok Sütunlu Gerçek Tablo Ekstraksiyonu & Sütun İzolasyonu (`core/unlimited_ocr_engine.py`):**
+   - PyMuPDF 1.23+ `page.find_tables()` entegrasyonu ile karmaşık, çok sütunlu ITP tabloları hücre düzeyinde ayrıştırılır.
+   - Sütun başlıkları (`Aktivite`, `Frekans`, `Konum`, `Standart`, `Kabul Kriteri`, `Madde`) dinamik olarak sınıflandırılır.
+   - Vektörsüz/taranmış resim PDF'leri için rasterize `pytesseract` OCR katmanı ve `UNLIMITED_OCR_API_URL` uzak yapay zeka servisi desteği sağlandı.
+
+2. **🎯 Maksimum Ağırlıklı İki Kümeli Eşleştirici (Maximum-Weight Bipartite Matcher) (`core/itp_audit_engine.py`):**
+   - Sıra-bağımlı greedy algoritma kaldırılarak küresel optimum iki kümeli eşleştirme kuruldu.
+   - Disiplin ağırlıkları, kelime uzunluğu skorlaması ve SMLS vs Kaynaklı boru anti-affinity kuralları ile yanlış eşleşmeler %100 önlendi.
+
+3. **🧪 Tüm 24 Disiplin İçin Sayısal Kriter & Tolerans Denetimi:**
+   - **DWTT:** Ortalama sünek kırılma alanı $\ge \%85$ ve BOTAŞ için münferit $<\%60$ olmama şartı.
+   - **Çekme (Tensile Body & Weld):** $R_{t0.5}, R_m, A_f$ ve azami $Y/T$ oranı ($0.90 / 0.93$).
+   - **Kimyasal Analiz:** $C, P, S, N$ ve $CE_{\text{IIW}} / CE_{\text{Pcm}}$ tavanları.
+   - **Kaynak Tamir & Ön Isıtma:** Gövde tamir yasağı, tek tamir boyu $\le 150\text{ mm}$, $t > 10\text{ mm}$ için $\ge 100\ ^\circ\text{C}$ ön ısıtma şartı.
+   - **Birim Ağırlık & Geometri:** Münferit boru ağırlık toleransı ($-\%3.5 / +\%10.0$) ve kaynak yüksekliği ($\le 2.625\text{ mm}$ BOTAŞ / $\le 3.5\text{ mm}$ API).
+
+4. **🛡️ Kapsamlı Kod Sağlığı ve Güvenilirlik Refaktörü (C1-C18, F1-F13, B1-B6):**
+   - Grade A mekanik özellikleri ve ovalite tipleri normalize edildi.
+   - `get_pipe_size_by_mm` içine mesafe güvenlik eşiği konuldu.
+   - Doğrulama motorunda boş veride yanıltıcı `ACCEPTED` kararı verilmesi engellendi (`NO_DATA` yapıldı).
+   - 56" ve 60" gibi büyük çaplar için nominal schedule listesi $50.80\text{ mm}$'ye genişletildi.
+   - API uç noktaları Pydantic şema modelleri ile korundu; dışa aktarılan dosya adları sanitize edildi.
+   - Tarayıcı `LocalStorage` kalıcılığı ile ITP denetim sonuçları sayfa yenilemelerinde korunur hale getirildi.
+
+---
+
+### 💻 İndirme Bağlantıları (v2.1.0)
 
 - **🪟 Windows (x64):**  
-  [**`API-5L-Pipe-Windows-x64-v2.0.0.exe` İndir**](https://github.com/SLedgehammer-dev12/API-5L-Pipe/releases/download/v2.0.0/API-5L-Pipe-Windows-x64-v2.0.0.exe)  
+  [**`API-5L-Pipe-Windows-x64-v2.1.0.exe` İndir**](https://github.com/SLedgehammer-dev12/API-5L-Pipe/releases/download/v2.1.0/API-5L-Pipe-Windows-x64-v2.1.0.exe)  
   *Tek dosyadır, kurulum gerektirmez. Doğrudan çift tıklayarak çalıştırabilirsiniz.*
 
 - **🍏 macOS (Apple Silicon M1/M2/M3/M4 & Intel):**  
-  [**`API-5L-Pipe-macOS-v2.0.0.dmg` İndir**](https://github.com/SLedgehammer-dev12/API-5L-Pipe/releases/download/v2.0.0/API-5L-Pipe-macOS-v2.0.0.dmg)  
+  [**`API-5L-Pipe-macOS-v2.1.0.dmg` İndir**](https://github.com/SLedgehammer-dev12/API-5L-Pipe/releases/download/v2.1.0/API-5L-Pipe-macOS-v2.1.0.dmg)  
   *Disk kalıbını açıp `API-5L-Pipe.app` uygulamasını Applications klasörüne sürükleyin.*

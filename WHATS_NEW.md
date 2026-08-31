@@ -1,11 +1,31 @@
-# What's New in API 5L Pipe QA/QC & Wall Thickness Suite (v2.0.0)
-## Yenilikler ve Sürüm Özeti - v2.0.0 (2026-08-31)
+# What's New in API 5L Pipe QA/QC & Wall Thickness Suite (v2.1.0)
+## Yenilikler ve Sürüm Özeti - v2.1.0 (2026-08-31)
 
 ---
 
 ### 🇹🇷 Türkçe Özet
 
-API 5L Pipe QA/QC Suite **v2.0.0** ana sürümü ile birlikte **BOTAŞ Çelik Boru Şartnamesi (`4-NGTL-0-GN-P-002-5120 Rev. 7`)** tüm test maddeleriyle sisteme entegre edilmiş, **Sekme 5: Akıllı ITP Denetim ve Doküman Okuma Motoru (Unlimited-OCR & PyMuPDF)** eklenmiş ve boru et kalınlığı negatif tolerans hesapları mükemmelleştirilmiştir:
+API 5L Pipe QA/QC Suite **v2.1.0** sürümü ile birlikte **Çok Sütunlu Gerçek Tablo Ekstraksiyonu (PyMuPDF 1.23+ `find_tables()`)**, **Maksimum Ağırlıklı İki Kümeli Eşleştirici (Maximum-Weight Bipartite Matcher)**, **24 Disiplin İçin Sayısal Kriter & Tolerans Denetimi** ve **Kapsamlı Kod Sağlığı / Güvenilirlik Refaktörü (C1-C18, F1-F13, B1-B6)** eklenmiştir:
+
+#### 1. 📑 Çok Sütunlu Tablo Ekstraksiyonu & Sütun İzolasyonu
+- PyMuPDF `find_tables()` ile tablo hücreleri ayrıştırılır; komşu kolon karışmaları önlenir.
+- Rasterize `pytesseract` OCR desteği ve `UNLIMITED_OCR_API_URL` uzak sunucu entegrasyonu sağlandı.
+
+#### 2. 🎯 Maksimum Ağırlıklı Bipartite Eşleştirici
+- Sıra-bağımlı greedy döngü yerine global optimal bipartite matcher kuruldu.
+- SMLS vs Kaynaklı boru anti-affinity kuralları ile yanlış eşleşmeler %100 engellendi.
+
+#### 3. 🧪 24 Disiplin İçin Sayısal Kriter & Tolerans Denetimi
+- DWTT ($\ge \%85$ ort., $<\%60$ tekil), Çekme ($R_{t0.5}, R_m, A_f, Y/T$), Kimya ($C, P, S, N, CE$), %100 NDT, tamir boyu $\le 150\text{ mm}$ ve $\ge 100\ ^\circ\text{C}$ ön ısıtma denetlendi.
+
+#### 4. 🛡️ Kod Sağlığı ve Güvenilirlik Refaktörü (C1-C18, F1-F13, B1-B6)
+- Grade A değerleri, boş veride `NO_DATA` kararı, büyük çap schedule listesi, Pydantic şema doğrulamaları ve tarayıcı LocalStorage kalıcılığı sağlandı.
+
+---
+
+## Önceki Sürümler / Previous Versions
+
+### Sürüm Özeti - v2.0.0 (2026-08-31)
 
 #### 1. 📑 BOTAŞ Çelik Boru Şartnamesi (`5120 Rev. 7`) Standart & Test Planı Entegrasyonu
 - **20 Saniye Hidrostatik Test:** Fabrika hidrostatik test tutma süresi tüm boru çapları için asgari 20 saniye olarak tanımlandı (Madde 8.4.1).

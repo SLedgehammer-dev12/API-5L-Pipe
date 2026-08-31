@@ -4,7 +4,7 @@
  */
 class ProjectStorage {
     static STORAGE_KEY = "api5l_active_project";
-    static CURRENT_SCHEMA_VERSION = "2.0.0";
+    static CURRENT_SCHEMA_VERSION = "2.1.0";
 
     static saveToLocalStorage(projectData) {
         try {
