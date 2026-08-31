@@ -14,7 +14,6 @@ Requires Pillow (dev-time only; not a runtime dependency).
 """
 
 import os
-import sys
 
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 

@@ -1761,7 +1761,7 @@ function renderITPAuditTable(rows) {
     if (filteredRows.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="6" class="text-center py-8 text-slate-400 text-xs">
+                <td colspan="8" class="text-center py-8 text-slate-400 text-xs">
                     Bu filtreleme kriterine uygun test maddesi bulunamadı.
                 </td>
             </tr>`;
@@ -1790,18 +1790,25 @@ function renderITPAuditTable(rows) {
                     <span class="font-bold text-slate-900 block">${esc(row.test_name)}</span>
                     <span class="text-[10px] text-slate-500 font-semibold">${esc(row.category || "Muayene")}</span>
                 </td>
+                <td class="py-2.5 px-3 align-top border-b border-slate-100 text-indigo-950 bg-indigo-50/40 border-x border-indigo-100/60 font-bold">
+                    <span class="block leading-snug text-indigo-900">${esc(row.calculated_target || "—")}</span>
+                </td>
+                <td class="py-2.5 px-3 align-top border-b border-slate-100 text-blue-950 bg-blue-50/30">
+                    <span class="font-semibold text-[11px] block text-blue-900">${esc(row.ndt_method_standard || "—")}</span>
+                    ${row.ndt_acceptance_level ? `<span class="text-[10px] text-blue-700 block mt-0.5">${esc(row.ndt_acceptance_level)}</span>` : ""}
+                </td>
                 <td class="py-2.5 px-3 align-top border-b border-slate-100 text-slate-700">
                     <span class="font-semibold block">${esc(row.uploaded_frequency || "—")}</span>
                 </td>
-                <td class="py-2.5 px-3 align-top border-b border-slate-100 text-blue-950 bg-blue-50/30 font-semibold">
+                <td class="py-2.5 px-3 align-top border-b border-slate-100 text-slate-800 bg-slate-50/50 font-semibold">
                     <span class="block">${esc(row.standard_frequency || "—")}</span>
-                    <span class="text-[10px] text-blue-700 font-normal block mt-0.5">${esc(row.table_ref || "")}</span>
+                    <span class="text-[10px] text-slate-500 font-normal block mt-0.5">${esc(row.table_ref || "")}</span>
                 </td>
                 <td class="py-2.5 px-3 align-top border-b border-slate-100 text-slate-700">
                     <span class="font-semibold block">${esc(row.uploaded_criteria || "—")}</span>
                 </td>
-                <td class="py-2.5 px-3 align-top border-b border-slate-100 text-indigo-950 bg-indigo-50/30 font-semibold">
-                    <span class="block">${esc(row.standard_criteria || "—")}</span>
+                <td class="py-2.5 px-3 align-top border-b border-slate-100 text-blue-950 bg-blue-50/20 font-semibold">
+                    <span class="block leading-snug">${esc(row.standard_criteria || "—")}</span>
                 </td>
                 <td class="py-2.5 px-3 align-top border-b border-slate-100">
                     <div class="mb-1">${badgeHtml}</div>

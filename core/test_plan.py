@@ -470,44 +470,48 @@ def get_test_plan(pipe_config: Dict[str, Any], psl_level: str = "PSL2") -> List[
     return plan
 
 
-def get_comprehensive_itp_specification(pipe_config: Dict[str, Any]) -> List[Dict[str, Any]]:
+def get_comprehensive_itp_specification(pipe_config: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
     """
-    Returns the comprehensive API 5L 47th Edition (Table 17/18 & 19/20) + BOTAŞ
-    Inspection & Test Plan specification for auditing incoming manufacturer ITPs.
-
-    Each item contains:
-      - test_key: Unique identifier
-      - category: Inspection discipline
-      - test_name: Full Turkish/English name
-      - standard_frequency: API 5L / BOTAŞ mandated sampling frequency (Turkish)
-      - standard_frequency_en: Mandatory sampling frequency (English)
-      - standard_acceptance_criteria: Explicit threshold values/rules
-      - clause_ref: Standard clause
-      - table_ref: Standard table (Table 17/18/19/20/etc.)
-      - is_mandatory: Whether mandatory for this specific pipe configuration
+    Returns the comprehensive Master Inspection & Test Plan (ITP) matrix for API 5L 47th Edition and BOTAŞ specifications.
+    Dynamically integrates all calculated values (40+ parameters) from PipeQAQCEngine:
+      - Hydrostatic test pressure (Barlow formula) & duration (20s BOTAŞ / 10s API)
+      - Tensile properties (Rt0.5 min/max, Rm min/max, calculated Af elongation % from Axc, Y/T ratio)
+      - CVN impact energy & temperature (-20°C BOTAŞ / 0°C API)
+      - DWTT drop weight shear area (>= 85%)
+      - Guided-bend mandrel diameter (Ag) & jaw opening (Bg)
+      - Residual stress ring test limit (0.10 x SMYS MPa & delta mm)
+      - Unit weight per meter (W kg/m) and single/carload tolerances (-3.5%/+10%)
+      - Complete dimensional tolerances (diameter body/ends, ovality, thickness min/max mm, straightness, bevel, squareness)
+      - Weld seam geometry (reinforcement height, radial offset, misalignment, peaking)
+      - NDT examination standards (ISO 10893-11/6/8/9, Level U2, Class B)
+      - Weld repair conditions (max 150 mm length, 300 mm end ban, 100°C preheat, post-repair RT & re-hydro)
+      - Quality certification (EN 10204 3.1/3.2, marking, Sa 2.5 surface preparation)
     """
     from core.pipe_qaqc_engine import PipeQAQCEngine
 
-    d_mm = float(pipe_config.get("diameter_mm") or 1219.0)
-    d_inch = str(pipe_config.get("diameter_inch") or '48"')
-    t_mm = float(pipe_config.get("wall_thickness_mm") or 14.30)
-    grade = str(pipe_config.get("material_grade") or "X65").upper()
-    process = str(pipe_config.get("manufacturing_process") or "SAWH").upper()
-    psl_level = str(pipe_config.get("psl_level") or "PSL2").upper()
-    delivery_condition = str(pipe_config.get("delivery_condition") or "M").upper()
-    std_type = str(pipe_config.get("standard_type") or pipe_config.get("standard_code") or "API").upper()
+    cfg = pipe_config or {}
+    d_mm = float(cfg.get("diameter_mm") or 1219.0)
+    d_inch = cfg.get("diameter_inch", '48"')
+    t_mm = float(cfg.get("wall_thickness_mm") or 14.30)
+    grade = (cfg.get("material_grade") or "X65").upper()
+    process = (cfg.get("manufacturing_process") or "SAWH").upper()
+    std_type = (cfg.get("standard_type") or cfg.get("standard_code") or "API").upper()
     is_botas = "BOTAŞ" in std_type or "BOTAS" in std_type
+    psl_level = (cfg.get("psl_level") or "PSL2").upper()
+    delivery_condition = cfg.get("delivery_condition", "M")
 
-    is_smls = "SMLS" in process
-    is_welded = any(k in process for k in ("SAW", "ERW", "HFW", "LSAW", "COW"))
+    is_smls = "SMLS" in process or "SEAMLESS" in process or "DIKISSIZ" in process
+    is_welded = not is_smls
     is_psl1 = "PSL1" in psl_level
     freq_tbl = "Çizelge 17 (Table 17)" if is_psl1 else "Çizelge 18 (Table 18)"
     piece_tbl = "Çizelge 19 (Table 19)" if is_psl1 else "Çizelge 20 (Table 20)"
 
+    # Compute full QA/QC parameters dynamically from PipeQAQCEngine
     qc = PipeQAQCEngine.calculate_pipe_qc(
         diameter_inch=d_inch,
+        diameter_mm=d_mm,
         wall_thickness_mm=t_mm,
-        design_factor_str=pipe_config.get("design_factor_str", "0.72 (Hat)"),
+        design_factor_str=cfg.get("design_factor_str", "0.72 (Hat)"),
         material_grade=grade,
         manufacturing_process=process,
         standard_type="BOTAŞ" if is_botas else std_type,
@@ -520,8 +524,9 @@ def get_comprehensive_itp_specification(pipe_config: Dict[str, Any]) -> List[Dic
     cvn = qc.get("toughness_and_tests", {})
     hydro = qc.get("hydrostatic_test", {})
     dim = qc.get("dimensional_tolerances", {})
+    weld = qc.get("weld_and_geometry", {})
 
-    # Chemical acceptance string
+    # Chemical limits
     c_max = chem.get("C_max", 0.12 if is_botas else 0.16)
     p_max = 0.025 if is_botas else chem.get("P_max", 0.020)
     s_max = 0.010 if is_botas else chem.get("S_max", 0.010)
@@ -534,20 +539,23 @@ def get_comprehensive_itp_specification(pipe_config: Dict[str, Any]) -> List[Dic
     else:
         chem_crit = f"C ≤ {c_max:.2f}%, P ≤ {p_max:.3f}%, S ≤ {s_max:.3f}%{ce_str} (API 5L Çizelge 5)"
 
-    # Tensile criteria
+    # Tensile limits
     rt05_min = mech.get("yield_strength_min_mpa", 450.0)
     rt05_max = mech.get("yield_strength_max_mpa")
     rm_min = mech.get("tensile_strength_min_mpa", 535.0)
     rm_max = mech.get("tensile_strength_max_mpa", 760.0)
     af_min = mech.get("elongation_min_percent", 19.5)
-    yt_max = 0.90 if (is_botas and grade in ("X60", "X65")) else mech.get("yt_ratio_max")
+    yt_max = 0.90 if (is_botas and grade in ("X60", "X65", "X70")) else mech.get("yield_to_tensile_ratio_max", 0.93)
     rt_str = f"Rt0.5: {rt05_min:.1f}" + (f" - {rt05_max:.1f} MPa" if rt05_max else " MPa min")
     rm_str = f"Rm: {rm_min:.1f}" + (f" - {rm_max:.1f} MPa" if rm_max else " MPa min")
     yt_str = f", Y/T ≤ {yt_max:.2f}" if yt_max else ""
     tensile_crit = f"{rt_str}, {rm_str}, Af ≥ {af_min:.1f}%{yt_str}"
 
-    # CVN criteria
+    # CVN limits
+    cvn_temp = -20 if is_botas else 0
     if is_psl1:
+        cvn_body_avg = 0.0
+        cvn_body_min = 0.0
         cvn_crit = "PSL 1'de Çentik Darbe (CVN) zorunlu değildir."
     elif is_botas:
         cvn_body_avg = cvn.get("notch_impact_mat_j", 60.0)
@@ -558,7 +566,7 @@ def get_comprehensive_itp_specification(pipe_config: Dict[str, Any]) -> List[Dic
         cvn_body_min = round(cvn_body_avg * 0.75, 1)
         cvn_crit = f"Gövde (0 °C): Min Ort. {cvn_body_avg:.0f} J, Min Tek {cvn_body_min:.0f} J (API 5L Çizelge 8)"
 
-    # Hydrostatic criteria & time
+    # Hydrostatic limits
     hydro_p = hydro.get("hydro_test_max_bar", 100.0)
     if is_botas:
         hydro_time = 20
@@ -567,7 +575,48 @@ def get_comprehensive_itp_specification(pipe_config: Dict[str, Any]) -> List[Dic
         hydro_time = 10 if (is_welded and d_mm > 457.0) else 5
         hydro_crit = f"Min Test Basıncı: {hydro_p:.1f} bar, Min Tutma Süresi: {hydro_time} saniye (API 5L 10.2.6.2 & Tablo 26)"
 
+    # Guided Bend Mandrel & Jaw Opening
+    mandrel_dia = cvn.get("mandrel_dia_max_mm", 200.0)
+    if not isinstance(mandrel_dia, (int, float)):
+        mandrel_dia = 200.0
+    jaw_opening = cvn.get("jaw_opening_max_mm", mandrel_dia + 3.2 + (2.0 * t_mm))
+    if not isinstance(jaw_opening, (int, float)):
+        jaw_opening = mandrel_dia + 3.2 + (2.0 * t_mm)
+
+    # Unit Weight
+    w_nom = 0.0246615 * t_mm * (d_mm - t_mm)
+    w_min = round(w_nom * (1.0 - 0.035), 2)
+    w_max = round(w_nom * (1.0 + 0.10), 2)
+
+    # Dimensional tolerances
+    d_body_min = dim.get("diameter_body_min_mm", d_mm - 4.0)
+    d_body_max = dim.get("diameter_body_max_mm", d_mm + 4.0)
+    d_end_min = dim.get("diameter_end_min_mm", d_mm - 1.6)
+    d_end_max = dim.get("diameter_end_max_mm", d_mm + 1.6)
+    dia_body_tol = round((d_body_max - d_body_min) / 2.0, 1)
+    ovality_end = dim.get("ovality_end_mm", 3.05 if is_botas else 6.10)
+    if not isinstance(ovality_end, (int, float)):
+        ovality_end = 3.05 if is_botas else 6.10
+
+    t_min = dim.get("wall_thickness_min_mm", round(t_mm * 0.92, 2))
+    t_max = dim.get("wall_thickness_max_mm", round(t_mm * 1.15, 2))
+    t_neg_pct = round(((t_mm - t_min) / t_mm) * 100.0, 1)
+    t_pos_pct = round(((t_max - t_mm) / t_mm) * 100.0, 1)
+
+    straightness_pct = 0.10 if is_botas else 0.20
+    squareness_max = dim.get("squareness_max_mm", 1.6)
+
+    # Weld geometry
+    weld_h_max = weld.get("weld_height_inside_max_mm", 2.625 if is_botas else 3.50)
+    radial_offset = weld.get("radial_offset_max_mm", 1.125 if is_botas else (1.50 if t_mm <= 15.0 else round(0.10 * t_mm, 2)))
+    peaking_max = weld.get("peaking_max_mm", round(d_mm * 0.0015, 2))
+
+    # Residual Stress
+    residual_stress_max_mpa = round(0.10 * rt05_min, 1)
+    delta_max = round(cvn.get("residual_stress_max_mm", 3.5), 2) if isinstance(cvn.get("residual_stress_max_mm"), (int, float)) else 3.5
+
     master_list: List[Dict[str, Any]] = [
+        # 1. Chemical Heat Analysis
         {
             "test_key": "chemical_heat",
             "category": "Kimyasal Analiz",
@@ -577,8 +626,13 @@ def get_comprehensive_itp_specification(pipe_config: Dict[str, Any]) -> List[Dic
             "standard_acceptance_criteria": chem_crit,
             "clause_ref": "BOTAŞ Şartnamesi Madde 3.2.2.4 & Tablo 1" if is_botas else "API 5L Madde 9.2 & 10.2.1",
             "table_ref": "BOTAŞ Tablo 1" if is_botas else f"{freq_tbl} / Çizelge 4-5",
+            "ndt_method_standard": "ASTM A751 / ISO 14284 (OES / XRF Spektrometre)",
+            "ndt_acceptance_level": "API 5L Çizelge 5 / BOTAŞ Tablo 1 Limitleri",
+            "calculated_target_str": f"C ≤ {c_max:.2f}%, P ≤ {p_max:.3f}%, S ≤ {s_max:.3f}%{ce_str}",
+            "calculated_targets": {"C_max": c_max, "P_max": p_max, "S_max": s_max, "CE_IIW_max": ce_iiw_max, "CE_Pcm_max": ce_pcm_max},
             "is_mandatory": True,
         },
+        # 2. Chemical Product Analysis
         {
             "test_key": "chemical_product",
             "category": "Kimyasal Analiz",
@@ -588,8 +642,13 @@ def get_comprehensive_itp_specification(pipe_config: Dict[str, Any]) -> List[Dic
             "standard_acceptance_criteria": chem_crit,
             "clause_ref": "BOTAŞ Şartnamesi Madde 3.2.2.4 & Tablo 1" if is_botas else "API 5L Madde 9.2 & 10.2.1",
             "table_ref": "BOTAŞ Tablo 1" if is_botas else f"{freq_tbl} / Çizelge 4-5",
+            "ndt_method_standard": "ISO 14284 / ASTM A751",
+            "ndt_acceptance_level": "API 5L Çizelge 5 / BOTAŞ Tablo 1 Limitleri",
+            "calculated_target_str": f"C ≤ {c_max:.2f}%, P ≤ {p_max:.3f}%, S ≤ {s_max:.3f}%{ce_str}",
+            "calculated_targets": {"C_max": c_max, "P_max": p_max, "S_max": s_max, "CE_IIW_max": ce_iiw_max, "CE_Pcm_max": ce_pcm_max},
             "is_mandatory": True,
         },
+        # 3. Pipe Body Tensile Test
         {
             "test_key": "tensile_body",
             "category": "Tahribatlı Mekanik",
@@ -599,10 +658,15 @@ def get_comprehensive_itp_specification(pipe_config: Dict[str, Any]) -> List[Dic
             "standard_acceptance_criteria": tensile_crit,
             "clause_ref": "BOTAŞ Şartnamesi Madde 3.3.1.4 & 3.3.2" if is_botas else "API 5L Madde 9.3 & 10.2.3",
             "table_ref": "BOTAŞ Tablo 2" if is_botas else f"{freq_tbl} / {piece_tbl} / Çizelge 6-7",
+            "ndt_method_standard": "ISO 6892-1 / ASTM A370 (Gövde Enine / Boyuna Numune)",
+            "ndt_acceptance_level": f"Rt0.5 ≥ {rt05_min:.1f} MPa, Rm ≥ {rm_min:.1f} MPa, Af ≥ %{af_min:.1f}",
+            "calculated_target_str": f"Rt0.5: {rt05_min:.1f} - {rt05_max or 760.0:.1f} MPa, Rm: {rm_min:.1f} - {rm_max or 760.0:.1f} MPa, Af ≥ %{af_min:.1f}{yt_str}",
+            "calculated_targets": {"yield_min_mpa": rt05_min, "yield_max_mpa": rt05_max, "tensile_min_mpa": rm_min, "tensile_max_mpa": rm_max, "elongation_min_pct": af_min, "yt_max": yt_max},
             "is_mandatory": True,
         },
     ]
 
+    # 4. Weld Seam Tensile Test (Welded)
     if is_welded:
         master_list.append({
             "test_key": "tensile_weld",
@@ -613,10 +677,14 @@ def get_comprehensive_itp_specification(pipe_config: Dict[str, Any]) -> List[Dic
             "standard_acceptance_criteria": f"Rm ≥ {rm_min:.1f} MPa" + (", Min uzama ≥ %10 (BOTAŞ Madde 3.3.2.3)" if is_botas else " (Ana metal asgari çekme dayanımını karşılamalıdır)"),
             "clause_ref": "BOTAŞ Şartnamesi Madde 3.3.2.3" if is_botas else "API 5L Madde 9.3.2 & 10.2.3.3",
             "table_ref": "BOTAŞ Madde 3.3.2.3" if is_botas else f"{freq_tbl} / {piece_tbl}",
+            "ndt_method_standard": "ISO 6892-1 / ASTM A370 (Enine Kaynak Numunesi)",
+            "ndt_acceptance_level": f"Rm ≥ {rm_min:.1f} MPa",
+            "calculated_target_str": f"Rm ≥ {rm_min:.1f} MPa (Gövde Asgari Dayanımı)" + (", Kopma Uzaması ≥ %10" if is_botas else ""),
+            "calculated_targets": {"tensile_min_mpa": rm_min, "weld_elongation_min_pct": 10.0 if is_botas else None},
             "is_mandatory": True,
         })
 
-    # CVN Impact
+    # 5. CVN Body Impact
     master_list.append({
         "test_key": "cvn_body",
         "category": "Tahribatlı Mekanik",
@@ -626,11 +694,16 @@ def get_comprehensive_itp_specification(pipe_config: Dict[str, Any]) -> List[Dic
         "standard_acceptance_criteria": cvn_crit,
         "clause_ref": "BOTAŞ Şartnamesi Madde 3.3.5 & Tablo 3" if is_botas else "API 5L Madde 9.8 & 10.2.4.2",
         "table_ref": "BOTAŞ Tablo 3" if is_botas else f"{freq_tbl} / {piece_tbl} / Çizelge 8 & 22",
+        "ndt_method_standard": f"ISO 148-1 / ASTM A370 (Charpy V-Çentik {cvn_temp} °C)",
+        "ndt_acceptance_level": f"Min Ortalama: {cvn_body_avg:.0f} J, Min Tekil: {cvn_body_min:.0f} J",
+        "calculated_target_str": f"Test Sıcaklığı: {cvn_temp} °C | Min Ortalama: {cvn_body_avg:.0f} J, Min Münferit: {cvn_body_min:.0f} J",
+        "calculated_targets": {"temp_c": cvn_temp, "avg_j": cvn_body_avg, "min_j": cvn_body_min},
         "is_mandatory": not is_psl1,
     })
 
+    # 6. CVN Weld & HAZ Impact
     if is_welded and not is_psl1:
-        w_avg = 45.0 if (is_botas and grade in ("X60", "X65", "X70")) else cvn.get('weld_avg_j', 27.0)
+        w_avg = 45.0 if (is_botas and grade in ("X60", "X65", "X70")) else cvn.get("weld_avg_j", 27.0)
         w_min = round(w_avg * 0.75, 1)
         temp_str = "-20 °C" if is_botas else "0 °C"
         master_list.append({
@@ -642,10 +715,14 @@ def get_comprehensive_itp_specification(pipe_config: Dict[str, Any]) -> List[Dic
             "standard_acceptance_criteria": f"Kaynak & ITAB ({temp_str}): Min Ort. {w_avg:.0f} J, Min Tek {w_min:.0f} J" + (" (BOTAŞ Tablo 3)" if is_botas else ""),
             "clause_ref": "BOTAŞ Şartnamesi Madde 3.3.5 & Tablo 3" if is_botas else "API 5L Madde 9.8.3 & 10.2.4.3",
             "table_ref": "BOTAŞ Tablo 3" if is_botas else f"{freq_tbl} / {piece_tbl}",
+            "ndt_method_standard": f"ISO 148-1 / ASTM A370 (Kaynak Ekseni ve Füzyon Hattı {temp_str})",
+            "ndt_acceptance_level": f"Min Ortalama: {w_avg:.0f} J, Min Tekil: {w_min:.0f} J",
+            "calculated_target_str": f"Test Sıcaklığı: {temp_str} | Min Ortalama: {w_avg:.0f} J, Min Münferit: {w_min:.0f} J",
+            "calculated_targets": {"temp_c": cvn_temp, "avg_j": w_avg, "min_j": w_min},
             "is_mandatory": True,
         })
 
-    # DWTT
+    # 7. DWTT (Drop Weight Tear Test)
     if is_welded and d_mm >= 508.0 and not is_psl1:
         dwtt_crit = "Ortalama sünek kırılma alanı ≥ %85 ve hiçbir münferit numune < %60 olamaz (0 °C / BOTAŞ Madde 3.3.6.4)" if is_botas else "Her test için ortalama sünek kırılma alanı ≥ %85 (0 °C)"
         master_list.append({
@@ -657,10 +734,14 @@ def get_comprehensive_itp_specification(pipe_config: Dict[str, Any]) -> List[Dic
             "standard_acceptance_criteria": dwtt_crit,
             "clause_ref": "BOTAŞ Şartnamesi Madde 3.3.6.4" if is_botas else "API 5L Madde 9.9 & 10.2.4.4",
             "table_ref": "BOTAŞ Madde 3.3.6" if is_botas else f"{freq_tbl} / {piece_tbl}",
+            "ndt_method_standard": "API RP 5L3 / ASTM E436 (Düşen Ağırlık Yırtılma Testi)",
+            "ndt_acceptance_level": "Ortalama Sünek Alan ≥ %85, Tekil ≥ %60",
+            "calculated_target_str": "Test Sıcaklığı: 0 °C | Ortalama Sünek Kırılma Alanı ≥ %85, Tekil Numune ≥ %60",
+            "calculated_targets": {"temp_c": 0, "avg_shear_pct": 85.0, "min_shear_pct": 60.0},
             "is_mandatory": True,
         })
 
-    # Guided Bend (Welded)
+    # 8. Guided Bend (Welded)
     if is_welded:
         master_list.append({
             "test_key": "guided_bend",
@@ -668,26 +749,35 @@ def get_comprehensive_itp_specification(pipe_config: Dict[str, Any]) -> List[Dic
             "test_name": "Kılavuzlu Bükme Testi (Guided-Bend)",
             "standard_frequency": "Test ünitesi (lot) başına 1 set (1 kök + 1 kapak veya 2 yan bükme)",
             "standard_frequency_en": "Once per test unit (1 root + 1 face or 2 side bend specimens)",
-            "standard_acceptance_criteria": "Kök ve kapak bükmede kaynak/ITAB'da > 3.2 mm çatlak/kusur oluşmayacak",
-            "clause_ref": "BOTAŞ Madde 3.3.4 / API 5L 9.7",
-            "table_ref": f"{freq_tbl} / {piece_tbl}",
+            "standard_acceptance_criteria": f"Mandrel Ag: {mandrel_dia:.1f} mm, Çene Bg: {jaw_opening:.1f} mm; 180° bükmede kaynak/ITAB'da > 3.2 mm çatlak oluşmayacak",
+            "clause_ref": "BOTAŞ Madde 3.1.6 & 3.3.4 / API 5L 9.7 & 10.2.4.6",
+            "table_ref": f"{freq_tbl} / {piece_tbl} / Çizelge 15",
+            "ndt_method_standard": "ISO 5173 / ASTM A370 / API 5L Madde 10.2.4.6",
+            "ndt_acceptance_level": "180° bükme sonrası kusur/çatlak boyutu ≤ 3.2 mm",
+            "calculated_target_str": f"Mandrel Çapı Ag: {mandrel_dia:.1f} mm, Çene Açıklığı Bg: {jaw_opening:.1f} mm | Maks Kusur ≤ 3.2 mm",
+            "calculated_targets": {"mandrel_dia_mm": mandrel_dia, "jaw_opening_mm": jaw_opening, "max_crack_mm": 3.2},
             "is_mandatory": True,
         })
 
-    # Hardness Test
+    # 9. Hardness Testing
+    hardness_max = 250.0 if "SOUR" in std_type or "ANNEX H" in std_type else 300.0
     master_list.append({
         "test_key": "hardness",
         "category": "Tahribatlı Mekanik",
         "test_name": "Sertlik Testi (Hardness Testing)",
-        "standard_frequency": "Test ünitesi (lot) başına",
+        "standard_frequency": "Test ünitesi (lot) başına 1 makro enine kesit",
         "standard_frequency_en": "Once per test unit",
-        "standard_acceptance_criteria": "Maksimum 300 HV10 (Aşılması durumunda o dökümdeki boruların %100'ü test edilir)" if is_botas else "PSL 2 Sipariş koşulu / Ek H-J-N: ≤ 300 HV10 (Ek N: ≤ 250 HV10)",
+        "standard_acceptance_criteria": f"Maksimum {hardness_max:.0f} HV10 (Aşılması durumunda o dökümdeki boruların %100'ü test edilir)" if is_botas else f"Maksimum ≤ {hardness_max:.0f} HV10 (Gövde, ITAB, Kaynak)",
         "clause_ref": "BOTAŞ Şartnamesi Madde 3.3.7" if is_botas else "API 5L Madde 10.2.4.8 & 9.10.6",
         "table_ref": "BOTAŞ Madde 3.3.7" if is_botas else f"{freq_tbl} / {piece_tbl}",
+        "ndt_method_standard": "ISO 6507-1 / ASTM E384 / ASTM E92 (HV10 Taraması)",
+        "ndt_acceptance_level": f"Azami Sertlik ≤ {hardness_max:.0f} HV10",
+        "calculated_target_str": f"Maksimum {hardness_max:.0f} HV10 (Gövde, ITAB ve Kaynak Dikişi)",
+        "calculated_targets": {"max_hv10": hardness_max},
         "is_mandatory": True,
     })
 
-    # Residual Stress Test (BOTAŞ Mandatory for welded SAWH / LSAW)
+    # 10. Residual Stress Test (BOTAŞ Mandatory for welded SAWH / LSAW)
     if is_welded and is_botas:
         master_list.append({
             "test_key": "residual_stress",
@@ -695,13 +785,17 @@ def get_comprehensive_itp_specification(pipe_config: Dict[str, Any]) -> List[Dic
             "test_name": "Artık Stres Testi (Residual Stress Ring Test)",
             "standard_frequency": "Her çap ve et kalınlığı için ve ÇAP/ET KALINLIĞI DEĞİŞMESE DAHİ HER DÖKÜM (HEAT) İÇİN 1 halka",
             "standard_frequency_en": "Once per heat even if diameter and wall thickness do not change (150 mm ring)",
-            "standard_acceptance_criteria": "Artık stres S = (E·t·C) / (12.566·D²) ≤ 0.10 × SMYS (BOTAŞ Madde 3.3.9.3)",
+            "standard_acceptance_criteria": f"Artık stres S ≤ {residual_stress_max_mpa:.1f} MPa (0.10 × SMYS), Halka açılma Δ ≤ {delta_max:.2f} mm (BOTAŞ Madde 3.3.9)",
             "clause_ref": "BOTAŞ Şartnamesi Madde 3.3.9",
             "table_ref": "BOTAŞ 4-NGTL-0-GN-P-002-5120 R7",
+            "ndt_method_standard": "BOTAŞ Şartnamesi Madde 3.3.9 (150 mm Halka Kesme Metodu)",
+            "ndt_acceptance_level": f"S ≤ {residual_stress_max_mpa:.1f} MPa (0.10 x SMYS)",
+            "calculated_target_str": f"Azami Artık Gerilme S ≤ {residual_stress_max_mpa:.1f} MPa | Halka Açılması Δ ≤ {delta_max:.2f} mm",
+            "calculated_targets": {"max_stress_mpa": residual_stress_max_mpa, "max_delta_mm": delta_max},
             "is_mandatory": True,
         })
 
-    # Flattening (ERW/HFW)
+    # 11. Flattening (ERW/HFW)
     if "ERW" in process or "HFW" in process:
         master_list.append({
             "test_key": "flattening",
@@ -709,13 +803,17 @@ def get_comprehensive_itp_specification(pipe_config: Dict[str, Any]) -> List[Dic
             "test_name": "Düzleştirme Testi (Flattening)",
             "standard_frequency": "Her rulo (bobin) başı ve sonu (Şekil 6) ve/veya lot başına",
             "standard_frequency_en": "At crop ends of each coil / per test unit",
-            "standard_acceptance_criteria": "Kaynak açılması: %50/%66 mesafeye kadar açılma yok; Karşı yüzeyler değene kadar füzyon hatası/laminasyon yok",
+            "standard_acceptance_criteria": "Kaynak açılması: %67 D mesafeye kadar açılma yok; %33 D çatlak yok; Yüzeyler değene kadar füzyon kusuru yok",
             "clause_ref": "API 5L Madde 9.6 & 10.2.4.5",
             "table_ref": f"{freq_tbl} / {piece_tbl}",
+            "ndt_method_standard": "ISO 8492 / ASTM A370",
+            "ndt_acceptance_level": "API 5L Madde 9.6 Kademeli Sıkıştırma Kriterleri",
+            "calculated_target_str": "Adım 1: Kaynak 90°'de %67 D (açılma yok) | Adım 2: %33 D (çatlak yok)",
+            "calculated_targets": {"step1_distance_pct": 67.0, "step2_distance_pct": 33.0},
             "is_mandatory": True,
         })
 
-    # Hydrostatic Test
+    # 12. Hydrostatic Test
     master_list.append({
         "test_key": "hydrostatic",
         "category": "Basınç & Mukavemet",
@@ -725,10 +823,14 @@ def get_comprehensive_itp_specification(pipe_config: Dict[str, Any]) -> List[Dic
         "standard_acceptance_criteria": hydro_crit,
         "clause_ref": "BOTAŞ Şartnamesi Madde 8.4.1 & 8.4.2" if is_botas else "API 5L Madde 9.4 & 10.2.6",
         "table_ref": "BOTAŞ Madde 8.4" if is_botas else f"{freq_tbl} / Çizelge 26",
+        "ndt_method_standard": "API 5L Madde 10.2.6 / BOTAŞ Madde 8.4 (Kalibreli Basınç Test Cihazı)",
+        "ndt_acceptance_level": f"Test Basıncı ≥ {hydro_p:.1f} bar, Sızdırma / Deformasyon Yok",
+        "calculated_target_str": f"Min Test Basıncı: {hydro_p:.1f} bar | Min Tutma Süresi: {hydro_time} saniye",
+        "calculated_targets": {"min_pressure_bar": hydro_p, "min_holding_time_sec": hydro_time},
         "is_mandatory": True,
     })
 
-    # NDT of Weld Seam
+    # 13. NDT of Weld Seam
     if is_welded:
         master_list.append({
             "test_key": "ndt_weld_seam",
@@ -739,10 +841,14 @@ def get_comprehensive_itp_specification(pipe_config: Dict[str, Any]) -> List[Dic
             "standard_acceptance_criteria": "Kaynaktan hemen sonra On-line UT + Hidro/tamir/ısıl işlem sonrası Off-line Radyolojik Muayene (BOTAŞ Madde 8.8.4.2)" if is_botas else "Ek E (Annex E) kabul seviyelerine uygun (Kabul edilemez çatlak, füzyon noksanlığı, gözenek yok)",
             "clause_ref": "BOTAŞ Şartnamesi Madde 8.8.4.2 & 8.8.4.3" if is_botas else "API 5L Madde 9.13 & Ek E (Annex E)",
             "table_ref": "BOTAŞ Madde 8.8.4" if is_botas else f"{freq_tbl} / Ek E",
+            "ndt_method_standard": "ISO 10893-11 (Otomatik UT) + ISO 10893-6 / ISO 10893-7 (Radyografi / DDA)",
+            "ndt_acceptance_level": "AUT Seviye U2 / U2H (N5 Çentik, Ø1.6-3.2 mm Delik) + RT Sınıf B (API 5L Çizelge E.5/E.6)",
+            "calculated_target_str": "Tam boy %100 On-line AUT + Uçlarda (min 200 mm) ve şüpheli/tamir yerlerinde %100 RT (Sınıf B)",
+            "calculated_targets": {"extent_pct": 100.0, "aut_level": "U2", "rt_class": "Class B"},
             "is_mandatory": True,
         })
 
-    # Pipe Body UT Lamination (BOTAŞ Mandatory min 40% scan)
+    # 14. Pipe Body UT Lamination (BOTAŞ Mandatory min 40% scan)
     if is_botas:
         master_list.append({
             "test_key": "ndt_pipe_body_lamination",
@@ -753,23 +859,32 @@ def get_comprehensive_itp_specification(pipe_config: Dict[str, Any]) -> List[Dic
             "standard_acceptance_criteria": "ISO 12094 Sınıf B1 kabul kriterleri (Rulo/sac tamamı B1)",
             "clause_ref": "BOTAŞ Şartnamesi Madde 8.8.4.4.1",
             "table_ref": "ISO 12094 B1 / BOTAŞ",
+            "ndt_method_standard": "ISO 10893-8 / ISO 10893-9 / ISO 12094",
+            "ndt_acceptance_level": "ISO 12094 Sınıf B1 (Tekil Laminasyon Alanı ≤ 100 mm²)",
+            "calculated_target_str": "Boru Gövde Yüzeyinin EN AZ %40'ı taranacaktır | Max Laminasyon Alanı ≤ 100 mm²",
+            "calculated_targets": {"scan_coverage_pct": 40.0, "max_flaw_area_mm2": 100.0},
             "is_mandatory": True,
         })
 
-    # NDT of Pipe Ends
+    # 15. NDT of Pipe Ends
+    end_band_width = 50 if is_botas else 100
     master_list.append({
         "test_key": "ndt_pipe_ends",
         "category": "Tahribatsız Muayene (NDT)",
         "test_name": "Boru Uçları Laminasyon Kontrolü (UT Laminar Testing)",
-        "standard_frequency": "Her boru (%100) uç kısımlarında en az 50 mm genişlikte bölge" if is_botas else "Her boru (%100) uç kısımları (min 100 mm çevre boyunca)",
-        "standard_frequency_en": "100% of pipe ends of each pipe (min 50 mm band)" if is_botas else "100% of pipe ends of each pipe (min 100 mm band)",
-        "standard_acceptance_criteria": "Boru uçlarında en az 50 mm bant boyunca %100 laminasyon kontrolü (Madde 8.8.4.4.2)" if is_botas else "Ek E.8 gereği > 6.0 mm veya > 100 mm² laminasyon hatası bulunmayacaktır",
+        "standard_frequency": f"Her boru (%100) uç kısımlarında en az {end_band_width} mm genişlikte bölge",
+        "standard_frequency_en": f"100% of pipe ends of each pipe (min {end_band_width} mm band)",
+        "standard_acceptance_criteria": f"Boru uçlarında en az {end_band_width} mm bant boyunca laminasyon kusuru bulunmayacaktır (Kusur boyutu > 6.0 mm veya > 100 mm² yasaktır)",
         "clause_ref": "BOTAŞ Şartnamesi Madde 8.8.4.4.2" if is_botas else "API 5L Ek E.8",
         "table_ref": "BOTAŞ Madde 8.8.4.4.2" if is_botas else f"{freq_tbl} / Ek E.8",
+        "ndt_method_standard": "ISO 10893-8 / API 5L Ek E.8 (360° Ultrasonik Uç Taraması)",
+        "ndt_acceptance_level": "Kusur Boyutu ≤ 6.0 mm, Kusur Alanı ≤ 100 mm²",
+        "calculated_target_str": f"Boru uçlarında en az {end_band_width} mm çevre bandı boyunca %100 UT (Kusur ≤ 6.0 mm)",
+        "calculated_targets": {"end_band_width_mm": end_band_width, "max_flaw_dim_mm": 6.0},
         "is_mandatory": True,
     })
 
-    # NDT of Seamless Body
+    # 16. NDT of Seamless Body
     if is_smls:
         master_list.append({
             "test_key": "ndt_smls_body",
@@ -780,64 +895,152 @@ def get_comprehensive_itp_specification(pipe_config: Dict[str, Any]) -> List[Dic
             "standard_acceptance_criteria": "Ek E uyarınca boyuna ve enine kusurlar için N5/L2 seviyesi",
             "clause_ref": "API 5L Madde 9.13 & Ek E.3",
             "table_ref": f"{freq_tbl} / Ek E",
+            "ndt_method_standard": "ISO 10893-10 (Ultrasonik) / ISO 10893-1 / ISO 10893-3 (MFL)",
+            "ndt_acceptance_level": "Seviye U2 / N5 (Referans Çentik %5 t)",
+            "calculated_target_str": "%100 Tam boy ve 360° çevre hacimsel tahribatsız muayene (Seviye U2 / N5)",
+            "calculated_targets": {"extent_pct": 100.0, "acceptance_level": "U2/N5"},
             "is_mandatory": not is_psl1,
         })
 
-    # Dimensional - Diameter & Out of Roundness
-    dia_tol = dim.get("diameter_pipe_body_tol_mm", "±0.5% (Max ±4.0 mm)")
-    ovality_tol = dim.get("out_of_roundness_body_max_mm", "≤ 15.0 mm")
+    # 17. Magnetic Particle Testing of Bevels & Repairs
+    master_list.append({
+        "test_key": "ndt_bevel_mt",
+        "category": "Tahribatsız Muayene (NDT)",
+        "test_name": "Kaynak Ağzı ve Tamir Yüzeyi Manyetik Parçacık (MT)",
+        "standard_frequency": "Her boru (%100) alın kaynak ağızları ve tüm tamir bölgeleri",
+        "standard_frequency_en": "100% of pipe bevels and all repair cavities",
+        "standard_acceptance_criteria": "Kaynak ağızlarında ve tamir yüzeyinde çatlak, katmer veya lineer kusur bulunmayacaktır",
+        "clause_ref": "API 5L Ek E.6 / BOTAŞ Madde 8.8.4",
+        "table_ref": "ISO 10893-5 / ASTM E709",
+        "ndt_method_standard": "ISO 10893-5 / ASTM E709 (Manyetik Parçacık - MT)",
+        "ndt_acceptance_level": "Sıfır Çatlak / Sıfır Lineer Kusur",
+        "calculated_target_str": "Boru uç kaynak ağızları ve tamir yüzeyleri %100 MT ile kontrol edilir; çatlak kesinlikle yasaktır",
+        "calculated_targets": {"crack_allowed": False},
+        "is_mandatory": True,
+    })
+
+    # 18. Weld & Body Repair Rules
+    if is_welded:
+        master_list.append({
+            "test_key": "weld_repair_rules",
+            "category": "Kaynak ve Onarım Şartları",
+            "test_name": "Kaynak ve Gövde Tamir Kuralları (Repair Conditions)",
+            "standard_frequency": "Oluşan her tamir işleminde istisnasız uygulanır",
+            "standard_frequency_en": "Applied to each repair operation",
+            "standard_acceptance_criteria": "Gövdeye kaynak tamiri YASAK; Tek tamir boyu ≤ 150 mm; Uçta 300 mm tamir yasağı; Re-repair YASAK; >X52 ve t>10mm için ≥ 100°C ön ısıtma; Tamir sonrası %100 RT+MT ve %100 RE-HYDRO (BOTAŞ Madde 9.1 & Ek C)",
+            "clause_ref": "BOTAŞ Şartnamesi Madde 9.1 & Ek C / API 5L Ek C",
+            "table_ref": "API 5L Annex C / BOTAŞ Madde 9",
+            "ndt_method_standard": "Onaylı Tamir WPS/PQR + Tamir Sonrası %100 RT & MT + Re-Hydro",
+            "ndt_acceptance_level": "Max Tamir Boyu: 150 mm, Uç Yasağı: 300 mm, İkinci Tamir Yasak",
+            "calculated_target_str": "Gövde kaynağı YASAK; Tek tamir boyu ≤ 150 mm; Uçta 300 mm tamir yasağı; Re-repair YASAK; Tamir sonrası %100 RT+MT ve %100 RE-HYDRO",
+            "calculated_targets": {"max_single_repair_length_mm": 150, "end_repair_ban_distance_mm": 300, "min_preheat_c": 100, "re_repair_allowed": False, "post_repair_rehydro_mandatory": True},
+            "is_mandatory": True,
+        })
+
+    # 19. Weld Geometry (Reinforcement, Radial Offset, Peaking)
+    if is_welded:
+        master_list.append({
+            "test_key": "weld_geometry_offset_height",
+            "category": "Boyutsal & Geometri",
+            "test_name": "Kaynak Geometrisi, Radyal Kaçıklık ve Tepeleşme",
+            "standard_frequency": "Her boruda %100 dikiş boyunca mastar ve optik ölçüm ile",
+            "standard_frequency_en": "100% of pipes along full weld seam",
+            "standard_acceptance_criteria": f"İç/Dış Kaynak Yüksekliği ≤ {weld_h_max:.2f} mm | Radyal Kaçıklık ≤ {radial_offset:.2f} mm | Tepeleşme (Peaking) ≤ {peaking_max:.2f} mm (BOTAŞ Çizelge 4)",
+            "clause_ref": "BOTAŞ Madde 8.8.4 & Çizelge 4 / API 5L Madde 9.13 & Çizelge 16",
+            "table_ref": "BOTAŞ Çizelge 4 / API 5L Çizelge 16",
+            "ndt_method_standard": "Kaynak Yükseklik ve Kaçıklık Mastarları / Lazer Profilometre",
+            "ndt_acceptance_level": f"Yükseklik ≤ {weld_h_max:.2f} mm, Kaçıklık ≤ {radial_offset:.2f} mm, Tepeleşme ≤ {peaking_max:.2f} mm",
+            "calculated_target_str": f"İç/Dış Kaynak Yüksekliği ≤ {weld_h_max:.2f} mm | Radyal Kaçıklık ≤ {radial_offset:.2f} mm | Tepeleşme (Peaking) ≤ {peaking_max:.2f} mm",
+            "calculated_targets": {"max_weld_height_mm": weld_h_max, "max_radial_offset_mm": radial_offset, "max_peaking_mm": peaking_max},
+            "is_mandatory": True,
+        })
+
+    # 20. Dimensional - Diameter & Out of Roundness
     master_list.append({
         "test_key": "dimensional_diameter_ovality",
         "category": "Boyutsal & Görsel",
         "test_name": "Dış Çap ve Ovallik Kontrolü (Diameter & Ovality)",
         "standard_frequency": "D ≥ 20\" borularda %100 tüm borular (Madde 8.1.2.4); D < 20\" borularda vardiya başı / soğuk genişletme" if is_botas else "Vardiya başına en az her 4 saatte bir ve soğuk genişletilen borularda her boru (%100)",
         "standard_frequency_en": "100% of pipes for D >= 20\"" if is_botas else "At least once per 4 hours per operating shift / each pipe for cold-expanded",
-        "standard_acceptance_criteria": f"Gövde Çap Toleransı: {dia_tol}, Boru Ucu Ovallik Toleransı: API 5L Çizelge 10 değerlerinin %50'si (BOTAŞ Madde 5.1)" if is_botas else f"Gövde Çap Toleransı: {dia_tol}, Maksimum Ovallik: {ovality_tol} (Tablo 10)",
+        "standard_acceptance_criteria": f"Gövde Çapı: {d_body_min:.1f} - {d_body_max:.1f} mm (±{dia_body_tol:.1f} mm) | Uç Çapı: {d_end_min:.1f} - {d_end_max:.1f} mm | Uç Ovalitesi ≤ {ovality_end:.2f} mm",
         "clause_ref": "BOTAŞ Şartnamesi Madde 5.1 & 8.1.2.4" if is_botas else "API 5L Madde 9.11 & 10.2.8.1",
         "table_ref": "BOTAŞ Madde 5.1" if is_botas else f"{freq_tbl} / Çizelge 10",
+        "ndt_method_standard": "Pi-Mezura, Kumpas ve Dairesellik Mastarı",
+        "ndt_acceptance_level": f"Gövde Çapı: ±{dia_body_tol:.1f} mm, Uç Ovalite: ≤ {ovality_end:.2f} mm",
+        "calculated_target_str": f"Gövde: {d_body_min:.1f} - {d_body_max:.1f} mm (±{dia_body_tol:.1f} mm) | Uç: {d_end_min:.1f} - {d_end_max:.1f} mm | Uç Ovalitesi ≤ {ovality_end:.2f} mm",
+        "calculated_targets": {"d_body_min_mm": d_body_min, "d_body_max_mm": d_body_max, "d_end_min_mm": d_end_min, "d_end_max_mm": d_end_max, "ovality_end_max_mm": ovality_end},
         "is_mandatory": True,
     })
 
-    # Dimensional - Wall Thickness
+    # 21. Dimensional - Wall Thickness
     master_list.append({
         "test_key": "dimensional_wall_thickness",
         "category": "Boyutsal & Görsel",
         "test_name": "Et Kalınlığı Ölçümü (Wall Thickness Verification)",
         "standard_frequency": "Her boru (%100) uçlardan ve gövdeden ultrasonik/kumpas ile",
         "standard_frequency_en": "Each pipe (100%)",
-        "standard_acceptance_criteria": "Sac/plaka eksi toleransı: t ≤ 8.7 mm: -0.04 mm; 9.5-12.7 mm: -0.10 mm; ≥14.3 mm: -0.15 mm (BOTAŞ Tablo 4)" if is_botas else "Tolerans: -%8.0 / -%10.0 / -%12.5 (API 5L Tablo 11)",
+        "standard_acceptance_criteria": f"Nominal: {t_mm:.2f} mm | Kabul Edilen Aralık: {t_min:.2f} mm - {t_max:.2f} mm (-%{t_neg_pct:.1f} / +%{t_pos_pct:.1f})",
         "clause_ref": "BOTAŞ Şartnamesi Madde 5.2 (Tablo 4)" if is_botas else "API 5L Madde 9.11.2 & 10.2.8.2",
         "table_ref": "BOTAŞ Tablo 4" if is_botas else f"{freq_tbl} / Çizelge 11",
+        "ndt_method_standard": "Ultrasonik Et Kalınlığı Ölçer / Mikrometre",
+        "ndt_acceptance_level": f"t_min = {t_min:.2f} mm, t_max = {t_max:.2f} mm",
+        "calculated_target_str": f"Nominal: {t_mm:.2f} mm | Kabul Aralığı: {t_min:.2f} mm - {t_max:.2f} mm (-%{t_neg_pct:.1f} / +%{t_pos_pct:.1f})",
+        "calculated_targets": {"nominal_mm": t_mm, "min_mm": t_min, "max_mm": t_max, "neg_tol_pct": t_neg_pct, "pos_tol_pct": t_pos_pct},
         "is_mandatory": True,
     })
 
-    # Dimensional - Length & Straightness & Bevel
+    # 22. Unit Weight Verification
+    master_list.append({
+        "test_key": "dimensional_weight",
+        "category": "Boyutsal & Geometri",
+        "test_name": "Boru Birim Ağırlığı ve Toleransı (Weight per Meter)",
+        "standard_frequency": "Her boruda (%100 tartım veya parti bazında)",
+        "standard_frequency_en": "Each pipe (100% weighing or per lot)",
+        "standard_acceptance_criteria": f"Teorik Ağırlık: {w_nom:.2f} kg/m | Münferit Boru Sınırı: {w_min:.2f} kg/m - {w_max:.2f} kg/m (-%3.5 / +%10.0)",
+        "clause_ref": "API 5L Madde 9.11.2 & 10.2.8.7 / BOTAŞ",
+        "table_ref": f"{freq_tbl} / Madde 9.11.2",
+        "ndt_method_standard": "Kalibreli Yük Hücresi / Endüstriyel Kantar",
+        "ndt_acceptance_level": f"W = {w_nom:.2f} kg/m (-%3.5 / +%10.0)",
+        "calculated_target_str": f"Teorik: {w_nom:.2f} kg/m | Münferit Boru: {w_min:.2f} - {w_max:.2f} kg/m (-%3.5 / +%10.0)",
+        "calculated_targets": {"nominal_kg_m": w_nom, "min_kg_m": w_min, "max_kg_m": w_max, "neg_tol_pct": 3.5, "pos_tol_pct": 10.0},
+        "is_mandatory": True,
+    })
+
+    # 23. Dimensional - Length & Straightness & Bevel
     master_list.append({
         "test_key": "dimensional_length_straightness_bevel",
         "category": "Boyutsal & Görsel",
         "test_name": "Doğrusallık, Boy ve Alın Kaynak Ağzı (Straightness, Length & Bevel)",
         "standard_frequency": "Her boru (%100)",
         "standard_frequency_en": "Each pipe (100%)",
-        "standard_acceptance_criteria": "Doğrusallıktan sapma ≤ %0.10 L (≤ 0.001 x L); Kaynak bitiş noktası dairesellik sapması ≤ %0.15 x D (R/2 mastar ile); Boy: 8-14.5m (ort. min 12m) (BOTAŞ Madde 5.4, 5.5 & 7.2)" if is_botas else "Sapma ≤ %0.20 L (Uçlarda ≤ 3.2 mm / 1.5 m); Kaynak ağzı: 30° (+5°/-0°), Kök yüzeyi: 1.6 ± 0.8 mm (9.11.3)",
+        "standard_acceptance_criteria": f"Doğrusallıktan sapma ≤ %{straightness_pct:.2f} L; Kaynak ağzı: 30° (+5°/-0°), Kök yüzeyi: 1.6 ± 0.8 mm; Diklikten sapma ≤ {squareness_max:.1f} mm",
         "clause_ref": "BOTAŞ Şartnamesi Madde 5.4, 5.5 & 7.2" if is_botas else "API 5L Madde 9.11.3 & 10.2.8.3 / 10.2.8.4",
         "table_ref": "BOTAŞ Madde 5.4, 5.5" if is_botas else f"{freq_tbl} / Çizelge 12",
+        "ndt_method_standard": "Lazer / Gergi Teli Doğrusallık Cihazı, Kaynak Ağzı Mastarı",
+        "ndt_acceptance_level": f"Doğrusallık ≤ %{straightness_pct:.2f} L, Ağız 30° (+5°/-0°), Diklik ≤ {squareness_max:.1f} mm",
+        "calculated_target_str": f"Doğrusallık ≤ %{straightness_pct:.2f} L | Ağız: 30° (+5°/-0°), Kök: 1.6 ± 0.8 mm | Diklik ≤ {squareness_max:.1f} mm",
+        "calculated_targets": {"straightness_max_pct": straightness_pct, "bevel_angle_deg": 30.0, "root_face_mm": 1.6, "max_squareness_mm": squareness_max},
         "is_mandatory": True,
     })
 
-    # Visual Inspection
+    # 24. Visual Surface Inspection
     master_list.append({
         "test_key": "visual_surface",
         "category": "Boyutsal & Görsel",
         "test_name": "Görsel Yüzey ve Kusur Muayenesi (Visual Inspection)",
         "standard_frequency": "D ≥ 20\" borularda istisnasız %100 boru kaynağı (iç/dış) ve %100 gövde (iç/dış) görsel muayenesi" if is_botas else "Her boru (%100 iç ve dış yüzey)",
         "standard_frequency_en": "100% internal and external surface of each pipe",
-        "standard_acceptance_criteria": "EN 10163-2 Sınıf B Altsınıf 3 (Keskin köşeli hata kabul edilmez, gövde/kaynak çatlak yok)" if is_botas else "Çatlak, katmer, kabuk, derin çizik (> %12.5 t) ve yüzey defekti bulunmayacaktır (Madde 9.10.1)",
+        "standard_acceptance_criteria": "EN 10163-2 Sınıf B Altsınıf 3 (Keskin köşeli hata kabul edilmez, gövde/kaynak çatlak yok, derinlik ≤ %12.5 t)",
         "clause_ref": "BOTAŞ Şartnamesi Madde 3.1.5, 8.1.2.1, 8.1.2.2 & 9.1" if is_botas else "API 5L Madde 9.10.1 & 10.2.7",
         "table_ref": "BOTAŞ Madde 8.1.2" if is_botas else freq_tbl,
+        "ndt_method_standard": "EN 10163-2 Sınıf B / API 5L Madde 10.2.7 (Doğrudan Görsel Muayene VT)",
+        "ndt_acceptance_level": "Sıfır Çatlak / Katmer / Kabuk; Kusur Derinliği ≤ %12.5 t",
+        "calculated_target_str": "D ≥ 20\" borularda %100 iç/dış görsel kontrol; çatlak, katmer, kabuk kesinlikle yasaktır (Kusur ≤ %12.5 t)",
+        "calculated_targets": {"extent_pct": 100.0, "max_imperfection_pct_t": 12.5},
         "is_mandatory": True,
     })
 
-    # Residual Magnetism
+    # 25. Residual Magnetism
     master_list.append({
         "test_key": "residual_magnetism",
         "category": "Özel Denetim",

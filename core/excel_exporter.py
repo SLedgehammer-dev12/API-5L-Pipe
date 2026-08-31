@@ -370,12 +370,12 @@ class ExcelExporter:
         kpi = audit_data.get("kpi", {})
 
         # Header Title
-        ws.merge_cells("A1:G1")
+        ws.merge_cells("A1:I1")
         ws.cell(1, 1, "API 5L 47. BASKI & BOTAŞ - ITP AKILLI DENETİM VE SAPMA RAPORU").font = font_title
         ws.cell(1, 1).alignment = align_left
 
         # Pipe Metadata Box
-        ws.merge_cells("A2:G2")
+        ws.merge_cells("A2:I2")
         d_inch_str = pipe.get("diameter_inch", "48in")
         d_mm_str = pipe.get("diameter_mm", "1219")
         wt_mm_str = pipe.get("wall_thickness_mm", "14.3")
@@ -396,10 +396,12 @@ class ExcelExporter:
         # Table Column Headers
         headers = [
             "Muayene / Test Adı",
-            "Disiplin",
+            "Kategori / Disiplin",
+            "Boru Sütunu Hesaplanan Hedef Değer",
+            "NDT Metot Standardı",
             "İmalatçı ITP Frekansı",
-            "API 5L 47. Baskı / BOTAŞ Frekansı",
-            "İmalatçı Kabul Kriteri",
+            "API 5L / BOTAŞ Şartname Frekansı",
+            "İmalatçı ITP Kabul Kriteri",
             "Standart Kabul Kriteri (Limit Değer)",
             "Denetim Durumu & Bulgular",
         ]
@@ -420,19 +422,22 @@ class ExcelExporter:
             
             c_name = ws.cell(current_r, 1, row.get("test_name", "—"))
             c_cat = ws.cell(current_r, 2, row.get("category", "—"))
-            c_up_f = ws.cell(current_r, 3, row.get("uploaded_frequency", "—"))
-            c_st_f = ws.cell(current_r, 4, row.get("standard_frequency", "—"))
-            c_up_c = ws.cell(current_r, 5, row.get("uploaded_criteria", "—"))
-            c_st_c = ws.cell(current_r, 6, row.get("standard_criteria", "—"))
-            c_rem = ws.cell(current_r, 7, row.get("audit_remarks", "—"))
+            c_target = ws.cell(current_r, 3, row.get("calculated_target", "—"))
+            c_ndt = ws.cell(current_r, 4, row.get("ndt_method_standard", "—"))
+            c_up_f = ws.cell(current_r, 5, row.get("uploaded_frequency", "—"))
+            c_st_f = ws.cell(current_r, 6, row.get("standard_frequency", "—"))
+            c_up_c = ws.cell(current_r, 7, row.get("uploaded_criteria", "—"))
+            c_st_c = ws.cell(current_r, 8, row.get("standard_criteria", "—"))
+            c_rem = ws.cell(current_r, 9, row.get("audit_remarks", "—"))
 
             status_fill = fill_pass if status == "COMPLIANT" else (fill_warn if status == "MORE_STRINGENT" else fill_fail)
 
-            for cell in (c_name, c_cat, c_up_f, c_st_f, c_up_c, c_st_c, c_rem):
+            for cell in (c_name, c_cat, c_target, c_ndt, c_up_f, c_st_f, c_up_c, c_st_c, c_rem):
                 cell.font = font_regular
                 cell.border = border_all
                 cell.alignment = align_left
 
+            c_target.font = font_bold
             c_rem.fill = status_fill
             c_rem.font = font_bold if status != "COMPLIANT" else font_regular
             c_name.fill = fill_zebra if current_r % 2 == 0 else PatternFill(fill_type=None)
@@ -440,7 +445,7 @@ class ExcelExporter:
             current_r += 1
 
         # Column Widths
-        widths = [26, 16, 26, 32, 28, 38, 45]
+        widths = [26, 16, 28, 24, 24, 28, 26, 32, 45]
         for idx, w in enumerate(widths, 1):
             ws.column_dimensions[get_column_letter(idx)].width = w
 

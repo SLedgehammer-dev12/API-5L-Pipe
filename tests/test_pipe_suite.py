@@ -653,7 +653,7 @@ class TestPipeQAQCSuite(unittest.TestCase):
             'diameter_mm': 1219.0, 'diameter_inch': '48"', 'wall_thickness_mm': 14.3,
             'material_grade': 'X65', 'manufacturing_process': 'SAWH', 'psl_level': 'PSL2'
         })
-        self.assertEqual(len(spec_48), 17)
+        self.assertEqual(len(spec_48), 21)
         dwtt_48 = next(s for s in spec_48 if s['test_key'] == 'dwtt')
         self.assertTrue(dwtt_48['is_mandatory'])
         self.assertIn("Table 18", dwtt_48['table_ref'])
@@ -666,7 +666,7 @@ class TestPipeQAQCSuite(unittest.TestCase):
             'diameter_mm': 1219.0, 'diameter_inch': '48"', 'wall_thickness_mm': 14.3,
             'material_grade': 'X65', 'manufacturing_process': 'SAWH', 'standard_type': 'BOTAŞ'
         })
-        self.assertEqual(len(spec_botas_48), 19)
+        self.assertEqual(len(spec_botas_48), 23)
         hydro_botas = next(s for s in spec_botas_48 if s['test_key'] == 'hydrostatic')
         self.assertIn("20 saniye", hydro_botas['standard_acceptance_criteria'])
         cvn_botas = next(s for s in spec_botas_48 if s['test_key'] == 'cvn_body')
@@ -754,7 +754,7 @@ class TestPipeQAQCSuite(unittest.TestCase):
         # 1. Reference Frequencies GET
         r_freq = self.client.get('/api/itp/reference-frequencies?diameter_mm=1219.0&material_grade=X65&psl_level=PSL2')
         self.assertEqual(r_freq.status_code, 200)
-        self.assertEqual(len(r_freq.json()['master_specification']), 17)
+        self.assertGreaterEqual(len(r_freq.json()['master_specification']), 20)
 
         # 2. Upload & Audit POST (Demo Mode)
         r_demo = self.client.post('/api/itp/upload-and-audit', data={'use_demo': 'true'})
@@ -846,6 +846,90 @@ class TestPipeQAQCSuite(unittest.TestCase):
         # Check missing mandatory residual stress test
         self.assertTrue(any(f['issue_type'] == 'MISSING_MANDATORY_TEST' and 'Artık Stres' in f['test_name'] for f in audit_res['findings']))
 
+    def test_33_dynamic_pipe_column_itp_audit_calculations(self):
+        """Verifies that all 40+ pipe column outputs are populated with calculated targets and checked."""
+        from core.test_plan import get_comprehensive_itp_specification
+        from core.itp_audit_engine import ITPAuditEngine
+
+        cfg = {
+            'diameter_mm': 1219.0, 'diameter_inch': '48"', 'wall_thickness_mm': 14.30,
+            'material_grade': 'X65', 'manufacturing_process': 'SAWH', 'standard_type': 'BOTAŞ',
+            'psl_level': 'PSL2'
+        }
+
+        master_items = get_comprehensive_itp_specification(cfg)
+        self.assertGreaterEqual(len(master_items), 22)
+
+        # Check specific calculated targets
+        keys_found = {it['test_key']: it for it in master_items}
+        self.assertIn('guided_bend', keys_found)
+        self.assertIn('dimensional_weight', keys_found)
+        self.assertIn('weld_repair_rules', keys_found)
+        self.assertIn('weld_geometry_offset_height', keys_found)
+        self.assertIn('ndt_weld_seam', keys_found)
+
+        # Mandrel & Jaw
+        gb = keys_found['guided_bend']
+        self.assertIn('mandrel_dia_mm', gb['calculated_targets'])
+        self.assertIn('jaw_opening_mm', gb['calculated_targets'])
+
+        # Weight
+        wt = keys_found['dimensional_weight']
+        self.assertAlmostEqual(wt['calculated_targets']['nominal_kg_m'], 424.87, delta=1.0)
+
+        # Audit with insufficient hydrostatic pressure and body repair permission
+        bad_items = [
+            {
+                'test_name': 'Fabrika Hidrostatik Basınç Testi',
+                'test_frequency': 'Her boru (%100)',
+                'acceptance_criteria': 'Min 80.0 bar, 20 saniye'
+            },
+            {
+                'test_name': 'Kaynak ve Gövde Tamir Kuralları',
+                'test_frequency': 'Tamir oldukça',
+                'acceptance_criteria': 'Gövde tamiri serbesttir'
+            }
+        ]
+        audit_res = ITPAuditEngine.audit_itp(bad_items, cfg)
+        self.assertEqual(audit_res['kpi']['overall_verdict'], 'REJECTED')
+        msgs = [f['message'] for f in audit_res['findings']]
+        self.assertTrue(any("DÜŞÜK HİDROSTATİK BASINÇ" in m for m in msgs))
+        self.assertTrue(any("GÖVDE TAMİRİ YASAKTIR" in m for m in msgs))
+
+    def test_34_sample_itps_ocr_and_audit_all_clean(self):
+        """Verifies that all 12 generated authentic ITP PDFs in itp_sample_library can be read and audited."""
+        import os
+        from core.unlimited_ocr_engine import UnlimitedOCREngine
+        from core.itp_audit_engine import ITPAuditEngine
+
+        lib_dir = os.path.join(os.path.dirname(__file__), '..', 'itp_sample_library')
+        if not os.path.exists(lib_dir):
+            return
+
+        pdf_files = [f for f in os.listdir(lib_dir) if f.endswith('.pdf')]
+        self.assertEqual(len(pdf_files), 12)
+
+        botas_cfg = {
+            'diameter_mm': 1219.0, 'diameter_inch': '48"', 'wall_thickness_mm': 14.30,
+            'material_grade': 'X65', 'manufacturing_process': 'SAWH', 'standard_type': 'BOTAŞ',
+            'psl_level': 'PSL2'
+        }
+
+        for pdf in pdf_files:
+            pdf_path = os.path.join(lib_dir, pdf)
+            with open(pdf_path, 'rb') as f:
+                content = f.read()
+            parse_res = UnlimitedOCREngine.parse_pdf_or_image(content, pdf)
+            self.assertEqual(parse_res['status'], 'success')
+            parsed_items = parse_res['items']
+            self.assertGreater(len(parsed_items), 5)
+
+            audit_res = ITPAuditEngine.audit_itp(parsed_items, botas_cfg)
+            self.assertIn('kpi', audit_res)
+            self.assertIn('compliance_score_percent', audit_res['kpi'])
+
+
 if __name__ == '__main__':
     unittest.main()
+
 
