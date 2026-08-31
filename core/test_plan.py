@@ -18,6 +18,7 @@ References (47th Ed.):
     Figures 5/6 — Sample and test piece orientation and locations
 """
 
+import math
 from typing import Any, Dict, List, Optional
 
 # Original clause text (API 5L 47th Edition / ISO 3183) for each test.
@@ -591,15 +592,25 @@ def get_comprehensive_itp_specification(pipe_config: Optional[Dict[str, Any]] = 
     w_min = weights.get("weight_min_kg_m", round(w_nom * (1.0 - 0.035), 2))
     w_max = weights.get("weight_max_kg_m", round(w_nom * (1.0 + 0.10), 2))
 
-    # Dimensional tolerances
+    # Dimensional & Circumference tolerances
     d_body_min = dim.get("diameter_body_min_mm", d_mm - 4.0)
     d_body_max = dim.get("diameter_body_max_mm", d_mm + 4.0)
     d_end_min = dim.get("diameter_end_min_mm", d_mm - 1.6)
     d_end_max = dim.get("diameter_end_max_mm", d_mm + 1.6)
     dia_body_tol = round((d_body_max - d_body_min) / 2.0, 1)
+
+    circ_end_min = dim.get("circ_end_min_mm", round(d_end_min * math.pi, 2)) if isinstance(dim.get("circ_end_min_mm"), (int, float)) else round(d_end_min * math.pi, 2)
+    circ_end_max = dim.get("circ_end_max_mm", round(d_end_max * math.pi, 2)) if isinstance(dim.get("circ_end_max_mm"), (int, float)) else round(d_end_max * math.pi, 2)
+    circ_body_min = dim.get("circ_body_min_mm", round(d_body_min * math.pi, 2)) if isinstance(dim.get("circ_body_min_mm"), (int, float)) else round(d_body_min * math.pi, 2)
+    circ_body_max = dim.get("circ_body_max_mm", round(d_body_max * math.pi, 2)) if isinstance(dim.get("circ_body_max_mm"), (int, float)) else round(d_body_max * math.pi, 2)
+
     ovality_end = dim.get("ovality_end_mm", 3.05 if is_botas else 6.10)
     if not isinstance(ovality_end, (int, float)):
         ovality_end = 3.05 if is_botas else 6.10
+
+    ovality_body = dim.get("ovality_body_mm", 6.10 if is_botas else 18.30)
+    if not isinstance(ovality_body, (int, float)):
+        ovality_body = 6.10 if is_botas else 18.30
 
     t_min = wall_tol.get("min_mm", round(t_mm * 0.92, 2))
     t_max = wall_tol.get("max_mm", round(t_mm * 1.15, 2))
@@ -612,7 +623,8 @@ def get_comprehensive_itp_specification(pipe_config: Optional[Dict[str, Any]] = 
     # Weld geometry
     weld_h_max = weld.get("weld_height_inside_mm", 2.625 if is_botas else 3.50)
     radial_offset = weld.get("radial_offset_max_mm", 1.125 if is_botas else (1.50 if t_mm <= 15.0 else round(0.10 * t_mm, 2)))
-    peaking_max = dim.get("pipe_end_peaking_max_mm", round(d_mm * 0.0015, 2))
+    peaking_max = dim.get("pipe_end_peaking_max_mm", 1.50 if is_botas else round(d_mm * 0.0015, 2))
+    misalignment_max = weld.get("misalignment_max_mm", 2.25 if is_botas else 3.0)
 
     # Residual Stress
     residual_stress_max_mpa = round(0.10 * rt05_min, 1)
@@ -940,47 +952,162 @@ def get_comprehensive_itp_specification(pipe_config: Optional[Dict[str, Any]] = 
             "is_mandatory": True,
         })
 
-    # 19. Weld Geometry (Reinforcement, Radial Offset, Peaking)
+    # 19. Weld Geometry & Peaking (if welded)
     if is_welded:
         master_list.append({
             "test_key": "weld_geometry_offset_height",
             "category": "Boyutsal & Geometri",
-            "test_name": "Kaynak Geometrisi, Radyal Kaçıklık ve Tepeleşme",
-            "standard_frequency": "Her boruda %100 dikiş boyunca mastar ve optik ölçüm ile",
+            "test_name": "Kaynak Dikiş Yüksekliği (Weld Reinforcement Height - Inside & Outside)",
+            "standard_frequency": "Her kaynaklı boruda %100 dikiş boyunca mastar ve optik ölçüm ile",
             "standard_frequency_en": "100% of pipes along full weld seam",
-            "standard_acceptance_criteria": f"İç/Dış Kaynak Yüksekliği ≤ {weld_h_max:.2f} mm | Radyal Kaçıklık ≤ {radial_offset:.2f} mm | Tepeleşme (Peaking) ≤ {peaking_max:.2f} mm (BOTAŞ Çizelge 4)",
+            "standard_acceptance_criteria": f"İç/Dış Kaynak Yüksekliği: 0.50 mm - {weld_h_max:.2f} mm | Eksenel Kaçıklık ≤ {misalignment_max:.2f} mm (BOTAŞ Çizelge 4)",
             "clause_ref": "BOTAŞ Madde 8.8.4 & Çizelge 4 / API 5L Madde 9.13 & Çizelge 16",
             "table_ref": "BOTAŞ Çizelge 4 / API 5L Çizelge 16",
-            "ndt_method_standard": "Kaynak Yükseklik ve Kaçıklık Mastarları / Lazer Profilometre",
-            "ndt_acceptance_level": f"Yükseklik ≤ {weld_h_max:.2f} mm, Kaçıklık ≤ {radial_offset:.2f} mm, Tepeleşme ≤ {peaking_max:.2f} mm",
-            "calculated_target_str": f"İç/Dış Kaynak Yüksekliği ≤ {weld_h_max:.2f} mm | Radyal Kaçıklık ≤ {radial_offset:.2f} mm | Tepeleşme (Peaking) ≤ {peaking_max:.2f} mm",
-            "calculated_targets": {"max_weld_height_mm": weld_h_max, "max_radial_offset_mm": radial_offset, "max_peaking_mm": peaking_max},
+            "ndt_method_standard": "Kaynak Dikiş Yüksekliği Mastarları / Lazer Profilometre",
+            "ndt_acceptance_level": f"İç/Dış Yükseklik ≤ {weld_h_max:.2f} mm, Kaçıklık ≤ {misalignment_max:.2f} mm",
+            "calculated_target_str": f"İç/Dış Kaynak Yüksekliği ≤ {weld_h_max:.2f} mm | Eksenel Kaçıklık ≤ {misalignment_max:.2f} mm",
+            "calculated_targets": {"max_weld_height_mm": weld_h_max, "min_weld_height_mm": 0.50, "max_misalignment_mm": misalignment_max},
+            "is_mandatory": True,
+        })
+        master_list.append({
+            "test_key": "weld_radial_offset",
+            "category": "Boyutsal & Geometri",
+            "test_name": "Sac Kenarları Radyal Kaçıklık / Basamaklanma (Radial Offset)",
+            "standard_frequency": "Her kaynaklı boruda %100 dikiş boyunca",
+            "standard_frequency_en": "100% of welded pipes along weld seam",
+            "standard_acceptance_criteria": f"Radyal Kaçıklık ≤ {radial_offset:.2f} mm (BOTAŞ: {radial_offset:.2f} mm / API 5L Çizelge 14)",
+            "clause_ref": "BOTAŞ Şartnamesi Madde 8.8.4" if is_botas else "API 5L Madde 9.13.1 & Çizelge 14",
+            "table_ref": "BOTAŞ Madde 8.8.4 / API 5L Çizelge 14",
+            "ndt_method_standard": "Basamak / Kaçıklık Derinlik Mastarı",
+            "ndt_acceptance_level": f"Radyal Kaçıklık ≤ {radial_offset:.2f} mm",
+            "calculated_target_str": f"Radyal Kaçıklık ≤ {radial_offset:.2f} mm",
+            "calculated_targets": {"max_radial_offset_mm": radial_offset},
+            "is_mandatory": True,
+        })
+        master_list.append({
+            "test_key": "dimensional_peaking_offset",
+            "category": "Boyutsal & Geometri",
+            "test_name": "Boru Ucu Tepeleşme / Çıkıntı (Pipe End Peaking)",
+            "standard_frequency": "Her kaynaklı borunun her iki ucunda (%100)",
+            "standard_frequency_en": "100% of pipe ends for welded pipes",
+            "standard_acceptance_criteria": f"Boru Ucu Tepeleşme (Peaking) ≤ {peaking_max:.2f} mm (BOTAŞ Çizelge 4 / API 5L Çizelge 16)",
+            "clause_ref": "BOTAŞ Şartnamesi Madde 5.1 & Çizelge 4" if is_botas else "API 5L Madde 9.13.2 & Çizelge 16",
+            "table_ref": "BOTAŞ Çizelge 4 / API 5L Çizelge 16",
+            "ndt_method_standard": "200 mm Kavisli Tepeleşme Mastarı (Peaking Template)",
+            "ndt_acceptance_level": f"Tepeleşme ≤ {peaking_max:.2f} mm",
+            "calculated_target_str": f"Tepeleşme (Peaking) ≤ {peaking_max:.2f} mm",
+            "calculated_targets": {"max_peaking_mm": peaking_max},
             "is_mandatory": True,
         })
 
-    # 20. Dimensional - Diameter & Out of Roundness
+    # 20. Diameter - Pipe Ends
     master_list.append({
-        "test_key": "dimensional_diameter_ovality",
-        "category": "Boyutsal & Görsel",
-        "test_name": "Dış Çap ve Ovallik Kontrolü (Diameter & Ovality)",
-        "standard_frequency": "D ≥ 20\" borularda %100 tüm borular (Madde 8.1.2.4); D < 20\" borularda vardiya başı / soğuk genişletme" if is_botas else "Vardiya başına en az her 4 saatte bir ve soğuk genişletilen borularda her boru (%100)",
-        "standard_frequency_en": "100% of pipes for D >= 20\"" if is_botas else "At least once per 4 hours per operating shift / each pipe for cold-expanded",
-        "standard_acceptance_criteria": f"Gövde Çapı: {d_body_min:.1f} - {d_body_max:.1f} mm (±{dia_body_tol:.1f} mm) | Uç Çapı: {d_end_min:.1f} - {d_end_max:.1f} mm | Uç Ovalitesi ≤ {ovality_end:.2f} mm",
-        "clause_ref": "BOTAŞ Şartnamesi Madde 5.1 & 8.1.2.4" if is_botas else "API 5L Madde 9.11 & 10.2.8.1",
+        "test_key": "dimensional_diameter_ends",
+        "category": "Boyutsal & Geometri",
+        "test_name": "Boru Ucu Dış Çap Toleransı (Diameter Tolerance - Pipe Ends)",
+        "standard_frequency": "Her borunun her iki ucunda (%100)" if is_botas else "Vardiyada en az 4 saatte bir ve soğuk genişletilen her boruda",
+        "standard_frequency_en": "100% of pipe ends",
+        "standard_acceptance_criteria": f"Uç Çapı Kabul Aralığı: {d_end_min:.2f} mm - {d_end_max:.2f} mm ({'+' if d_end_max>=d_mm else ''}{d_end_max-d_mm:.2f} / {d_end_min-d_mm:.2f} mm)",
+        "clause_ref": "BOTAŞ Şartnamesi Madde 5.1 & 8.1.2.4" if is_botas else "API 5L Madde 9.11.1 & Çizelge 10",
         "table_ref": "BOTAŞ Madde 5.1" if is_botas else f"{freq_tbl} / Çizelge 10",
-        "ndt_method_standard": "Pi-Mezura, Kumpas ve Dairesellik Mastarı",
-        "ndt_acceptance_level": f"Gövde Çapı: ±{dia_body_tol:.1f} mm, Uç Ovalite: ≤ {ovality_end:.2f} mm",
-        "calculated_target_str": f"Gövde: {d_body_min:.1f} - {d_body_max:.1f} mm (±{dia_body_tol:.1f} mm) | Uç: {d_end_min:.1f} - {d_end_max:.1f} mm | Uç Ovalitesi ≤ {ovality_end:.2f} mm",
-        "calculated_targets": {"d_body_min_mm": d_body_min, "d_body_max_mm": d_body_max, "d_end_min_mm": d_end_min, "d_end_max_mm": d_end_max, "ovality_end_max_mm": ovality_end},
+        "ndt_method_standard": "Pi-Mezura (Pi-Tape) / Kumpas / Lazer Çapölçer",
+        "ndt_acceptance_level": f"Uç Çapı: {d_end_min:.2f} mm - {d_end_max:.2f} mm",
+        "calculated_target_str": f"Uç Çapı: {d_end_min:.2f} mm - {d_end_max:.2f} mm (Nominal {d_mm:.1f} mm)",
+        "calculated_targets": {"d_end_min_mm": d_end_min, "d_end_max_mm": d_end_max, "nominal_od_mm": d_mm},
         "is_mandatory": True,
     })
 
-    # 21. Dimensional - Wall Thickness
+    # 21. Diameter - Pipe Body
+    master_list.append({
+        "test_key": "dimensional_diameter_body",
+        "category": "Boyutsal & Geometri",
+        "test_name": "Boru Gövdesi Dış Çap Toleransı (Diameter Tolerance - Pipe Body)",
+        "standard_frequency": "D ≥ 20\" borularda istisnasız %100 tüm borular; D < 20\" borularda vardiya başı / periyodik" if is_botas else "Vardiya başına en az her 4 saatte bir ve her parti boruda",
+        "standard_frequency_en": "100% of pipes for D >= 20\"" if is_botas else "At least once per 4 hours per operating shift",
+        "standard_acceptance_criteria": f"Gövde Çapı Kabul Aralığı: {d_body_min:.2f} mm - {d_body_max:.2f} mm ({'+' if d_body_max>=d_mm else ''}{d_body_max-d_mm:.2f} / {d_body_min-d_mm:.2f} mm)",
+        "clause_ref": "BOTAŞ Şartnamesi Madde 5.1 & 8.1.2.4" if is_botas else "API 5L Madde 9.11.1 & Çizelge 10",
+        "table_ref": "BOTAŞ Madde 5.1" if is_botas else f"{freq_tbl} / Çizelge 10",
+        "ndt_method_standard": "Pi-Mezura (Pi-Tape) / Optik Çap Ölçer",
+        "ndt_acceptance_level": f"Gövde Çapı: {d_body_min:.2f} mm - {d_body_max:.2f} mm (±{dia_body_tol:.1f} mm)",
+        "calculated_target_str": f"Gövde Çapı: {d_body_min:.2f} mm - {d_body_max:.2f} mm (Nominal {d_mm:.1f} mm)",
+        "calculated_targets": {"d_body_min_mm": d_body_min, "d_body_max_mm": d_body_max, "nominal_od_mm": d_mm},
+        "is_mandatory": True,
+    })
+
+    # 22. Circumference - Pipe Ends
+    master_list.append({
+        "test_key": "dimensional_circumference_ends",
+        "category": "Boyutsal & Geometri",
+        "test_name": "Boru Çevre Toleransı - Boru Ucu (Circumference Tolerance - Pipe Ends)",
+        "standard_frequency": "Her borunun her iki ucunda (%100)",
+        "standard_frequency_en": "100% of pipe ends",
+        "standard_acceptance_criteria": f"Boru Ucu Çevre Kabul Aralığı: {circ_end_min:.1f} mm - {circ_end_max:.1f} mm (π·D_end)",
+        "clause_ref": "BOTAŞ Şartnamesi Madde 5.1 / API 5L Madde 9.11.1",
+        "table_ref": "BOTAŞ Madde 5.1 / API 5L Çizelge 10",
+        "ndt_method_standard": "Kalibreli Pi-Mezura (Pi-Tape)",
+        "ndt_acceptance_level": f"Uç Çevresi: {circ_end_min:.1f} mm - {circ_end_max:.1f} mm",
+        "calculated_target_str": f"Uç Çevresi: {circ_end_min:.1f} mm - {circ_end_max:.1f} mm",
+        "calculated_targets": {"circ_end_min_mm": circ_end_min, "circ_end_max_mm": circ_end_max, "nominal_circ_mm": round(math.pi * d_mm, 2)},
+        "is_mandatory": True,
+    })
+
+    # 23. Circumference - Pipe Body
+    master_list.append({
+        "test_key": "dimensional_circumference_body",
+        "category": "Boyutsal & Geometri",
+        "test_name": "Boru Çevre Toleransı - Gövde (Circumference Tolerance - Pipe Body)",
+        "standard_frequency": "D ≥ 20\" borularda %100 tüm borular; D < 20\" borularda vardiya başı / periyodik",
+        "standard_frequency_en": "100% of pipes for D >= 20\"",
+        "standard_acceptance_criteria": f"Boru Gövdesi Çevre Kabul Aralığı: {circ_body_min:.1f} mm - {circ_body_max:.1f} mm (π·D_body)",
+        "clause_ref": "BOTAŞ Şartnamesi Madde 5.1 / API 5L Madde 9.11.1",
+        "table_ref": "BOTAŞ Madde 5.1 / API 5L Çizelge 10",
+        "ndt_method_standard": "Kalibreli Pi-Mezura (Pi-Tape)",
+        "ndt_acceptance_level": f"Gövde Çevresi: {circ_body_min:.1f} mm - {circ_body_max:.1f} mm",
+        "calculated_target_str": f"Gövde Çevresi: {circ_body_min:.1f} mm - {circ_body_max:.1f} mm",
+        "calculated_targets": {"circ_body_min_mm": circ_body_min, "circ_body_max_mm": circ_body_max, "nominal_circ_mm": round(math.pi * d_mm, 2)},
+        "is_mandatory": True,
+    })
+
+    # 24. Ovality - Pipe Ends
+    master_list.append({
+        "test_key": "dimensional_ovality_ends",
+        "category": "Boyutsal & Geometri",
+        "test_name": "Ovalite - Boru Ucu (Out-of-Roundness - Pipe Ends)",
+        "standard_frequency": "Her borunun her iki ucunda (%100)" if is_botas else "Vardiyada en az her 4 saatte bir ve soğuk genişletilen her boruda",
+        "standard_frequency_en": "100% of pipe ends",
+        "standard_acceptance_criteria": f"Boru Ucu Azami Ovalite: ≤ {ovality_end:.2f} mm (D_max - D_min ≤ {ovality_end:.2f} mm)",
+        "clause_ref": "BOTAŞ Şartnamesi Madde 5.1" if is_botas else "API 5L Madde 9.11.1 & Çizelge 10",
+        "table_ref": "BOTAŞ Madde 5.1" if is_botas else f"{freq_tbl} / Çizelge 10",
+        "ndt_method_standard": "İç/Dış Çap Kumpası / Dairesellik Mastarı / Lazer Profiler",
+        "ndt_acceptance_level": f"Uç Ovalitesi ≤ {ovality_end:.2f} mm",
+        "calculated_target_str": f"Uç Ovalitesi ≤ {ovality_end:.2f} mm",
+        "calculated_targets": {"ovality_end_max_mm": ovality_end},
+        "is_mandatory": True,
+    })
+
+    # 25. Ovality - Pipe Body
+    master_list.append({
+        "test_key": "dimensional_ovality_body",
+        "category": "Boyutsal & Geometri",
+        "test_name": "Ovalite - Boru Gövdesi (Out-of-Roundness - Pipe Body)",
+        "standard_frequency": "D ≥ 20\" borularda %100 tüm borular; D < 20\" borularda vardiya başı / periyodik",
+        "standard_frequency_en": "100% of pipes for D >= 20\"",
+        "standard_acceptance_criteria": f"Boru Gövdesi Azami Ovalite: ≤ {ovality_body:.2f} mm (D_max - D_min ≤ {ovality_body:.2f} mm)" if isinstance(ovality_body, (int, float)) else f"Gövde Ovalitesi: {ovality_body}",
+        "clause_ref": "BOTAŞ Şartnamesi Madde 5.1" if is_botas else "API 5L Madde 9.11.1 & Çizelge 10",
+        "table_ref": "BOTAŞ Madde 5.1" if is_botas else f"{freq_tbl} / Çizelge 10",
+        "ndt_method_standard": "Dairesellik Mastarı / Çap Kumpası",
+        "ndt_acceptance_level": f"Gövde Ovalitesi ≤ {ovality_body:.2f} mm" if isinstance(ovality_body, (int, float)) else str(ovality_body),
+        "calculated_target_str": f"Gövde Ovalitesi ≤ {ovality_body:.2f} mm" if isinstance(ovality_body, (int, float)) else str(ovality_body),
+        "calculated_targets": {"ovality_body_max_mm": ovality_body if isinstance(ovality_body, (int, float)) else 15.0},
+        "is_mandatory": True,
+    })
+
+    # 26. Wall Thickness
     master_list.append({
         "test_key": "dimensional_wall_thickness",
-        "category": "Boyutsal & Görsel",
-        "test_name": "Et Kalınlığı Ölçümü (Wall Thickness Verification)",
-        "standard_frequency": "Her boru (%100) uçlardan ve gövdeden ultrasonik/kumpas ile",
+        "category": "Boyutsal & Geometri",
+        "test_name": "Et Kalınlığı Ölçümü ve Toleransı (Wall Thickness Verification)",
+        "standard_frequency": "Her boru (%100) uçlardan ve gövdeden ultrasonik/mikrometre ile",
         "standard_frequency_en": "Each pipe (100%)",
         "standard_acceptance_criteria": f"Nominal: {t_mm:.2f} mm | Kabul Edilen Aralık: {t_min:.2f} mm - {t_max:.2f} mm (-%{t_neg_pct:.1f} / +%{t_pos_pct:.1f})",
         "clause_ref": "BOTAŞ Şartnamesi Madde 5.2 (Tablo 4)" if is_botas else "API 5L Madde 9.11.2 & 10.2.8.2",
@@ -992,12 +1119,12 @@ def get_comprehensive_itp_specification(pipe_config: Optional[Dict[str, Any]] = 
         "is_mandatory": True,
     })
 
-    # 22. Unit Weight Verification
+    # 27. Unit Weight Verification
     master_list.append({
         "test_key": "dimensional_weight",
         "category": "Boyutsal & Geometri",
-        "test_name": "Boru Birim Ağırlığı ve Toleransı (Weight per Meter)",
-        "standard_frequency": "Her boruda (%100 tartım veya parti bazında)",
+        "test_name": "Boru Birim Ağırlığı ve Toleransı (Weight per Meter & Tolerance)",
+        "standard_frequency": "Her boruda (%100 münferit kantar tartımı)",
         "standard_frequency_en": "Each pipe (100% weighing or per lot)",
         "standard_acceptance_criteria": f"Teorik Ağırlık: {w_nom:.2f} kg/m | Münferit Boru Sınırı: {w_min:.2f} kg/m - {w_max:.2f} kg/m (-%3.5 / +%10.0)",
         "clause_ref": "API 5L Madde 9.11.2 & 10.2.8.7 / BOTAŞ",
@@ -1009,20 +1136,54 @@ def get_comprehensive_itp_specification(pipe_config: Optional[Dict[str, Any]] = 
         "is_mandatory": True,
     })
 
-    # 23. Dimensional - Length & Straightness & Bevel
+    # 28. Straightness
     master_list.append({
-        "test_key": "dimensional_length_straightness_bevel",
-        "category": "Boyutsal & Görsel",
-        "test_name": "Doğrusallık, Boy ve Alın Kaynak Ağzı (Straightness, Length & Bevel)",
+        "test_key": "dimensional_straightness",
+        "category": "Boyutsal & Geometri",
+        "test_name": "Boru Toplam Doğrusallığı (Straightness Deviation)",
         "standard_frequency": "Her boru (%100)",
         "standard_frequency_en": "Each pipe (100%)",
-        "standard_acceptance_criteria": f"Doğrusallıktan sapma ≤ %{straightness_pct:.2f} L; Kaynak ağzı: 30° (+5°/-0°), Kök yüzeyi: 1.6 ± 0.8 mm; Diklikten sapma ≤ {squareness_max:.1f} mm",
-        "clause_ref": "BOTAŞ Şartnamesi Madde 5.4, 5.5 & 7.2" if is_botas else "API 5L Madde 9.11.3 & 10.2.8.3 / 10.2.8.4",
-        "table_ref": "BOTAŞ Madde 5.4, 5.5" if is_botas else f"{freq_tbl} / Çizelge 12",
-        "ndt_method_standard": "Lazer / Gergi Teli Doğrusallık Cihazı, Kaynak Ağzı Mastarı",
-        "ndt_acceptance_level": f"Doğrusallık ≤ %{straightness_pct:.2f} L, Ağız 30° (+5°/-0°), Diklik ≤ {squareness_max:.1f} mm",
-        "calculated_target_str": f"Doğrusallık ≤ %{straightness_pct:.2f} L | Ağız: 30° (+5°/-0°), Kök: 1.6 ± 0.8 mm | Diklik ≤ {squareness_max:.1f} mm",
-        "calculated_targets": {"straightness_max_pct": straightness_pct, "bevel_angle_deg": 30.0, "root_face_mm": 1.6, "max_squareness_mm": squareness_max},
+        "standard_acceptance_criteria": f"Toplam boy boyunca doğrusallıktan sapma ≤ %{straightness_pct:.2f} L (Uçtan 1m bölgede ≤ 3.2 mm / BOTAŞ ≤ 2.0 mm)",
+        "clause_ref": "BOTAŞ Şartnamesi Madde 5.4" if is_botas else "API 5L Madde 9.11.3.4 & Çizelge 12",
+        "table_ref": "BOTAŞ Madde 5.4" if is_botas else f"{freq_tbl} / Çizelge 12",
+        "ndt_method_standard": "Gergi Teli (Piano Wire) / Lazer Doğrusallık Mastarı",
+        "ndt_acceptance_level": f"Doğrusallık ≤ %{straightness_pct:.2f} L",
+        "calculated_target_str": f"Doğrusallık ≤ %{straightness_pct:.2f} L",
+        "calculated_targets": {"straightness_max_pct": straightness_pct},
+        "is_mandatory": True,
+    })
+
+    # 29. Bevel Angle & Root Face
+    master_list.append({
+        "test_key": "dimensional_bevel_ends",
+        "category": "Boyutsal & Geometri",
+        "test_name": "Alın Kaynak Ağzı Açısı ve Kök Yüzeyi (Bevel Angle & Root Face)",
+        "standard_frequency": "Her borunun her iki ucunda (%100)",
+        "standard_frequency_en": "Each pipe ends (100%)",
+        "standard_acceptance_criteria": "Kaynak Ağzı Açısı: 30° (+5° / -0°) (veya 35°), Kök Yüzeyi (Root Face): 1.6 ± 0.8 mm",
+        "clause_ref": "BOTAŞ Şartnamesi Madde 7.2" if is_botas else "API 5L Madde 9.12.5.4",
+        "table_ref": "BOTAŞ Madde 7.2 / API 5L Madde 9.12",
+        "ndt_method_standard": "Kaynak Ağzı ve Kök Yüzeyi Mastarı (Bridge Cam Gauge)",
+        "ndt_acceptance_level": "Açı 30° (+5°/-0°), Kök 1.6 ± 0.8 mm",
+        "calculated_target_str": "Ağız Açısı: 30° (+5°/-0°), Kök Yüzeyi: 1.6 ± 0.8 mm",
+        "calculated_targets": {"bevel_angle_deg": 30.0, "root_face_mm": 1.6, "root_face_tol_mm": 0.8},
+        "is_mandatory": True,
+    })
+
+    # 30. Squareness
+    master_list.append({
+        "test_key": "dimensional_squareness_ends",
+        "category": "Boyutsal & Geometri",
+        "test_name": "Boru Ucu Diklikten Sapma (Pipe End Squareness)",
+        "standard_frequency": "Her borunun her iki ucunda (%100)",
+        "standard_frequency_en": "Each pipe ends (100%)",
+        "standard_acceptance_criteria": f"Boru ucu diklikten sapma ≤ {squareness_max:.2f} mm",
+        "clause_ref": "BOTAŞ Şartnamesi Madde 5.5" if is_botas else "API 5L Madde 9.12.5.3",
+        "table_ref": "BOTAŞ Madde 5.5 / API 5L Madde 9.12",
+        "ndt_method_standard": "Hassas Gönye ve Sentil / Lazer Diklik Mastarı",
+        "ndt_acceptance_level": f"Diklikten Sapma ≤ {squareness_max:.2f} mm",
+        "calculated_target_str": f"Diklikten Sapma ≤ {squareness_max:.2f} mm",
+        "calculated_targets": {"max_squareness_mm": squareness_max},
         "is_mandatory": True,
     })
 

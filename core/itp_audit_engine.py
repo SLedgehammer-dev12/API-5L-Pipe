@@ -78,11 +78,22 @@ class ITPAuditEngine:
         "ndt_smls_body": ["dikişsiz gövde ndt", "smls body ndt", "flux leakage", "gövde ut", "seamless body", "dikissiz govde"],
         "ndt_bevel_mt": ["kaynak ağzı mt", "tamir mt", "manyetik parçacık", "magnetic particle", "mpi", "bevel mt", "kaynak agzi mt", "manyetik muayene"],
         "weld_repair_rules": ["tamir kuralları", "tamir kaynağı", "onarım", "weld repair", "repair procedure", "tamir şartları", "kaynak tamiri", "repair conditions", "tamir kurallari", "tamir sarti"],
-        "weld_geometry_offset_height": ["kaynak geometrisi", "kaynak yüksekliği", "radyal kaçıklık", "radial offset", "weld height", "reinforcement", "tepeleşme", "peaking", "misalignment", "kaynak dikiş yüksekliği", "kaynak yuksekligi", "radyal kaciklik"],
-        "dimensional_diameter_ovality": ["dış çap", "ovallik", "çap toleransı", "diameter", "out of roundness", "ovality", "out-of-roundness", "dış çap ve ovallik", "dis cap", "dis cap ve ovallik"],
+        "weld_geometry_offset_height": ["kaynak geometrisi", "kaynak dikiş yüksekliği", "kaynak yüksekliği", "weld height", "reinforcement", "weld reinforcement", "kaynak yuksekligi"],
+        "weld_radial_offset": ["radyal kaçıklık", "radial offset", "basamaklanma", "sac kenarları kaçıklık", "offset of plate edges", "kenar kaçıklığı", "radyal kaciklik"],
+        "dimensional_peaking_offset": ["tepeleşme", "tepelesme", "peaking", "weld peaking", "çıkıntı", "boru ucu tepeleşme", "end peaking"],
+        "dimensional_diameter_ends": ["boru ucu dış çap", "boru ucu çap", "uç çapı", "uç dış çap", "diameter ends", "pipe ends diameter", "dış çap - boru ucu", "cap toleransi - boru ucu", "dis cap boru ucu", "boru ucu çap toleransı", "boru ucu dış çap toleransı"],
+        "dimensional_diameter_body": ["boru gövdesi dış çap", "gövde çapı", "gövde dış çap", "body diameter", "pipe body diameter", "dış çap - boru gövdesi", "cap toleransi - boru govdesi", "dis cap boru govdesi", "boru gövdesi çap toleransı", "gövde çap toleransı"],
+        "dimensional_circumference_ends": ["boru ucu çevre", "çevre toleransı - boru ucu", "uç çevre", "circumference ends", "pipe ends circumference", "uc cevre", "boru ucu çevre toleransı", "boru çevre toleransı - boru ucu"],
+        "dimensional_circumference_body": ["boru gövdesi çevre", "çevre toleransı - gövde", "çevre toleransı - boru gövdesi", "gövde çevre", "circumference body", "pipe body circumference", "govde cevre", "boru gövdesi çevre toleransı", "boru çevre toleransı - gövde"],
+        "dimensional_ovality_ends": ["boru ucu ovalite", "ovalite - boru ucu", "uç ovalite", "dairesellikten sapma - boru ucu", "ovality ends", "pipe ends ovality", "out of roundness ends", "uc ovalite", "ovalite - uc", "ovalite ucu", "boru ucu ovalitesi", "boru ucu ovalite toleransı"],
+        "dimensional_ovality_body": ["boru gövdesi ovalite", "gövde ovalite", "ovalite - boru gövdesi", "ovalite - gövde", "dairesellikten sapma - gövde", "ovality body", "pipe body ovality", "out of roundness body", "govde ovalite", "gövde ovalitesi", "boru gövdesi ovalite toleransı"],
         "dimensional_wall_thickness": ["et kalınlığı", "wall thickness", "cidar kalınlığı", "thickness verification", "et kalınlığı ölçümü", "et kalinligi", "et kal"],
         "dimensional_weight": ["birim ağırlık", "boru ağırlığı", "weight per meter", "mass", "tartım", "kantar", "ağırlık toleransı", "pipe weight", "birim agirlik", "boru agirligi"],
-        "dimensional_length_straightness_bevel": ["doğrusallık", "boy", "alın kaynak ağzı", "straightness", "length", "bevel", "ağız açısı", "doğrusallık, boy", "dogrusallik", "kaynak agzi"],
+        "dimensional_straightness": ["doğrusallık", "dogrusallik", "straightness", "doğrusallıktan sapma", "boru doğrusallığı", "straightness deviation", "toplam doğrusallık"],
+        "dimensional_bevel_ends": ["alın kaynak ağzı", "kaynak ağzı", "kaynak agzi", "bevel", "bevel angle", "ağız açısı", "kök yüzeyi", "root face", "kaynak ağzı geometrisi", "alın kaynak ağzı açısı"],
+        "dimensional_squareness_ends": ["diklik", "diklikten sapma", "squareness", "pipe end squareness", "uç diklik", "boru ucu diklik", "end squareness"],
+        "dimensional_diameter_ovality": ["dış çap", "ovallik", "çap toleransı", "diameter", "out of roundness", "ovality", "out-of-roundness", "dış çap ve ovallik", "dis cap", "dis cap ve ovallik"],
+        "dimensional_length_straightness_bevel": ["doğrusallık, boy", "boy ve kaynak ağzı", "length and bevel", "doğrusallık ve kaynak ağzı"],
         "visual_surface": ["görsel muayene", "yüzey muayenesi", "visual inspection", "surface inspection", "gözle muayene", "görsel yüzey", "gorsel", "yuzey muayenesi"],
         "residual_magnetism": ["kalıntı manyetizma", "manyetizma", "residual magnetism", "gaussmetre", "gauss", "kalinti manyetizma"],
         "quality_marking_surface_prep": ["proje markalaması", "markalama", "stenciling", "şablonlama", "yüzey hazırlığı", "surface prep", "sa 2.5", "en 10204", "mtc", "kalite sertifikası", "3.1 sertifika", "3.2 sertifika", "marking", "sablonlama"],
@@ -336,6 +347,12 @@ class ITPAuditEngine:
         canon_freq = FrequencyNormalizer.normalize(up_freq)
 
         if test_key in ("hydrostatic", "ndt_weld_seam", "visual_surface", "dimensional_wall_thickness",
+                        "dimensional_diameter_ends", "dimensional_diameter_body",
+                        "dimensional_circumference_ends", "dimensional_circumference_body",
+                        "dimensional_ovality_ends", "dimensional_ovality_body",
+                        "dimensional_straightness", "dimensional_bevel_ends",
+                        "dimensional_squareness_ends", "dimensional_peaking_offset",
+                        "weld_radial_offset", "weld_geometry_offset_height",
                         "dimensional_length_straightness_bevel", "ndt_pipe_ends", "ndt_bevel_mt",
                         "quality_marking_surface_prep", "dimensional_diameter_ovality", "dimensional_weight"):
             if canon_freq in (FrequencyCanonical.INADEQUATE_SAMPLING, FrequencyCanonical.PER_TEST_UNIT, FrequencyCanonical.PERIODIC_SHIFT):
@@ -578,35 +595,131 @@ class ITPAuditEngine:
                 issue_type = "CRITERIA_VIOLATION"
                 remarks.append("🔴 AĞIRLIK TOLERANSI AŞILDI: API 5L Madde 9.11.2 uyarınca münferit boru ağırlık toleransı -%3.5 / +%10.0'dur!")
 
-        # 2n. Weld Geometry & Peaking
+        # 2n. Weld Geometry (Weld Height, Radial Offset, Peaking)
         elif test_key == "weld_geometry_offset_height":
             if is_botas and any(k in up_crit_lower for k in ("3.5 mm", "3.0 mm", "4.0 mm")):
                 status = "NON_COMPLIANT"
                 issue_type = "CRITERIA_VIOLATION"
                 remarks.append("🔴 KAYNAK YÜKSEKLİK LİMİTİ: BOTAŞ Çizelge 4 uyarınca iç/dış kaynak dikiş yüksekliği azami 2.625 mm olabilir!")
 
-        # 2o. Guided Bend Test
+        elif test_key == "weld_radial_offset":
+            req_rad = float(calc_targets.get("max_radial_offset_mm", 1.5))
+            if any(k in up_crit_lower for k in ("> 2.0", ">2.0", "3.0 mm", "2.5 mm")):
+                status = "NON_COMPLIANT"
+                issue_type = "CRITERIA_VIOLATION"
+                remarks.append(f"🔴 RADYAL KAÇIKLIK LİMİTİ AŞILDI: Azami radyal basamaklanma {req_rad:.2f} mm olabilir!")
+
+        elif test_key == "dimensional_peaking_offset":
+            req_peak = float(calc_targets.get("max_peaking_mm", 1.5 if is_botas else 3.2))
+            if is_botas and any(k in up_crit_lower for k in ("3.0 mm", "3.2 mm", "2.5 mm", "2.0 mm")):
+                status = "NON_COMPLIANT"
+                issue_type = "CRITERIA_VIOLATION"
+                remarks.append(f"🔴 TEPELEŞME (PEAKING) LİMİTİ AŞILDI: BOTAŞ Çizelge 4 uyarınca boru ucu tepeleşmesi azami {req_peak:.2f} mm olabilir!")
+
+        # 2o. Diameter (Ends & Body)
+        elif test_key == "dimensional_diameter_ends":
+            req_d_min = float(calc_targets.get("d_end_min_mm", d_mm - 1.6))
+            req_d_max = float(calc_targets.get("d_end_max_mm", d_mm + 1.6))
+            if any(k in up_crit_lower for k in ("±3.2", "± 3.2", "±4.0", "± 4.0", "±5.0")):
+                status = "NON_COMPLIANT"
+                issue_type = "CRITERIA_VIOLATION"
+                remarks.append(f"🔴 BORU UCU ÇAP TOLERANSI AŞILDI: Boru ucu çap toleransı {req_d_min:.1f} - {req_d_max:.1f} mm aralığında olmalıdır!")
+
+        elif test_key == "dimensional_diameter_body":
+            req_d_min = float(calc_targets.get("d_body_min_mm", d_mm - 4.0))
+            req_d_max = float(calc_targets.get("d_body_max_mm", d_mm + 4.0))
+            if any(k in up_crit_lower for k in ("±8.0", "± 8.0", "±10.0", "± 10.0")):
+                status = "NON_COMPLIANT"
+                issue_type = "CRITERIA_VIOLATION"
+                remarks.append(f"🔴 GÖVDE ÇAP TOLERANSI AŞILDI: Boru gövdesi çap toleransı {req_d_min:.1f} - {req_d_max:.1f} mm aralığında olmalıdır!")
+
+        # 2p. Circumference (Ends & Body)
+        elif test_key in ("dimensional_circumference_ends", "dimensional_circumference_body"):
+            if any(k in up_crit_lower for k in ("±25 mm", "±30 mm", "± 25", "± 30")):
+                status = "NON_COMPLIANT"
+                issue_type = "CRITERIA_VIOLATION"
+                remarks.append("🔴 ÇEVRE TOLERANSI AŞILDI: Pi-mezura çevre ölçüm toleransı aşılmıştır!")
+
+        # 2q. Ovality (Ends & Body)
+        elif test_key == "dimensional_ovality_ends":
+            req_ov = float(calc_targets.get("ovality_end_max_mm", 3.05 if is_botas else 6.10))
+            ov_matches = re.findall(r"(\d+(?:\.\d+)?)\s*mm", up_crit_lower)
+            if ov_matches:
+                val_ov = float(ov_matches[0])
+                if val_ov > (req_ov + 0.05):
+                    status = "NON_COMPLIANT"
+                    issue_type = "CRITERIA_VIOLATION"
+                    remarks.append(f"🔴 BORU UCU OVALİTE LİMİTİ AŞILDI: BOTAŞ Şartnamesi Madde 5.1 uyarınca uç ovalitesi azami {req_ov:.2f} mm olmalıdır; ITP'de {val_ov:.2f} mm belirtilmiş!")
+            elif is_botas and any(k in up_crit_lower for k in ("10 mm", "12 mm", "15 mm", "8 mm", "15")):
+                status = "NON_COMPLIANT"
+                issue_type = "CRITERIA_VIOLATION"
+                remarks.append(f"🔴 BORU UCU OVALİTE LİMİTİ AŞILDI: BOTAŞ Şartnamesi Madde 5.1 uyarınca uç ovalitesi azami {req_ov:.2f} mm olmalıdır!")
+
+        elif test_key == "dimensional_ovality_body":
+            req_ov = float(calc_targets.get("ovality_body_max_mm", 6.10 if is_botas else 18.30))
+            ov_matches = re.findall(r"(\d+(?:\.\d+)?)\s*mm", up_crit_lower)
+            if ov_matches:
+                val_ov = float(ov_matches[0])
+                if val_ov > (req_ov + 0.05):
+                    status = "NON_COMPLIANT"
+                    issue_type = "CRITERIA_VIOLATION"
+                    remarks.append(f"🔴 GÖVDE OVALİTE LİMİTİ AŞILDI: BOTAŞ Şartnamesi Madde 5.1 uyarınca gövde ovalitesi azami {req_ov:.2f} mm olmalıdır; ITP'de {val_ov:.2f} mm belirtilmiş!")
+            elif is_botas and any(k in up_crit_lower for k in ("15 mm", "18 mm", "20 mm", "25")):
+                status = "NON_COMPLIANT"
+                issue_type = "CRITERIA_VIOLATION"
+                remarks.append(f"🔴 GÖVDE OVALİTE LİMİTİ AŞILDI: BOTAŞ Şartnamesi Madde 5.1 uyarınca gövde ovalitesi azami {req_ov:.2f} mm olmalıdır!")
+
+        # 2r. Wall Thickness
+        elif test_key == "dimensional_wall_thickness":
+            req_min_t = float(calc_targets.get("min_mm", t_mm * 0.90))
+            if any(k in up_crit_lower for k in ("-%15", "-15%", "-%20", "-20%")):
+                status = "NON_COMPLIANT"
+                issue_type = "CRITERIA_VIOLATION"
+                remarks.append(f"🔴 ET KALINLIĞI NEGATİF TOLERANSI AŞILDI: Asgari et kalınlığı {req_min_t:.2f} mm olmalıdır!")
+
+        # 2s. Straightness
+        elif test_key == "dimensional_straightness":
+            if any(k in up_crit_lower for k in ("0.4% l", "0.5% l", "%0.4", "%0.5", "0.4%", "0.5%")):
+                status = "NON_COMPLIANT"
+                issue_type = "CRITERIA_VIOLATION"
+                remarks.append("🔴 DOĞRUSALLIK SAPMASI AŞILDI: Toplam boy doğrusallıktan sapma azami %0.20L (BOTAŞ: %0.10L) olmalıdır!")
+
+        # 2t. Bevel & Root Face
+        elif test_key == "dimensional_bevel_ends":
+            if any(k in up_crit_lower for k in ("45°", "45 deg", "50°", "50 deg", "20°")):
+                status = "NON_COMPLIANT"
+                issue_type = "CRITERIA_VIOLATION"
+                remarks.append("🔴 KAYNAK AĞZI AÇISI HATALI: Standart alın kaynak ağzı açısı 30° (+5°/-0°) (veya 35°) olmalıdır!")
+
+        # 2u. Squareness
+        elif test_key == "dimensional_squareness_ends":
+            if any(k in up_crit_lower for k in ("> 3.0 mm", ">3.0", "4.0 mm", "5.0 mm")):
+                status = "NON_COMPLIANT"
+                issue_type = "CRITERIA_VIOLATION"
+                remarks.append("🔴 DİKLİKTEN SAPMA LİMİTİ AŞILDI: Boru ucu diklikten sapma azami 1.6 mm olmalıdır!")
+
+        # 2v. Guided Bend Test
         elif test_key == "guided_bend":
             if any(k in up_crit_lower for k in ("çatlak serbest", "crack permitted", "> 6.4 mm", ">6.4 mm", "> 7 mm")):
                 status = "NON_COMPLIANT"
                 issue_type = "CRITERIA_VIOLATION"
                 remarks.append("🔴 KILAVUZLU BÜKME KUSURU: API 5L Madde 9.10.3 uyarınca hiçbir yönde >3.2 mm çatlak/kusur kabul edilemez!")
 
-        # 2p. Flattening Test
+        # 2w. Flattening Test
         elif test_key == "flattening":
             if any(k in up_crit_lower for k in ("laminasyon serbest", "çatlak serbest", "crack permitted")):
                 status = "NON_COMPLIANT"
                 issue_type = "CRITERIA_VIOLATION"
                 remarks.append("🔴 YASSILTMA KUSURU: API 5L Madde 9.10.2 uyarınca dikiş açılması veya gövde çatlağı kesinlikle yasaktır!")
 
-        # 2q. Visual & Surface Preparation
+        # 2x. Visual & Surface Preparation
         elif test_key == "visual_surface":
             if any(k in up_crit_lower for k in ("> %15", ">%15", "> 15%", "0.20t", "0.25t")):
                 status = "NON_COMPLIANT"
                 issue_type = "CRITERIA_VIOLATION"
                 remarks.append("🔴 YÜZEY KUSUR DERİNLİĞİ: API 5L Madde 9.10.7 uyarınca kusur derinliği nominal et kalınlığının %12.5'ini aşamaz!")
 
-        # 2r. Pipe Ends & Bevel Geometry
+        # 2y. Pipe Ends & Bevel Geometry (Legacy Combined)
         elif test_key == "dimensional_length_straightness_bevel":
             if any(k in up_crit_lower for k in ("45°", "45 deg", "50°", "0.4% l", "0.5% l")):
                 status = "NON_COMPLIANT"

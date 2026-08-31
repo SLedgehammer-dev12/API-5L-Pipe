@@ -1,20 +1,28 @@
-# What's New in API 5L Pipe QA/QC & Wall Thickness Suite (v2.1.1)
-## Yenilikler ve Sürüm Özeti - v2.1.1 (2026-09-01)
+# What's New in API 5L Pipe QA/QC & Wall Thickness Suite (v2.2.0)
+## Yenilikler ve Sürüm Özeti - v2.2.0 (2026-09-01)
 
 ---
 
 ### 🇹🇷 Türkçe Özet
 
-API 5L Pipe QA/QC Suite **v2.1.1** hotfix sürümü ile birlikte **SAWH Helisel Sarım & Çift Taraflı Tozaltı Kaynağı (SAW) Canlı 3D/2D İnteraktif Simülasyon Motoru (`SawhSimulationEngine`)** ve ergonomik imalat kontrolleri eklenmiştir:
+API 5L Pipe QA/QC Suite **v2.2.0** minör sürümü ile birlikte **Boru Kalite Güvence Matrisinde yer alan tüm boyutsal toleranslar ITP Akıllı Denetim Motoruna entegre edilmiş** ve **SAWH Helisel Sarım & Çift Taraflı Tozaltı Kaynağı (SAW) Canlı 3D/2D İnteraktif Simülasyon Motoru (`SawhSimulationEngine`)** ergonomik imalat kontrolleriyle sunulmuştur:
 
-#### 1. 🎥 3D/2.5D İzometrik Canlı İmalat & Sarım Sahnesi
+#### 1. 📏 Tüm Boru Boyut Ölçüleri ve Toleranslarının ITP Denetimine Eklenmesi
+- **Boru Ucu & Gövde Dış Çap Toleransları:** $d_{\text{end\_min}} - d_{\text{end\_max}}\text{ mm}$ ve $d_{\text{body\_min}} - d_{\text{body\_max}}\text{ mm}$ tolerans kontrolleri.
+- **Boru Ucu & Gövde Çevre Toleransları:** $\pi \cdot D_{\text{end}}$ ve $\pi \cdot D_{\text{body}}$ Pi-Mezura çevre kontrolleri.
+- **Boru Ucu & Gövde Ovalite Toleransları:** $D_{\text{max}} - D_{\text{min}} \le \text{ovality\_end}\text{ mm}$ (BOTAŞ $\le 3.05\text{ mm}$) ve gövde ovalite kontrolleri.
+- **Et Kalınlığı & Birim Ağırlık:** Ultrasonik cidar kalınlığı ($t_{\text{min}} - t_{\text{max}}\text{ mm}$) ve kantar tartım ($-\%3.5 / +\%10.0$) denetimleri.
+- **Doğrusallık, Kaynak Ağzı & Diklik:** Toplam doğrusallık ($\le \%0.10 L$), alın kaynak ağzı açısı ($30^\circ (+5^\circ/-0^\circ)$), kök yüzeyi ($1.6 \pm 0.8\text{ mm}$) ve diklik sapması ($\le 1.6\text{ mm}$).
+- **Kaynak Dikiş Geometrisi:** Tepeleşme ($\le \text{peaking\_max}\text{ mm}$), sac kenarları radyal basamaklanma ($\le \text{radial\_offset}\text{ mm}$) ve iç/dış paso kaynak yüksekliği limitleri.
+
+#### 2. 🎥 3D/2.5D İzometrik Canlı İmalat & Sarım Sahnesi (`SawhSimulationEngine`)
 - Rulo çelik sac şerit beslemesi, şekillendirme kafesi ve silindirik boru dönüş/ilerleyişi 60 FPS akıcılıkta canlandırıldı.
 - Altın tonlu helisel spiral kaynak dikişi ve çift taraflı tozaltı ark kaynağı (Dış OD SAW + İç ID SAW torçları), plazma arkı ve uçuşan fiziksel kıvılcım efektleriyle simüle edildi.
 
-#### 2. 📐 2D Geometrik Açınım & Trigonometri Düzlemi
+#### 3. 📐 2D Geometrik Açınım & Trigonometri Düzlemi
 - 1 tam turun açılmış dikdörtgen yüzeyi ($w = \pi \cdot D_{\text{mid}}$, $h = P$) ve açılmış şerit paralelkenarı ($B = \pi \cdot D_{\text{mid}} \cdot \cos\alpha$) blueprint görünümünde sunuldu.
 
-#### 3. 🎛️ Ergonomik Kontroller & Telemetri
+#### 4. 🎛️ Ergonomik Kontroller & Telemetri
 - `3D İmalat`, `2D Açınım` ve `İkili Görünüm (Split View)` modları.
 - Oynat/Durdur, Başa Sar, $0.5\text{x} / 1.0\text{x} / 2.0\text{x}$ hız ayarları.
 - Tozaltı Arkı, Ölçülendirme Okları, Şekillendirme Ruloları ve Röntgen (X-Ray Wireframe) katman anahtarları.
@@ -23,6 +31,9 @@ API 5L Pipe QA/QC Suite **v2.1.1** hotfix sürümü ile birlikte **SAWH Helisel 
 ---
 
 ## Önceki Sürümler / Previous Versions
+
+### Sürüm Özeti - v2.1.1 (2026-09-01)
+- SAWH Helisel Sarım & Çift Taraflı Tozaltı Kaynağı (SAW) Canlı 3D/2D İnteraktif Simülasyon Motoru (`SawhSimulationEngine`).
 
 ### Sürüm Özeti - v2.1.0 (2026-08-31)
 

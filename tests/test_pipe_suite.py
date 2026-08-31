@@ -653,7 +653,7 @@ class TestPipeQAQCSuite(unittest.TestCase):
             'diameter_mm': 1219.0, 'diameter_inch': '48"', 'wall_thickness_mm': 14.3,
             'material_grade': 'X65', 'manufacturing_process': 'SAWH', 'psl_level': 'PSL2'
         })
-        self.assertEqual(len(spec_48), 21)
+        self.assertGreaterEqual(len(spec_48), 28)
         dwtt_48 = next(s for s in spec_48 if s['test_key'] == 'dwtt')
         self.assertTrue(dwtt_48['is_mandatory'])
         self.assertIn("Table 18", dwtt_48['table_ref'])
@@ -666,7 +666,7 @@ class TestPipeQAQCSuite(unittest.TestCase):
             'diameter_mm': 1219.0, 'diameter_inch': '48"', 'wall_thickness_mm': 14.3,
             'material_grade': 'X65', 'manufacturing_process': 'SAWH', 'standard_type': 'BOTAŞ'
         })
-        self.assertEqual(len(spec_botas_48), 23)
+        self.assertGreaterEqual(len(spec_botas_48), 30)
         hydro_botas = next(s for s in spec_botas_48 if s['test_key'] == 'hydrostatic')
         self.assertIn("20 saniye", hydro_botas['standard_acceptance_criteria'])
         cvn_botas = next(s for s in spec_botas_48 if s['test_key'] == 'cvn_body')
@@ -1134,6 +1134,75 @@ class TestPipeQAQCSuite(unittest.TestCase):
             res_calc['selected_nominal_thickness_asme_b36_10_mm'],
             res_calc['t_required_asme_b31_8_mm']
         )
+
+    def test_41_all_granular_dimensional_and_geometric_tolerances_audited_in_itp(self):
+        """Verifies that all pipe dimensional and geometric tolerances are verified in the ITP audit."""
+        from core.test_plan import get_comprehensive_itp_specification
+        from core.itp_audit_engine import ITPAuditEngine
+
+        cfg = {
+            'diameter_mm': 1219.0, 'diameter_inch': '48"', 'wall_thickness_mm': 14.30,
+            'material_grade': 'X65', 'manufacturing_process': 'SAWH', 'standard_type': 'BOTAŞ',
+            'psl_level': 'PSL2'
+        }
+        master_items = get_comprehensive_itp_specification(cfg)
+        keys_map = {it['test_key']: it for it in master_items}
+
+        # Check that every single column dimensional parameter has its own granular ITP check
+        required_dim_keys = [
+            'dimensional_diameter_ends',
+            'dimensional_diameter_body',
+            'dimensional_circumference_ends',
+            'dimensional_circumference_body',
+            'dimensional_ovality_ends',
+            'dimensional_ovality_body',
+            'dimensional_wall_thickness',
+            'dimensional_weight',
+            'dimensional_straightness',
+            'dimensional_bevel_ends',
+            'dimensional_squareness_ends',
+            'dimensional_peaking_offset',
+            'weld_radial_offset',
+            'weld_geometry_offset_height',
+        ]
+        for k in required_dim_keys:
+            self.assertIn(k, keys_map, f"Missing required dimensional key: {k}")
+
+        # Check values
+        d_ends = keys_map['dimensional_diameter_ends']
+        self.assertIn('d_end_min_mm', d_ends['calculated_targets'])
+        self.assertIn('d_end_max_mm', d_ends['calculated_targets'])
+
+        circ_ends = keys_map['dimensional_circumference_ends']
+        self.assertIn('circ_end_min_mm', circ_ends['calculated_targets'])
+        self.assertIn('circ_end_max_mm', circ_ends['calculated_targets'])
+
+        ov_ends = keys_map['dimensional_ovality_ends']
+        self.assertIn('ovality_end_max_mm', ov_ends['calculated_targets'])
+
+        # Test audit discrepancy on diameter and ovality
+        bad_dim_itp = [
+            {
+                'test_name': 'Boru Ucu Dış Çap Toleransı',
+                'test_frequency': 'Her boru (%100)',
+                'acceptance_criteria': '±5.0 mm'
+            },
+            {
+                'test_name': 'Boru Ucu Ovalite Toleransı',
+                'test_frequency': 'Her boru (%100)',
+                'acceptance_criteria': 'Azami 15 mm'
+            },
+            {
+                'test_name': 'Alın Kaynak Ağzı Açısı',
+                'test_frequency': 'Her boru (%100)',
+                'acceptance_criteria': '50° açı'
+            }
+        ]
+        audit_res = ITPAuditEngine.audit_itp(bad_dim_itp, cfg)
+        msgs = [f['message'] for f in audit_res['findings']]
+        self.assertTrue(any("BORU UCU ÇAP TOLERANSI AŞILDI" in m for m in msgs))
+        self.assertTrue(any("BORU UCU OVALİTE LİMİTİ AŞILDI" in m for m in msgs))
+        self.assertTrue(any("KAYNAK AĞZI AÇISI HATALI" in m for m in msgs))
 
 
 if __name__ == '__main__':
