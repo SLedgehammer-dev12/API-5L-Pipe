@@ -376,10 +376,19 @@ class ExcelExporter:
 
         # Pipe Metadata Box
         ws.merge_cells("A2:G2")
+        d_inch_str = pipe.get("diameter_inch", "48in")
+        d_mm_str = pipe.get("diameter_mm", "1219")
+        wt_mm_str = pipe.get("wall_thickness_mm", "14.3")
+        grade_str = pipe.get("material_grade", "X65")
+        psl_str = pipe.get("psl_level", "PSL2")
+        process_str = pipe.get("manufacturing_process", "SAWH")
+        score_val = kpi.get("compliance_score_percent", 0.0)
+        verdict_str = kpi.get("overall_verdict", "N/A")
+
         meta_str = (
-            f"Boru Özellikleri: {pipe.get('diameter_inch', '48\"')} ({pipe.get('diameter_mm')} mm) x {pipe.get('wall_thickness_mm')} mm | "
-            f"Kalite: {pipe.get('material_grade')} {pipe.get('psl_level')} | Üretim: {pipe.get('manufacturing_process')} | "
-            f"Uyum Puanı: %{kpi.get('compliance_score_percent', 0.0)} ({kpi.get('overall_verdict')})"
+            f"Boru Özellikleri: {d_inch_str} ({d_mm_str} mm) x {wt_mm_str} mm | "
+            f"Kalite: {grade_str} {psl_str} | Üretim: {process_str} | "
+            f"Uyum Puanı: %{score_val} ({verdict_str})"
         )
         ws.cell(2, 1, meta_str).font = font_small
         ws.cell(2, 1).alignment = align_left
