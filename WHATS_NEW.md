@@ -1,11 +1,30 @@
-# What's New in API 5L Pipe QA/QC & Wall Thickness Suite (v2.1.0)
-## Yenilikler ve Sürüm Özeti - v2.1.0 (2026-08-31)
+# What's New in API 5L Pipe QA/QC & Wall Thickness Suite (v2.1.1)
+## Yenilikler ve Sürüm Özeti - v2.1.1 (2026-09-01)
 
 ---
 
 ### 🇹🇷 Türkçe Özet
 
-API 5L Pipe QA/QC Suite **v2.1.0** sürümü ile birlikte **Çok Sütunlu Gerçek Tablo Ekstraksiyonu (PyMuPDF 1.23+ `find_tables()`)**, **Maksimum Ağırlıklı İki Kümeli Eşleştirici (Maximum-Weight Bipartite Matcher)**, **24 Disiplin İçin Sayısal Kriter & Tolerans Denetimi** ve **Kapsamlı Kod Sağlığı / Güvenilirlik Refaktörü (C1-C18, F1-F13, B1-B6)** eklenmiştir:
+API 5L Pipe QA/QC Suite **v2.1.1** hotfix sürümü ile birlikte **SAWH Helisel Sarım & Çift Taraflı Tozaltı Kaynağı (SAW) Canlı 3D/2D İnteraktif Simülasyon Motoru (`SawhSimulationEngine`)** ve ergonomik imalat kontrolleri eklenmiştir:
+
+#### 1. 🎥 3D/2.5D İzometrik Canlı İmalat & Sarım Sahnesi
+- Rulo çelik sac şerit beslemesi, şekillendirme kafesi ve silindirik boru dönüş/ilerleyişi 60 FPS akıcılıkta canlandırıldı.
+- Altın tonlu helisel spiral kaynak dikişi ve çift taraflı tozaltı ark kaynağı (Dış OD SAW + İç ID SAW torçları), plazma arkı ve uçuşan fiziksel kıvılcım efektleriyle simüle edildi.
+
+#### 2. 📐 2D Geometrik Açınım & Trigonometri Düzlemi
+- 1 tam turun açılmış dikdörtgen yüzeyi ($w = \pi \cdot D_{\text{mid}}$, $h = P$) ve açılmış şerit paralelkenarı ($B = \pi \cdot D_{\text{mid}} \cdot \cos\alpha$) blueprint görünümünde sunuldu.
+
+#### 3. 🎛️ Ergonomik Kontroller & Telemetri
+- `3D İmalat`, `2D Açınım` ve `İkili Görünüm (Split View)` modları.
+- Oynat/Durdur, Başa Sar, $0.5\text{x} / 1.0\text{x} / 2.0\text{x}$ hız ayarları.
+- Tozaltı Arkı, Ölçülendirme Okları, Şekillendirme Ruloları ve Röntgen (X-Ray Wireframe) katman anahtarları.
+- `Min B` ($65^\circ$), `Nominal` ($55^\circ$), `Max B` ($30^\circ$) tek tıkla şerit genişliği ön ayarları.
+
+---
+
+## Önceki Sürümler / Previous Versions
+
+### Sürüm Özeti - v2.1.0 (2026-08-31)
 
 #### 1. 📑 Çok Sütunlu Tablo Ekstraksiyonu & Sütun İzolasyonu
 - PyMuPDF `find_tables()` ile tablo hücreleri ayrıştırılır; komşu kolon karışmaları önlenir.

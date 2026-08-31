@@ -1,45 +1,45 @@
-# Sürüm Notları / Release Notes - v2.1.0
+# Sürüm Notları / Release Notes - v2.1.1
 
-## 🚀 API 5L PSL1/PSL2 & BOTAŞ Boru Kalite Güvence, Et Kalınlığı Tasarım ve Akıllı ITP Denetim Süiti (v2.1.0)
+## 🚀 API 5L PSL1/PSL2 & BOTAŞ Boru Kalite Güvence, Et Kalınlığı Tasarım ve Akıllı ITP Denetim Süiti (v2.1.1 Hotfix)
 
-Bu sürüm (**v2.1.0**), **Çok Sütunlu Gerçek Tablo Ekstraksiyonunu (PyMuPDF 1.23+ `find_tables()`)**, **Maksimum Ağırlıklı İki Kümeli Eşleştiriciyi (Maximum-Weight Bipartite Matcher)**, **Tüm 24 Disiplin İçin Kapsamlı Sayısal Kriter Denetimini** ve **Kapsamlı Kod Sağlığı / Güvenilirlik Refaktörünü (C1-C18, F1-F13, B1-B6)** sunar.
-
----
-
-### 🌟 v2.1.0 ile Gelen Başlıca Yenilikler
-
-1. **📑 Çok Sütunlu Gerçek Tablo Ekstraksiyonu & Sütun İzolasyonu (`core/unlimited_ocr_engine.py`):**
-   - PyMuPDF 1.23+ `page.find_tables()` entegrasyonu ile karmaşık, çok sütunlu ITP tabloları hücre düzeyinde ayrıştırılır.
-   - Sütun başlıkları (`Aktivite`, `Frekans`, `Konum`, `Standart`, `Kabul Kriteri`, `Madde`) dinamik olarak sınıflandırılır.
-   - Vektörsüz/taranmış resim PDF'leri için rasterize `pytesseract` OCR katmanı ve `UNLIMITED_OCR_API_URL` uzak yapay zeka servisi desteği sağlandı.
-
-2. **🎯 Maksimum Ağırlıklı İki Kümeli Eşleştirici (Maximum-Weight Bipartite Matcher) (`core/itp_audit_engine.py`):**
-   - Sıra-bağımlı greedy algoritma kaldırılarak küresel optimum iki kümeli eşleştirme kuruldu.
-   - Disiplin ağırlıkları, kelime uzunluğu skorlaması ve SMLS vs Kaynaklı boru anti-affinity kuralları ile yanlış eşleşmeler %100 önlendi.
-
-3. **🧪 Tüm 24 Disiplin İçin Sayısal Kriter & Tolerans Denetimi:**
-   - **DWTT:** Ortalama sünek kırılma alanı $\ge \%85$ ve BOTAŞ için münferit $<\%60$ olmama şartı.
-   - **Çekme (Tensile Body & Weld):** $R_{t0.5}, R_m, A_f$ ve azami $Y/T$ oranı ($0.90 / 0.93$).
-   - **Kimyasal Analiz:** $C, P, S, N$ ve $CE_{\text{IIW}} / CE_{\text{Pcm}}$ tavanları.
-   - **Kaynak Tamir & Ön Isıtma:** Gövde tamir yasağı, tek tamir boyu $\le 150\text{ mm}$, $t > 10\text{ mm}$ için $\ge 100\ ^\circ\text{C}$ ön ısıtma şartı.
-   - **Birim Ağırlık & Geometri:** Münferit boru ağırlık toleransı ($-\%3.5 / +\%10.0$) ve kaynak yüksekliği ($\le 2.625\text{ mm}$ BOTAŞ / $\le 3.5\text{ mm}$ API).
-
-4. **🛡️ Kapsamlı Kod Sağlığı ve Güvenilirlik Refaktörü (C1-C18, F1-F13, B1-B6):**
-   - Grade A mekanik özellikleri ve ovalite tipleri normalize edildi.
-   - `get_pipe_size_by_mm` içine mesafe güvenlik eşiği konuldu.
-   - Doğrulama motorunda boş veride yanıltıcı `ACCEPTED` kararı verilmesi engellendi (`NO_DATA` yapıldı).
-   - 56" ve 60" gibi büyük çaplar için nominal schedule listesi $50.80\text{ mm}$'ye genişletildi.
-   - API uç noktaları Pydantic şema modelleri ile korundu; dışa aktarılan dosya adları sanitize edildi.
-   - Tarayıcı `LocalStorage` kalıcılığı ile ITP denetim sonuçları sayfa yenilemelerinde korunur hale getirildi.
+Bu ara sürüm (**v2.1.1**), **SAWH Helisel Büküm & Tozaltı Kaynağı (SAW) Canlı 3D/2D İnteraktif Simülasyon Motorunu (`SawhSimulationEngine`)** ve ergonomik imalat kontrollerini sunar.
 
 ---
 
-### 💻 İndirme Bağlantıları (v2.1.0)
+### 🌟 v2.1.1 ile Gelen Başlıca Yenilikler
+
+1. **🎥 Canlı 3D/2.5D Helisel Sarım & Kaynak Sahnesi (`static/js/app.js`):**
+   - Rulo çelik sac şeridin $\alpha$ helis açısıyla girişini, şekillendirme kafesini ve borunun 3D silindirik dönüş/ilerleyişini 60 FPS akıcılıkla simüle eder.
+   - Altın tonlu helisel spiral kaynak dikişi ve çift taraflı tozaltı ark kaynağı (Dış OD SAW + İç ID SAW torçları) plazma arkı ve uçuşan fiziksel kıvılcım efektleriyle canlandırıldı.
+
+2. **📐 2D Geometrik Açınım & Trigonometri Düzlemi:**
+   - 1 tam turun açılmış dikdörtgen yüzeyi ($w = \pi \cdot D_{\text{mid}}$, $h = P$) ve açılmış şerit paralelkenarı ($B = \pi \cdot D_{\text{mid}} \cdot \cos\alpha$) net mühendislik blueprint görünümünde sunuldu.
+
+3. **🎛️ Ergonomik Kontroller & Telemetri:**
+   - `🎥 3D İmalat`, `📐 2D Açınım` ve `◫ İkili Görünüm (Split View)` mod geçişleri.
+   - Oynat/Durdur, Başa Sar, $0.5\text{x} / 1.0\text{x} / 2.0\text{x}$ hız ayarları.
+   - Tozaltı Arkı, Ölçülendirme Okları, Şekillendirme Ruloları ve Röntgen (X-Ray Wireframe) katman anahtarları.
+   - `Min B` ($65^\circ$), `Nominal` ($55^\circ$), `Max B` ($30^\circ$) tek tıkla şerit genişliği ön ayarları.
+   - Retina / 4K ekranlar için `devicePixelRatio` keskin çizim entegrasyonu.
+
+---
+
+### 💻 İndirme Bağlantıları (v2.1.1)
 
 - **🪟 Windows (x64):**  
-  [**`API-5L-Pipe-Windows-x64-v2.1.0.exe` İndir**](https://github.com/SLedgehammer-dev12/API-5L-Pipe/releases/download/v2.1.0/API-5L-Pipe-Windows-x64-v2.1.0.exe)  
+  [**`API-5L-Pipe-Windows-x64-v2.1.1.exe` İndir**](https://github.com/SLedgehammer-dev12/API-5L-Pipe/releases/download/v2.1.1/API-5L-Pipe-Windows-x64-v2.1.1.exe)  
   *Tek dosyadır, kurulum gerektirmez. Doğrudan çift tıklayarak çalıştırabilirsiniz.*
 
 - **🍏 macOS (Apple Silicon M1/M2/M3/M4 & Intel):**  
-  [**`API-5L-Pipe-macOS-v2.1.0.dmg` İndir**](https://github.com/SLedgehammer-dev12/API-5L-Pipe/releases/download/v2.1.0/API-5L-Pipe-macOS-v2.1.0.dmg)  
+  [**`API-5L-Pipe-macOS-v2.1.1.dmg` İndir**](https://github.com/SLedgehammer-dev12/API-5L-Pipe/releases/download/v2.1.1/API-5L-Pipe-macOS-v2.1.1.dmg)  
   *Disk kalıbını açıp `API-5L-Pipe.app` uygulamasını Applications klasörüne sürükleyin.*
+
+---
+
+## Önceki Sürümler / Previous Versions
+
+### Sürüm Özeti - v2.1.0 (2026-08-31)
+- Çok Sütunlu Gerçek Tablo Ekstraksiyonu (PyMuPDF 1.23+ `find_tables()`)
+- Maksimum Ağırlıklı İki Kümeli Eşleştirici (Maximum-Weight Bipartite Matcher)
+- 24 Disiplin İçin Sayısal Kriter & Tolerans Denetimi (DWTT, Çekme, Kimya, NDT, Tamir)
+- Kapsamlı Kod Sağlığı ve Güvenilirlik Refaktörü (C1-C18, F1-F13, B1-B6)
