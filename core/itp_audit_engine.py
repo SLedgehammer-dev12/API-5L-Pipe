@@ -37,15 +37,15 @@ class ITPAuditEngine:
         "hardness": ["sertlik", "hardness", "hv10", "hrc", "hbw"],
         "hydrostatic": ["hidrostatik", "hydrostatic", "su basınç", "basınç testi", "hydro test", "mill hydro"],
         "ndt_weld_seam": ["kaynak dikişi ndt", "kaynak ndt", "weld seam ndt", "weld ut", "weld rt", "radyografi", "ultrasonik kaynak", "ultrasonic weld", "weld inspection", "radiographic weld", "kaynak dikişi %100 ndt"],
-        "ndt_pipe_body_lamination": ["gövde laminasyon", "body lamination", "gövde ut", "sac laminasyon", "plaka laminasyon", "body laminar", "laminasyon"],
-        "ndt_pipe_ends": ["boru uçları ndt", "uç laminasyon", "pipe ends ndt", "laminar testing", "end ut", "ends ut", "boru uçları laminasyon"],
+        "ndt_pipe_body_lamination": ["gövde laminasyon", "gövdesi laminasyon", "body lamination", "gövde ut", "gövdesi ut", "sac laminasyon", "plaka laminasyon", "body laminar", "gövde laminas", "boru gövdesi ut laminasyon"],
+        "ndt_pipe_ends": ["boru uçları ndt", "uç laminasyon", "pipe ends ndt", "laminar testing", "end ut", "ends ut", "boru uçları laminasyon", "uçları laminasyon", "uç laminar", "pipe ends laminar", "boru uclari laminasyon"],
         "ndt_smls_body": ["dikişsiz gövde ndt", "smls body ndt", "flux leakage", "gövde ut", "seamless body"],
-        "residual_stress": ["artık stres", "residual stress", "halka kesme", "stres kontrolü", "ring test", "çevresel gerilme"],
-        "dimensional_diameter_ovality": ["dış çap", "ovallik", "çap toleransı", "diameter", "out of roundness", "ovality", "out-of-roundness", "dış çap ve ovallik"],
-        "dimensional_wall_thickness": ["et kalınlığı", "wall thickness", "cidar kalınlığı", "thickness verification", "et kalınlığı ölçümü"],
-        "dimensional_length_straightness_bevel": ["doğrusallık", "boy", "alın kaynak ağzı", "straightness", "length", "bevel", "ağız açısı", "doğrusallık, boy"],
-        "visual_surface": ["görsel muayene", "yüzey muayenesi", "visual inspection", "surface inspection", "gözle muayene", "görsel yüzey"],
-        "residual_magnetism": ["kalıntı manyetizma", "manyetizma", "residual magnetism", "gaussmetre", "gauss"],
+        "residual_stress": ["artık stres", "residual stress", "halka kesme", "stres kontrolü", "ring test", "çevresel gerilme", "artik stres"],
+        "dimensional_diameter_ovality": ["dış çap", "ovallik", "çap toleransı", "diameter", "out of roundness", "ovality", "out-of-roundness", "dış çap ve ovallik", "dis cap"],
+        "dimensional_wall_thickness": ["et kalınlığı", "wall thickness", "cidar kalınlığı", "thickness verification", "et kalınlığı ölçümü", "et kalinligi", "et kal"],
+        "dimensional_length_straightness_bevel": ["doğrusallık", "boy", "alın kaynak ağzı", "straightness", "length", "bevel", "ağız açısı", "doğrusallık, boy", "dogrusallik"],
+        "visual_surface": ["görsel muayene", "yüzey muayenesi", "visual inspection", "surface inspection", "gözle muayene", "görsel yüzey", "gorsel"],
+        "residual_magnetism": ["kalıntı manyetizma", "manyetizma", "residual magnetism", "gaussmetre", "gauss", "kalinti manyetizma"],
     }
 
     @classmethod
@@ -222,7 +222,7 @@ class ITPAuditEngine:
                 issue_type = "INADEQUATE_FREQUENCY"
                 remarks.append("🔴 FREKANS YETERSİZ: Ürün analizi ısı başına en az 2 adet (ayrı borulardan) yapılmalıdır (API 5L 9.2).")
         elif test_key == "residual_stress":
-            if is_botas and ("lot" in up_freq_lower or "örneklem" in up_freq_lower):
+            if is_botas and not any(k in up_freq_lower for k in ("döküm", "dokum", "heat", "her dökümde", "per heat")) and ("lot" in up_freq_lower or "örneklem" in up_freq_lower or "sample" in up_freq_lower):
                 status = "NON_COMPLIANT"
                 issue_type = "INADEQUATE_FREQUENCY"
                 remarks.append("🔴 FREKANS YETERSİZ: BOTAŞ Şartnamesi Madde 3.3.9 uyarınca artık stres testi HER DÖKÜM (HEAT) İÇİN tekrarlanmalıdır.")

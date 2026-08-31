@@ -121,31 +121,31 @@ class UnlimitedOCREngine:
         lines = [ln.strip() for ln in text.split("\n") if ln.strip()]
         items: List[Dict[str, Any]] = []
         
-        # Fine-grained test category patterns
+        # Fine-grained test category patterns (tolerant of Turkish and ASCII encoding variations)
         test_patterns = [
-            (r"(ladle\s*heat|ısı\s*analizi|döküm\s*analizi|heat\s*analysis)", "Isı Analizi (Heat Analysis)"),
-            (r"(product\s*analysis|ürün\s*analizi|check\s*analysis|product\s*chemical)", "Ürün Analizi (Product Analysis)"),
-            (r"(body\s*tensile|gövde\s*çekme|transverse\s*tensile|pipe\s*body\s*tensile)", "Gövde Çekme Testi (Body Tensile)"),
-            (r"(weld\s*tensile|kaynak\s*çekme|weld\s*seam\s*tensile)", "Kaynak Çekme Testi (Weld Tensile)"),
-            (r"(çekme|tensile|yield\s*strength)", "Çekme Testi (Tensile Test)"),
-            (r"(cvn\s*body|gövde\s*çentik|gövde\s*darbe|body\s*impact|charpy.*body)", "Gövde Çentik Darbe Testi (CVN Body Impact)"),
+            (r"(ladle\s*heat|ıs[ıiI]\s*analiz|d[öo]k[üu]m\s*analiz|heat\s*analysis)", "Isı Analizi (Heat Analysis)"),
+            (r"(product\s*analysis|[üu]r[üu]n\s*analiz|check\s*analysis|product\s*chemical)", "Ürün Analizi (Product Analysis)"),
+            (r"(body\s*tensile|g[öo]vde\s*[çc]ekme|transverse\s*tensile|pipe\s*body\s*tensile)", "Gövde Çekme Testi (Body Tensile)"),
+            (r"(weld\s*tensile|kaynak\s*[çc]ekme|weld\s*seam\s*tensile)", "Kaynak Çekme Testi (Weld Tensile)"),
+            (r"(cvn\s*body|g[öo]vde\s*[çc]entik|g[öo]vde\s*darbe|body\s*impact|charpy.*body)", "Gövde Çentik Darbe Testi (CVN Body Impact)"),
             (r"(cvn\s*weld|kaynak\s*darbe|itab\s*darbe|weld\s*impact|charpy.*weld|weld.*haz)", "Kaynak & ITAB Çentik Darbe (CVN Weld & HAZ)"),
-            (r"(darbe|çentik|charpy|cvn|impact)", "Çentik Darbe Testi (CVN Impact)"),
-            (r"(dwtt|drop\s*weight|yırtılma\s*testi|düşen\s*ağırlık)", "DWTT (Düşen Ağırlık Yırtılma Testi)"),
-            (r"(kılavuzlu\s*bükme|guided[- ]*bend|kök\s*bükme|kapak\s*bükme|root\s*bend|face\s*bend|bend\s*test)", "Kılavuzlu Bükme Testi (Guided-Bend)"),
-            (r"(düzleştirme|flattening|yassıltma)", "Düzleştirme Testi (Flattening)"),
+            (r"(dwtt|drop\s*weight|y[ıiI]rt[ıiI]lma\s*testi|d[üu][şs]en\s*a[ğgI]r[ıiI]k)", "DWTT (Düşen Ağırlık Yırtılma Testi)"),
+            (r"(k[ıiI]lavuzlu\s*b[üu]kme|guided[- ]*bend|k[öo]k\s*b[üu]kme|kapak\s*b[üu]kme|root\s*bend|face\s*bend|bend\s*test)", "Kılavuzlu Bükme Testi (Guided-Bend)"),
+            (r"(d[üu]zle[şs]tir|flattening|yass[ıiI]lt)", "Düzleştirme Testi (Flattening)"),
             (r"(sertlik|hardness|hv10|hrc|hbw)", "Sertlik Testi (Hardness Testing)"),
-            (r"(artık\s*stres|residual\s*stress|halka\s*kesme|stres\s*kontrolü|ring\s*test)", "Artık Stres Testi (Residual Stress)"),
-            (r"(hidrostatik|hydrostatic|water\s*test|basınç\s*deneyi|hydro\s*test|mill\s*hydro)", "Fabrika Hidrostatik Basınç Testi"),
-            (r"(weld.*(?:ut|rt|ndt|ultrasonic|radiographic)|kaynak.*(?:ndt|ut|rt|ultrasonik|radyografi))", "Kaynak Dikişi %100 NDT (UT / RT)"),
-            (r"(body\s*laminar|gövde\s*laminasyon|sac\s*laminasyon|plaka\s*laminasyon)", "Boru Gövdesi UT Laminasyon"),
-            (r"(pipe\s*ends.*(?:ut|ndt|laminar)|uç.*(?:laminasyon|ndt|ut)|ends\s*ut)", "Boru Uçları Laminasyon NDT (UT)"),
-            (r"(tahribatsız|ndt|ut|ultrasonic|radiographic|rt)", "Tahribatsız Muayene (NDT)"),
-            (r"(out[- ]*of[- ]*roundness|ovallik|dış\s*çap|diameter|dia\s*tolerans)", "Dış Çap ve Ovallik Kontrolü"),
-            (r"(wall\s*thickness|et\s*kalınlığı|cidar\s*kalınlığı|thickness\s*verification)", "Et Kalınlığı Ölçümü"),
-            (r"(straightness|doğrusallık|boy|length|bevel|kaynak\s*ağzı)", "Doğrusallık, Boy ve Alın Kaynak Ağzı"),
-            (r"(görsel|visual|yüzey|surface)", "Görsel Yüzey Muayenesi"),
+            (r"(art[ıiI]k\s*stres|residual\s*stress|halka\s*kesme|stres\s*kontrol|ring\s*test)", "Artık Stres Testi (Residual Stress)"),
+            (r"(hidrostatik|hydrostatic|water\s*test|bas[ıiI]n[çc]\s*deney|hydro\s*test|mill\s*hydro)", "Fabrika Hidrostatik Basınç Testi"),
+            (r"((?:weld|kaynak).*(?:ut|rt|ndt|ultrasonic|radiographic)|(?:ut|rt|ndt|ultrasonic|radiographic).*(?:weld|kaynak))", "Kaynak Dikişi %100 NDT (UT / RT)"),
+            (r"(body\s*laminar|g[öo]vde.*(?:laminas|laminar)|sac\s*laminas|plaka\s*laminas)", "Boru Gövdesi UT Laminasyon"),
+            (r"(pipe\s*ends.*(?:ut|ndt|laminar)|u[çc].*(?:laminas|ndt|ut)|ends\s*ut)", "Boru Uçları Laminasyon NDT (UT)"),
+            (r"(out[- ]*of[- ]*roundness|ovallik|d[ıiI][şs]\s*[çc]ap|diameter|dia\s*tolerans)", "Dış Çap ve Ovallik Kontrolü"),
+            (r"(wall\s*thickness|et\s*kal|cidar\s*kal|thickness\s*verification)", "Et Kalınlığı Ölçümü"),
+            (r"(straightness|do[ğgI]rusall[ıiI]k|boy|length|bevel|kaynak\s*a[ğgI]z)", "Doğrusallık, Boy ve Alın Kaynak Ağzı"),
+            (r"(g[öo]rsel|visual|y[üu]zey|surface)", "Görsel Yüzey Muayenesi"),
             (r"(manyetizma|magnetism|gauss)", "Kalıntı Manyetizma Ölçümü"),
+            (r"(tahribats[ıiI]z|ndt|ut|ultrasonic|radiographic|rt)", "Tahribatsız Muayene (NDT)"),
+            (r"([çc]ekme|tensile|yield\s*strength)", "Çekme Testi (Tensile Test)"),
+            (r"(darbe|[çc]entik|charpy|cvn|impact)", "Çentik Darbe Testi (CVN Impact)"),
         ]
 
         # Scan text lines
@@ -177,10 +177,10 @@ class UnlimitedOCREngine:
         freq_matches = [
             r"(her\s*boru(?:\s*\(?%100\)?)?|100%\s*(?:tüm\s*borular|all\s*pipes|full\s*length)?|each\s*pipe(?:\s*\(?100%\)?)?|all\s*pipes)",
             r"(\d+\s*boruda\s*1|1\s*per\s*\d+\s*pipes|100\s*boruda\s*1)",
-            r"(one\s*analysis\s*per\s*heat|two\s*analyses\s*per\s*heat|once\s*per\s*heat|ısı\s*başına\s*\d+|döküm\s*başına|heat\s*başına|per\s*heat)",
-            r"(once\s*per\s*test\s*unit|lot\s*başına|test\s*ünitesi\s*başına|per\s*test\s*unit|per\s*lot)",
+            r"(her\s*d[öo]k[üu]m(?:de)?|d[öo]k[üu]m\s*ba[şs][ıiI]na|heat\s*ba[şs][ıiI]na|per\s*heat|every\s*heat|once\s*per\s*heat|one\s*analysis\s*per\s*heat|two\s*analyses\s*per\s*heat|ısı\s*başına\s*\d+)",
+            r"(once\s*per\s*test\s*unit|lot\s*başına|test\s*ünitesi\s*başına|per\s*test\s*unit|per\s*lot|lot\s*ba[şs][ıiI]na|test\s*[üu]nitesi\s*ba[şs][ıiI]na)",
             r"(1\s*set\s*\(\d+\s*numune\)|1\s*set\s*\(\d+\s*specimens?\)|1\s*root\s*\+\s*1\s*face|1\s*kök\s*\+\s*1\s*kapak)",
-            r"(vardiyada?\s*\d*\s*saatte\s*bir|her\s*\d+\s*saatte|per\s*shift|once\s*per\s*\d+\s*hours|at\s*least\s*once\s*per\s*\d+\s*hours)",
+            r"(vardiyada?\s*\d*\s*saatte\s*bir|her\s*\d+\s*saatte|per\s*shift|once\s*per\s*\d+\s*hours|at\s*least\s*once\s*per\s*\d+\s*hours|en\s*az\s*[ıiİi]ki\s*defa)",
             r"(rulo\s*başı\s*ve\s*sonu|crop\s*ends)",
         ]
         for fm in freq_matches:
