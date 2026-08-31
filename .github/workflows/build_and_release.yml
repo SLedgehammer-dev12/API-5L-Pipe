@@ -64,6 +64,11 @@ jobs:
             --hidden-import "core.updater" `
             --hidden-import "core.excel_exporter" `
             --hidden-import "core.i18n" `
+            --hidden-import "core.test_plan" `
+            --hidden-import "core.itp_audit_engine" `
+            --hidden-import "core.unlimited_ocr_engine" `
+            --hidden-import "multipart" `
+            --hidden-import "python_multipart" `
             --hidden-import "uvicorn" `
             --hidden-import "uvicorn.logging" `
             --hidden-import "uvicorn.loops" `
@@ -90,6 +95,8 @@ jobs:
             --collect-all anyio `
             --collect-all httpcore `
             --collect-all certifi `
+            --collect-all pymupdf `
+            --collect-all fitz `
             --hidden-import "truststore" `
             --hidden-import "version" `
             run.py
@@ -154,6 +161,11 @@ jobs:
             --hidden-import "core.updater" \
             --hidden-import "core.excel_exporter" \
             --hidden-import "core.i18n" \
+            --hidden-import "core.test_plan" \
+            --hidden-import "core.itp_audit_engine" \
+            --hidden-import "core.unlimited_ocr_engine" \
+            --hidden-import "multipart" \
+            --hidden-import "python_multipart" \
             --hidden-import "uvicorn" \
             --hidden-import "uvicorn.logging" \
             --hidden-import "uvicorn.loops" \
@@ -180,6 +192,8 @@ jobs:
             --collect-all anyio \
             --collect-all httpcore \
             --collect-all certifi \
+            --collect-all pymupdf \
+            --collect-all fitz \
             --hidden-import truststore \
             --hidden-import "version" \
             run.py
