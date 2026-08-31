@@ -1,26 +1,37 @@
-# What's New in API 5L Pipe QA/QC & Wall Thickness Suite (v1.9.0)
-## Yenilikler ve Sürüm Özeti - v1.9.0 (2026-08-31)
+# What's New in API 5L Pipe QA/QC & Wall Thickness Suite (v2.0.0)
+## Yenilikler ve Sürüm Özeti - v2.0.0 (2026-08-31)
 
 ---
 
 ### 🇹🇷 Türkçe Özet
 
-API 5L Pipe QA/QC Suite **v1.9.0** sürümü ile birlikte BOTAŞ 75 Bar ve 82.5 Bar istasyon et kalınlıkları ayrıştırılmış, kullanıcı tanımlı korozyon payı ve negatif imalat toleransı tam esnekliğe kavuşturulmuştur:
+API 5L Pipe QA/QC Suite **v2.0.0** ana sürümü ile birlikte **BOTAŞ Çelik Boru Şartnamesi (`4-NGTL-0-GN-P-002-5120 Rev. 7`)** tüm test maddeleriyle sisteme entegre edilmiş, **Sekme 5: Akıllı ITP Denetim ve Doküman Okuma Motoru (Unlimited-OCR & PyMuPDF)** eklenmiş ve boru et kalınlığı negatif tolerans hesapları mükemmelleştirilmiştir:
 
-#### 1. 🏭 BOTAŞ F=0.50 İstasyon Et Kalınlığı Ayrımı (75 Bar vs 82.5 Bar)
-- BOTAŞ standart veritabanında istasyon boruları için 75 bar (`0.50_ist_75bar`) ve 82.5 bar (`0.50_ist_82_5bar`) et kalınlıkları ayrıştırıldı.
-- 48" X65 istasyon borusu tavsiyesi 75 bar için **22.20 mm**, 82.5 bar için **23.80 mm** olarak güncellendi.
+#### 1. 📑 BOTAŞ Çelik Boru Şartnamesi (`5120 Rev. 7`) Standart & Test Planı Entegrasyonu
+- **20 Saniye Hidrostatik Test:** Fabrika hidrostatik test tutma süresi tüm boru çapları için asgari 20 saniye olarak tanımlandı (Madde 8.4.1).
+- **$-20\ ^\circ\text{C}$ Çentik Darbe (CVN) Tokluğu:** X65 için Gövde min 60 J / tekil 45 J, Kaynak min 45 J / tekil 34 J şartı getirildi (Madde 3.3.5 & Tablo-3).
+- **Artık Stres Testi (Residual Stress Ring Test):** Kaynaklı borularda her dökümde (heat) zorunlu 150 mm halka kesme testi ($S \le 0.10 \times SMYS$) tanımlandı (Madde 3.3.9).
+- **Gövde UT Laminasyon Muayenesi:** Gövde yüzeyinin en az %40'ını tarayacak UT (ISO 12094 B1) ve boru uçlarında min 50 mm laminasyon kontrolü zorunlu kılındı (Madde 8.8.4.4).
+- **Çap, Doğrusallık ve Sertlik:** Boru ucu ovallik (%50 API 5L), doğrusallık sapması ($\le \%0.10 L$), dairesellik sapması ($\le \%0.15 D$) ve sertlik ($300\text{ HV10}$, aşarsa %100 test) kuralları eklendi.
 
-#### 2. 🛡️ Kullanıcı Tanımlı Korozyon Payı (*Corrosion Allowance* - c, mm)
-- Boru Et Kalınlığı Tasarım Aracı'na korozyon payı serbest giriş kutusu ve hazır seçim butonları (`0 mm`, `1.0 mm`, `1.5 mm`, `3.0 mm`) eklendi.
-- Doğrudan $t_{\text{req}} = t_{\text{teorik}} + c$ hesabına bağlanarak nominal schedule seçimini belirler.
+#### 2. 🤖 Sekme 5: ITP Akıllı Denetim & Doküman Okuma Motoru (Unlimited-OCR & PyMuPDF)
+- İmalatçı ITP dokümanlarını (PDF veya resim) 0.02 saniyede okuyabilen hibrit mimari (`PyMuPDF` + Semantik Regex ayrıştırıcı).
+- Yüklenen ITP'deki test frekanslarını ve kabul kriterlerini API 5L 47. Baskı ve BOTAŞ 5120 R7 şartnameleriyle otomatik karşılaştırma (`ITPAuditEngine`).
+- Yetersiz test frekansı, eksik zorunlu test ve süre/kriter kusurlarını anlık kırmızı uyarılarla yakalama.
+- Renk kodlu profesyonel Excel denetim raporu çıktısı (`.xlsx`).
 
-#### 3. ⚙️ Kullanıcı Tanımlı Negatif Tolerans (%)
-- BOTAŞ, ASME B31.8 / B31.4 ve ASME B31.3 standartlarında negatif imalat toleransı kullanıcı tarafından doğrudan ayarlanabilir kılındı (`0%`, `8%`, `10%`, `12.5%`).
-- Boş veya 0 bırakıldığında ilgili standardın fabrika toleransı (API 5L Tablo 11, BOTAŞ İstasyon %12.5) otomatik işletilir.
+#### 3. ⚙️ Boru Et Kalınlığı Negatif Tolerans İyileştirmeleri
+- BOTAŞ standardı için negatif toleransın 2 defa düşülmesi önlendi ve tolerans kutusu BOTAŞ seçildiğinde gizlendi.
+- ASME B31.8 / B31.4 / B31.3 standartlarında kullanıcının `%0` girmesi durumunda sistemin bunu kesin bir 0% kabul etmesi sağlandı.
 
-#### 4. 📊 5 Sütunlu Sonuç Kartı
-- Tasarım sonuç kartında $t$, $+c$, $t_{\text{req}}$, seçilen $t_{\text{nominal}}$ ve net tolerans sınırı açıkça ayrıştırılarak raporlandı.
+---
+
+## Önceki Sürümler / Previous Versions
+
+### Sürüm Özeti - v1.9.0 (2026-08-31)
+- BOTAŞ F=0.50 İstasyon Et Kalınlığı Ayrımı (75 Bar vs 82.5 Bar)
+- Kullanıcı Tanımlı Korozyon Payı (*Corrosion Allowance* - c, mm)
+- Kullanıcı Tanımlı Negatif Tolerans (%) ve 5 Sütunlu Sonuç Kartı
 
 ---
 

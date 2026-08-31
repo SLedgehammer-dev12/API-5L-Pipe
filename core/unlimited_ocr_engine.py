@@ -94,21 +94,24 @@ class UnlimitedOCREngine:
 
     @classmethod
     def _extract_pdf_layers(cls, file_bytes: bytes) -> tuple[str, List[Dict[str, Any]]]:
-        """Extracts text lines and tables from digital PDF using standard Python tools."""
+        """Extracts text lines and tables from digital PDF using PyMuPDF (fitz) or pypdf."""
         text_content = ""
         extracted_rows: List[Dict[str, Any]] = []
 
         try:
-            import io
+            import fitz
+            doc = fitz.open(stream=file_bytes, filetype="pdf")
+            for page in doc:
+                text_content += (page.get_text() or "") + "\n"
+        except Exception as e_fitz:
             try:
+                import io
                 import pypdf
                 reader = pypdf.PdfReader(io.BytesIO(file_bytes))
                 for page in reader.pages:
                     text_content += (page.extract_text() or "") + "\n"
-            except ImportError:
-                pass
-        except Exception as e:
-            logger.debug(f"PDF text stream extraction exception: {e}")
+            except Exception as e_pypdf:
+                logger.debug(f"PDF text extraction exception: {e_fitz} / {e_pypdf}")
 
         return text_content, extracted_rows
 
@@ -118,20 +121,31 @@ class UnlimitedOCREngine:
         lines = [ln.strip() for ln in text.split("\n") if ln.strip()]
         items: List[Dict[str, Any]] = []
         
-        # Test categories keywords
+        # Fine-grained test category patterns
         test_patterns = [
-            (r"(kimyasal|chemical|heat|product analysis)", "Kimyasal Analiz (Döküm & Ürün)"),
-            (r"(çekme|tensile|yield|akma)", "Çekme Testi (Tensile Test)"),
+            (r"(ladle\s*heat|ısı\s*analizi|döküm\s*analizi|heat\s*analysis)", "Isı Analizi (Heat Analysis)"),
+            (r"(product\s*analysis|ürün\s*analizi|check\s*analysis|product\s*chemical)", "Ürün Analizi (Product Analysis)"),
+            (r"(body\s*tensile|gövde\s*çekme|transverse\s*tensile|pipe\s*body\s*tensile)", "Gövde Çekme Testi (Body Tensile)"),
+            (r"(weld\s*tensile|kaynak\s*çekme|weld\s*seam\s*tensile)", "Kaynak Çekme Testi (Weld Tensile)"),
+            (r"(çekme|tensile|yield\s*strength)", "Çekme Testi (Tensile Test)"),
+            (r"(cvn\s*body|gövde\s*çentik|gövde\s*darbe|body\s*impact|charpy.*body)", "Gövde Çentik Darbe Testi (CVN Body Impact)"),
+            (r"(cvn\s*weld|kaynak\s*darbe|itab\s*darbe|weld\s*impact|charpy.*weld|weld.*haz)", "Kaynak & ITAB Çentik Darbe (CVN Weld & HAZ)"),
             (r"(darbe|çentik|charpy|cvn|impact)", "Çentik Darbe Testi (CVN Impact)"),
-            (r"(hidrostatik|hydrostatic|water test|basınç deneyi)", "Fabrika Hidrostatik Basınç Testi"),
-            (r"(bükme|guided|bend)", "Kılavuzlu Bükme Testi (Guided Bend)"),
-            (r"(düzleştirme|flattening)", "Düzleştirme Testi (Flattening)"),
-            (r"(dwtt|drop weight)", "DWTT (Düşen Ağırlık Yırtılma Testi)"),
-            (r"(sertlik|hardness|hv10|hrc)", "Sertlik Testi (Hardness)"),
+            (r"(dwtt|drop\s*weight|yırtılma\s*testi|düşen\s*ağırlık)", "DWTT (Düşen Ağırlık Yırtılma Testi)"),
+            (r"(kılavuzlu\s*bükme|guided[- ]*bend|kök\s*bükme|kapak\s*bükme|root\s*bend|face\s*bend|bend\s*test)", "Kılavuzlu Bükme Testi (Guided-Bend)"),
+            (r"(düzleştirme|flattening|yassıltma)", "Düzleştirme Testi (Flattening)"),
+            (r"(sertlik|hardness|hv10|hrc|hbw)", "Sertlik Testi (Hardness Testing)"),
+            (r"(artık\s*stres|residual\s*stress|halka\s*kesme|stres\s*kontrolü|ring\s*test)", "Artık Stres Testi (Residual Stress)"),
+            (r"(hidrostatik|hydrostatic|water\s*test|basınç\s*deneyi|hydro\s*test|mill\s*hydro)", "Fabrika Hidrostatik Basınç Testi"),
+            (r"(weld.*(?:ut|rt|ndt|ultrasonic|radiographic)|kaynak.*(?:ndt|ut|rt|ultrasonik|radyografi))", "Kaynak Dikişi %100 NDT (UT / RT)"),
+            (r"(body\s*laminar|gövde\s*laminasyon|sac\s*laminasyon|plaka\s*laminasyon)", "Boru Gövdesi UT Laminasyon"),
+            (r"(pipe\s*ends.*(?:ut|ndt|laminar)|uç.*(?:laminasyon|ndt|ut)|ends\s*ut)", "Boru Uçları Laminasyon NDT (UT)"),
             (r"(tahribatsız|ndt|ut|ultrasonic|radiographic|rt)", "Tahribatsız Muayene (NDT)"),
-            (r"(boyut|çap|et kalınlığı|diameter|wall thickness|dimensional)", "Boyutsal ve Geometrik Muayene"),
+            (r"(out[- ]*of[- ]*roundness|ovallik|dış\s*çap|diameter|dia\s*tolerans)", "Dış Çap ve Ovallik Kontrolü"),
+            (r"(wall\s*thickness|et\s*kalınlığı|cidar\s*kalınlığı|thickness\s*verification)", "Et Kalınlığı Ölçümü"),
+            (r"(straightness|doğrusallık|boy|length|bevel|kaynak\s*ağzı)", "Doğrusallık, Boy ve Alın Kaynak Ağzı"),
             (r"(görsel|visual|yüzey|surface)", "Görsel Yüzey Muayenesi"),
-            (r"(manyetizma|magnetism|gauss)", "Kalıntı Manyetizma Kontrolü"),
+            (r"(manyetizma|magnetism|gauss)", "Kalıntı Manyetizma Ölçümü"),
         ]
 
         # Scan text lines
@@ -159,29 +173,37 @@ class UnlimitedOCREngine:
 
     @classmethod
     def _extract_frequency_from_text(cls, text: str) -> Optional[str]:
-        """Finds sampling frequency expressions in text."""
+        """Finds sampling frequency expressions in text in English and Turkish."""
         freq_matches = [
-            r"(her boru|100%|each pipe|all pipes)",
-            r"(\d+\s*boruda\s*1|1\s*per\s*\d+\s*pipes)",
-            r"(ısı başına \d+|döküm başına|heat başına|per heat)",
-            r"(lot başına|test ünitesi başına|per test unit|per lot)",
-            r"(vardiya başına|her \d+ saatte|per shift)",
-            r"(rulo başı ve sonu|crop ends)",
+            r"(her\s*boru(?:\s*\(?%100\)?)?|100%\s*(?:tüm\s*borular|all\s*pipes|full\s*length)?|each\s*pipe(?:\s*\(?100%\)?)?|all\s*pipes)",
+            r"(\d+\s*boruda\s*1|1\s*per\s*\d+\s*pipes|100\s*boruda\s*1)",
+            r"(one\s*analysis\s*per\s*heat|two\s*analyses\s*per\s*heat|once\s*per\s*heat|ısı\s*başına\s*\d+|döküm\s*başına|heat\s*başına|per\s*heat)",
+            r"(once\s*per\s*test\s*unit|lot\s*başına|test\s*ünitesi\s*başına|per\s*test\s*unit|per\s*lot)",
+            r"(1\s*set\s*\(\d+\s*numune\)|1\s*set\s*\(\d+\s*specimens?\)|1\s*root\s*\+\s*1\s*face|1\s*kök\s*\+\s*1\s*kapak)",
+            r"(vardiyada?\s*\d*\s*saatte\s*bir|her\s*\d+\s*saatte|per\s*shift|once\s*per\s*\d+\s*hours|at\s*least\s*once\s*per\s*\d+\s*hours)",
+            r"(rulo\s*başı\s*ve\s*sonu|crop\s*ends)",
         ]
         for fm in freq_matches:
             m = re.search(fm, text, re.IGNORECASE)
             if m:
-                return m.group(0)
+                return m.group(0).strip()
         return None
 
     @classmethod
     def _extract_criteria_from_text(cls, text: str) -> Optional[str]:
         """Extracts numerical limits or criteria statements from text."""
         crit_matches = [
-            r"(min\s*\d+\.?\d*\s*(?:J|Joule|MPa|bar|saniye|sn|HV|HRC))",
-            r"(max\s*\d+\.?\d*\s*(?:%|mm|MPa|mT|Gauss))",
-            r"(\d+\.?\d*\s*-\s*\d+\.?\d*\s*MPa)",
-            r"(\b[RC]t0\.5\s*[≥>=]\s*\d+)",
+            r"(min\s*(?:avg|individual|ort\.?|tek\.?)?\s*\d+\.?\d*\s*(?:j(?:oules?)?|mpa|bar|sn|saniye|sec|seconds?|hv\d*|hrc))",
+            r"(max\s*\d+\.?\d*\s*(?:%|mm|mpa|mt|gauss))",
+            r"(rt0\.5\s*[≥>=]\s*\d+)",
+            r"(rm\s*[≥>=:]\s*\d+(?:\s*-\s*\d+)?\s*mpa)",
+            r"(af\s*[≥>=]\s*\d+\.?\d*%)",
+            r"(y/t\s*[≤<=]\s*\d+\.?\d*)",
+            r"(c\s*[≤<=]\s*0\.\d+)",
+            r"(p\s*[≤<=]\s*0\.\d+)",
+            r"(s\s*[≤<=]\s*0\.\d+)",
+            r"(tolerance:\s*[-+]\d+\.?\d*%\s*/\s*[-+]\d+\.?\d*%)",
+            r"(\d+\.?\d*\s*-\s*\d+\.?\d*\s*mpa)",
         ]
         found = []
         for cm in crit_matches:
