@@ -658,90 +658,857 @@ function updateVisualizers(pipeData) {
 }
 
 // ============================================================================
-// SAWH Spiral Strip Width & Helix Angle card (schematic tab)
-// Visuals: Canvas 2D live diagram + 3D seam-pitch integration + SVG wrap animation.
+// SAWH Spiral Strip Width, Helix Angle & Submerged Arc Welding (SAW) Simulation Engine
+// Visuals: Real-time 60fps 3D isometric helical forming + 2D developed geometry + SAW torches
 // ============================================================================
-function sawhCompute(d, t, B) {
-    const dm = d - t;
-    const piD = Math.PI * dm;
-    const r = Math.min(1, Math.max(0, B / piD));
-    const alphaDeg = Math.acos(r) * 180 / Math.PI;
-    const alphaRad = alphaDeg * Math.PI / 180;
-    const pitch = (Math.sin(alphaRad) > 1e-9) ? piD / Math.tan(alphaRad) : Infinity;
-    const bMin = piD * Math.cos(65 * Math.PI / 180);
-    const bMax = piD * Math.cos(30 * Math.PI / 180);
-    return { dm, piD, alphaDeg, alphaRad, pitch, bMin, bMax };
+
+class SawhSimulationEngine {
+    constructor() {
+        this.canvas3D = null;
+        this.ctx3D = null;
+        this.canvas2D = null;
+        this.ctx2D = null;
+        this.animId = null;
+        this.lastTime = 0;
+
+        // Physical & Mathematical Parameters
+        this.d = 1219.0;
+        this.t = 14.30;
+        this.B = 2170.0;
+        this.dm = 1204.7;
+        this.piD = Math.PI * this.dm;
+        this.alphaDeg = 45.0;
+        this.alphaRad = Math.PI / 4;
+        this.pitch = 2676.0;
+        this.bMin = 1599.0;
+        this.bMax = 3277.0;
+
+        // Animation State
+        this.isPlaying = true;
+        this.speed = 1.0;
+        this.phase = 0.0;
+        this.viewMode = '3d'; // '3d' | '2d' | 'split'
+
+        // Visual Layer Toggles
+        this.showSparks = true;
+        this.showDims = true;
+        this.showRolls = true;
+        this.showXray = false;
+
+        // Spark Particle System
+        this.sparks = [];
+        this.maxSparks = 35;
+
+        this.initialized = false;
+    }
+
+    init() {
+        this.canvas3D = document.getElementById("sawh-anim-canvas");
+        this.canvas2D = document.getElementById("sawh-2d-canvas");
+        if (!this.canvas3D || !this.canvas2D) return;
+
+        this.ctx3D = this.canvas3D.getContext("2d");
+        this.ctx2D = this.canvas2D.getContext("2d");
+
+        this.bindEvents();
+        this.resize();
+        window.addEventListener("resize", () => this.resize());
+
+        this.initialized = true;
+        this.start();
+    }
+
+    resize() {
+        const resizeSingle = (cv) => {
+            if (!cv) return;
+            const rect = cv.getBoundingClientRect();
+            const dpr = window.devicePixelRatio || 1;
+            const w = Math.max(300, Math.round(rect.width || 600));
+            const h = Math.max(250, Math.round(rect.height || 460));
+            if (cv.width !== w * dpr || cv.height !== h * dpr) {
+                cv.width = w * dpr;
+                cv.height = h * dpr;
+            }
+        };
+        resizeSingle(this.canvas3D);
+        resizeSingle(this.canvas2D);
+    }
+
+    updateParameters(d, t, B) {
+        this.d = Math.max(10, parseFloat(d) || 1219.0);
+        this.t = Math.max(0.5, parseFloat(t) || 14.30);
+        this.dm = Math.max(1, this.d - this.t);
+        this.piD = Math.PI * this.dm;
+        this.B = Math.max(10, parseFloat(B) || 2000.0);
+
+        const r = Math.min(1.0, Math.max(0.0, this.B / this.piD));
+        this.alphaRad = Math.acos(r);
+        this.alphaDeg = this.alphaRad * 180 / Math.PI;
+
+        const sinA = Math.sin(this.alphaRad);
+        const tanA = Math.tan(this.alphaRad);
+        this.pitch = (sinA > 1e-6 && Math.abs(tanA) > 1e-6) ? (this.piD / tanA) : 99999;
+
+        this.bMin = this.piD * Math.cos(65 * Math.PI / 180);
+        this.bMax = this.piD * Math.cos(30 * Math.PI / 180);
+
+        // Update DOM HUD and status elements
+        this.updateDOM();
+    }
+
+    updateDOM() {
+        const elAlpha = document.getElementById("sawh-alpha");
+        const elPitch = document.getElementById("sawh-pitch");
+        const elRange = document.getElementById("sawh-range");
+        const elBadge = document.getElementById("sawh-badge");
+        const elNote = document.getElementById("sawh-note");
+        const elHudAlpha = document.getElementById("sawh-hud-alpha");
+        const elHudPitch = document.getElementById("sawh-hud-pitch");
+        const elStatus = document.getElementById("sawh-alpha-status");
+        const elPiD = document.getElementById("sawh-pid-val");
+
+        if (elAlpha) elAlpha.innerText = this.alphaDeg.toFixed(1) + "°";
+        if (elPitch) elPitch.innerText = isFinite(this.pitch) && this.pitch < 90000 ? this.pitch.toFixed(0) : "—";
+        if (elRange) elRange.innerText = `${this.bMin.toFixed(0)} – ${this.bMax.toFixed(0)}`;
+        if (elPiD) elPiD.innerText = Math.round(this.piD);
+
+        const valid = this.alphaDeg >= 30.0 && this.alphaDeg <= 65.0;
+
+        if (elBadge) {
+            elBadge.className = "text-xs font-bold px-3 py-1 rounded-md border " +
+                (valid ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-red-50 text-red-700 border-red-200");
+            elBadge.innerText = valid ? "UYGUN (α ∈ [30°, 65°])" : "ARALIK DIŞI (UYARI)";
+        }
+
+        if (elStatus) {
+            elStatus.className = "text-[10px] font-bold px-2 py-0.5 rounded " +
+                (valid ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800");
+            elStatus.innerText = valid ? "✓ Standart Aralık" : "⚠️ Özel Tasarım";
+        }
+
+        if (elNote) {
+            elNote.innerHTML = valid
+                ? `<span class="text-emerald-700 font-bold">✓ Optimum Helis Açısı:</span> ${this.alphaDeg.toFixed(1)}° açısı, spiral gerilmeleri ve kaynak dikiş yükünü ideal dağıtır.`
+                : `<span class="text-amber-700 font-bold">⚠️ Pratik Aralık Dışı:</span> Helis açısının 30° ile 65° arasında olması önerilir (Mevcut: ${this.alphaDeg.toFixed(1)}°).`;
+        }
+
+        if (elHudAlpha) elHudAlpha.innerText = `α = ${this.alphaDeg.toFixed(1)}°`;
+        if (elHudPitch) elHudPitch.innerText = `P = ${isFinite(this.pitch) && this.pitch < 90000 ? this.pitch.toFixed(0) : "—"} mm`;
+
+        if (visualizer3DInstance) visualizer3DInstance.setHelixAngle(this.alphaDeg);
+    }
+
+    bindEvents() {
+        const toggleBtn = document.getElementById("sawh-anim-toggle");
+        const resetBtn = document.getElementById("sawh-anim-reset");
+        const icon = document.getElementById("sawh-anim-icon");
+        const label = document.getElementById("sawh-anim-label");
+
+        if (toggleBtn) {
+            toggleBtn.onclick = () => {
+                this.isPlaying = !this.isPlaying;
+                if (icon) icon.innerText = this.isPlaying ? "⏸️" : "▶️";
+                if (label) label.innerText = this.isPlaying ? "Durdur" : "Oynat";
+            };
+        }
+
+        if (resetBtn) {
+            resetBtn.onclick = () => {
+                this.phase = 0.0;
+                this.sparks = [];
+            };
+        }
+
+        // Speed buttons
+        document.querySelectorAll(".sawh-speed-btn").forEach(btn => {
+            btn.onclick = (e) => {
+                document.querySelectorAll(".sawh-speed-btn").forEach(b => {
+                    b.classList.remove("bg-white", "text-blue-600", "shadow-2xs");
+                    b.classList.add("text-slate-600");
+                });
+                btn.classList.add("bg-white", "text-blue-600", "shadow-2xs");
+                btn.classList.remove("text-slate-600");
+                this.speed = parseFloat(btn.dataset.speed || 1.0);
+            };
+        });
+
+        // Layer Toggles
+        const chkSparks = document.getElementById("sawh-opt-sparks");
+        const chkDims = document.getElementById("sawh-opt-dims");
+        const chkRolls = document.getElementById("sawh-opt-rolls");
+        const chkXray = document.getElementById("sawh-opt-xray");
+
+        if (chkSparks) chkSparks.onchange = (e) => { this.showSparks = e.target.checked; };
+        if (chkDims) chkDims.onchange = (e) => { this.showDims = e.target.checked; };
+        if (chkRolls) chkRolls.onchange = (e) => { this.showRolls = e.target.checked; };
+        if (chkXray) chkXray.onchange = (e) => { this.showXray = e.target.checked; };
+
+        // View Mode buttons
+        const btn3d = document.getElementById("sawh-view-anim-btn");
+        const btn2d = document.getElementById("sawh-view-2d-btn");
+        const btnSplit = document.getElementById("sawh-view-split-btn");
+
+        const updateViewButtons = (activeBtn) => {
+            [btn3d, btn2d, btnSplit].forEach(b => {
+                if (!b) return;
+                b.classList.remove("bg-white", "text-blue-600", "shadow-xs");
+                b.classList.add("text-slate-600");
+            });
+            if (activeBtn) {
+                activeBtn.classList.add("bg-white", "text-blue-600", "shadow-xs");
+                activeBtn.classList.remove("text-slate-600");
+            }
+        };
+
+        if (btn3d) btn3d.onclick = () => {
+            this.viewMode = '3d';
+            updateViewButtons(btn3d);
+            this.updateCanvasVisibility();
+        };
+
+        if (btn2d) btn2d.onclick = () => {
+            this.viewMode = '2d';
+            updateViewButtons(btn2d);
+            this.updateCanvasVisibility();
+        };
+
+        if (btnSplit) btnSplit.onclick = () => {
+            this.viewMode = 'split';
+            updateViewButtons(btnSplit);
+            this.updateCanvasVisibility();
+        };
+
+        // Quick Preset B buttons
+        const btnMin = document.getElementById("sawh-btn-bmin");
+        const btnNom = document.getElementById("sawh-btn-bnom");
+        const btnMax = document.getElementById("sawh-btn-bmax");
+        const range = document.getElementById("sawh-strip-range");
+        const input = document.getElementById("sawh-strip-input");
+
+        const setBValue = (val) => {
+            const v = Math.round(val);
+            if (range) range.value = v;
+            if (input) input.value = v;
+            this.updateParameters(this.d, this.t, v);
+        };
+
+        if (btnMin) btnMin.onclick = () => setBValue(this.bMin);
+        if (btnNom) btnNom.onclick = () => setBValue(this.piD * Math.cos(55 * Math.PI / 180));
+        if (btnMax) btnMax.onclick = () => setBValue(this.bMax);
+    }
+
+    updateCanvasVisibility() {
+        if (!this.canvas3D || !this.canvas2D) return;
+        if (this.viewMode === '3d') {
+            this.canvas3D.classList.remove("hidden", "w-1/2");
+            this.canvas3D.classList.add("w-full");
+            this.canvas2D.classList.add("hidden");
+            this.canvas2D.classList.remove("w-1/2");
+        } else if (this.viewMode === '2d') {
+            this.canvas3D.classList.add("hidden");
+            this.canvas3D.classList.remove("w-1/2", "w-full");
+            this.canvas2D.classList.remove("hidden", "w-1/2");
+            this.canvas2D.classList.add("w-full");
+        } else if (this.viewMode === 'split') {
+            this.canvas3D.classList.remove("hidden", "w-full");
+            this.canvas3D.classList.add("w-1/2");
+            this.canvas2D.classList.remove("hidden", "w-full");
+            this.canvas2D.classList.add("w-1/2");
+        }
+        this.resize();
+    }
+
+    start() {
+        const loop = (timestamp) => {
+            if (!this.lastTime) this.lastTime = timestamp;
+            const dt = Math.min(0.1, (timestamp - this.lastTime) / 1000);
+            this.lastTime = timestamp;
+
+            if (this.isPlaying) {
+                // Advance translation & rotation phase
+                const advanceSpeed = 0.55 * this.speed;
+                this.phase = (this.phase + dt * advanceSpeed) % (Math.PI * 2);
+
+                // Update sparks
+                if (this.showSparks) {
+                    this.updateSparks(dt);
+                }
+            }
+
+            // Render active view mode
+            if (this.viewMode === '3d' || this.viewMode === 'split') {
+                this.render3D();
+            }
+            if (this.viewMode === '2d' || this.viewMode === 'split') {
+                this.render2D();
+            }
+
+            this.animId = requestAnimationFrame(loop);
+        };
+        this.animId = requestAnimationFrame(loop);
+    }
+
+    updateSparks(dt) {
+        // Spawn sparks from welding torch
+        if (Math.random() < 0.65) {
+            const count = Math.floor(Math.random() * 3) + 1;
+            for (let i = 0; i < count; i++) {
+                if (this.sparks.length < this.maxSparks) {
+                    const angle = -Math.PI / 2 + (Math.random() - 0.5) * 1.6;
+                    const spd = 60 + Math.random() * 110;
+                    this.sparks.push({
+                        x: 0,
+                        y: 0,
+                        vx: Math.cos(angle) * spd,
+                        vy: Math.sin(angle) * spd,
+                        life: 0.3 + Math.random() * 0.45,
+                        maxLife: 0.7,
+                        size: 1.0 + Math.random() * 1.8,
+                        color: Math.random() > 0.3 ? '#fef08a' : '#f97316'
+                    });
+                }
+            }
+        }
+
+        // Update existing sparks
+        for (let i = this.sparks.length - 1; i >= 0; i--) {
+            const s = this.sparks[i];
+            s.x += s.vx * dt;
+            s.y += s.vy * dt;
+            s.vy += 180 * dt; // gravity
+            s.life -= dt;
+            if (s.life <= 0) {
+                this.sparks.splice(i, 1);
+            }
+        }
+    }
+
+    render3D() {
+        const cv = this.canvas3D;
+        const ctx = this.ctx3D;
+        if (!cv || !ctx) return;
+
+        const dpr = window.devicePixelRatio || 1;
+        const W = cv.width / dpr;
+        const H = cv.height / dpr;
+
+        ctx.save();
+        ctx.scale(dpr, dpr);
+        ctx.clearRect(0, 0, W, H);
+
+        // --- 1. Background Grid & Machine Vignette ---
+        const bgGrad = ctx.createRadialGradient(W * 0.5, H * 0.45, 40, W * 0.5, H * 0.5, Math.max(W, H) * 0.7);
+        bgGrad.addColorStop(0, "#0f172a");
+        bgGrad.addColorStop(1, "#020617");
+        ctx.fillStyle = bgGrad;
+        ctx.fillRect(0, 0, W, H);
+
+        // Perspective Floor Guide Lines
+        ctx.strokeStyle = "rgba(51, 65, 85, 0.25)";
+        ctx.lineWidth = 1;
+        const floorY = H * 0.78;
+        for (let x = -W; x < W * 2; x += 60) {
+            ctx.beginPath();
+            ctx.moveTo(x, floorY);
+            ctx.lineTo(x + (x - W * 0.5) * 0.6, H);
+            ctx.stroke();
+        }
+
+        // --- 2. Geometry Setup ---
+        const R = Math.max(42, Math.min(105, (H * 0.22) * (this.d / 1219.0) * 0.9 + 40));
+        const cx = W * 0.52;
+        const cy = H * 0.48;
+        const pipeLen = W * 0.42;
+
+        // Helix geometry on screen
+        const pitchPx = Math.max(40, (this.pitch / this.dm) * (R * 2));
+        const alpha = this.alphaRad;
+
+        // --- 3. Forming Rolls / Roll Stand (Under & Behind) ---
+        if (this.showRolls) {
+            ctx.fillStyle = "#1e293b";
+            ctx.strokeStyle = "#475569";
+            ctx.lineWidth = 1.5;
+
+            // Lower Bending Support Rolls
+            [-R * 0.8, 0, R * 0.8].forEach(ox => {
+                const rx = cx + ox;
+                const ry = cy + R + 18;
+                ctx.beginPath();
+                ctx.arc(rx, ry, 12, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+                // Roll Axle
+                ctx.fillStyle = "#64748b";
+                ctx.beginPath();
+                ctx.arc(rx, ry, 4, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = "#1e293b";
+            });
+        }
+
+        // --- 4. Incoming Steel Strip Plate (Entering from Bottom-Right at Angle alpha) ---
+        ctx.save();
+        const stripW = Math.max(25, (this.B / this.piD) * (R * Math.PI * 1.1));
+        const stripLen = W * 0.55;
+
+        // Translate to forming confluence point
+        ctx.translate(cx, cy);
+        ctx.rotate(alpha);
+
+        // Strip Gradient (Metallic Brushed Steel)
+        const stripGrad = ctx.createLinearGradient(0, -stripW / 2, 0, stripW / 2);
+        stripGrad.addColorStop(0, "#475569");
+        stripGrad.addColorStop(0.2, "#94a3b8");
+        stripGrad.addColorStop(0.5, "#cbd5e1");
+        stripGrad.addColorStop(0.8, "#64748b");
+        stripGrad.addColorStop(1, "#334155");
+
+        ctx.fillStyle = stripGrad;
+        ctx.strokeStyle = "#0ea5e9";
+        ctx.lineWidth = 1.5;
+
+        // Draw entry plate
+        ctx.beginPath();
+        ctx.rect(0, -stripW / 2, stripLen, stripW);
+        ctx.fill();
+        ctx.stroke();
+
+        // Moving feed stripes along strip
+        ctx.strokeStyle = "rgba(14, 165, 233, 0.4)";
+        ctx.lineWidth = 2;
+        const feedOffset = (this.phase * 45) % 35;
+        for (let fx = feedOffset; fx < stripLen; fx += 35) {
+            ctx.beginPath();
+            ctx.moveTo(fx, -stripW / 2);
+            ctx.lineTo(fx, stripW / 2);
+            ctx.stroke();
+        }
+
+        // Strip Feed Direction Arrow
+        ctx.fillStyle = "#38bdf8";
+        ctx.beginPath();
+        const arrowX = stripLen * 0.5;
+        ctx.moveTo(arrowX + 20, 0);
+        ctx.lineTo(arrowX - 10, -10);
+        ctx.lineTo(arrowX - 4, 0);
+        ctx.lineTo(arrowX - 10, 10);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.restore();
+
+        // --- 5. Formed Cylindrical Pipe Body (3D Cylinder Shading) ---
+        const pipeLeft = cx - pipeLen;
+
+        // Outer Cylinder Shading
+        const cylGrad = ctx.createLinearGradient(0, cy - R, 0, cy + R);
+        if (this.showXray) {
+            cylGrad.addColorStop(0, "rgba(30, 58, 138, 0.45)");
+            cylGrad.addColorStop(0.3, "rgba(56, 189, 248, 0.35)");
+            cylGrad.addColorStop(0.7, "rgba(14, 116, 144, 0.25)");
+            cylGrad.addColorStop(1, "rgba(15, 23, 42, 0.65)");
+        } else {
+            cylGrad.addColorStop(0, "#334155");
+            cylGrad.addColorStop(0.18, "#94a3b8");
+            cylGrad.addColorStop(0.35, "#e2e8f0");
+            cylGrad.addColorStop(0.65, "#475569");
+            cylGrad.addColorStop(0.9, "#1e293b");
+            cylGrad.addColorStop(1, "#0f172a");
+        }
+
+        ctx.fillStyle = cylGrad;
+        ctx.beginPath();
+        ctx.rect(pipeLeft, cy - R, pipeLen, R * 2);
+        ctx.fill();
+
+        // Cylinder Outline
+        ctx.strokeStyle = this.showXray ? "rgba(56, 189, 248, 0.8)" : "#64748b";
+        ctx.lineWidth = 1.8;
+        ctx.beginPath();
+        ctx.moveTo(pipeLeft, cy - R);
+        ctx.lineTo(cx, cy - R);
+        ctx.moveTo(pipeLeft, cy + R);
+        ctx.lineTo(cx, cy + R);
+        ctx.stroke();
+
+        // --- 6. Spiral Weld Seam (Helical Curves around the Cylinder) ---
+        const numTurns = Math.ceil(pipeLen / Math.max(1, pitchPx)) + 2;
+
+        for (let pass = 0; pass < 2; pass++) {
+            // Pass 0: Back seam (drawn only in X-Ray mode)
+            // Pass 1: Front seam (glowing golden weld bead)
+            if (pass === 0 && !this.showXray) continue;
+
+            for (let i = -1; i <= numTurns; i++) {
+                const turnX = cx - (i * pitchPx) - ((this.phase / (Math.PI * 2)) * pitchPx);
+
+                ctx.beginPath();
+                let started = false;
+
+                const stepCount = 36;
+                for (let s = 0; s <= stepCount; s++) {
+                    const theta = (s / stepCount) * Math.PI * 2;
+                    const isFront = (theta <= Math.PI);
+
+                    if ((pass === 1 && isFront) || (pass === 0 && !isFront)) {
+                        const px = turnX + (theta / (Math.PI * 2)) * pitchPx;
+                        const py = cy - Math.cos(theta) * R;
+
+                        if (px >= pipeLeft && px <= cx) {
+                            if (!started) {
+                                ctx.moveTo(px, py);
+                                started = true;
+                            } else {
+                                ctx.lineTo(px, py);
+                            }
+                        }
+                    }
+                }
+
+                if (started) {
+                    if (pass === 1) {
+                        // Golden Glowing Weld Seam
+                        ctx.strokeStyle = "#f59e0b";
+                        ctx.lineWidth = 3.5;
+                        ctx.stroke();
+
+                        ctx.strokeStyle = "#fef08a";
+                        ctx.lineWidth = 1.2;
+                        ctx.stroke();
+                    } else {
+                        // Back X-Ray Seam
+                        ctx.strokeStyle = "rgba(245, 158, 11, 0.35)";
+                        ctx.lineWidth = 1.8;
+                        ctx.setLineDash([3, 3]);
+                        ctx.stroke();
+                        ctx.setLineDash([]);
+                    }
+                }
+            }
+        }
+
+        // --- 7. Pipe Open Exit Face (Front Ellipse on the Left) ---
+        const rx = R * 0.28;
+        const ry = R;
+        const wallThkPx = Math.max(3, (this.t / this.d) * R * 2.2);
+
+        // Inner Bore Background
+        ctx.fillStyle = "#020617";
+        ctx.beginPath();
+        ctx.ellipse(pipeLeft, cy, rx - wallThkPx * 0.28, ry - wallThkPx, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Metallic Pipe End Ring (Steel Wall Thickness Face)
+        ctx.fillStyle = "#94a3b8";
+        ctx.strokeStyle = "#cbd5e1";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.ellipse(pipeLeft, cy, rx, ry, 0, 0, Math.PI * 2);
+        ctx.ellipse(pipeLeft, cy, rx - wallThkPx * 0.28, ry - wallThkPx, 0, 0, Math.PI * 2, true);
+        ctx.fill("evenodd");
+        ctx.stroke();
+
+        // Pipe Exit Translation Velocity Arrow
+        ctx.fillStyle = "#10b981";
+        ctx.beginPath();
+        const exitArrowX = pipeLeft - 30;
+        ctx.moveTo(exitArrowX - 25, cy);
+        ctx.lineTo(exitArrowX - 5, cy - 8);
+        ctx.lineTo(exitArrowX - 10, cy);
+        ctx.lineTo(exitArrowX - 5, cy + 8);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.fillStyle = "#10b981";
+        ctx.font = "bold 10px Inter, sans-serif";
+        ctx.fillText("Boru Çıkışı (v_pipe)", exitArrowX - 75, cy - 14);
+
+        // --- 8. Submerged Arc Welding (SAW) Torches & Plasma Arcs ---
+        // OD Welding Head (Outside Torch at Top Forming Point)
+        const torchX = cx - 12;
+        const torchY = cy - R;
+
+        ctx.fillStyle = "#334155";
+        ctx.strokeStyle = "#94a3b8";
+        ctx.lineWidth = 1.5;
+
+        // Torch Body & Flux Nozzle
+        ctx.beginPath();
+        ctx.rect(torchX - 8, torchY - 36, 16, 26);
+        ctx.fill();
+        ctx.stroke();
+
+        // Copper Contact Tip
+        ctx.fillStyle = "#b45309";
+        ctx.beginPath();
+        ctx.moveTo(torchX - 5, torchY - 10);
+        ctx.lineTo(torchX + 5, torchY - 10);
+        ctx.lineTo(torchX + 2, torchY);
+        ctx.lineTo(torchX - 2, torchY);
+        ctx.closePath();
+        ctx.fill();
+
+        // OD SAW Arc & Molten Pool Glow
+        const arcPulse = 0.85 + Math.sin(Date.now() * 0.02) * 0.15;
+        const arcGrad = ctx.createRadialGradient(torchX, torchY, 1, torchX, torchY, 18 * arcPulse);
+        arcGrad.addColorStop(0, "rgba(255, 255, 255, 1)");
+        arcGrad.addColorStop(0.3, "rgba(254, 240, 138, 0.9)");
+        arcGrad.addColorStop(0.65, "rgba(245, 158, 11, 0.6)");
+        arcGrad.addColorStop(1, "rgba(239, 68, 68, 0)");
+
+        ctx.fillStyle = arcGrad;
+        ctx.beginPath();
+        ctx.arc(torchX, torchY, 18 * arcPulse, 0, Math.PI * 2);
+        ctx.fill();
+
+        // ID Welding Head Indicator (Inside Torch)
+        const idTorchX = cx - 35;
+        const idTorchY = cy + R * 0.35;
+        const idGlow = ctx.createRadialGradient(idTorchX, idTorchY, 1, idTorchX, idTorchY, 12);
+        idGlow.addColorStop(0, "rgba(251, 146, 60, 0.8)");
+        idGlow.addColorStop(1, "rgba(234, 88, 12, 0)");
+        ctx.fillStyle = idGlow;
+        ctx.beginPath();
+        ctx.arc(idTorchX, idTorchY, 12, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Render Sparks
+        if (this.showSparks) {
+            this.sparks.forEach(spk => {
+                ctx.fillStyle = spk.color;
+                ctx.beginPath();
+                ctx.arc(torchX + spk.x, torchY + spk.y, spk.size, 0, Math.PI * 2);
+                ctx.fill();
+            });
+        }
+
+        // --- 9. Live Engineering Dimension & Angle Overlays ---
+        if (this.showDims) {
+            // A. Helix Angle alpha Arc
+            ctx.strokeStyle = "#38bdf8";
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.arc(cx, cy, 55, 0, alpha);
+            ctx.stroke();
+
+            // Horizontal Reference Line
+            ctx.strokeStyle = "rgba(56, 189, 248, 0.5)";
+            ctx.setLineDash([4, 3]);
+            ctx.beginPath();
+            ctx.moveTo(cx, cy);
+            ctx.lineTo(cx + 85, cy);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            ctx.fillStyle = "#38bdf8";
+            ctx.font = "bold 13px Inter, sans-serif";
+            const midA = alpha * 0.5;
+            ctx.fillText(`α = ${this.alphaDeg.toFixed(1)}°`, cx + 65 * Math.cos(midA), cy + 65 * Math.sin(midA));
+
+            // B. Strip Width B Dimension Line
+            ctx.save();
+            ctx.translate(cx, cy);
+            ctx.rotate(alpha);
+            const dimBx = stripLen * 0.75;
+            ctx.strokeStyle = "#f59e0b";
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(dimBx, -stripW / 2);
+            ctx.lineTo(dimBx, stripW / 2);
+            ctx.stroke();
+
+            // End ticks
+            ctx.beginPath();
+            ctx.moveTo(dimBx - 5, -stripW / 2);
+            ctx.lineTo(dimBx + 5, -stripW / 2);
+            ctx.moveTo(dimBx - 5, stripW / 2);
+            ctx.lineTo(dimBx + 5, stripW / 2);
+            ctx.stroke();
+
+            ctx.fillStyle = "#f59e0b";
+            ctx.font = "bold 11px Inter, sans-serif";
+            ctx.fillText(`B = ${this.B.toFixed(0)} mm`, dimBx + 8, 4);
+            ctx.restore();
+
+            // C. Spiral Pitch P Dimension Line (on Top of Pipe)
+            if (isFinite(this.pitch) && pitchPx > 25) {
+                const pDimY = cy - R - 18;
+                const pX1 = cx - pitchPx;
+                const pX2 = cx;
+
+                ctx.strokeStyle = "#fbbf24";
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.moveTo(pX1, pDimY);
+                ctx.lineTo(pX2, pDimY);
+                // End ticks
+                ctx.moveTo(pX1, pDimY - 4);
+                ctx.lineTo(pX1, pDimY + 4);
+                ctx.moveTo(pX2, pDimY - 4);
+                ctx.lineTo(pX2, pDimY + 4);
+                ctx.stroke();
+
+                ctx.fillStyle = "#fbbf24";
+                ctx.font = "bold 11px Inter, sans-serif";
+                ctx.fillText(`Adım P = ${this.pitch.toFixed(0)} mm`, (pX1 + pX2) / 2 - 45, pDimY - 6);
+            }
+
+            // D. Outer Diameter D Callout (Left Face)
+            const dLineX = pipeLeft - 18;
+            ctx.strokeStyle = "#e2e8f0";
+            ctx.lineWidth = 1.2;
+            ctx.beginPath();
+            ctx.moveTo(dLineX, cy - R);
+            ctx.lineTo(dLineX, cy + R);
+            ctx.moveTo(dLineX - 4, cy - R);
+            ctx.lineTo(dLineX + 4, cy - R);
+            ctx.moveTo(dLineX - 4, cy + R);
+            ctx.lineTo(dLineX + 4, cy + R);
+            ctx.stroke();
+
+            ctx.fillStyle = "#e2e8f0";
+            ctx.font = "bold 11px Inter, sans-serif";
+            ctx.fillText(`D = ${this.d.toFixed(1)} mm`, dLineX - 95, cy + 4);
+        }
+
+        ctx.restore();
+    }
+
+    render2D() {
+        const cv = this.canvas2D;
+        const ctx = this.ctx2D;
+        if (!cv || !ctx) return;
+
+        const dpr = window.devicePixelRatio || 1;
+        const W = cv.width / dpr;
+        const H = cv.height / dpr;
+
+        ctx.save();
+        ctx.scale(dpr, dpr);
+        ctx.clearRect(0, 0, W, H);
+
+        // Blueprint Background
+        ctx.fillStyle = "#020617";
+        ctx.fillRect(0, 0, W, H);
+
+        // Grid lines
+        ctx.strokeStyle = "rgba(30, 41, 59, 0.6)";
+        ctx.lineWidth = 1;
+        for (let x = 0; x < W; x += 30) {
+            ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+        }
+        for (let y = 0; y < H; y += 30) {
+            ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+        }
+
+        const pad = 36;
+        const alphaRad = this.alphaRad;
+        const alphaDeg = this.alphaDeg;
+        const piD = this.piD;
+        const pitch = isFinite(this.pitch) ? this.pitch : 2000;
+
+        // --- Top: Developed Cylinder Rectangle (One Full Turn) ---
+        const topH = H * 0.44;
+        const scale = Math.min((W - pad * 2) / piD, (topH - pad) / Math.max(pitch, 60));
+        const rw = piD * scale;
+        const rh = Math.max(24, pitch * scale);
+        const ox = pad + (W - pad * 2 - rw) / 2;
+        const oy = pad + topH - rh;
+
+        ctx.fillStyle = "rgba(30, 41, 59, 0.4)";
+        ctx.fillRect(ox, oy, rw, rh);
+        ctx.strokeStyle = "#64748b";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(ox, oy, rw, rh);
+
+        // Helical Seam Diagonal
+        ctx.strokeStyle = "#f59e0b";
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.moveTo(ox, oy + rh);
+        ctx.lineTo(ox + rw, oy);
+        ctx.stroke();
+
+        // Angle alpha Arc
+        ctx.strokeStyle = "#38bdf8";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(ox, oy + rh, Math.min(30, rh * 0.6), -Math.PI / 2, -Math.PI / 2 + alphaRad);
+        ctx.stroke();
+
+        ctx.fillStyle = "#38bdf8";
+        ctx.font = "bold 12px Inter, sans-serif";
+        ctx.fillText(`α = ${alphaDeg.toFixed(1)}°`, ox + 36, oy + rh - 12);
+
+        // Labels
+        ctx.fillStyle = "#e2e8f0";
+        ctx.font = "11px Inter, sans-serif";
+        ctx.fillText(`Çevre π·D_mid = ${piD.toFixed(0)} mm`, ox + rw / 2 - 70, oy + rh + 18);
+        ctx.fillText(`Adım P = ${pitch.toFixed(0)} mm`, ox + 8, oy + rh / 2);
+
+        ctx.fillStyle = "#94a3b8";
+        ctx.font = "bold 11px Inter, sans-serif";
+        ctx.fillText("Açılmış Boru Yüzeyi (1 Helis Turu)", ox + rw / 2 - 80, oy - 10);
+
+        // --- Bottom: Unrolled Strip Band (Parallelogram) ---
+        const botY = H * 0.54;
+        const botH = H - botY - pad;
+        const s2 = Math.min((W - pad * 2) / piD, (botH - pad) / Math.max(pitch, 60));
+        const bw = piD * s2;
+        const bh = Math.max(24, pitch * s2);
+        const bx = pad + (W - pad * 2 - bw) / 2;
+
+        const P1x = bx, P1y = botY + bh;
+        const P2x = bx + bw, P2y = botY;
+        const off = Math.min(this.B * s2, bw * 0.95);
+        const qx = off * Math.cos(alphaRad);
+        const qy = off * (-Math.sin(alphaRad));
+        const Q1x = P1x + qx, Q1y = P1y + qy;
+        const Q2x = P2x + qx, Q2y = P2y + qy;
+
+        ctx.fillStyle = "rgba(245, 158, 11, 0.22)";
+        ctx.strokeStyle = "#f59e0b";
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.moveTo(P1x, P1y);
+        ctx.lineTo(P2x, P2y);
+        ctx.lineTo(Q2x, Q2y);
+        ctx.lineTo(Q1x, Q1y);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Strip Width B measurement line
+        ctx.strokeStyle = "#38bdf8";
+        ctx.lineWidth = 1.8;
+        ctx.setLineDash([4, 3]);
+        ctx.beginPath();
+        ctx.moveTo(P1x, P1y);
+        ctx.lineTo(Q1x, Q1y);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        ctx.fillStyle = "#38bdf8";
+        ctx.font = "bold 12px Inter, sans-serif";
+        ctx.fillText(`B = ${this.B.toFixed(0)} mm`, (P1x + Q1x) / 2 + 10, (P1y + Q1y) / 2 - 8);
+
+        ctx.fillStyle = "#94a3b8";
+        ctx.font = "bold 11px Inter, sans-serif";
+        ctx.fillText("Açılmış Sac Şerit (B = π·D_mid·cos α)", bx + bw / 2 - 100, botY + bh + 20);
+
+        ctx.restore();
+    }
 }
 
-function drawSawhCanvas(cv, d, t, B) {
-    const ctx = cv.getContext("2d");
-    if (!ctx) return;
-    const W = cv.width, H = cv.height;
-    ctx.clearRect(0, 0, W, H);
-    const g = sawhCompute(d, t, B);
-    const piD = g.piD, alphaRad = g.alphaRad, alphaDeg = g.alphaDeg, pitch = g.pitch;
-    const pad = 36;
-
-    // --- Top: developed rectangle (one full turn) ---
-    const topH = H * 0.5 - pad * 2;
-    const scale = Math.min((W - pad * 2) / piD, topH / Math.max(pitch, 60));
-    const rw = piD * scale, rh = Math.max(24, pitch * scale);
-    const ox = pad + (W - pad * 2 - rw) / 2;
-    const oy = pad + topH - rh;
-    ctx.strokeStyle = "#334155"; ctx.lineWidth = 2;
-    ctx.strokeRect(ox, oy, rw, rh);
-    ctx.beginPath(); ctx.moveTo(ox, oy + rh); ctx.lineTo(ox + rw, oy); ctx.stroke();
-    ctx.strokeStyle = "#2563eb"; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.arc(ox, oy + rh, Math.min(26, rh * 0.5), -Math.PI / 2, -Math.PI / 2 + alphaRad); ctx.stroke();
-    ctx.fillStyle = "#2563eb"; ctx.font = "bold 12px Inter, sans-serif";
-    ctx.fillText("α=" + alphaDeg.toFixed(1) + "°", ox + 32, oy + rh - 10);
-    ctx.fillStyle = "#0f172a"; ctx.font = "10px Inter, sans-serif";
-    ctx.fillText("π·D_mid = " + piD.toFixed(0) + " mm", ox + rw / 2 - 70, oy + rh + 16);
-    ctx.fillText("P = " + (isFinite(pitch) ? pitch.toFixed(0) : "—") + " mm", ox + 6, oy + rh / 2);
-    ctx.fillStyle = "#64748b";
-    ctx.fillText("Açılmış yüzey — bir tur", ox + rw / 2 - 58, oy - 8);
-
-    // --- Bottom: unrolled strip band (parallelogram) ---
-    const botY = H * 0.5 + pad;
-    const botH = H - botY - pad;
-    const s2 = Math.min((W - pad * 2) / piD, botH / Math.max(pitch, 60));
-    const bw = piD * s2, bh = Math.max(24, pitch * s2);
-    const bx = pad + (W - pad * 2 - bw) / 2;
-    const P1x = bx, P1y = botY + bh, P2x = bx + bw, P2y = botY;
-    const off = Math.min(B * s2, bw * 0.85);
-    const qx = off * Math.cos(alphaRad), qy = off * (-Math.sin(alphaRad));
-    const Q1x = P1x + qx, Q1y = P1y + qy, Q2x = P2x + qx, Q2y = P2y + qy;
-    ctx.fillStyle = "rgba(245,158,11,0.18)";
-    ctx.strokeStyle = "#f59e0b"; ctx.lineWidth = 2.5;
-    ctx.beginPath(); ctx.moveTo(P1x, P1y); ctx.lineTo(P2x, P2y); ctx.lineTo(Q2x, Q2y); ctx.lineTo(Q1x, Q1y); ctx.closePath();
-    ctx.fill(); ctx.stroke();
-    ctx.strokeStyle = "#2563eb"; ctx.lineWidth = 1.5; ctx.setLineDash([4, 3]);
-    ctx.beginPath(); ctx.moveTo(P1x, P1y); ctx.lineTo(Q1x, Q1y); ctx.stroke(); ctx.setLineDash([]);
-    ctx.fillStyle = "#2563eb"; ctx.font = "bold 12px Inter, sans-serif";
-    ctx.fillText("B=" + B.toFixed(0) + " mm", (P1x + Q1x) / 2 + 10, (P1y + Q1y) / 2 - 8);
-    ctx.fillStyle = "#64748b"; ctx.font = "10px Inter, sans-serif";
-    ctx.fillText("Açılmış şerit (bant)", bx + bw / 2 - 55, botY + bh + 16);
-}
-
-function sawhSvg() {
-    return `
-  <svg width="240" height="150" viewBox="0 0 240 150" xmlns="http://www.w3.org/2000/svg">
-    <style>
-      @keyframes sawh-wrap { 0% { transform: translate(45px,70px) rotate(0deg); } 100% { transform: translate(-65px,-20px) rotate(-120deg); } }
-      .sawh-strip { animation: sawh-wrap 2.6s linear infinite; transform-origin: 120px 75px; }
-      @keyframes sawh-fade { 0%,100%{opacity:1} 50%{opacity:0.55} }
-      .sawh-pipe { animation: sawh-fade 2.6s linear infinite; }
-    </style>
-    <ellipse class="sawh-pipe" cx="120" cy="75" rx="95" ry="36" fill="none" stroke="#334155" stroke-width="2.5"/>
-    <path d="M 25 75 A 95 36 0 0 1 215 75" fill="none" stroke="#2563eb" stroke-width="1.5" stroke-dasharray="3,3"/>
-    <g class="sawh-strip"><rect x="0" y="0" width="70" height="14" rx="3" fill="#f59e0b" stroke="#b45309" stroke-width="1"/></g>
-  </svg>`;
-}
+// Global Singleton Instance
+let sawhSimulatorInstance = null;
 
 function renderSawhCard(pipeData) {
     const card = document.getElementById("sawh-card");
     const na = document.getElementById("sawh-not-applicable");
     if (!card || !na) return;
+
     const process = (pipeData.input_summary.manufacturing_process || "").toUpperCase();
     const isSawh = process.includes("SAWH") || process.includes("SAWL");
     if (!isSawh) {
@@ -751,65 +1518,63 @@ function renderSawhCard(pipeData) {
         if (p) p.innerText = pipeData.input_summary.manufacturing_process || "—";
         return;
     }
+
     na.classList.add("hidden");
     card.classList.remove("hidden");
 
     const d = pipeData.input_summary.diameter_mm || 1219.0;
-    const t = pipeData.input_summary.wall_thickness_mm || 14.3;
+    const t = pipeData.input_summary.wall_thickness_mm || 14.30;
     const dm = d - t;
     const piD = Math.PI * dm;
     const B55 = piD * Math.cos(55 * Math.PI / 180);
     const bMin = piD * Math.cos(65 * Math.PI / 180);
-    const bMax = piD * Math.cos(30 * Math.PI / 180);
 
-    document.getElementById("sawh-d").innerText = d.toFixed(1);
-    document.getElementById("sawh-t").innerText = t.toFixed(2);
-    document.getElementById("sawh-dmid").innerText = dm.toFixed(1);
+    const dEl = document.getElementById("sawh-d");
+    const tEl = document.getElementById("sawh-t");
+    const dmEl = document.getElementById("sawh-dmid");
+    if (dEl) dEl.innerText = d.toFixed(1);
+    if (tEl) tEl.innerText = t.toFixed(2);
+    if (dmEl) dmEl.innerText = dm.toFixed(1);
 
     const range = document.getElementById("sawh-strip-range");
     const input = document.getElementById("sawh-strip-input");
-    range.min = Math.round(bMin * 0.9);
-    range.max = Math.round(piD);
-    range.value = Math.round(B55);
-    input.value = Math.round(B55);
+    if (range && input) {
+        range.min = Math.round(bMin * 0.85);
+        range.max = Math.round(piD);
+        range.value = Math.round(B55);
+        input.value = Math.round(B55);
 
-    const svgEl = document.getElementById("sawh-svg");
-    if (svgEl && !svgEl.dataset.painted) { svgEl.innerHTML = sawhSvg(); svgEl.dataset.painted = "1"; }
+        range.oninput = (e) => {
+            input.value = e.target.value;
+            if (sawhSimulatorInstance) sawhSimulatorInstance.updateParameters(d, t, e.target.value);
+        };
+        input.oninput = (e) => {
+            range.value = e.target.value;
+            if (sawhSimulatorInstance) sawhSimulatorInstance.updateParameters(d, t, e.target.value);
+        };
+    }
 
-    sawhRedraw();
+    // Initialize or update simulator
+    if (!sawhSimulatorInstance) {
+        sawhSimulatorInstance = new SawhSimulationEngine();
+        sawhSimulatorInstance.init();
+    }
 
-    const rewire = () => { range.oninput = (e) => { input.value = e.target.value; sawhRedraw(); };
-                           input.oninput = (e) => { range.value = e.target.value; sawhRedraw(); }; };
-    rewire();
+    sawhSimulatorInstance.updateParameters(d, t, B55);
 }
 
 function sawhRedraw() {
-    const range = document.getElementById("sawh-strip-range");
-    const input = document.getElementById("sawh-strip-input");
-    const dEl = document.getElementById("sawh-d");
-    const tEl = document.getElementById("sawh-t");
-    if (!range || !input || !dEl) return;
-    const d = parseFloat(dEl.innerText) || 1219;
-    const t = parseFloat(tEl.innerText) || 14.3;
-    const B = Math.max(0, parseFloat(input.value) || 0);
-    const g = sawhCompute(d, t, B);
-
-    document.getElementById("sawh-alpha").innerText = g.alphaDeg.toFixed(1) + "°";
-    document.getElementById("sawh-pitch").innerText = isFinite(g.pitch) ? g.pitch.toFixed(0) : "—";
-    document.getElementById("sawh-range").innerText = g.bMin.toFixed(0) + " – " + g.bMax.toFixed(0);
-
-    const valid = g.alphaDeg >= 30 && g.alphaDeg <= 65;
-    const badge = document.getElementById("sawh-badge");
-    badge.className = "text-xs font-bold px-2.5 py-1 rounded " + (valid ? "bg-emerald-100 text-emerald-800" : "bg-red-100 text-red-700");
-    badge.innerText = valid ? "UYGUN (α ∈ [30°,65°])" : "ARALIK DIŞI";
-    document.getElementById("sawh-note").innerText = valid
-        ? "Helis açısı pratik SAWH aralığında."
-        : "Helis açısı pratik SAWH aralığının dışında (α ∈ [30°, 65°] önerilir).";
-
-    const cv = document.getElementById("sawh-canvas");
-    if (cv) drawSawhCanvas(cv, d, t, B);
-
-    if (visualizer3DInstance) visualizer3DInstance.setHelixAngle(g.alphaDeg);
+    if (sawhSimulatorInstance) {
+        const range = document.getElementById("sawh-strip-range");
+        const dEl = document.getElementById("sawh-d");
+        const tEl = document.getElementById("sawh-t");
+        if (range && dEl && tEl) {
+            const d = parseFloat(dEl.innerText) || 1219.0;
+            const t = parseFloat(tEl.innerText) || 14.30;
+            const B = parseFloat(range.value) || 2170.0;
+            sawhSimulatorInstance.updateParameters(d, t, B);
+        }
+    }
 }
 
 // BOTAŞ auto-lookup for modal inputs
