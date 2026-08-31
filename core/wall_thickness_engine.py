@@ -7,6 +7,7 @@ Supports:
 Standard schedule selection from ASME B36.10M (Carbon Steel) and ASME B36.19M (Stainless Steel).
 """
 
+import math
 from typing import Any, Dict, List, Optional
 
 from core.database import (
@@ -232,8 +233,17 @@ class WallThicknessEngine:
                         break
 
         if not avail_thks:
-            # Fallback series for very large custom diameters
-            avail_thks = [5.56, 6.35, 7.14, 7.92, 8.74, 9.53, 10.31, 11.13, 11.91, 12.70, 14.27, 15.88, 17.48, 19.05, 20.62, 22.22, 23.83, 25.40]
+            # Fallback series for very large custom diameters up to 50.80 mm
+            avail_thks = [
+                5.56, 6.35, 7.14, 7.92, 8.74, 9.53, 10.31, 11.13, 11.91, 12.70,
+                14.27, 15.88, 17.48, 19.05, 20.62, 22.22, 23.83, 25.40, 28.58,
+                31.75, 34.92, 38.10, 41.28, 44.45, 47.62, 50.80
+            ]
+
+        # If required thickness exceeds highest standard schedule in table, dynamically append safe nominal thickness
+        if t_req > max(avail_thks):
+            step_thk = math.ceil(t_req / 0.5) * 0.5
+            avail_thks.append(step_thk)
 
         # Select standard nominal thickness based on effective tolerance check
         selected_thk = avail_thks[-1]

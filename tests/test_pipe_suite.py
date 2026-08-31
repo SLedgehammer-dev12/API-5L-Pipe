@@ -1065,9 +1065,80 @@ class TestPipeQAQCSuite(unittest.TestCase):
         self.assertTrue(any("ARTIK GERİLME LİMİTİ AŞILDI" in m for m in msgs))
         self.assertTrue(any("YETERSİZ NDT KABUL SEVİYESİ" in m for m in msgs))
 
+    def test_38_database_sentinel_and_get_pipe_size_safety(self):
+        """Verifies Grade A tensile values, unrecognized grade fallback flag, and pipe size distance cutoff."""
+        from core.database import get_smys_info, get_pipe_size_by_mm
+
+        # 1. GRADE A tensile values
+        gr_a = get_smys_info("GRADE A")
+        self.assertGreater(gr_a['tensile_min_mpa'], 300.0)
+        self.assertGreater(gr_a['yield_min_mpa'], 200.0)
+
+        # 2. Unknown grade fallback
+        unk = get_smys_info("NON_EXISTENT_GRADE_XYZ")
+        self.assertTrue(unk.get('is_unrecognized_fallback'))
+        self.assertEqual(unk.get('requested_grade'), "NON_EXISTENT_GRADE_XYZ")
+
+        # 3. get_pipe_size_by_mm cutoff
+        self.assertIsNone(get_pipe_size_by_mm(1.0))
+        p48 = get_pipe_size_by_mm(1219.0)
+        self.assertIsNotNone(p48)
+        self.assertEqual(p48['inch'], '48"')
+
+    def test_39_verification_engine_empty_actual_data_and_limits(self):
+        """Verifies NO_DATA status on empty input, 300 HV10 hardness ceiling, and exact hydro gauge limits."""
+        from core.verification_engine import PipeVerificationEngine
+
+        pipe_cfg = {
+            'diameter_mm': 1219.0, 'diameter_inch': '48"', 'wall_thickness_mm': 14.30,
+            'material_grade': 'X65', 'manufacturing_process': 'SAWH', 'standard_type': 'BOTAŞ',
+            'design_pressure_bar': 75.0, 'psl_level': 'PSL2'
+        }
+
+        # 1. Empty actual data must return NO_DATA rather than ACCEPTED
+        res_empty = PipeVerificationEngine.verify_pipe_test_results(pipe_cfg, {})
+        self.assertEqual(res_empty['overall_status'], 'NO_DATA')
+        self.assertEqual(res_empty['checks_count'], 0)
+
+        # 2. Hardness exceeding 300 HV10 on standard pipe fails
+        res_hard = PipeVerificationEngine.verify_pipe_test_results(pipe_cfg, {'hardness_actual': 325.0})
+        self.assertEqual(res_hard['overall_status'], 'REJECTED')
+        self.assertEqual(res_hard['failed_count'], 1)
+
+        # 3. Hydro test exceeding max pressure fails
+        res_hydro = PipeVerificationEngine.verify_pipe_test_results(pipe_cfg, {'hydro_test_actual_bar': 160.0})
+        self.assertEqual(res_hydro['overall_status'], 'REJECTED')
+
+    def test_40_sawh_geometry_validation_and_wall_thickness_large_diameters(self):
+        """Verifies sawh geometry physical validation and wall thickness selection for large custom diameters."""
+        from core.sawh_engine import mean_diameter
+        from core.wall_thickness_engine import WallThicknessEngine
+
+        # 1. Geometry validation
+        with self.assertRaises(ValueError):
+            mean_diameter(1219.0, 1300.0)
+
+        with self.assertRaises(ValueError):
+            mean_diameter(-50.0, 10.0)
+
+        # 2. Wall thickness calculation on large custom pipe
+        res = WallThicknessEngine.calculate_wall_thickness(
+            diameter_inch='56"',
+            material_grade='X70',
+            design_pressure_bar=100.0,
+            design_factor_f=0.72,
+            standard_code='B31.8'
+        )
+        res_calc = res['calculation_results']
+        self.assertGreaterEqual(
+            res_calc['selected_nominal_thickness_asme_b36_10_mm'],
+            res_calc['t_required_asme_b31_8_mm']
+        )
+
 
 if __name__ == '__main__':
     unittest.main()
+
 
 
 

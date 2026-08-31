@@ -15,12 +15,20 @@ from core.i18n import TRANSLATIONS, get_text
 from core.itp_audit_engine import ITPAuditEngine
 from core.pipe_qaqc_engine import PipeQAQCEngine
 from core.project_manager import ProjectManager
-from core.schemas import CalculateRequest, ExportRequest, PipeInput, ReportRequest
+from core.schemas import (
+    CalculateRequest,
+    ExportRequest,
+    PipeInput,
+    ReportRequest,
+    SawhStripRequest,
+    VerificationRequest,
+    WallThicknessRequest,
+)
 from core.test_plan import get_comprehensive_itp_specification, get_test_plan as compute_test_plan
 from core.unlimited_ocr_engine import UnlimitedOCREngine
 from core.verification_engine import PipeVerificationEngine
 from core.wall_thickness_engine import WallThicknessEngine
-from version import __app_name__, __version__
+from version import __version__
 
 logger = logging.getLogger(__name__)
 
@@ -30,8 +38,8 @@ STATIC_DIR = os.path.join(BASE_DIR, "static")
 TEMPLATES_DIR = os.path.join(BASE_DIR, "templates")
 
 app = FastAPI(
-    title=__app_name__,
-    description="Professional Engineering Software for Pipe QA/QC, Factory Acceptance Testing and Wall Thickness Design",
+    title="API 5L PSL2 & BOTAŞ Pipe QA/QC & Acceptance Suite",
+    description="Full-Scope Quality Assurance, Testing Verification and Wall Thickness Calculation Engine",
     version=__version__
 )
 
@@ -46,7 +54,7 @@ templates = Jinja2Templates(directory=TEMPLATES_DIR)
 
 
 def _fmt_number(v, dec=2):
-    """None/string-safe number formatting for templates."""
+    """Jinja template filter to format floats safely."""
     if v is None or v == "":
         return "—"
     if isinstance(v, (int, float)):
@@ -57,24 +65,33 @@ def _fmt_number(v, dec=2):
 templates.env.filters['fmt'] = _fmt_number
 
 def _calculate_pipes(pipes) -> list:
-    """Runs the QA/QC engine over a list of PipeInput models or dicts."""
+    """Runs the QA/QC engine over a list of PipeInput models or dicts with per-pipe error isolation."""
     results = []
     for p in pipes:
-        pd = p.model_dump() if isinstance(p, PipeInput) else p
-        res = PipeQAQCEngine.calculate_pipe_qc(
-            diameter_inch=pd.get("diameter_inch", "48\""),
-            diameter_mm=pd.get("diameter_mm"),
-            wall_thickness_mm=pd.get("wall_thickness_mm"),
-            design_factor_str=pd.get("design_factor_str", "0.72 (Hat)"),
-            material_grade=pd.get("material_grade", "X65"),
-            manufacturing_process=pd.get("manufacturing_process", "SAWH"),
-            standard_type=pd.get("standard_type", "BOTAŞ"),
-            design_pressure_bar=pd.get("design_pressure_bar", 75.0),
-            psl_level=pd.get("psl_level", "PSL2"),
-            delivery_condition=pd.get("delivery_condition", "M")
-        )
-        res['id'] = pd.get('id', '')
-        results.append(res)
+        try:
+            pd = p.model_dump() if isinstance(p, PipeInput) else p
+            res = PipeQAQCEngine.calculate_pipe_qc(
+                diameter_inch=pd.get("diameter_inch", "48\""),
+                diameter_mm=pd.get("diameter_mm"),
+                wall_thickness_mm=pd.get("wall_thickness_mm"),
+                design_factor_str=pd.get("design_factor_str", "0.72 (Hat)"),
+                material_grade=pd.get("material_grade", "X65"),
+                manufacturing_process=pd.get("manufacturing_process", "SAWH"),
+                standard_type=pd.get("standard_type", "BOTAŞ"),
+                design_pressure_bar=pd.get("design_pressure_bar", 75.0),
+                psl_level=pd.get("psl_level", "PSL2"),
+                delivery_condition=pd.get("delivery_condition", "M")
+            )
+            res['id'] = pd.get('id', '')
+            results.append(res)
+        except Exception as e_pipe:
+            logger.error(f"Error calculating pipe {p}: {e_pipe}")
+            p_id = getattr(p, 'id', '') if hasattr(p, 'id') else (p.get('id', '') if isinstance(p, dict) else '')
+            results.append({
+                'id': p_id,
+                'error': str(e_pipe),
+                'input_summary': {'error': True, 'message': str(e_pipe)}
+            })
     return results
 
 @app.get("/", response_class=HTMLResponse)
@@ -109,45 +126,33 @@ async def calculate_matrix(data: CalculateRequest = Body(...)):
     return JSONResponse(content={"status": "success", "data": results})
 
 @app.post("/api/verify")
-async def verify_pipe(data: Dict[str, Any] = Body(...)):
+async def verify_pipe(data: VerificationRequest = Body(...)):
     """
     Verifies actual inspection test data against API 5L and BOTAŞ specifications (PASS/FAIL).
     """
-    pipe_config = data.get("pipe_config", {})
-    actual_data = data.get("actual_data", {})
-    
-    result = PipeVerificationEngine.verify_pipe_test_results(pipe_config, actual_data)
+    result = PipeVerificationEngine.verify_pipe_test_results(data.pipe_config, data.actual_data)
     return JSONResponse(content={"status": "success", "verification": result})
 
 @app.post("/api/wall-thickness")
-async def calculate_wall_thickness(data: Dict[str, Any] = Body(...)):
+async def calculate_wall_thickness(data: WallThicknessRequest = Body(...)):
     """
     Calculates required pipe wall thickness across BOTAŞ, ASME B31.8/B31.4, or ASME B31.3
     and selects standard nominal thickness from ASME B36.10M or ASME B36.19M.
     """
-    manual_val = data.get("manual_negative_tolerance_percent")
-    if manual_val is not None and str(manual_val).strip() != "":
-        try:
-            manual_tol = float(manual_val)
-        except (ValueError, TypeError):
-            manual_tol = None
-    else:
-        manual_tol = None
-
     res = WallThicknessEngine.calculate_wall_thickness(
-        diameter_inch=data.get("diameter_inch", '4"'),
-        material_grade=data.get("material_grade", "X65"),
-        design_pressure_bar=float(data.get("design_pressure_bar", 75.0)),
-        design_factor_f=float(data.get("design_factor_f", 0.72)),
-        longitudinal_joint_factor_e=float(data.get("longitudinal_joint_factor_e", 1.0)),
-        temperature_derating_factor_t=float(data.get("temperature_derating_factor_t", 1.0)),
-        corrosion_allowance_mm=float(data.get("corrosion_allowance_mm", 0.0)),
-        location_type=data.get("location_type", "Pipeline"),
-        standard_code=data.get("standard_code", "BOTAŞ"),
-        manufacturing_process=data.get("manufacturing_process", "SAWH"),
-        apply_negative_tolerance=bool(data.get("apply_negative_tolerance", True)),
-        manual_negative_tolerance_percent=manual_tol,
-        psl_level=data.get("psl_level", "PSL2")
+        diameter_inch=data.diameter_inch,
+        material_grade=data.material_grade,
+        design_pressure_bar=float(data.design_pressure_bar),
+        design_factor_f=float(data.design_factor_f),
+        longitudinal_joint_factor_e=float(data.longitudinal_joint_factor_e),
+        temperature_derating_factor_t=float(data.temperature_derating_factor_t),
+        corrosion_allowance_mm=float(data.corrosion_allowance_mm),
+        location_type=data.location_type,
+        standard_code=data.standard_code,
+        manufacturing_process=data.manufacturing_process,
+        apply_negative_tolerance=data.apply_negative_tolerance,
+        manual_negative_tolerance_percent=data.manual_negative_tolerance_percent,
+        psl_level=data.psl_level
     )
     return JSONResponse(content={"status": "success", "data": res})
 
@@ -185,7 +190,10 @@ async def lookup_botas_specs(diameter_inch: str, factor: str = "0.72 (Hat)", pre
             break
 
     if not pipe_size:
-        return JSONResponse(content={"status": "not_found", "material": "X65", "thickness": 14.30})
+        return JSONResponse(
+            status_code=404,
+            content={"status": "not_found", "message": f"Boru çapı '{diameter_inch}' standart BOTAŞ tablosunda bulunamadı."}
+        )
 
     factor_key = normalize_design_factor(factor)
     if factor_key in ("0.50_ist1", "0.50_ist2", "0.50_ist_75bar", "0.50_ist_82_5bar"):
@@ -226,14 +234,16 @@ async def export_excel(data: ExportRequest = Body(...)):
     """
     Generates and streams formatted Excel spreadsheet.
     """
+    import re
     project_info = data.project_info
     lang = data.lang
 
     pipes_calculated = _calculate_pipes(data.pipes)
-
     excel_file = ExcelExporter.export_matrix_to_excel(project_info, pipes_calculated, lang=lang)
     
-    filename = f"Boru_Kabul_Raporu_{project_info.get('project_no', 'API5L')}.xlsx"
+    raw_no = str(project_info.get('project_no', 'API5L')).strip()
+    safe_no = re.sub(r'[^a-zA-Z0-9_\-\.]', '_', raw_no)
+    filename = f"Boru_Kabul_Raporu_{safe_no}.xlsx"
     headers = {
         'Content-Disposition': f'attachment; filename="{filename}"'
     }
@@ -244,23 +254,25 @@ async def export_excel(data: ExportRequest = Body(...)):
     )
 
 @app.post("/api/sawh-strip")
-async def sawh_strip(data: Dict[str, Any] = Body(...)):
+async def sawh_strip(data: SawhStripRequest = Body(...)):
     """
     SAWH spiral strip width & helix angle calculation.
-    Body: {diameter_mm, wall_thickness_mm?, strip_width_mm? | helix_angle_deg?}.
-    Returns B, alpha, pitch, practical ranges and validity status.
     """
     from core.sawh_engine import compute_sawh_calc
 
-    def _opt(key):
-        v = data.get(key)
-        return float(v) if v not in (None, "") else None
+    d_mm = data.diameter_mm
+    if d_mm is None and data.diameter_inch:
+        from core.database import get_pipe_size_by_inch
+        ps = get_pipe_size_by_inch(data.diameter_inch)
+        d_mm = ps['mm'] if ps else 1219.0
+    elif d_mm is None:
+        d_mm = 1219.0
 
     res = compute_sawh_calc(
-        float(data.get("diameter_mm") or 1219.0),
-        _opt("wall_thickness_mm") or 0.0,
-        strip_width_mm=_opt("strip_width_mm"),
-        helix_angle_deg=_opt("helix_angle_deg"),
+        float(d_mm),
+        float(data.wall_thickness_mm or 0.0),
+        strip_width_mm=float(data.strip_width_mm) if data.strip_width_mm is not None else None,
+        helix_angle_deg=float(data.helix_angle_deg) if data.helix_angle_deg is not None else None,
     )
     return JSONResponse(content={"status": "success", "data": res})
 
@@ -270,7 +282,7 @@ async def api_get_test_plan(data: Dict[str, Any] = Body(...)):
     Returns the API 5L PSL2 inspection & test plan (sampling frequency,
     location and specimen dimensions) for a given pipe configuration.
     """
-    pipe_config = data.get("pipe_config", {})
+    pipe_config = data.get("pipe_config", data)
     plan = compute_test_plan(pipe_config, psl_level=pipe_config.get("psl_level", "PSL2"))
     return JSONResponse(content={"status": "success", "test_plan": plan})
 

@@ -585,6 +585,34 @@ class ITPAuditEngine:
                 issue_type = "CRITERIA_VIOLATION"
                 remarks.append("🔴 KAYNAK YÜKSEKLİK LİMİTİ: BOTAŞ Çizelge 4 uyarınca iç/dış kaynak dikiş yüksekliği azami 2.625 mm olabilir!")
 
+        # 2o. Guided Bend Test
+        elif test_key == "guided_bend":
+            if any(k in up_crit_lower for k in ("çatlak serbest", "crack permitted", "> 6.4 mm", ">6.4 mm", "> 7 mm")):
+                status = "NON_COMPLIANT"
+                issue_type = "CRITERIA_VIOLATION"
+                remarks.append("🔴 KILAVUZLU BÜKME KUSURU: API 5L Madde 9.10.3 uyarınca hiçbir yönde >3.2 mm çatlak/kusur kabul edilemez!")
+
+        # 2p. Flattening Test
+        elif test_key == "flattening":
+            if any(k in up_crit_lower for k in ("laminasyon serbest", "çatlak serbest", "crack permitted")):
+                status = "NON_COMPLIANT"
+                issue_type = "CRITERIA_VIOLATION"
+                remarks.append("🔴 YASSILTMA KUSURU: API 5L Madde 9.10.2 uyarınca dikiş açılması veya gövde çatlağı kesinlikle yasaktır!")
+
+        # 2q. Visual & Surface Preparation
+        elif test_key == "visual_surface":
+            if any(k in up_crit_lower for k in ("> %15", ">%15", "> 15%", "0.20t", "0.25t")):
+                status = "NON_COMPLIANT"
+                issue_type = "CRITERIA_VIOLATION"
+                remarks.append("🔴 YÜZEY KUSUR DERİNLİĞİ: API 5L Madde 9.10.7 uyarınca kusur derinliği nominal et kalınlığının %12.5'ini aşamaz!")
+
+        # 2r. Pipe Ends & Bevel Geometry
+        elif test_key == "dimensional_length_straightness_bevel":
+            if any(k in up_crit_lower for k in ("45°", "45 deg", "50°", "0.4% l", "0.5% l")):
+                status = "NON_COMPLIANT"
+                issue_type = "CRITERIA_VIOLATION"
+                remarks.append("🔴 KAYNAK AĞZI VEYA DOĞRUSALLIK SAPMASI: Kaynak ağzı açısı 30° (+5°/-0°) ve boru toplam doğrusallığı max %0.2L olmalıdır!")
+
         # Final remarks formatting
         if not remarks:
             if is_botas:

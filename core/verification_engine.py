@@ -381,8 +381,8 @@ class PipeVerificationEngine:
 
         if 'hardness_actual' in actual_data and actual_data['hardness_actual'] is not None:
             hard_act = float(actual_data['hardness_actual'])
-            # Standard limit is 260 HV10 for PSL2 sour or 280-300 HV10
-            hard_lim = 280.0
+            is_sour = "SOUR" in str(pipe_config.get("standard_type", "")).upper() or "SOUR" in str(pipe_config.get("service_type", "")).upper()
+            hard_lim = 250.0 if is_sour else 300.0
             passed = hard_act <= hard_lim
             add_check("Sertlik Testi (HV10)", "Tokluk ve Testler", f"{hard_act:.2f} HV10", f"Max {hard_lim:.2f} HV10", passed)
 
@@ -408,8 +408,8 @@ class PipeVerificationEngine:
                 # BOTAŞ: min = max - 2 bar (Excel 'Boru Seçim-Kontrol Aracı').
                 h_min = hydro_lim['hydro_test_min_bar']
                 h_max = hydro_lim['hydro_test_max_bar']
-            # Test pressure must be between min and max
-            passed = (h_act >= h_min and h_act <= (h_max + 10.0))
+            # Test pressure must be within gauge-tolerance bounds of min and max
+            passed = (h_act >= (h_min - 0.5) and h_act <= (h_max + 1.0))
             add_check("Fabrika Hidrostatik Basıncı", "Hidrostatik Test", f"{h_act:.2f} Bar", f"{h_min:.2f} - {h_max:.2f} Bar", passed)
 
         # Summary
@@ -418,9 +418,19 @@ class PipeVerificationEngine:
         total_applicable = len(applicable_parameter_keys(limits))
         unchecked_count = max(0, total_applicable - len(checks))
 
+        if len(checks) == 0:
+            overall_status = 'NO_DATA'
+            overall_badge = 'VERİ BEKLENİYOR (NO DATA)'
+        elif is_all_passed:
+            overall_status = 'ACCEPTED'
+            overall_badge = 'UYGUN (PASS)'
+        else:
+            overall_status = 'REJECTED'
+            overall_badge = 'RED (FAIL)'
+
         return {
-            'overall_status': 'ACCEPTED' if is_all_passed else 'REJECTED',
-            'overall_badge': 'UYGUN (PASS)' if is_all_passed else 'RED (FAIL)',
+            'overall_status': overall_status,
+            'overall_badge': overall_badge,
             'checks_count': len(checks),
             'passed_count': passed_count,
             'failed_count': failed_count,

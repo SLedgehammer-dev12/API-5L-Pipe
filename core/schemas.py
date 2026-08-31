@@ -114,3 +114,56 @@ class ReportRequest(BaseModel):
     pipes: List[PipeInput] = Field(default_factory=list)
     lang: str = "tr"
     verification: Optional[dict] = None
+
+
+class VerificationRequest(BaseModel):
+    model_config = ConfigDict(extra="allow")
+    pipe_config: dict = Field(default_factory=dict)
+    actual_data: dict = Field(default_factory=dict)
+
+
+class WallThicknessRequest(BaseModel):
+    model_config = ConfigDict(extra="allow")
+    diameter_inch: str = '4"'
+    material_grade: str = "X65"
+    design_pressure_bar: float = 75.0
+    design_factor_f: float = 0.72
+    longitudinal_joint_factor_e: float = 1.0
+    temperature_derating_factor_t: float = 1.0
+    corrosion_allowance_mm: float = 0.0
+    location_type: str = "Pipeline"
+    standard_code: str = "BOTAŞ"
+    manufacturing_process: str = "SAWH"
+    apply_negative_tolerance: bool = True
+    manual_negative_tolerance_percent: Optional[float] = None
+    psl_level: str = "PSL2"
+
+
+class ITPManualAuditRequest(BaseModel):
+    model_config = ConfigDict(extra="allow")
+    pipe_config: dict = Field(default_factory=dict)
+    uploaded_items: List[dict] = Field(default_factory=list)
+
+
+class TestPlanRequest(BaseModel):
+    model_config = ConfigDict(extra="allow")
+    diameter_inch: str = '48"'
+    diameter_mm: Optional[float] = None
+    wall_thickness_mm: Optional[float] = 14.30
+    material_grade: str = "X65"
+    manufacturing_process: str = "SAWH"
+    standard_type: str = "BOTAŞ"
+    psl_level: str = "PSL2"
+    design_factor_str: str = "0.72 (Hat)"
+    design_pressure_bar: float = 75.0
+    delivery_condition: str = "M"
+
+
+class SawhStripRequest(BaseModel):
+    model_config = ConfigDict(extra="allow")
+    diameter_mm: Optional[float] = None
+    diameter_inch: Optional[str] = None
+    strip_width_mm: Optional[float] = None
+    helix_angle_deg: Optional[float] = None
+    wall_thickness_mm: Optional[float] = 0.0
+

@@ -28,8 +28,14 @@ DEFAULT_HELIX_ANGLE = 55.0
 
 
 def mean_diameter(d_mm: float, t_mm: float) -> float:
-    """D_mid = D - t (mean diameter)."""
-    return float(d_mm) - float(t_mm)
+    """D_mid = D - t (mean diameter). Validates physical pipe geometry."""
+    d = float(d_mm)
+    t = float(t_mm) if t_mm is not None else 0.0
+    if d <= 0:
+        raise ValueError("Boru dış çapı (D) sıfırdan büyük pozitif bir değer olmalıdır.")
+    if t >= d and t > 0:
+        raise ValueError(f"Et kalınlığı (t={t:.2f} mm) boru dış çapına (D={d:.2f} mm) eşit veya büyük olamaz.")
+    return max(0.001, d - t)
 
 
 def compute_strip_width(d_mm: float, helix_angle_deg: float, t_mm: float = 0.0) -> float:

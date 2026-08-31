@@ -132,8 +132,11 @@ async def check_for_updates() -> Dict[str, Any]:
             elif resp.status_code == 404:
                 result["status"] = "no_releases"
                 result["message"] = "Henüz yayınlanmış bir sürüm bulunamadı."
-            else:
+            elif resp.status_code in (403, 429):
                 result["status"] = "rate_limited"
+                result["message"] = "GitHub API istek limiti aşıldı. Lütfen daha sonra tekrar deneyiniz."
+            else:
+                result["status"] = "server_error"
                 result["message"] = f"GitHub API yanıt vermedi (HTTP {resp.status_code})."
     except Exception as e:
         # Detect a TLS certificate-verification failure anywhere in the exception chain

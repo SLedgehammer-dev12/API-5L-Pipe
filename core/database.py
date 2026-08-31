@@ -9,16 +9,16 @@ API_5L_SMYS_TABLE = {
         "grade": "GRADE A",
         "iso_grade": "L210",
         "smys_psi": 30500.0,
-        "yield_tensile_max": 0.9,
-        "cvn_material_j": 0.0,
-        "cvn_weld_j": 0.0,
+        "yield_tensile_max": 0.93,
+        "cvn_material_j": 27.0,
+        "cvn_weld_j": 27.0,
         "yield_min_mpa": 210.0,
-        "yield_max_psi": 0.0,
-        "yield_max_mpa": 0.0,
-        "tensile_min_psi": 0.0,
-        "tensile_min_mpa": 0.0,
-        "tensile_max_psi": 0.0,
-        "tensile_max_mpa": 0.0,
+        "yield_max_psi": 47100.0,
+        "yield_max_mpa": 325.0,
+        "tensile_min_psi": 48600.0,
+        "tensile_min_mpa": 335.0,
+        "tensile_max_psi": 83400.0,
+        "tensile_max_mpa": 575.0,
         "strain_value": 0.1
     },
     "GRADE B": {
@@ -2861,10 +2861,15 @@ def is_stainless_grade(grade: str) -> bool:
 # Helper functions
 def get_smys_info(grade: str, psl_level: str = "PSL2"):
     g = grade.upper().strip()
-    if psl_level and "PSL1" in str(psl_level).upper():
-        info = dict(API_5L_PSL1_SMYS_TABLE.get(g, API_5L_PSL1_SMYS_TABLE['GRADE B']))
+    is_psl1 = psl_level and "PSL1" in str(psl_level).upper()
+    table = API_5L_PSL1_SMYS_TABLE if is_psl1 else API_5L_SMYS_TABLE
+    if g in table:
+        info = dict(table[g])
     else:
-        info = dict(API_5L_SMYS_TABLE.get(g, API_5L_SMYS_TABLE['X65']))
+        default_grade = 'GRADE B' if is_psl1 else 'X65'
+        info = dict(table[default_grade])
+        info['is_unrecognized_fallback'] = True
+        info['requested_grade'] = grade
     info.setdefault('smys_psi', info.get('yield_min_psi', 0.0))
     return info
 
@@ -3165,7 +3170,7 @@ def get_pipe_size_by_inch(inch: str):
         pass
     return None
 
-def get_pipe_size_by_mm(mm: float):
+def get_pipe_size_by_mm(mm: float, max_diff: float = 15.0):
     best_match = None
     min_diff = 999999
     for p in PIPE_SIZES_TABLE:
@@ -3173,6 +3178,8 @@ def get_pipe_size_by_mm(mm: float):
         if diff < min_diff:
             min_diff = diff
             best_match = p
+    if min_diff > max_diff:
+        return None
     return best_match
 
 def get_botas_all_factors_for_diameter(diameter_inch: str):

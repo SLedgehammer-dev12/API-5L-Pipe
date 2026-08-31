@@ -4,7 +4,7 @@
  */
 class ProjectStorage {
     static STORAGE_KEY = "api5l_active_project";
-    static CURRENT_SCHEMA_VERSION = "1.6.2";
+    static CURRENT_SCHEMA_VERSION = "2.0.0";
 
     static saveToLocalStorage(projectData) {
         try {
@@ -66,7 +66,7 @@ class ProjectStorage {
 
     /**
      * Backward-compatibility migration logic.
-     * Safely upgrades older project formats (v1.0.0, v1.0.1, v1.0.2) to the latest schema.
+     * Safely upgrades older project formats (v1.0.0, v1.6.2) to the latest schema (v2.0.0).
      */
     static migrateProjectSchema(data) {
         if (!data || typeof data !== 'object') {
@@ -101,11 +101,15 @@ class ProjectStorage {
                 diameter_inch: p.diameter_inch || "48\"",
                 diameter_mm: typeof p.diameter_mm === 'number' ? p.diameter_mm : 1219.0,
                 wall_thickness_mm: typeof p.wall_thickness_mm === 'number' ? p.wall_thickness_mm : 14.30,
-                design_factor_str: p.design_factor_str || "0,72 (Hat)",
+                design_factor_str: p.design_factor_str || "0.72 (Hat)",
                 material_grade: p.material_grade || "X65",
                 manufacturing_process: p.manufacturing_process || (p.diameter_mm >= 406.4 ? "SAWH" : (p.diameter_mm >= 114.3 ? "ERW HFW" : "SMLS")),
                 standard_type: p.standard_type || "BOTAŞ",
-                design_pressure_bar: typeof p.design_pressure_bar === 'number' ? p.design_pressure_bar : 75.0
+                design_pressure_bar: typeof p.design_pressure_bar === 'number' ? p.design_pressure_bar : 75.0,
+                psl_level: p.psl_level || "PSL2",
+                delivery_condition: p.delivery_condition || "M",
+                heat_number: p.heat_number || "",
+                latest_itp_audit: p.latest_itp_audit || null
             };
         });
 

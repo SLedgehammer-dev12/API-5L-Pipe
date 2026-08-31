@@ -66,11 +66,20 @@ class UnlimitedOCREngine:
         # Resolve API endpoint from parameter or environment variable
         endpoint = api_endpoint or os.getenv("UNLIMITED_OCR_API_URL")
 
-        # 1. Attempt PDF Native Table Extraction and Text Extraction
+        # 1. Attempt PDF Native Table Extraction or Direct Image OCR
         if filename_lower.endswith(".pdf"):
             extracted_text, raw_tables = cls._extract_pdf_layers(file_bytes)
             if raw_tables:
                 tables_found.extend(raw_tables)
+        elif any(filename_lower.endswith(ext) for ext in (".png", ".jpg", ".jpeg", ".bmp", ".tiff")):
+            try:
+                import io
+                from PIL import Image
+                import pytesseract
+                img = Image.open(io.BytesIO(file_bytes))
+                extracted_text = pytesseract.image_to_string(img, lang="tur+eng")
+            except Exception as e_img:
+                logger.debug(f"Direct image OCR failed: {e_img}")
 
         # 2. If Unlimited-OCR remote/local worker endpoint is provided, query it
         if endpoint and not tables_found:

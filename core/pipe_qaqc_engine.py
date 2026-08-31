@@ -310,7 +310,7 @@ class PipeQAQCEngine:
                 t_min = round(t - 0.15, 2)
         elif "SMLS" in proc_upper:
             # API 5L Table 11 — SMLS: -0.5 / -0.125t / -3.0 (or -0.1t)
-            if t < 4.01:
+            if t <= 4.0:
                 t_min = round(t - 0.5, 2)
             elif t < 25.0:
                 t_min = round(t - 0.125 * t, 2)
@@ -318,7 +318,7 @@ class PipeQAQCEngine:
                 t_min = round(t - max(3.0, 0.1 * t), 2)
         else:
             # API 5L Table 11 — welded: -0.5 / -0.1t / -1.5
-            if t < 5.01:
+            if t <= 5.0:
                 t_min = round(t - 0.5, 2)
             elif t < 15.0:
                 t_min = round(t - 0.10 * t, 2)
@@ -327,7 +327,7 @@ class PipeQAQCEngine:
 
         # Positive tolerance (same for BOTAŞ and API 5L)
         if "SMLS" in proc_upper:
-            if t < 4.01:
+            if t <= 4.0:
                 t_max = round(t + 0.6, 2)
             elif t < 25.0:
                 t_max = round(t * 1.15, 2)
@@ -335,7 +335,7 @@ class PipeQAQCEngine:
                 # Table 11: +3.7 or +0.1t, whichever is the greater
                 t_max = round(t + max(3.7, 0.1 * t), 2)
         else:
-            if t < 5.01:
+            if t <= 5.0:
                 t_max = round(t + 0.5, 2)
             elif t < 15.0:
                 t_max = round(t * 1.10, 2)
@@ -375,33 +375,35 @@ class PipeQAQCEngine:
         else:
             p_hydro_min = api_std_test_press
 
-        # 7. Diameter & Circumference Tolerances (API 5L Table 10 & BOTAŞ Table 4)
-        if is_botas_mode and pipe_size:
+        # 7. Diameter & Circumference Tolerances (mm)
+        api_tol = None
+        if not is_botas_mode:
+            api_tol = compute_api5l_tolerances(d_mm, t, manufacturing_process)
+
+        if is_botas_mode and pipe_size and 'diameter_tol_botas' in pipe_size:
             d_end_max = pipe_size['diameter_tol_botas']['end_max']
             d_end_min = pipe_size['diameter_tol_botas']['end_min']
             d_body_max = pipe_size['diameter_tol_botas']['body_max']
             d_body_min = pipe_size['diameter_tol_botas']['body_min']
-        elif not is_botas_mode:
-            tol = compute_api5l_tolerances(d_mm, t, manufacturing_process)
-            d_end_max = tol['end_max']
-            d_end_min = tol['end_min']
-            d_body_max = tol['body_max']
-            d_body_min = tol['body_min']
+        elif not is_botas_mode and api_tol:
+            d_end_max = api_tol['end_max']
+            d_end_min = api_tol['end_min']
+            d_body_max = api_tol['body_max']
+            d_body_min = api_tol['body_min']
         else:
             d_end_max = d_mm + 1.6
             d_end_min = d_mm - 1.6
             d_body_max = d_mm + 4.0
             d_body_min = d_mm - 4.0
 
-        circ_end_max = round(d_end_max * math.pi, 2)
-        circ_end_min = round(d_end_min * math.pi, 2)
-        circ_body_max = round(d_body_max * math.pi, 2)
-        circ_body_min = round(d_body_min * math.pi, 2)
+        circ_end_max = round(d_end_max * math.pi, 2) if isinstance(d_end_max, (int, float)) else d_end_max
+        circ_end_min = round(d_end_min * math.pi, 2) if isinstance(d_end_min, (int, float)) else d_end_min
+        circ_body_max = round(d_body_max * math.pi, 2) if isinstance(d_body_max, (int, float)) else d_body_max
+        circ_body_min = round(d_body_min * math.pi, 2) if isinstance(d_body_min, (int, float)) else d_body_min
 
-        if not is_botas_mode:
-            tol = compute_api5l_tolerances(d_mm, t, manufacturing_process)
-            ovality_end = tol['ovality_end']
-            ovality_body = tol['ovality_body']
+        if not is_botas_mode and api_tol:
+            ovality_end = api_tol['ovality_end']
+            ovality_body = api_tol['ovality_body']
         else:
             ovality_end = pipe_size['ovality']['end'] if pipe_size else "Anlaşmaya bağlıdır."
             ovality_body = pipe_size['ovality']['body'] if pipe_size else "18.3"
@@ -663,5 +665,13 @@ class PipeQAQCEngine:
                 'alternative_design_pressure_bar': round(alt_design_press, 2) if isinstance(alt_design_press, (int, float)) else alt_design_press
             },
             'explanations': STANDARD_EXPLANATIONS,
-            'edition_notes': build_edition_notes({})
+            'edition_notes': build_edition_notes({
+                'material_grade': material_grade,
+                'diameter_mm': d_mm,
+                'wall_thickness_mm': t,
+                'psl_level': psl_level,
+                'manufacturing_process': manufacturing_process,
+                'delivery_condition': delivery_condition,
+                'standard_type': standard_type
+            })
         }
