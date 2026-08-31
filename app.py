@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import sys
 from typing import Any, Dict, Optional
@@ -20,6 +21,8 @@ from core.unlimited_ocr_engine import UnlimitedOCREngine
 from core.verification_engine import PipeVerificationEngine
 from core.wall_thickness_engine import WallThicknessEngine
 from version import __app_name__, __version__
+
+logger = logging.getLogger(__name__)
 
 # Resolve base directory (compatible with PyInstaller one-file and normal runtime)
 BASE_DIR = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
@@ -303,6 +306,9 @@ async def generate_html_report(request: Request, data: ReportRequest = Body(...)
         }
     )
 
+MAX_ITP_UPLOAD_SIZE = 25 * 1024 * 1024  # 25 MB max limit (DoS protection)
+ALLOWED_ITP_EXTENSIONS = (".pdf", ".png", ".jpg", ".jpeg")
+
 @app.post("/api/itp/upload-and-audit")
 async def upload_and_audit_itp(
     file: Optional[UploadFile] = File(None),
@@ -310,8 +316,8 @@ async def upload_and_audit_itp(
     use_demo: bool = Form(False)
 ):
     """
-    Uploads an ITP document (PDF / image), runs Unlimited-OCR parsing,
-    and audits against API 5L 47th Ed. / BOTAŞ master specification.
+    Uploads an ITP document (PDF / image), validates size & MIME type,
+    runs Unlimited-OCR parsing, and audits against API 5L 47th Ed. / BOTAŞ master specification.
     """
     try:
         pipe_config = json.loads(pipe_config_json) if pipe_config_json else {}
@@ -334,19 +340,47 @@ async def upload_and_audit_itp(
         audit_res = ITPAuditEngine.audit_itp(extracted, pipe_config)
         return JSONResponse(content={
             "status": "success",
+            "is_fallback": False,
             "source": "Demo ITP Sample Data",
             "extracted_items": extracted,
             "audit_result": audit_res
         })
 
+    filename = file.filename or "itp_doc.pdf"
+    if not any(filename.lower().endswith(ext) for ext in ALLOWED_ITP_EXTENSIONS):
+        return JSONResponse(
+            status_code=400,
+            content={"status": "error", "message": "Geçersiz dosya formatı. Yalnızca PDF veya görsel (.png, .jpg) yükleyebilirsiniz."}
+        )
+
     content_bytes = await file.read()
-    parse_result = UnlimitedOCREngine.parse_pdf_or_image(content_bytes, file.filename or "itp_doc.pdf")
+    if len(content_bytes) > MAX_ITP_UPLOAD_SIZE:
+        return JSONResponse(
+            status_code=400,
+            content={"status": "error", "message": f"Dosya boyutu çok büyük (Max: {MAX_ITP_UPLOAD_SIZE // (1024*1024)} MB)."}
+        )
+
+    parse_result = UnlimitedOCREngine.parse_pdf_or_image(content_bytes, filename)
     extracted_items = parse_result.get("items", [])
     audit_res = ITPAuditEngine.audit_itp(extracted_items, pipe_config)
 
+    # Persist in current project state if available
+    try:
+        current_proj = ProjectManager.get_current_project()
+        if current_proj:
+            current_proj["latest_itp_audit"] = {
+                "source": filename,
+                "engine": parse_result.get("engine", "Unlimited-OCR"),
+                "audit_result": audit_res
+            }
+    except Exception as e:
+        logger.debug(f"Project state save debug: {e}")
+
     return JSONResponse(content={
-        "status": "success",
-        "source": file.filename,
+        "status": parse_result.get("status", "success"),
+        "is_fallback": parse_result.get("is_fallback", False),
+        "warning_message": parse_result.get("warning_message"),
+        "source": filename,
         "engine": parse_result.get("engine", "Unlimited-OCR"),
         "extracted_items": extracted_items,
         "audit_result": audit_res

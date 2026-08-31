@@ -1685,11 +1685,16 @@ async function startITPAudit(file = null, useDemo = false) {
         });
         const res = await resp.json();
 
-        if (res.status === "success") {
+        if (res.status === "success" || res.status === "warning") {
             currentITPAuditResult = res.audit_result;
             renderITPAuditResult(res.audit_result);
-            if (statusText) statusText.innerText = `✓ Denetim tamamlandı (${res.source || "ITP"}).`;
-            showToast("ITP dokümanı başarıyla okundu ve denetlendi!", "success");
+            if (res.is_fallback) {
+                if (statusText) statusText.innerHTML = `<span class="text-amber-600 font-semibold">${res.warning_message}</span>`;
+                showToast(res.warning_message || "Referans ITP şablonu yüklendi.", "warning");
+            } else {
+                if (statusText) statusText.innerText = `✓ Denetim tamamlandı (${res.source || "ITP"}).`;
+                showToast("ITP dokümanı başarıyla okundu ve denetlendi!", "success");
+            }
         } else {
             throw new Error(res.message || "Denetim başarısız oldu.");
         }

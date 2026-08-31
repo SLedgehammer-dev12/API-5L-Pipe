@@ -53,39 +53,50 @@ class UnlimitedOCREngine:
     ) -> Dict[str, Any]:
         """
         Parses a PDF or image file into structured ITP records.
-        Uses Unlimited-OCR worker/API if configured, or robust embedded document parser.
+        Uses native PyMuPDF find_tables() table extraction, Unlimited-OCR worker/API if configured,
+        or semantic pattern parsing with strict column isolation.
         """
+        import os
         filename_lower = filename.lower()
         extracted_text = ""
         tables_found: List[Dict[str, Any]] = []
+        is_fallback = False
+        warning_msg = None
 
-        # 1. Attempt PDF Text Extraction (for digital text layers)
+        # Resolve API endpoint from parameter or environment variable
+        endpoint = api_endpoint or os.getenv("UNLIMITED_OCR_API_URL")
+
+        # 1. Attempt PDF Native Table Extraction and Text Extraction
         if filename_lower.endswith(".pdf"):
             extracted_text, raw_tables = cls._extract_pdf_layers(file_bytes)
             if raw_tables:
                 tables_found.extend(raw_tables)
 
         # 2. If Unlimited-OCR remote/local worker endpoint is provided, query it
-        if api_endpoint:
+        if endpoint and not tables_found:
             try:
-                ocr_res = cls._call_unlimited_ocr_api(file_bytes, filename, api_endpoint)
-                if ocr_res and "items" in ocr_res:
+                ocr_res = cls._call_unlimited_ocr_api(file_bytes, filename, endpoint)
+                if ocr_res and "items" in ocr_res and ocr_res["items"]:
                     return ocr_res
             except Exception as e:
                 logger.warning(f"Unlimited-OCR API call failed, falling back to embedded parser: {e}")
 
-        # 3. Structure extracted text into standardized ITP rows
-        if not tables_found and extracted_text:
+        # 3. Structure extracted text into standardized ITP rows if native tables were not detected
+        if not tables_found and extracted_text.strip():
             tables_found = cls._parse_text_into_itp_rows(extracted_text)
 
-        # 4. If nothing could be extracted from a blank/corrupted file, provide helpful fallback
+        # 4. If nothing could be extracted from a blank/scanned image file, provide reference fallback with explicit warning
         if not tables_found:
+            is_fallback = True
+            warning_msg = "⚠️ DİKKAT: Yüklenen PDF taranmış/vektörsüz görsel formatında olduğu için doğrudan dijital tablo çıkarılamadı. Sistem referans ITP şablonunu görüntülemektedir."
             tables_found = cls._heuristic_extract_fallback(extracted_text or filename)
 
         return {
-            "status": "success",
+            "status": "warning" if is_fallback else "success",
+            "is_fallback": is_fallback,
+            "warning_message": warning_msg,
             "filename": filename,
-            "engine": "Unlimited-OCR Hybrid Document Parser",
+            "engine": "Unlimited-OCR Table & Multi-Column Parser (PyMuPDF 1.23+)",
             "total_items_found": len(tables_found),
             "raw_text_snippet": extracted_text[:500] if extracted_text else "",
             "items": tables_found
@@ -93,7 +104,10 @@ class UnlimitedOCREngine:
 
     @classmethod
     def _extract_pdf_layers(cls, file_bytes: bytes) -> tuple[str, List[Dict[str, Any]]]:
-        """Extracts text lines and tables from digital PDF using PyMuPDF (fitz) or pypdf."""
+        """
+        Extracts structured tables and text layers from digital PDF using PyMuPDF (fitz) find_tables().
+        Ensures strict column isolation without interleaving lines from adjacent columns.
+        """
         text_content = ""
         extracted_rows: List[Dict[str, Any]] = []
 
@@ -102,6 +116,21 @@ class UnlimitedOCREngine:
             doc = fitz.open(stream=file_bytes, filetype="pdf")
             for page in doc:
                 text_content += (page.get_text() or "") + "\n"
+
+                # Native PyMuPDF table detection (available in PyMuPDF 1.23.0+)
+                try:
+                    tabs = page.find_tables()
+                    if tabs and tabs.tables:
+                        for tab in tabs.tables:
+                            raw_df = tab.extract()
+                            if raw_df and len(raw_df) > 1:
+                                parsed = cls._parse_table_matrix_into_itp(raw_df)
+                                for item in parsed:
+                                    if not any(it.get("test_name") == item["test_name"] for it in extracted_rows):
+                                        extracted_rows.append(item)
+                except Exception as e_tab:
+                    logger.debug(f"fitz find_tables error on page: {e_tab}")
+
         except Exception as e_fitz:
             try:
                 import io
@@ -113,6 +142,82 @@ class UnlimitedOCREngine:
                 logger.debug(f"PDF text extraction exception: {e_fitz} / {e_pypdf}")
 
         return text_content, extracted_rows
+
+    @classmethod
+    def _parse_table_matrix_into_itp(cls, table_data: List[List[Optional[str]]]) -> List[Dict[str, Any]]:
+        """
+        Dynamically analyzes table headers and extracts structured ITP rows with column isolation.
+        """
+        if not table_data or len(table_data) < 2:
+            return []
+
+        # 1. Analyze Header Row
+        header_row = [str(c or "").lower().strip() for c in table_data[0]]
+        
+        idx_name = -1
+        idx_freq = -1
+        idx_loc = -1
+        idx_std = -1
+        idx_crit = -1
+        idx_clause = -1
+
+        for col_i, col_text in enumerate(header_row):
+            if idx_name == -1 and any(k in col_text for k in ("activity", "test", "inspection", "muayene", "deney", "item", "tanım", "faaliyet")):
+                idx_name = col_i
+            elif idx_freq == -1 and any(k in col_text for k in ("freq", "extent", "frekans", "sıklık", "adet", "rate", "aralık")):
+                idx_freq = col_i
+            elif idx_loc == -1 and any(k in col_text for k in ("location", "specimen", "yer", "numune", "yön", "örnek")):
+                idx_loc = col_i
+            elif idx_std == -1 and any(k in col_text for k in ("standard", "method", "metot", "prosedür", "code", "standart")):
+                idx_std = col_i
+            elif idx_crit == -1 and any(k in col_text for k in ("acceptance", "criteria", "kriter", "limit", "tolerans", "requirement", "şart", "kabul")):
+                idx_crit = col_i
+            elif idx_clause == -1 and any(k in col_text for k in ("clause", "madde", "ref", "section", "spec", "referans")):
+                idx_clause = col_i
+
+        # Fallback default positions if headers not cleanly labeled
+        if idx_name == -1 and len(header_row) > 1:
+            idx_name = 1 if len(header_row) > 2 else 0
+        if idx_freq == -1 and len(header_row) > 2:
+            idx_freq = 2
+        if idx_crit == -1 and len(header_row) > 5:
+            idx_crit = 5
+
+        items: List[Dict[str, Any]] = []
+
+        # 2. Extract Data Rows
+        for r_idx in range(1, len(table_data)):
+            row = table_data[r_idx]
+            if not row or not any(row):
+                continue
+
+            test_name = str(row[idx_name] or "").strip() if 0 <= idx_name < len(row) else ""
+            if not test_name or len(test_name) < 2 or test_name.lower() in ("no", "item", "test", "faaliyet"):
+                continue
+
+            freq = str(row[idx_freq] or "").strip() if 0 <= idx_freq < len(row) else ""
+            loc = str(row[idx_loc] or "").strip() if 0 <= idx_loc < len(row) else "Boru gövdesi / kaynak dikişi"
+            std = str(row[idx_std] or "").strip() if 0 <= idx_std < len(row) else "API Spec 5L 47. Baskı"
+            crit = str(row[idx_crit] or "").strip() if 0 <= idx_crit < len(row) else ""
+            clause = str(row[idx_clause] or "").strip() if 0 <= idx_clause < len(row) else "API 5L / İmalatçı ITP"
+
+            if not freq:
+                freq = cls._extract_frequency_from_text(f"{test_name} {crit}") or "Test ünitesi (lot) başına 1 set"
+            if not crit:
+                crit = cls._extract_criteria_from_text(f"{test_name} {freq}") or "API 5L / BOTAŞ şartname limitlerine uygun"
+
+            items.append({
+                "test_name": test_name.replace("\n", " ").strip(),
+                "test_frequency": freq.replace("\n", " ").strip(),
+                "sampling_location": loc.replace("\n", " ").strip(),
+                "specimen_type": "Standart numune",
+                "test_standard": std.replace("\n", " ").strip(),
+                "acceptance_criteria": crit.replace("\n", " ").strip(),
+                "clause_reference": clause.replace("\n", " ").strip(),
+                "raw_text": " | ".join(str(c or "").replace("\n", " ").strip() for c in row)
+            })
+
+        return items
 
     @classmethod
     def _parse_text_into_itp_rows(cls, text: str) -> List[Dict[str, Any]]:

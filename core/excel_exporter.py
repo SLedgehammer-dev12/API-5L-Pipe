@@ -50,14 +50,18 @@ class ExcelExporter:
         align_center = Alignment(horizontal="center", vertical="center", wrap_text=True)
         align_left = Alignment(horizontal="left", vertical="center", wrap_text=True)
 
+        num_pipes = len(pipes_data)
+        max_col = max(7, 2 + num_pipes)
+        last_col_letter = get_column_letter(max_col)
+
         # 1. Project Title & Metadata Header
-        ws.merge_cells("A1:G1")
+        ws.merge_cells(f"A1:{last_col_letter}1")
         title_text = "API 5L PSL2 & BOTAŞ BORU KALİTE GÜVENCE VE KABUL MATRİSİ" if lang == "tr" else "API 5L PSL2 & BOTAŞ PIPE QA/QC ACCEPTANCE MATRIX"
         cell_t = ws.cell(1, 1, title_text)
         cell_t.font = font_title
         cell_t.alignment = align_left
 
-        ws.merge_cells("A2:G2")
+        ws.merge_cells(f"A2:{last_col_letter}2")
         p_name = project_info.get('project_name', 'Boru Hattı Projesi')
         p_no = project_info.get('project_no', 'PRJ-2026')
         p_rev = project_info.get('revision', 'Rev. 0')

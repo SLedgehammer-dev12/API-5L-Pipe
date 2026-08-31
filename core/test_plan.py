@@ -525,6 +525,8 @@ def get_comprehensive_itp_specification(pipe_config: Optional[Dict[str, Any]] = 
     hydro = qc.get("hydrostatic_test", {})
     dim = qc.get("dimensional_tolerances", {})
     weld = qc.get("weld_and_geometry", {})
+    wall_tol = qc.get("wall_thickness_tolerance", {})
+    weights = qc.get("weights_and_safety", {})
 
     # Chemical limits
     c_max = chem.get("C_max", 0.12 if is_botas else 0.16)
@@ -540,11 +542,11 @@ def get_comprehensive_itp_specification(pipe_config: Optional[Dict[str, Any]] = 
         chem_crit = f"C ≤ {c_max:.2f}%, P ≤ {p_max:.3f}%, S ≤ {s_max:.3f}%{ce_str} (API 5L Çizelge 5)"
 
     # Tensile limits
-    rt05_min = mech.get("yield_strength_min_mpa", 450.0)
-    rt05_max = mech.get("yield_strength_max_mpa")
-    rm_min = mech.get("tensile_strength_min_mpa", 535.0)
-    rm_max = mech.get("tensile_strength_max_mpa", 760.0)
-    af_min = mech.get("elongation_min_percent", 19.5)
+    rt05_min = mech.get("yield_min_mpa", 450.0)
+    rt05_max = mech.get("yield_max_mpa")
+    rm_min = mech.get("tensile_min_mpa", 535.0)
+    rm_max = mech.get("tensile_max_mpa", 760.0)
+    af_min = cvn.get("elongation_mat_min_percent", 19.5)
     yt_max = 0.90 if (is_botas and grade in ("X60", "X65", "X70")) else mech.get("yield_to_tensile_ratio_max", 0.93)
     rt_str = f"Rt0.5: {rt05_min:.1f}" + (f" - {rt05_max:.1f} MPa" if rt05_max else " MPa min")
     rm_str = f"Rm: {rm_min:.1f}" + (f" - {rm_max:.1f} MPa" if rm_max else " MPa min")
@@ -568,6 +570,7 @@ def get_comprehensive_itp_specification(pipe_config: Optional[Dict[str, Any]] = 
 
     # Hydrostatic limits
     hydro_p = hydro.get("hydro_test_max_bar", 100.0)
+    min_acceptable_p = round(hydro_p - 2.0, 1) if is_botas else round(float(hydro.get("api_5l_std_test_bar", hydro_p * 0.90)), 1)
     if is_botas:
         hydro_time = 20
         hydro_crit = f"Min Test Basıncı: {hydro_p:.1f} bar (SMYS %100, +0/-2 bar), Min Tutma Süresi: 20 saniye (BOTAŞ Madde 8.4)"
@@ -584,9 +587,9 @@ def get_comprehensive_itp_specification(pipe_config: Optional[Dict[str, Any]] = 
         jaw_opening = mandrel_dia + 3.2 + (2.0 * t_mm)
 
     # Unit Weight
-    w_nom = 0.0246615 * t_mm * (d_mm - t_mm)
-    w_min = round(w_nom * (1.0 - 0.035), 2)
-    w_max = round(w_nom * (1.0 + 0.10), 2)
+    w_nom = weights.get("weight_nominal_kg_m", 0.0246615 * t_mm * (d_mm - t_mm))
+    w_min = weights.get("weight_min_kg_m", round(w_nom * (1.0 - 0.035), 2))
+    w_max = weights.get("weight_max_kg_m", round(w_nom * (1.0 + 0.10), 2))
 
     # Dimensional tolerances
     d_body_min = dim.get("diameter_body_min_mm", d_mm - 4.0)
@@ -598,18 +601,18 @@ def get_comprehensive_itp_specification(pipe_config: Optional[Dict[str, Any]] = 
     if not isinstance(ovality_end, (int, float)):
         ovality_end = 3.05 if is_botas else 6.10
 
-    t_min = dim.get("wall_thickness_min_mm", round(t_mm * 0.92, 2))
-    t_max = dim.get("wall_thickness_max_mm", round(t_mm * 1.15, 2))
+    t_min = wall_tol.get("min_mm", round(t_mm * 0.92, 2))
+    t_max = wall_tol.get("max_mm", round(t_mm * 1.15, 2))
     t_neg_pct = round(((t_mm - t_min) / t_mm) * 100.0, 1)
     t_pos_pct = round(((t_max - t_mm) / t_mm) * 100.0, 1)
 
     straightness_pct = 0.10 if is_botas else 0.20
-    squareness_max = dim.get("squareness_max_mm", 1.6)
+    squareness_max = dim.get("pipe_end_squareness_max_mm", 1.6)
 
     # Weld geometry
-    weld_h_max = weld.get("weld_height_inside_max_mm", 2.625 if is_botas else 3.50)
+    weld_h_max = weld.get("weld_height_inside_mm", 2.625 if is_botas else 3.50)
     radial_offset = weld.get("radial_offset_max_mm", 1.125 if is_botas else (1.50 if t_mm <= 15.0 else round(0.10 * t_mm, 2)))
-    peaking_max = weld.get("peaking_max_mm", round(d_mm * 0.0015, 2))
+    peaking_max = dim.get("pipe_end_peaking_max_mm", round(d_mm * 0.0015, 2))
 
     # Residual Stress
     residual_stress_max_mpa = round(0.10 * rt05_min, 1)
@@ -826,7 +829,7 @@ def get_comprehensive_itp_specification(pipe_config: Optional[Dict[str, Any]] = 
         "ndt_method_standard": "API 5L Madde 10.2.6 / BOTAŞ Madde 8.4 (Kalibreli Basınç Test Cihazı)",
         "ndt_acceptance_level": f"Test Basıncı ≥ {hydro_p:.1f} bar, Sızdırma / Deformasyon Yok",
         "calculated_target_str": f"Min Test Basıncı: {hydro_p:.1f} bar | Min Tutma Süresi: {hydro_time} saniye",
-        "calculated_targets": {"min_pressure_bar": hydro_p, "min_holding_time_sec": hydro_time},
+        "calculated_targets": {"nominal_pressure_bar": hydro_p, "min_pressure_bar": min_acceptable_p, "min_holding_time_sec": hydro_time},
         "is_mandatory": True,
     })
 

@@ -928,8 +928,84 @@ class TestPipeQAQCSuite(unittest.TestCase):
             self.assertIn('kpi', audit_res)
             self.assertIn('compliance_score_percent', audit_res['kpi'])
 
+    def test_35_bipartite_matcher_and_comprehensive_criteria_rules(self):
+        """Verifies maximum-weight bipartite matcher and comprehensive criteria evaluation across all disciplines."""
+        from core.itp_audit_engine import ITPAuditEngine
+
+        cfg = {
+            'diameter_mm': 1219.0, 'diameter_inch': '48"', 'wall_thickness_mm': 14.30,
+            'material_grade': 'X65', 'manufacturing_process': 'SAWH', 'standard_type': 'BOTAŞ',
+            'psl_level': 'PSL2'
+        }
+
+        # Items with multiple deliberate criteria violations:
+        # - DWTT shear area only 70% (< 85%)
+        # - Yield Rt0.5 420 MPa (< 450 MPa)
+        # - Y/T ratio 0.95 (> 0.90)
+        # - High Carbon 0.18% (> 0.12%)
+        # - Body lamination only 20% scan (< 40%)
+        # - Preheat omitted for t=14.3mm
+        flawed_itp = [
+            {
+                'test_name': 'DWTT (Düşen Ağırlık Yırtılma Testi)',
+                'test_frequency': 'Isı başına 1 test',
+                'acceptance_criteria': 'Ortalama sünek kırılma alanı min %70 (0 °C)'
+            },
+            {
+                'test_name': 'Gövde Çekme Testi (Body Tensile)',
+                'test_frequency': 'Lot başına 1 set',
+                'acceptance_criteria': 'Rt0.5 >= 420 MPa, Y/T <= 0.95'
+            },
+            {
+                'test_name': 'Döküm Analizi (Heat Chemical)',
+                'test_frequency': 'Her dökümde 1 analiz',
+                'acceptance_criteria': 'C <= 0.18%, P <= 0.030%, S <= 0.015%'
+            },
+            {
+                'test_name': 'Boru Gövdesi UT Laminasyon',
+                'test_frequency': 'Boru gövde yüzeyi',
+                'acceptance_criteria': 'Gövde yüzeyinin %20 si taranacak'
+            },
+            {
+                'test_name': 'Kaynak ve Gövde Tamir Kuralları',
+                'test_frequency': 'Tamir oldukça',
+                'acceptance_criteria': 'Ön ısıtmasız kaynak tamiri yapılabilir, tek tamir 250 mm'
+            }
+        ]
+
+        audit_res = ITPAuditEngine.audit_itp(flawed_itp, cfg)
+        self.assertEqual(audit_res['kpi']['overall_verdict'], 'REJECTED')
+        msgs = [f['message'] for f in audit_res['findings']]
+
+        self.assertTrue(any("YETERSİZ DWTT SÜNEK KIRILMA" in m for m in msgs))
+        self.assertTrue(any("DÜŞÜK AKMA MUKAVEMETİ" in m for m in msgs))
+        self.assertTrue(any("YÜKSEK Y/T ORANI" in m for m in msgs))
+        self.assertTrue(any("YÜKSEK KARBON LİMİTİ" in m for m in msgs))
+        self.assertTrue(any("YETERSİZ GÖVDE TARAMA ORANI" in m for m in msgs))
+        self.assertTrue(any("ÖN ISITMA ZORUNLU" in m for m in msgs))
+
+    def test_36_upload_validation_and_fallback_warning(self):
+        """Verifies file validation, MIME check, and fallback warning on empty/non-table PDF."""
+        from core.unlimited_ocr_engine import UnlimitedOCREngine
+
+        # 1. Non-table blank payload triggers warning and is_fallback: True
+        blank_pdf_bytes = b"%PDF-1.4\n%EOF\n"
+        parse_res = UnlimitedOCREngine.parse_pdf_or_image(blank_pdf_bytes, "empty.pdf")
+        self.assertEqual(parse_res['status'], 'warning')
+        self.assertTrue(parse_res['is_fallback'])
+        self.assertIn("DİKKAT", parse_res['warning_message'])
+
+        # 2. Upload endpoint rejects invalid extensions
+        r_bad_ext = self.client.post(
+            '/api/itp/upload-and-audit',
+            files={'file': ('document.exe', b'bad content', 'application/octet-stream')}
+        )
+        self.assertEqual(r_bad_ext.status_code, 400)
+        self.assertIn("Geçersiz dosya formatı", r_bad_ext.json()['message'])
+
 
 if __name__ == '__main__':
     unittest.main()
+
 
 
