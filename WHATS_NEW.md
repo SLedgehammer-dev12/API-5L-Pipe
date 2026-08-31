@@ -1,7 +1,30 @@
-# What's New in API 5L Pipe QA/QC & Wall Thickness Suite (v1.4.0)
-## Yenilikler ve Sürüm Özeti - v1.4.0 (2026-08-24)
+# What's New in API 5L Pipe QA/QC & Wall Thickness Suite (v1.9.0)
+## Yenilikler ve Sürüm Özeti - v1.9.0 (2026-08-31)
 
 ---
+
+### 🇹🇷 Türkçe Özet
+
+API 5L Pipe QA/QC Suite **v1.9.0** sürümü ile birlikte BOTAŞ 75 Bar ve 82.5 Bar istasyon et kalınlıkları ayrıştırılmış, kullanıcı tanımlı korozyon payı ve negatif imalat toleransı tam esnekliğe kavuşturulmuştur:
+
+#### 1. 🏭 BOTAŞ F=0.50 İstasyon Et Kalınlığı Ayrımı (75 Bar vs 82.5 Bar)
+- BOTAŞ standart veritabanında istasyon boruları için 75 bar (`0.50_ist_75bar`) ve 82.5 bar (`0.50_ist_82_5bar`) et kalınlıkları ayrıştırıldı.
+- 48" X65 istasyon borusu tavsiyesi 75 bar için **22.20 mm**, 82.5 bar için **23.80 mm** olarak güncellendi.
+
+#### 2. 🛡️ Kullanıcı Tanımlı Korozyon Payı (*Corrosion Allowance* - c, mm)
+- Boru Et Kalınlığı Tasarım Aracı'na korozyon payı serbest giriş kutusu ve hazır seçim butonları (`0 mm`, `1.0 mm`, `1.5 mm`, `3.0 mm`) eklendi.
+- Doğrudan $t_{\text{req}} = t_{\text{teorik}} + c$ hesabına bağlanarak nominal schedule seçimini belirler.
+
+#### 3. ⚙️ Kullanıcı Tanımlı Negatif Tolerans (%)
+- BOTAŞ, ASME B31.8 / B31.4 ve ASME B31.3 standartlarında negatif imalat toleransı kullanıcı tarafından doğrudan ayarlanabilir kılındı (`0%`, `8%`, `10%`, `12.5%`).
+- Boş veya 0 bırakıldığında ilgili standardın fabrika toleransı (API 5L Tablo 11, BOTAŞ İstasyon %12.5) otomatik işletilir.
+
+#### 4. 📊 5 Sütunlu Sonuç Kartı
+- Tasarım sonuç kartında $t$, $+c$, $t_{\text{req}}$, seçilen $t_{\text{nominal}}$ ve net tolerans sınırı açıkça ayrıştırılarak raporlandı.
+
+---
+
+## Önceki Sürümler / Previous Versions
 
 ### 🇹🇷 Türkçe Özet
 

@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.9.0] - 2026-08-31 (BOTAŞ 75/82.5 Bar İstasyon Ayrımı, Kullanıcı Tanımlı Korozyon Payı & Negatif Tolerans Esnekliği)
+
+### 🎉 Eklenen Özellikler (Added)
+- **BOTAŞ F=0.50 İstasyon Et Kalınlığı Ayrımı (75 Bar vs 82.5 Bar):** BOTAŞ standart veritabanında istasyon boruları için 75 bar (`0.50_ist_75bar`) ve 82.5 bar (`0.50_ist_82_5bar`) et kalınlıkları ayrıştırıldı.
+- **Kullanıcı Tanımlı Korozyon Payı (c, mm):** Boru Et Kalınlığı Tasarım Aracı'na korozyon payı serbest giriş kutusu ve hızlı seçim butonları (`0 mm`, `1.0 mm`, `1.5 mm`, `3.0 mm`) eklendi; doğrudan $t_{\text{req}} = t_{\text{teorik}} + c$ hesabına bağlandı.
+- **Kullanıcı Tanımlı Negatif Tolerans (%):** BOTAŞ, ASME B31.8 / B31.4 ve ASME B31.3 standartlarında negatif imalat toleransı kullanıcı tarafından doğrudan ayarlanabilir hale getirildi (`0%`, `8%`, `10%`, `12.5%` hazır butonlar). Boş veya 0 bırakıldığında ilgili standardın fabrika toleransı (API 5L Tablo 11, BOTAŞ İstasyon %12.5) otomatik işletilir.
+- **5 Sütunlu Sonuç Kartı:** Tasarım sonuç kartında $t$, $+c$, $t_{\text{req}}$, seçilen $t_{\text{nominal}}$ ve net tolerans sınırı açıkça ayrıştırılarak raporlandı.
+
+### 🛠️ Düzeltmeler (Fixed)
+- **BOTAŞ 48" İstasyon Borusu Tavsiye Hatası:** 48" istasyon borusu seçiminde hat borusu değeri olan 20.60 mm yerine doğru şartname değeri olan 22.20 mm (75 bar) veya 23.80 mm (82.5 bar) getirilmesi sağlandı.
+
+---
+
 ## [1.8.0] - 2026-08-28 (SAWH Spiral Bant Genişliği & Büküm Açısı, Uygulama İkonu, Sürümlü Çalıştırma Dosyası Adları)
 
 ### 🎉 Eklenen Özellikler (Added)

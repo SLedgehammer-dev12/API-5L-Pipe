@@ -79,7 +79,7 @@ class WallThicknessEngine:
         standard_code: str = "BOTAŞ",     # "BOTAŞ", "ASME B31.8 / ASME B31.4", "ASME B31.3"
         manufacturing_process: str = "SAWH",  # "SMLS", "ERW HFW", "SAWH", "SAWL"
         apply_negative_tolerance: bool = True,
-        manual_negative_tolerance_percent: float = 12.5,
+        manual_negative_tolerance_percent: float = 0.0,
         psl_level: str = "PSL2"           # "PSL1", "PSL2"
     ) -> Dict[str, Any]:
         """
@@ -130,7 +130,7 @@ class WallThicknessEngine:
             
             # ASME B31.3: Mill tolerance is active and user-customizable
             effective_apply_tolerance = True
-            tolerance_percent_used = float(manual_negative_tolerance_percent) if manual_negative_tolerance_percent > 0 else 12.5
+            tolerance_percent_used = float(manual_negative_tolerance_percent) if (manual_negative_tolerance_percent is not None and manual_negative_tolerance_percent > 0) else 12.5
             tolerance_rule_description = f"ASME B31.3 Para. 304.1.2 Negatif İmalat Toleransı: -%{tolerance_percent_used:.1f}"
 
         elif "B31.8" in std_upper or "B31.4" in std_upper:
@@ -147,18 +147,23 @@ class WallThicknessEngine:
                 # Non-API 5L (Stainless/Duplex): tolerance is optional
                 if apply_negative_tolerance:
                     effective_apply_tolerance = True
-                    tolerance_percent_used = float(manual_negative_tolerance_percent) if manual_negative_tolerance_percent > 0 else 12.5
+                    tolerance_percent_used = float(manual_negative_tolerance_percent) if (manual_negative_tolerance_percent is not None and manual_negative_tolerance_percent > 0) else 12.5
                     tolerance_rule_description = f"Paslanmaz Çelik Negatif İmalat Toleransı: -%{tolerance_percent_used:.1f}"
                 else:
                     effective_apply_tolerance = False
                     tolerance_percent_used = 0.0
                     tolerance_rule_description = "Negatif Tolerans Uygulanmadı (Nominal Schedule Doğrudan Seçildi)"
             else:
-                # API 5L Carbon Steel: API 5L Table 11 rules by manufacturing process
-                tol_info = WallThicknessEngine.get_api_5l_wall_negative_tolerance(d_mm, t_req, manufacturing_process)
-                tolerance_percent_used = tol_info['tolerance_percent']
-                tolerance_rule_description = tol_info['rule_description']
-                effective_apply_tolerance = True
+                # API 5L Carbon Steel: User-defined manual % OR API 5L Table 11 rules by manufacturing process
+                if manual_negative_tolerance_percent is not None and manual_negative_tolerance_percent > 0:
+                    effective_apply_tolerance = True
+                    tolerance_percent_used = float(manual_negative_tolerance_percent)
+                    tolerance_rule_description = f"Kullanıcı Tanımlı Negatif İmalat Toleransı: -%{tolerance_percent_used:.1f}"
+                else:
+                    tol_info = WallThicknessEngine.get_api_5l_wall_negative_tolerance(d_mm, t_req, manufacturing_process)
+                    tolerance_percent_used = tol_info['tolerance_percent']
+                    tolerance_rule_description = tol_info['rule_description']
+                    effective_apply_tolerance = True
 
         else:
             # BOTAŞ Specification
@@ -169,7 +174,12 @@ class WallThicknessEngine:
             formula_latex = r"t = \frac{P \cdot D}{2 \cdot S \cdot F \cdot E \cdot T} + c"
             design_factor_used = f"F = {design_factor_f:.2f} ({location_type})"
             
-            if "station" in location_type.lower() or "istasyon" in location_type.lower() or "pig" in location_type.lower():
+            is_station = any(k in str(location_type).lower() for k in ("station", "istasyon", "pig", "vana", "valve"))
+            if manual_negative_tolerance_percent is not None and manual_negative_tolerance_percent > 0:
+                effective_apply_tolerance = True
+                tolerance_percent_used = float(manual_negative_tolerance_percent)
+                tolerance_rule_description = f"BOTAŞ Negatif İmalat Toleransı / Emniyet Payı: -%{tolerance_percent_used:.1f}"
+            elif is_station:
                 effective_apply_tolerance = True
                 tolerance_percent_used = 12.5
                 tolerance_rule_description = "BOTAŞ İstasyon Şartnamesi Emniyet Payı: -%12.5"
@@ -233,13 +243,29 @@ class WallThicknessEngine:
 
         # BOTAŞ standard thickness recommendation from database
         botas_thk_rec = 0.0
+        botas_label = ""
         if pipe_size and not is_stainless:
-            if design_factor_f >= 0.72:
-                botas_thk_rec = pipe_size['botas_thk'].get('0.72_hat', 0.0)
-            elif design_factor_f >= 0.60:
-                botas_thk_rec = pipe_size['botas_thk'].get('0.60_hat', 0.0)
+            is_station = any(k in str(location_type).lower() for k in ("station", "istasyon", "pig", "vana", "valve"))
+            if is_station:
+                if design_pressure_bar > 75.0:
+                    botas_thk_rec = pipe_size['botas_thk'].get('0.50_ist_82_5bar', pipe_size['botas_thk'].get('0.50_ist2', 0.0))
+                    botas_label = "BOTAŞ Şartnamesi (İstasyon - 82.5 Bar)"
+                else:
+                    botas_thk_rec = pipe_size['botas_thk'].get('0.50_ist_75bar', pipe_size['botas_thk'].get('0.50_ist1', 0.0))
+                    botas_label = "BOTAŞ Şartnamesi (İstasyon - 75 Bar)"
             else:
-                botas_thk_rec = pipe_size['botas_thk'].get('0.50_hat', pipe_size['botas_thk'].get('0.50_ist1', 0.0))
+                if design_factor_f >= 0.72:
+                    botas_thk_rec = pipe_size['botas_thk'].get('0.72_hat', 0.0)
+                    botas_label = "BOTAŞ Şartnamesi (Hat F=0.72)"
+                elif design_factor_f >= 0.60:
+                    botas_thk_rec = pipe_size['botas_thk'].get('0.60_hat', 0.0)
+                    botas_label = "BOTAŞ Şartnamesi (Hat F=0.60)"
+                else:
+                    botas_thk_rec = pipe_size['botas_thk'].get('0.50_hat', 0.0)
+                    if botas_thk_rec == 0.0:
+                        # Fallback for small diameters (e.g. <= 5") which are primarily station piping
+                        botas_thk_rec = pipe_size['botas_thk'].get('0.50_ist_75bar', pipe_size['botas_thk'].get('0.50_ist1', 0.0))
+                    botas_label = "BOTAŞ Şartnamesi (Hat F=0.50)"
 
         return {
             'input_parameters': {
@@ -265,6 +291,7 @@ class WallThicknessEngine:
                 'formula_latex': formula_latex,
                 'design_factor_used': design_factor_used,
                 't_theoretical_mm': round(t_base, 2),
+                'corrosion_allowance_mm': round(corrosion_allowance_mm, 2),
                 't_required_asme_b31_8_mm': round(t_req, 2),
                 'selected_nominal_thickness_asme_b36_10_mm': round(selected_thk, 2),
                 'schedule_standard_used': schedule_standard_name,
@@ -272,6 +299,7 @@ class WallThicknessEngine:
                 'tolerance_percent_used': tolerance_percent_used,
                 'tolerance_rule_description': tolerance_rule_description,
                 'botas_standard_thickness_mm': round(botas_thk_rec, 2),
+                'botas_standard_label': botas_label,
                 'is_nominal_sufficient': is_safe,
                 'available_schedule_thicknesses': [round(x, 2) for x in sorted(avail_thks)]
             }

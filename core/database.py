@@ -792,6 +792,8 @@ DESIGN_FACTOR_MAP = {
     "0.50_hat": 0.50,
     "0.50_ist1": 0.50,
     "0.50_ist2": 0.50,
+    "0.50_ist_75bar": 0.50,
+    "0.50_ist_82_5bar": 0.50,
     "0.40_hat": 0.40,
 }
 
@@ -1954,6 +1956,15 @@ PIPE_SIZES_TABLE = [
     }
 ]
 
+# Populate explicit aliases for 75 bar and 82.5 bar station thickness keys
+for _p in PIPE_SIZES_TABLE:
+    if "0.50_ist1" in _p.get("botas_thk", {}):
+        _p["botas_thk"]["0.50_ist_75bar"] = _p["botas_thk"]["0.50_ist1"]
+        _p["botas_thk"]["0.50_ist_82_5bar"] = _p["botas_thk"]["0.50_ist2"]
+    if "0.50_ist1" in _p.get("asme_thk", {}):
+        _p["asme_thk"]["0.50_ist_75bar"] = _p["asme_thk"]["0.50_ist1"]
+        _p["asme_thk"]["0.50_ist_82_5bar"] = _p["asme_thk"]["0.50_ist2"]
+
 # ASME B36.10 Schedule Thicknesses Matrix
 ASME_B36_10_TABLE = {
     "0.125": [
@@ -3033,12 +3044,12 @@ def normalize_design_factor(factor_str) -> str:
     # Turkish capital 'İ' lowercases to 'i\u0307' (i + combining dot above); strip the dot.
     s = s.replace("\u0307", "")
     has_ist = ("ist" in s) or ("istasyon" in s)
-    has_ist2 = ("ist. 2" in s) or ("ist2" in s) or ("istasyon 2" in s)
+    has_ist2 = ("ist. 2" in s) or ("ist2" in s) or ("istasyon 2" in s) or ("82.5" in s) or ("82_5" in s) or ("82.5 bar" in s)
     if "0.8" in s:
         return "0.80_hat"
     if "0.6" in s:
         return "0.60_hat"
-    if "0.5" in s:
+    if "0.5" in s or has_ist:
         if has_ist2:
             return "0.50_ist2"
         if has_ist:
@@ -3170,11 +3181,11 @@ def get_botas_all_factors_for_diameter(diameter_inch: str):
         return []
     
     factors = [
-        ('0,72 (Hat)', '0.72_hat'),
-        ('0,6 (Hat)', '0.60_hat'),
-        ('0,5 (Hat)', '0.50_hat'),
-        ('0,5 (İst.)', '0.50_ist1'),
-        ('0,5 (İst. 2)', '0.50_ist2'),
+        ('0,72 (Hat)', '0.72_hat', 75.0),
+        ('0,6 (Hat)', '0.60_hat', 75.0),
+        ('0,5 (Hat)', '0.50_hat', 75.0),
+        ('0,5 (İstasyon - 75 Bar)', '0.50_ist1', 75.0),
+        ('0,5 (İstasyon - 82,5 Bar)', '0.50_ist2', 82.5),
     ]
     
     d_mm = pipe_size['mm']
@@ -3187,7 +3198,7 @@ def get_botas_all_factors_for_diameter(diameter_inch: str):
 
     pipes = []
     seen_factors = set()
-    for factor_label, factor_key in factors:
+    for factor_label, factor_key, pressure_bar in factors:
         thk = pipe_size['botas_thk'].get(factor_key, 0.0)
         if thk > 0:
             # Check if this exact thk and factor was already added
@@ -3202,6 +3213,6 @@ def get_botas_all_factors_for_diameter(diameter_inch: str):
                     'manufacturing_process': default_proc,
                     'material_grade': pipe_size['default_material'],
                     'standard_type': 'BOTAŞ',
-                    'design_pressure_bar': 75.0
+                    'design_pressure_bar': pressure_bar
                 })
     return pipes

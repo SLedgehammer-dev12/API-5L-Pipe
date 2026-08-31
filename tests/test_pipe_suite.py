@@ -100,6 +100,21 @@ class TestPipeQAQCSuite(unittest.TestCase):
         self.assertEqual(d1['material'], 'X65')
         self.assertEqual(d1['thickness'], 14.30)
 
+        # 48" F=0.50 İstasyon 75 Bar -> 22.20 mm
+        r_ist75 = self.client.get('/api/botas-lookup?diameter_inch=48"&factor=0,5 (İstasyon - 75 Bar)&pressure=75.0')
+        self.assertEqual(r_ist75.status_code, 200)
+        self.assertEqual(r_ist75.json()['thickness'], 22.20)
+
+        # 48" F=0.50 İstasyon 82.5 Bar -> 23.80 mm
+        r_ist825 = self.client.get('/api/botas-lookup?diameter_inch=48"&factor=0,5 (İstasyon - 82,5 Bar)&pressure=82.5')
+        self.assertEqual(r_ist825.status_code, 200)
+        self.assertEqual(r_ist825.json()['thickness'], 23.80)
+
+        # 48" F=0.50 Hat -> 20.60 mm
+        r_hat50 = self.client.get('/api/botas-lookup?diameter_inch=48"&factor=0,5 (Hat)')
+        self.assertEqual(r_hat50.status_code, 200)
+        self.assertEqual(r_hat50.json()['thickness'], 20.60)
+
         # 12" F=0.72 Hat -> X52, 5.20 mm
         r2 = self.client.get('/api/botas-lookup?diameter_inch=12"&factor=0,72 (Hat)')
         self.assertEqual(r2.status_code, 200)
@@ -153,17 +168,37 @@ class TestPipeQAQCSuite(unittest.TestCase):
 
     def test_09_multi_standard_wall_thickness_and_stainless_selection(self):
         """Verifies wall thickness calculation across BOTAŞ, ASME B31.8, ASME B31.3 and ASME B36.19M Stainless."""
-        # 1. BOTAŞ Standard: 48" X65 F=0.72 P=75 bar (Hat Borusu)
+        # 1a. BOTAŞ Standard: 48" X65 F=0.72 P=75 bar (Hat Borusu)
         res_botas_hat = WallThicknessEngine.calculate_wall_thickness('48"', 'X65', design_pressure_bar=75.0, design_factor_f=0.72, location_type='Pipeline', standard_code='BOTAŞ')
         self.assertEqual(res_botas_hat['calculation_results']['t_required_asme_b31_8_mm'], 14.11)
         self.assertEqual(res_botas_hat['calculation_results']['selected_nominal_thickness_asme_b36_10_mm'], 14.27)
         self.assertEqual(res_botas_hat['calculation_results']['schedule_standard_used'], 'ASME B36.10M (Karbon Çeliği)')
+        self.assertEqual(res_botas_hat['calculation_results']['botas_standard_thickness_mm'], 14.30)
+        self.assertEqual(res_botas_hat['calculation_results']['botas_standard_label'], 'BOTAŞ Şartnamesi (Hat F=0.72)')
 
-        # 1b. BOTAŞ Standard: 48" X65 F=0.50 P=75 bar (İstasyon Borusu with %12.5 margin)
-        res_botas_ist = WallThicknessEngine.calculate_wall_thickness('48"', 'X65', design_pressure_bar=75.0, design_factor_f=0.50, location_type='Station', standard_code='BOTAŞ')
-        self.assertEqual(res_botas_ist['calculation_results']['t_required_asme_b31_8_mm'], 20.32)
-        self.assertEqual(res_botas_ist['calculation_results']['selected_nominal_thickness_asme_b36_10_mm'], 23.83)
-        self.assertEqual(res_botas_ist['calculation_results']['tolerance_percent_used'], 12.5)
+        # 1b. BOTAŞ Standard: 48" X65 F=0.50 P=75 bar (İstasyon Borusu 75 Bar with %12.5 margin)
+        res_botas_ist_75 = WallThicknessEngine.calculate_wall_thickness('48"', 'X65', design_pressure_bar=75.0, design_factor_f=0.50, location_type='Station', standard_code='BOTAŞ')
+        self.assertEqual(res_botas_ist_75['calculation_results']['t_required_asme_b31_8_mm'], 20.32)
+        self.assertEqual(res_botas_ist_75['calculation_results']['selected_nominal_thickness_asme_b36_10_mm'], 23.83)
+        self.assertEqual(res_botas_ist_75['calculation_results']['tolerance_percent_used'], 12.5)
+        self.assertEqual(res_botas_ist_75['calculation_results']['botas_standard_thickness_mm'], 22.20)
+        self.assertEqual(res_botas_ist_75['calculation_results']['botas_standard_label'], 'BOTAŞ Şartnamesi (İstasyon - 75 Bar)')
+
+        # 1c. BOTAŞ Standard: 48" X65 F=0.50 P=82.5 bar (İstasyon Borusu 82.5 Bar with %12.5 margin)
+        res_botas_ist_825 = WallThicknessEngine.calculate_wall_thickness('48"', 'X65', design_pressure_bar=82.5, design_factor_f=0.50, location_type='Station', standard_code='BOTAŞ')
+        self.assertEqual(res_botas_ist_825['calculation_results']['botas_standard_thickness_mm'], 23.80)
+        self.assertEqual(res_botas_ist_825['calculation_results']['botas_standard_label'], 'BOTAŞ Şartnamesi (İstasyon - 82.5 Bar)')
+
+        # 1d. BOTAŞ Standard: 48" X65 F=0.50 P=75 bar (Hat Borusu F=0.50)
+        res_botas_hat_050 = WallThicknessEngine.calculate_wall_thickness('48"', 'X65', design_pressure_bar=75.0, design_factor_f=0.50, location_type='Pipeline', standard_code='BOTAŞ')
+        self.assertEqual(res_botas_hat_050['calculation_results']['botas_standard_thickness_mm'], 20.60)
+        self.assertEqual(res_botas_hat_050['calculation_results']['botas_standard_label'], 'BOTAŞ Şartnamesi (Hat F=0.50)')
+
+        # 1e. BOTAŞ Standard: 24" X65 Station 75 bar and 82.5 bar
+        res_botas_24_75 = WallThicknessEngine.calculate_wall_thickness('24"', 'X65', design_pressure_bar=75.0, design_factor_f=0.50, location_type='Station', standard_code='BOTAŞ')
+        self.assertEqual(res_botas_24_75['calculation_results']['botas_standard_thickness_mm'], 11.90)
+        res_botas_24_825 = WallThicknessEngine.calculate_wall_thickness('24"', 'X65', design_pressure_bar=82.5, design_factor_f=0.50, location_type='Station', standard_code='BOTAŞ')
+        self.assertEqual(res_botas_24_825['calculation_results']['botas_standard_thickness_mm'], 12.70)
 
         # 2. ASME B31.3 Process Piping: 4" SS 316 / 316L P=50 bar
         res_b313 = WallThicknessEngine.calculate_wall_thickness('4"', 'SS 316 / 316L', design_pressure_bar=50.0, standard_code='ASME B31.3')
@@ -206,6 +241,19 @@ class TestPipeQAQCSuite(unittest.TestCase):
         self.assertEqual(res_b313_24_custom['calculation_results']['tolerance_percent_used'], 10.0)
         self.assertEqual(res_b313_24_custom['calculation_results']['selected_nominal_thickness_asme_b36_10_mm'], 8.74)
         self.assertAlmostEqual(res_b313_24_custom['calculation_results']['negative_tolerance_min_mm'], 7.87, places=2)
+
+        # 7. BOTAŞ with Custom Corrosion Allowance (c=2.0 mm) and Custom Negative Tolerance (15%)
+        res_botas_custom = WallThicknessEngine.calculate_wall_thickness(
+            '48"', 'X65', design_pressure_bar=75.0, design_factor_f=0.72,
+            location_type='Pipeline', standard_code='BOTAŞ',
+            corrosion_allowance_mm=2.0, manual_negative_tolerance_percent=15.0
+        )
+        self.assertEqual(res_botas_custom['calculation_results']['t_theoretical_mm'], 14.11)
+        self.assertEqual(res_botas_custom['calculation_results']['corrosion_allowance_mm'], 2.0)
+        self.assertEqual(res_botas_custom['calculation_results']['t_required_asme_b31_8_mm'], 16.11)
+        self.assertEqual(res_botas_custom['calculation_results']['tolerance_percent_used'], 15.0)
+        self.assertEqual(res_botas_custom['calculation_results']['selected_nominal_thickness_asme_b36_10_mm'], 19.05)
+        self.assertAlmostEqual(res_botas_custom['calculation_results']['negative_tolerance_min_mm'], 16.19, places=2)
 
     def test_10_comprehensive_40_parameter_verification(self):
         """Verifies PipeVerificationEngine evaluates chemical, mechanical, dimensional, weld, and test data."""

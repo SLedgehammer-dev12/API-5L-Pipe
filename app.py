@@ -134,7 +134,7 @@ async def calculate_wall_thickness(data: Dict[str, Any] = Body(...)):
         standard_code=data.get("standard_code", "BOTAŞ"),
         manufacturing_process=data.get("manufacturing_process", "SAWH"),
         apply_negative_tolerance=bool(data.get("apply_negative_tolerance", True)),
-        manual_negative_tolerance_percent=float(data.get("manual_negative_tolerance_percent", 12.5)),
+        manual_negative_tolerance_percent=float(data.get("manual_negative_tolerance_percent", 0.0)),
         psl_level=data.get("psl_level", "PSL2")
     )
     return JSONResponse(content={"status": "success", "data": res})
@@ -160,9 +160,9 @@ async def get_api5l_psl1_10_preset():
     return JSONResponse(content=ProjectManager.get_10_api_5l_psl1_pipes_preset())
 
 @app.get("/api/botas-lookup")
-async def lookup_botas_specs(diameter_inch: str, factor: str = "0.72 (Hat)"):
+async def lookup_botas_specs(diameter_inch: str, factor: str = "0.72 (Hat)", pressure: float = 75.0):
     """
-    Returns BOTAŞ standard material and wall thickness for a given diameter and factor.
+    Returns BOTAŞ standard material and wall thickness for a given diameter, factor and pressure.
     """
     pipe_size = None
     for p in PIPE_SIZES_TABLE:
@@ -176,6 +176,11 @@ async def lookup_botas_specs(diameter_inch: str, factor: str = "0.72 (Hat)"):
         return JSONResponse(content={"status": "not_found", "material": "X65", "thickness": 14.30})
 
     factor_key = normalize_design_factor(factor)
+    if factor_key in ("0.50_ist1", "0.50_ist2", "0.50_ist_75bar", "0.50_ist_82_5bar"):
+        if float(pressure) > 75.0 or "ist2" in str(factor).lower() or "82" in str(factor):
+            factor_key = "0.50_ist2"
+        else:
+            factor_key = "0.50_ist1"
 
     botas_thk = pipe_size['botas_thk'].get(factor_key, 0.0)
     if botas_thk == 0.0:
