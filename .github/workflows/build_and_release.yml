@@ -33,7 +33,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install httpx pyinstaller ruff==0.15.15
+          pip install httpx pyinstaller ruff pytest
 
       - name: Lint (Ruff)
         run: |
@@ -41,7 +41,7 @@ jobs:
 
       - name: Run Unit Tests
         run: |
-          python -m unittest tests/test_pipe_suite.py -v
+          python -m pytest tests/test_pipe_suite.py -v
 
       - name: Build Windows Executable (.exe)
         run: |
@@ -63,6 +63,8 @@ jobs:
             --hidden-import "core.project_manager" `
             --hidden-import "core.updater" `
             --hidden-import "core.excel_exporter" `
+            --hidden-import "core.pdf_exporter" `
+            --hidden-import "core.sawh_engine" `
             --hidden-import "core.i18n" `
             --hidden-import "core.test_plan" `
             --hidden-import "core.itp_audit_engine" `
@@ -91,6 +93,7 @@ jobs:
             --hidden-import "openpyxl" `
             --hidden-import "jinja2" `
             --hidden-import "pydantic" `
+            --collect-all reportlab `
             --collect-all httpx `
             --collect-all anyio `
             --collect-all httpcore `
@@ -129,7 +132,7 @@ jobs:
         run: |
           python3 -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install httpx pyinstaller ruff==0.15.15
+          pip install httpx pyinstaller ruff pytest
 
       - name: Lint (Ruff)
         run: |
@@ -137,10 +140,12 @@ jobs:
 
       - name: Run Unit Tests
         run: |
-          python3 -m unittest tests/test_pipe_suite.py -v
+          python3 -m pytest tests/test_pipe_suite.py -v
 
       - name: Build macOS App Bundle (.app)
         run: |
+          export KIVY_NO_CONFIG=1
+          export KIVY_NO_FILELOG=1
           pyinstaller \
             --name "API-5L-Pipe-v${VERSION}" \
             --windowed \
@@ -160,6 +165,8 @@ jobs:
             --hidden-import "core.project_manager" \
             --hidden-import "core.updater" \
             --hidden-import "core.excel_exporter" \
+            --hidden-import "core.pdf_exporter" \
+            --hidden-import "core.sawh_engine" \
             --hidden-import "core.i18n" \
             --hidden-import "core.test_plan" \
             --hidden-import "core.itp_audit_engine" \
@@ -188,6 +195,7 @@ jobs:
             --hidden-import "openpyxl" \
             --hidden-import "jinja2" \
             --hidden-import "pydantic" \
+            --collect-all reportlab \
             --collect-all httpx \
             --collect-all anyio \
             --collect-all httpcore \
