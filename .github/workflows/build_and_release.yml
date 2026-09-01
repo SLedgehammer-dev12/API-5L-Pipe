@@ -37,7 +37,7 @@ jobs:
 
       - name: Lint (Ruff)
         run: |
-          ruff check core app.py tests
+          ruff check --select E4,E7,E9,F core app.py tests
 
       - name: Run Unit Tests
         run: |
@@ -136,7 +136,7 @@ jobs:
 
       - name: Lint (Ruff)
         run: |
-          ruff check core app.py tests
+          ruff check --select E4,E7,E9,F core app.py tests
 
       - name: Run Unit Tests
         run: |
