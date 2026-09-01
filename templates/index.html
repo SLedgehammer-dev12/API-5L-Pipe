@@ -906,7 +906,11 @@
                         </button>
                         <button id="btn-export-itp-excel" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3.5 py-2 rounded-xl text-xs flex items-center gap-1.5 shadow transition disabled:opacity-50" disabled>
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                            <span>Excel Sapma Raporu İndir</span>
+                            <span>Excel Raporu</span>
+                        </button>
+                        <button id="btn-export-itp-pdf" class="bg-rose-600 hover:bg-rose-500 text-white font-bold px-3.5 py-2 rounded-xl text-xs flex items-center gap-1.5 shadow transition disabled:opacity-50" disabled>
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+                            <span>PDF Denetim Raporu İndir</span>
                         </button>
                     </div>
                 </div>
@@ -1010,6 +1014,76 @@
                         <button type="button" onclick="filterITPTable('MORE_STRINGENT')" id="filter-btn-more" class="px-2 py-0.5 rounded-md font-semibold text-amber-700 bg-amber-100 hover:bg-amber-200 text-[11px]">Daha Sıkı (🟡)</button>
                         <button type="button" onclick="filterITPTable('COMPLIANT')" id="filter-btn-pass" class="px-2 py-0.5 rounded-md font-semibold text-emerald-700 bg-emerald-100 hover:bg-emerald-200 text-[11px]">Uyumlu (🟢)</button>
                     </div>
+                </div>
+            </div>
+
+            <!-- Smart Document & Standard Alignment Panel (Auto-Detected & Manual Override) -->
+            <div id="itp-alignment-panel" class="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white p-4 sm:p-5 rounded-2xl shadow-md border border-indigo-500/30 mb-5 hidden">
+                <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                    <!-- Left: Detected Info Overview -->
+                    <div class="space-y-1.5 flex-1">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <span class="bg-indigo-500/30 border border-indigo-400/50 text-indigo-200 text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full flex items-center gap-1">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                                <span>Otomatik Standart & Kapsam Algılama</span>
+                            </span>
+                            <span id="itp-det-conf-badge" class="bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-bold px-2 py-0.5 rounded-full">%95 Güven</span>
+                            <span id="itp-det-customer-badge" class="bg-slate-800 text-slate-300 text-[10px] font-semibold px-2 py-0.5 rounded border border-slate-700">Müşteri: BOTAŞ</span>
+                        </div>
+                        <h4 id="itp-det-project-name" class="text-sm sm:text-base font-extrabold text-white tracking-tight">--</h4>
+                        <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-indigo-200">
+                            <span class="flex items-center gap-1">
+                                <strong class="text-white">Standart:</strong>
+                                <span id="itp-det-standard-label" class="text-amber-300 font-bold">--</span>
+                            </span>
+                            <span class="flex items-center gap-1">
+                                <strong class="text-white">Kapsam:</strong>
+                                <span id="itp-det-scope-label" class="text-emerald-300 font-bold">--</span>
+                            </span>
+                            <span class="flex items-center gap-1">
+                                <strong class="text-white">Algılanan Boru:</strong>
+                                <span id="itp-det-pipe-label" class="text-cyan-300 font-bold">--</span>
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Right: Interactive Override Selectors & Actions -->
+                    <div class="bg-slate-800/80 p-3.5 rounded-xl border border-indigo-400/20 flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-300 mb-1">Standart Değerlendirmesi:</label>
+                            <select id="itp-override-standard" class="text-xs bg-slate-900 border border-indigo-400/40 rounded-lg px-2.5 py-1.5 text-white font-semibold focus:border-indigo-400 outline-none">
+                                <option value="BOTAŞ">BOTAŞ (5120 R7 + 5410 R1)</option>
+                                <option value="API">API Spec 5L 47. Baskı (PSL2)</option>
+                                <option value="API_PSL1">API Spec 5L 47. Baskı (PSL1)</option>
+                                <option value="ASME">ASME B31.8 / ISO 3183</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-300 mb-1">Denetim Kapsamı:</label>
+                            <select id="itp-override-scope" class="text-xs bg-slate-900 border border-indigo-400/40 rounded-lg px-2.5 py-1.5 text-white font-semibold focus:border-indigo-400 outline-none">
+                                <option value="COMBINED">Bütünsel (İmalat + 3LPE Kaplama)</option>
+                                <option value="COATING_ONLY">Sadece 3LPE Dış Kaplama</option>
+                                <option value="BARE_PIPE_ONLY">Sadece Çıplak Boru İmalatı</option>
+                            </select>
+                        </div>
+                        <div class="flex items-end">
+                            <button id="btn-re-audit-itp" class="w-full sm:w-auto bg-gradient-to-r from-indigo-500 to-blue-600 hover:from-indigo-600 hover:to-blue-700 text-white font-bold px-3.5 py-1.5 rounded-lg text-xs shadow flex items-center justify-center gap-1.5 transition">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                                <span>Yeniden Denetle</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- BOTAŞ Specific Tightness Highlights Alert (Conditional) -->
+                <div id="itp-botas-gap-alert" class="mt-3 pt-3 border-t border-indigo-500/20 text-[11px] text-indigo-100 flex flex-wrap items-center justify-between gap-2">
+                    <div class="flex items-center gap-1.5">
+                        <span class="text-amber-400 font-bold">ℹ️ BOTAŞ Şartnamesi Ek Sıkılıkları:</span>
+                        <span class="text-slate-300">Negatif et kalınlığı toleransı -%0, CVN -20°C zorunluluğu, 25 kV %100 Holiday ve sıfır martenzit normalizasyon kuralları aktiftir.</span>
+                    </div>
+                    <button id="btn-add-detected-pipe-to-project" class="text-xs text-emerald-400 hover:text-emerald-300 underline font-semibold flex items-center gap-1">
+                        <span>+ Dokümandaki Boruyu Projeye Ekle</span>
+                    </button>
                 </div>
             </div>
 

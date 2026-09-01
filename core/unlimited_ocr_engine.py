@@ -100,6 +100,9 @@ class UnlimitedOCREngine:
             warning_msg = "⚠️ DİKKAT: Yüklenen PDF taranmış/vektörsüz görsel formatında olduğu için doğrudan dijital tablo çıkarılamadı. Sistem referans ITP şablonunu görüntülemektedir."
             tables_found = cls._heuristic_extract_fallback(extracted_text or filename)
 
+        # 5. Automatically detect Project, Standard, Scope and Pipe Geometry Metadata
+        detected_metadata = cls.detect_itp_metadata(extracted_text, tables_found, filename)
+
         return {
             "status": "warning" if is_fallback else "success",
             "is_fallback": is_fallback,
@@ -108,7 +111,8 @@ class UnlimitedOCREngine:
             "engine": "Unlimited-OCR Table & Multi-Column Parser (PyMuPDF 1.23+)",
             "total_items_found": len(tables_found),
             "raw_text_snippet": extracted_text[:500] if extracted_text else "",
-            "items": tables_found
+            "items": tables_found,
+            "detected_metadata": detected_metadata
         }
 
     @classmethod
@@ -119,6 +123,7 @@ class UnlimitedOCREngine:
         """
         text_content = ""
         extracted_rows: List[Dict[str, Any]] = []
+        table_state: Optional[Dict[str, Any]] = None
 
         try:
             import fitz
@@ -132,8 +137,8 @@ class UnlimitedOCREngine:
                     if tabs and tabs.tables:
                         for tab in tabs.tables:
                             raw_df = tab.extract()
-                            if raw_df and len(raw_df) > 1:
-                                parsed = cls._parse_table_matrix_into_itp(raw_df)
+                            if raw_df and len(raw_df) >= 1:
+                                parsed, table_state = cls._parse_table_matrix_into_itp(raw_df, table_state)
                                 for item in parsed:
                                     if not any(it.get("test_name") == item["test_name"] for it in extracted_rows):
                                         extracted_rows.append(item)
@@ -168,61 +173,142 @@ class UnlimitedOCREngine:
         return text_content, extracted_rows
 
     @classmethod
-    def _parse_table_matrix_into_itp(cls, table_data: List[List[Optional[str]]]) -> List[Dict[str, Any]]:
+    def _parse_table_matrix_into_itp(
+        cls,
+        table_data: List[List[Optional[str]]],
+        last_state: Optional[Dict[str, Any]] = None
+    ) -> tuple[List[Dict[str, Any]], Optional[Dict[str, Any]]]:
         """
-        Dynamically analyzes table headers and extracts structured ITP rows with column isolation
-        after verifying Header Confidence Score (matched_columns >= 2).
+        Dynamically analyzes multi-column table headers (e.g. Borusan / Tosçelik / BOTAŞ formats)
+        and extracts structured ITP rows with column isolation, parent cell forward-fill,
+        and cross-page multi-table continuation.
         """
-        if not table_data or len(table_data) < 2:
-            return []
+        if not table_data or len(table_data) < 1:
+            return [], last_state
 
-        # 1. Analyze Header Row
-        header_row = [str(c or "").lower().strip() for c in table_data[0]]
-        
-        idx_name = -1
+        raw_joined_header = " ".join(str(c or "") for c in table_data[0]).lower()
+        # Skip document title blocks and signature/abbreviation footers
+        if any(k in raw_joined_header for k in ("kısaltmalar", "hazırlayan", "onaylayan", "temsilcisi", "sayfa no", "revizyon no", "sipariş bilgileri")):
+            return [], last_state
+
+        # 1. Scan first 5 rows for header definition
+        header_row = []
+        header_row_idx = -1
+        idx_activity = -1
+        idx_feature = -1
         idx_freq = -1
         idx_loc = -1
         idx_std = -1
         idx_crit = -1
         idx_clause = -1
 
-        for col_i, col_text in enumerate(header_row):
-            if idx_name == -1 and any(k in col_text for k in ("activity", "test", "inspection", "muayene", "deney", "item", "tanım", "faaliyet", "scope")):
-                idx_name = col_i
-            elif idx_freq == -1 and any(k in col_text for k in ("freq", "extent", "frekans", "sıklık", "adet", "rate", "aralık", "frequency")):
-                idx_freq = col_i
-            elif idx_loc == -1 and any(k in col_text for k in ("location", "specimen", "yer", "numune", "yön", "örnek", "position")):
-                idx_loc = col_i
-            elif idx_std == -1 and any(k in col_text for k in ("standard", "method", "metot", "prosedür", "code", "standart")):
-                idx_std = col_i
-            elif idx_crit == -1 and any(k in col_text for k in ("acceptance", "criteria", "kriter", "limit", "tolerans", "requirement", "şart", "kabul")):
-                idx_crit = col_i
-            elif idx_clause == -1 and any(k in col_text for k in ("clause", "madde", "ref", "section", "spec", "referans")):
-                idx_clause = col_i
+        for r_i, r in enumerate(table_data[:5]):
+            cand_row = [str(c or "").lower().strip() for c in r]
+            cand_act = -1
+            cand_feat = -1
+            cand_freq = -1
+            cand_loc = -1
+            cand_std = -1
+            cand_crit = -1
+            cand_clause = -1
 
-        # Header Confidence Score Check (R2 Solution)
-        # If fewer than 2 relevant column headers are recognized, reject table to prevent false mappings
-        matched_columns = sum(1 for idx in (idx_name, idx_freq, idx_std, idx_crit, idx_clause) if idx != -1)
-        if matched_columns < 2 or idx_name == -1:
-            return []
+            for col_i, col_text in enumerate(cand_row):
+                if cand_act == -1 and any(k in col_text for k in ("faaliyet", "aktivite", "activity", "proses", "tanım")):
+                    cand_act = col_i
+                elif cand_feat == -1 and any(k in col_text for k in ("ürün özelli", "özellik", "gereksinim", "parametre", "inceleme", "test adı", "muayene türü", "özelliği", "kontrolü", "muayene / test")):
+                    cand_feat = col_i
+                elif cand_act == -1 and any(k in col_text for k in ("test", "inspection", "muayene", "deney", "item", "scope")):
+                    cand_act = col_i
+                
+                if cand_freq == -1 and any(k in col_text for k in ("freq", "extent", "frekans", "sıklık", "adet", "rate", "aralık", "frequency", "sıklığı", "numune alma", "numune boyutu")):
+                    cand_freq = col_i
+                if cand_loc == -1 and any(k in col_text for k in ("location", "specimen", "yer", "numune", "yön", "örnek", "position", "gerçekleştiren", "sorumlu")):
+                    cand_loc = col_i
+                if cand_std == -1 and any(k in col_text for k in ("kontrol eden", "kontrol doküman", "standard", "method", "metot", "prosedür", "code", "standart", "doküman", "dokümanı")):
+                    cand_std = col_i
+                if cand_crit == -1 and any(k in col_text for k in ("kabul", "kriter", "acceptance", "criteria", "limit", "tolerans", "requirement", "şart")):
+                    cand_crit = col_i
+                if cand_clause == -1 and any(k in col_text for k in ("clause", "madde", "ref", "section", "spec", "referans")):
+                    cand_clause = col_i
+
+            matched = sum(1 for idx in (cand_act, cand_feat, cand_freq, cand_std, cand_crit, cand_clause) if idx != -1)
+            if matched >= 2:
+                header_row = cand_row
+                header_row_idx = r_i
+                idx_activity, idx_feature, idx_freq, idx_loc, idx_std, idx_crit, idx_clause = (
+                    cand_act, cand_feat, cand_freq, cand_loc, cand_std, cand_crit, cand_clause
+                )
+                break
+
+        start_row = 1
+        if header_row_idx != -1:
+            if idx_feature == -1 and idx_activity != -1 and len(header_row) > 3:
+                idx_feature = 2 if idx_activity != 2 else (3 if len(header_row) > 3 else 1)
+
+            current_state = {
+                "indices": (idx_activity, idx_feature, idx_freq, idx_loc, idx_std, idx_crit, idx_clause),
+                "num_cols": len(header_row),
+                "last_parent_activity": last_state.get("last_parent_activity", "") if last_state else ""
+            }
+            start_row = header_row_idx + 1
+        elif last_state and (abs(len(table_data[0]) - last_state["num_cols"]) <= 4 or len(table_data[0]) >= 6):
+            # Continuation table on next page without repeated header
+            current_state = last_state
+            idx_activity, idx_feature, idx_freq, idx_loc, idx_std, idx_crit, idx_clause = current_state["indices"]
+            ncols = len(table_data[0])
+            idx_activity = min(idx_activity, ncols - 1) if idx_activity >= 0 else 1
+            idx_feature = min(idx_feature, ncols - 1) if idx_feature >= 0 else 2
+            idx_freq = min(idx_freq, ncols - 1) if idx_freq >= 0 else -1
+            idx_loc = min(idx_loc, ncols - 1) if idx_loc >= 0 else -1
+            idx_std = min(idx_std, ncols - 1) if idx_std >= 0 else -1
+            idx_crit = min(idx_crit, ncols - 1) if idx_crit >= 0 else -1
+            idx_clause = min(idx_clause, ncols - 1) if idx_clause >= 0 else -1
+            start_row = 0
+        else:
+            return [], last_state
 
         items: List[Dict[str, Any]] = []
+        last_parent_activity = current_state.get("last_parent_activity", "")
 
         # 2. Extract Data Rows
-        for r_idx in range(1, len(table_data)):
+        for r_idx in range(start_row, len(table_data)):
             row = table_data[r_idx]
             if not row or not any(row):
                 continue
 
-            test_name = str(row[idx_name] or "").strip() if 0 <= idx_name < len(row) else ""
-            if not test_name or len(test_name) < 2 or test_name.lower() in ("no", "item", "test", "faaliyet"):
+            activity_val = str(row[idx_activity] or "").strip() if 0 <= idx_activity < len(row) else ""
+            feature_val = str(row[idx_feature] or "").strip() if 0 <= idx_feature < len(row) else ""
+
+            if activity_val and len(activity_val) > 2 and activity_val.lower() not in ("no", "item", "test", "faaliyet", "aktivite"):
+                last_parent_activity = activity_val
+            else:
+                activity_val = last_parent_activity
+
+            # Choose the most specific and descriptive test name
+            test_name = ""
+            if feature_val and len(feature_val) > 2 and feature_val.lower() not in ("no", "item", "test", "faaliyet"):
+                act_clean = activity_val.strip().lower()
+                feat_clean = feature_val.strip().lower()
+                if act_clean and act_clean != feat_clean and feat_clean not in act_clean and not any(k in act_clean for k in ("ölçüsel", "laboratuvar", "muayene ve test", "doğrulama", "genel", "kaplama öncesi", "üretim")):
+                    test_name = f"{activity_val} - {feature_val}"
+                else:
+                    test_name = feature_val
+            elif activity_val and len(activity_val) > 2:
+                test_name = activity_val
+
+            # Filter out non-test metadata lines (e.g. document code, dates, revision numbers)
+            if not test_name or len(test_name) < 2 or test_name.lower() in ("no", "item", "test", "faaliyet", "aktivite", "tarih", "imza", "isim", "isim :"):
+                continue
+            if re.match(r"^[\d\s,.\-/%]+$", test_name):
+                continue
+            if any(k in test_name.lower() for k in ("tos-itp", "gbb-itp", "rev.", "sayfa no", "müşteri", "sipariş no")):
                 continue
 
             freq = str(row[idx_freq] or "").strip() if 0 <= idx_freq < len(row) else ""
-            loc = str(row[idx_loc] or "").strip() if 0 <= idx_loc < len(row) else "Boru gövdesi / kaynak dikişi"
-            std = str(row[idx_std] or "").strip() if 0 <= idx_std < len(row) else "API Spec 5L 47. Baskı"
+            loc = str(row[idx_loc] or "").strip() if 0 <= idx_loc < len(row) else "Boru gövdesi / kaynak dikişi / kaplama"
+            std = str(row[idx_std] or "").strip() if 0 <= idx_std < len(row) else "API Spec 5L / BOTAŞ / DIN 30670"
             crit = str(row[idx_crit] or "").strip() if 0 <= idx_crit < len(row) else ""
-            clause = str(row[idx_clause] or "").strip() if 0 <= idx_clause < len(row) else "API 5L / İmalatçı ITP"
+            clause = str(row[idx_clause] or "").strip() if 0 <= idx_clause < len(row) else "API 5L / BOTAŞ 5120 / 5410 R1"
 
             if not freq:
                 freq = cls._extract_frequency_from_text(f"{test_name} {crit}") or "Test ünitesi (lot) başına 1 set"
@@ -240,7 +326,8 @@ class UnlimitedOCREngine:
                 "raw_text": " | ".join(str(c or "").replace("\n", " ").strip() for c in row)
             })
 
-        return items
+        current_state["last_parent_activity"] = last_parent_activity
+        return items, current_state
 
     @classmethod
     def _parse_text_into_itp_rows(cls, text: str) -> List[Dict[str, Any]]:
@@ -258,7 +345,9 @@ class UnlimitedOCREngine:
             (r"(cvn\s*weld|kaynak\s*darbe|itab\s*darbe|weld\s*impact|charpy.*weld|weld.*haz)", "Kaynak & ITAB Çentik Darbe (CVN Weld & HAZ)"),
             (r"(dwtt|drop\s*weight|y[ıiI]rt[ıiI]lma\s*testi|d[üu][şs]en\s*a[ğgI]r[ıiI]k)", "DWTT (Düşen Ağırlık Yırtılma Testi)"),
             (r"(k[ıiI]lavuzlu\s*b[üu]kme|guided[- ]*bend|k[öo]k\s*b[üu]kme|kapak\s*b[üu]kme|root\s*bend|face\s*bend|bend\s*test)", "Kılavuzlu Bükme Testi (Guided-Bend)"),
-            (r"(d[üu]zle[şs]tir|flattening|yass[ıiI]lt)", "Düzleştirme Testi (Flattening)"),
+            (r"(d[üu]zle[şs]tir|flattening|yass[ıiI]lt|ezme)", "Düzleştirme Testi (Flattening)"),
+            (r"(metalograf|martenzit|mikro\s*yap[ıiI]|tavlama|normalizasyon)", "Metalografik İnceleme & Mikro Yapı"),
+            (r"([çc]apak|flash\s*trim|oyuk\s*derinlik)", "İç ve Dış Çapak Alma & Geometri"),
             (r"(sertlik|hardness|hv10|hrc|hbw)", "Sertlik Testi (Hardness Testing)"),
             (r"(art[ıiI]k\s*stres|residual\s*stress|halka\s*kesme|stres\s*kontrol|ring\s*test)", "Artık Stres Testi (Residual Stress)"),
             (r"(hidrostatik|hydrostatic|water\s*test|bas[ıiI]n[çc]\s*deney|hydro\s*test|mill\s*hydro)", "Fabrika Hidrostatik Basınç Testi"),
@@ -266,6 +355,15 @@ class UnlimitedOCREngine:
             (r"(body\s*laminar|g[öo]vde.*(?:laminas|laminar)|sac\s*laminas|plaka\s*laminas)", "Boru Gövdesi UT Laminasyon"),
             (r"(pipe\s*ends.*(?:ut|ndt|laminar)|u[çc].*(?:laminas|ndt|ut)|ends\s*ut)", "Boru Uçları Laminasyon NDT (UT)"),
             (r"(kaynak\s*a[ğgI]z.*(?:mt|manyetik)|manyetik\s*par[çc]ac[ıiI]k|magnetic\s*particle|mpi|bevel.*mt)", "Kaynak Ağzı ve Tamir Yüzeyi MT"),
+            (r"(kumlama|y[üu]zey\s*haz[ıiI]rl[ıiI]|sa\s*2\.5|profil.*p[üu]r[üu]zl[üu]|rz|toz\s*testi|tuz\s*testi)", "Yüzey Hazırlığı ve Kumlama"),
+            (r"((?:3lpe|3l\s*hdpe|fbe|kaplama).*(?:kal[ıiI]nl[ıiI]k|thickness)|(?:kal[ıiI]nl[ıiI]k|thickness).*(?:kaplama|3lpe|fbe))", "3LPE / HDPE Kaplama Kalınlığı"),
+            (r"(holiday|elektrik.*porozite|k[ıiI]v[ıiI]lc[ıiI]m|25\s*kv|25000\s*volt)", "Elektrik Porozite (Holiday) Testi"),
+            (r"(soyulma|yap[ıiI][şs]ma|peel|adhesion|150\s*n/cm)", "Soyulma Mukavemeti / Yapışma Testi"),
+            (r"(kaplama.*darbe|darbe\s*diren[çc]|impact\s*resist|5\s*j/mm)", "Kaplama Darbe Direnci Testi"),
+            (r"(delici\s*u[çc]|indentation|batma\s*diren[çc])", "Delici Uca Batma Direnci (Indentation)"),
+            (r"(katodik\s*soyulma|cd\s*test|cathodic\s*disbond)", "Katodik Soyulma Testi (CD Test)"),
+            (r"(cutback|cut[- ]*back|kaplamas[ıiI]z\s*b[öo]lge|boru\s*ucu\s*geri\s*kesme)", "Kaplamasız Bölge (Cutback) Hazırlığı"),
+            (r"(kaplama.*tamir|heatshrink|yama\s*malzeme|tamir\s*metod)", "Kaplama Kusur Tamir Kuralları"),
             (r"(tamir|repair|re-repair|[öo]n\s*[ıiI]s[ıiI]tma|preheat)", "Kaynak ve Gövde Tamir Kuralları"),
             (r"(radyal\s*ka[çc][ıiI]kl[ıiI]k|radial\s*offset|basamaklanma)", "Sac Kenarları Radyal Kaçıklık"),
             (r"(tepele[şs]me|peaking)", "Boru Ucu Tepeleşme"),
@@ -284,7 +382,7 @@ class UnlimitedOCREngine:
             (r"(diklik|squareness)", "Boru Ucu Diklikten Sapma"),
             (r"(g[öo]rsel|visual|y[üu]zey|surface)", "Görsel Yüzey Muayenesi"),
             (r"(manyetizma|magnetism|gauss)", "Kalıntı Manyetizma Ölçümü"),
-            (r"(markalama|stenciling|[şs]ablonlama|sa\s*2\.5|y[üu]zey\s*haz[ıiI]rl[ıiI]|en\s*10204|mtc|sertifika|certificate)", "Proje Markalaması ve Kalite Sertifikası"),
+            (r"(markalama|stenciling|[şs]ablonlama|en\s*10204|mtc|sertifika|certificate)", "Proje Markalaması ve Kalite Sertifikası"),
             (r"(tahribats[ıiI]z|ndt|ut|ultrasonic|radiographic|rt)", "Tahribatsız Muayene (NDT)"),
             (r"([çc]ekme|tensile|yield\s*strength)", "Çekme Testi (Tensile Test)"),
             (r"(darbe|[çc]entik|charpy|cvn|impact)", "Çentik Darbe Testi (CVN Impact)"),
@@ -504,3 +602,171 @@ class UnlimitedOCREngine:
                 "clause_reference": "API 5L Madde 9.14",
             },
         ]
+
+    @classmethod
+    def detect_itp_metadata(
+        cls,
+        extracted_text: str,
+        items: List[Dict[str, Any]],
+        filename: str = ""
+    ) -> Dict[str, Any]:
+        """
+        Automatically detects pipe manufacturing & coating standards, scope discipline,
+        geometry, grade, and project metadata from extracted text and structured ITP items.
+        """
+        text_lower = (extracted_text or "").replace("I", "ı").replace("İ", "i").lower()
+        fn_lower = (filename or "").replace("I", "ı").replace("İ", "i").lower()
+        items_text = " ".join([f"{it.get('test_name', '')} {it.get('acceptance_criteria', '')}" for it in items]).replace("I", "ı").replace("İ", "i").lower()
+        combined_text = f"{text_lower} {fn_lower} {items_text}"
+
+        # 1. Standard Detection
+        has_botas = any(k in combined_text for k in ("botaş", "botas", "5120", "5410", "5140", "4-ngtl-0-gn-p-002"))
+        has_api5l = any(k in combined_text for k in ("api 5l", "api spec 5l", "46th", "47th"))
+        has_din30670 = "din 30670" in combined_text
+        has_iso21809 = any(k in combined_text for k in ("iso 21809", "en 21809", "21809"))
+
+        std_type = "BOTAŞ" if has_botas else ("API" if has_api5l else "API")
+        std_label = "BOTAŞ (5120 R7 + 5410 R1)" if has_botas else ("API Spec 5L (47th / 46th Edition)" if has_api5l else "API Spec 5L")
+
+        # 2. Scope / Discipline Detection
+        coating_kw = ("kaplama", "kumlama", "holiday", "peel", "soyulma", "darbe", "indentation", "katodik", "cutback", "cut back", "fbe", "3lpe", "hdpe", "boyasız", "yama")
+        bare_kw = ("çekme", "akma", "tensile", "yield", "cvn", "çentik", "dwtt", "flattening", "yassıltma", "ezme", "hidrostatik", "hydrostatic", "laminasyon", "çapak", "normalizasyon")
+
+        coating_hits = sum(1 for k in coating_kw if k in combined_text)
+        bare_hits = sum(1 for k in bare_kw if k in combined_text)
+
+        # Check filename or title cues
+        if any(k in fn_lower or k in text_lower[:500] for k in ("combined", "bütünsel", "tam kapsam", "full combined", "imalat ve kaplama")):
+            scope_mode = "COMBINED"
+            scope_label = "Bütünsel (İmalat + 3LPE Dış Kaplama)"
+        elif any(k in fn_lower or k in text_lower[:500] for k in ("hdpe kaplama", "dış kaplama", "coating only", "sadece kaplama", "din 30670", "tos-itp-şrk-002")):
+            scope_mode = "COATING_ONLY"
+            scope_label = "Sadece 3LPE Dış Kaplama (DIN 30670 / BOTAŞ 5410 R1)"
+        elif any(k in fn_lower or k in text_lower[:500] for k in ("siyah boru", "çıplak boru", "bare pipe", "tos-itp-şrk-001", "bare_pipe")):
+            scope_mode = "BARE_PIPE_ONLY"
+            scope_label = "Sadece Çıplak Boru İmalatı (API 5L / BOTAŞ 5120 R7)"
+        elif coating_hits >= 4 and bare_hits >= 4:
+            scope_mode = "COMBINED"
+            scope_label = "Bütünsel (İmalat + 3LPE Dış Kaplama)"
+        elif coating_hits >= 4 and bare_hits < 4:
+            scope_mode = "COATING_ONLY"
+            scope_label = "Sadece 3LPE Dış Kaplama (DIN 30670 / BOTAŞ 5410 R1)"
+        elif bare_hits >= 4 and coating_hits < 4:
+            scope_mode = "BARE_PIPE_ONLY"
+            scope_label = "Sadece Çıplak Boru İmalatı (API 5L / BOTAŞ 5120 R7)"
+        else:
+            scope_mode = "COMBINED"
+            scope_label = "Bütünsel Kalite Planı"
+
+        # 3. Grade Detection
+        grade = "X65"
+        grades = [
+            ("X80", "X80"), ("X70", "X70"), ("X65", "X65"), ("X60", "X60"),
+            ("X56", "X56"), ("X52", "X52"), ("X46", "X46"), ("X42", "X42"),
+            ("GRADE B", "Grade B"), ("GR.B", "Grade B"), ("GRB", "Grade B"), ("L485", "X70"),
+            ("L450", "X65"), ("L415", "X60"), ("L360", "X52"), ("L290", "X42"), ("L245", "Grade B")
+        ]
+        for code, clean_name in grades:
+            if re.search(r"\b" + code.lower() + r"\b", text_lower) or re.search(r"\b" + code.lower() + r"m\b", text_lower):
+                grade = clean_name
+                break
+
+        # 4. Process Detection
+        process = "SAWH"
+        if any(k in combined_text for k in ("erw", "hfw", "yüksek frekans", "high frequency")):
+            process = "ERW"
+        elif any(k in combined_text for k in ("lsaw", "sawl", "boyuna tozaltı", "longitudinal")):
+            process = "LSAW"
+        elif any(k in combined_text for k in ("sawh", "hsaw", "spiral", "helical")):
+            process = "SAWH"
+        elif any(k in combined_text for k in ("smls", "dikişsiz", "seamless")):
+            process = "SMLS"
+
+        # 5. PSL Level
+        if "psl1" in combined_text or "psl 1" in combined_text or "psl-1" in combined_text:
+            psl = "PSL1"
+        elif "psl2" in combined_text or "psl 2" in combined_text or "psl-2" in combined_text or has_botas:
+            psl = "PSL2"
+        else:
+            psl = "PSL2"
+
+        # 6. Diameter & Wall Thickness
+        d_mm = 1219.0
+        d_inch = '48"'
+        t_mm = 14.30
+
+        known_diameters = [
+            (1219.0, '48"', [r"\b1219(?:[.,]0)?\b", r"\b48\s*(?:\"|inç|inch)\b"]),
+            (1016.0, '40"', [r"\b1016(?:[.,]0)?\b", r"\b40\s*(?:\"|inç|inch)\b"]),
+            (914.4, '36"', [r"\b914[.,]4\b", r"\b36\s*(?:\"|inç|inch)\b"]),
+            (762.0, '30"', [r"\b762(?:[.,]0)?\b", r"\b30\s*(?:\"|inç|inch)\b"]),
+            (610.0, '24"', [r"\b610(?:[.,]0)?\b", r"\b24\s*(?:\"|inç|inch)\b"]),
+            (508.0, '20"', [r"\b508(?:[.,]0)?\b", r"\b20\s*(?:\"|inç|inch)\b"]),
+            (406.4, '16"', [r"\b406[.,]4\b", r"\b16\s*(?:\"|inç|inch)\b"]),
+            (323.9, '12"', [r"\b323[.,]9\b", r"\b12\s*(?:\"|inç|inch)\b"]),
+            (273.0, '10"', [r"\b273(?:[.,]0)?\b", r"\b10\s*(?:\"|inç|inch)\b"]),
+            (219.1, '8"', [r"\b219[.,]1\b", r"\b8\s*(?:\"|inç|inch)\b"]),
+            (168.3, '6"', [r"\b168[.,]3\b", r"\b6\s*(?:\"|inç|inch)\b"]),
+            (114.3, '4"', [r"\b114[.,]3\b", r"\b4\s*(?:\"|inç|inch)\b"])
+        ]
+
+        for mm_val, in_val, patterns in known_diameters:
+            if any(re.search(p, text_lower) for p in patterns):
+                d_mm = mm_val
+                d_inch = in_val
+                break
+
+        # Check scope table row matches e.g. "1 219,1 6,40 PSL 2 X42M"
+        scope_rows = re.findall(r"(\d+)\s+([\d.,]+)\s+([\d.,]+)\s+([a-zA-Z0-9\-]+)", text_lower)
+        if scope_rows:
+            _, d_raw, t_raw, g_raw = scope_rows[0]
+            try:
+                d_parsed = float(d_raw.replace(",", "."))
+                t_parsed = float(t_raw.replace(",", "."))
+                if 50.0 <= d_parsed <= 3000.0:
+                    d_mm = d_parsed
+                if 2.0 <= t_parsed <= 60.0:
+                    t_mm = t_parsed
+            except Exception:
+                pass
+        else:
+            known_wts = [25.4, 22.2, 19.1, 17.5, 15.9, 14.3, 12.7, 11.1, 9.5, 8.2, 7.9, 7.1, 6.4, 5.6, 4.8]
+            for w in known_wts:
+                w_str = str(w).replace(".", "[.,]")
+                if re.search(r"(?:et kalınlığı|kalınlık|wt|t)[\s:=]*" + w_str, text_lower) or re.search(r"\b" + w_str + r"\s*mm\b", text_lower):
+                    t_mm = w
+                    break
+
+        customer = "BOTAŞ" if has_botas else "Genel Müşteri"
+        proj_m = re.search(r"proje(?: ismi)?\s*[:\n]\s*([^\n\r]+)", text_lower)
+        project_name = proj_m.group(1).strip() if proj_m else ("BOTAŞ Doğal Gaz Boru Hattı Projesi" if has_botas else "Çelik Boru İmalat & Test Projesi")
+
+        confidence = 80
+        if has_botas or has_api5l:
+            confidence += 10
+        if d_mm and t_mm:
+            confidence += 10
+
+        return {
+            "customer": customer,
+            "project_name": project_name.title(),
+            "detected_standard": std_type,
+            "detected_standard_label": std_label,
+            "detected_scope_mode": scope_mode,
+            "detected_scope_label": scope_label,
+            "detected_process": process,
+            "detected_grade": grade,
+            "detected_psl": psl,
+            "detected_diameter_mm": d_mm,
+            "detected_diameter_inch": d_inch,
+            "detected_wall_thickness_mm": t_mm,
+            "spec_references": {
+                "botas_pipe_5120": has_botas,
+                "botas_coating_5410": has_botas or has_din30670,
+                "botas_transport_5140": "5140" in combined_text,
+                "api_5l": has_api5l,
+                "din_30670": has_din30670,
+                "iso_21809": has_iso21809
+            },
+            "confidence_score": min(confidence, 100)
+        }

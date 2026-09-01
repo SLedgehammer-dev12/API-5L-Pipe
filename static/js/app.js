@@ -2321,6 +2321,9 @@ async function copyFeedbackReport() {
 
 let currentITPAuditResult = null;
 let currentITPFilter = "ALL";
+let currentITPExtractedItems = [];
+let currentITPDetectedMeta = null;
+let currentITPEffectiveConfig = null;
 
 function setupITPAuditUI() {
     const fileInput = document.getElementById("itp-file-input");
@@ -2329,6 +2332,10 @@ function setupITPAuditUI() {
     const btnStart = document.getElementById("btn-start-itp-audit");
     const btnDemo = document.getElementById("btn-load-demo-itp");
     const btnExportExcel = document.getElementById("btn-export-itp-excel");
+    const btnExportPdf = document.getElementById("btn-export-itp-pdf");
+    const btnReAudit = document.getElementById("btn-re-audit-itp");
+    const btnAddPipe = document.getElementById("btn-add-detected-pipe-to-project");
+    const selStandard = document.getElementById("itp-override-standard");
 
     if (fileInput && dropzoneLabel) {
         fileInput.addEventListener("change", () => {
@@ -2354,6 +2361,93 @@ function setupITPAuditUI() {
                 return;
             }
             await startITPAudit(file, false);
+        });
+    }
+
+    if (selStandard) {
+        selStandard.addEventListener("change", () => {
+            const gapAlert = document.getElementById("itp-botas-gap-alert");
+            if (gapAlert) {
+                if (selStandard.value === "BOTAŞ") {
+                    gapAlert.classList.remove("hidden");
+                } else {
+                    gapAlert.classList.add("hidden");
+                }
+            }
+        });
+    }
+
+    if (btnReAudit) {
+        btnReAudit.addEventListener("click", async () => {
+            if (!currentITPExtractedItems || currentITPExtractedItems.length === 0) {
+                showToast("Önce bir ITP dokümanı yükleyin.", "warning");
+                return;
+            }
+            const stdVal = document.getElementById("itp-override-standard")?.value || "BOTAŞ";
+            const scopeVal = document.getElementById("itp-override-scope")?.value || "COMBINED";
+
+            const updatedConfig = Object.assign({}, currentITPEffectiveConfig || {}, {
+                standard_type: stdVal.startsWith("API") ? "API" : stdVal,
+                psl_level: stdVal === "API_PSL1" ? "PSL1" : "PSL2",
+                scope_mode: scopeVal
+            });
+
+            btnReAudit.disabled = true;
+            try {
+                const resp = await fetch("/api/itp/audit-manual", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        items: currentITPExtractedItems,
+                        pipe_config: updatedConfig
+                    })
+                });
+                const res = await resp.json();
+                if (res.status === "success" && res.audit_result) {
+                    currentITPAuditResult = res.audit_result;
+                    currentITPEffectiveConfig = updatedConfig;
+                    renderITPAuditResult(res.audit_result);
+                    showToast(`Denetim '${stdVal}' standardı ve '${scopeVal}' kapsamına göre güncellendi!`, "success");
+                }
+            } catch (err) {
+                showToast("Yeniden denetim hatası: " + err.message, "error");
+            } finally {
+                btnReAudit.disabled = false;
+            }
+        });
+    }
+
+    if (btnAddPipe) {
+        btnAddPipe.addEventListener("click", () => {
+            if (!currentITPEffectiveConfig) {
+                showToast("Algılanan boru parametresi bulunamadı.", "warning");
+                return;
+            }
+            const newPipe = {
+                diameter_mm: currentITPEffectiveConfig.diameter_mm || 1219.0,
+                diameter_inch: currentITPEffectiveConfig.diameter_inch || '48"',
+                wall_thickness_mm: currentITPEffectiveConfig.wall_thickness_mm || 14.30,
+                material_grade: currentITPEffectiveConfig.material_grade || "X65",
+                manufacturing_process: currentITPEffectiveConfig.manufacturing_process || "SAWH",
+                psl_level: currentITPEffectiveConfig.psl_level || "PSL2",
+                standard_type: currentITPEffectiveConfig.standard_type || "BOTAŞ",
+                standard_code: currentITPEffectiveConfig.standard_type || "BOTAŞ",
+                design_factor_str: "0.72 (Hat)",
+                delivery_condition: "M"
+            };
+
+            if (!activeProject.pipes) activeProject.pipes = [];
+            activeProject.pipes.push(newPipe);
+
+            if (typeof renderProjectPipes === "function") renderProjectPipes();
+            if (typeof updatePipeTabs === "function") updatePipeTabs();
+            if (typeof renderITPPipeChips === "function") renderITPPipeChips();
+            if (typeof updateITPTargetPipes === "function") updateITPTargetPipes();
+            if (typeof ProjectStorage !== "undefined" && ProjectStorage.saveToLocalStorage) {
+                ProjectStorage.saveToLocalStorage(activeProject);
+            }
+
+            showToast(`✓ '${newPipe.diameter_inch} x ${newPipe.wall_thickness_mm} mm ${newPipe.material_grade} ${newPipe.manufacturing_process}' projenize eklendi!`, "success");
         });
     }
 
@@ -2386,6 +2480,47 @@ function setupITPAuditUI() {
         });
     }
 
+    if (btnExportPdf) {
+        btnExportPdf.addEventListener("click", async () => {
+            if (!currentITPAuditResult) return;
+            const originalText = btnExportPdf.innerHTML;
+            btnExportPdf.disabled = true;
+            btnExportPdf.innerHTML = `<span>⏳ PDF Hazırlanıyor...</span>`;
+            try {
+                const payload = Object.assign({}, currentITPAuditResult, {
+                    customer: currentITPDetectedMeta?.customer || (currentITPEffectiveConfig?.standard_type === 'BOTAŞ' ? 'BOTAŞ' : 'Genel Müşteri'),
+                    project_name: currentITPDetectedMeta?.project_name || 'Doğalgaz Boru Hattı Projesi',
+                    source_filename: currentITPDetectedMeta?.source_filename || 'İmalatçı ITP Dokümanı'
+                });
+
+                const resp = await fetch("/api/itp/export-audit-pdf", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        audit_result: payload,
+                        lang: localStorage.getItem("api5l_lang") || "tr"
+                    })
+                });
+                if (!resp.ok) throw new Error("PDF raporu oluşturulamadı.");
+                const blob = await resp.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `ITP_Audit_Report_${Date.now()}.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                showToast("✓ PDF ITP Denetim Raporu başarıyla indirildi!", "success");
+            } catch (err) {
+                console.error("PDF Export error:", err);
+                showToast("PDF Rapor indirme hatası: " + err.message, "error");
+            } finally {
+                btnExportPdf.disabled = false;
+                btnExportPdf.innerHTML = originalText;
+            }
+        });
+    }
+
     updateITPTargetPipes();
 }
 
@@ -2414,6 +2549,44 @@ function updateITPTargetPipes() {
         if (idx === selectedPipeIndex) opt.selected = true;
         select.appendChild(opt);
     });
+}
+
+function renderITPAlignmentPanel(meta, effectiveConfig) {
+    const panel = document.getElementById("itp-alignment-panel");
+    if (!panel || !meta) return;
+
+    panel.classList.remove("hidden");
+
+    const elConf = document.getElementById("itp-det-conf-badge");
+    const elCust = document.getElementById("itp-det-customer-badge");
+    const elProj = document.getElementById("itp-det-project-name");
+    const elStd = document.getElementById("itp-det-standard-label");
+    const elScope = document.getElementById("itp-det-scope-label");
+    const elPipe = document.getElementById("itp-det-pipe-label");
+    const selStd = document.getElementById("itp-override-standard");
+    const selScope = document.getElementById("itp-override-scope");
+
+    if (elConf) elConf.innerText = `%${meta.confidence_score || 95} Güven`;
+    if (elCust) elCust.innerText = `Müşteri: ${meta.customer || 'BOTAŞ'}`;
+    if (elProj) elProj.innerText = meta.project_name || 'BOTAŞ Doğalgaz Boru Hattı Projesi';
+    if (elStd) elStd.innerText = meta.detected_standard_label || meta.detected_standard || 'BOTAŞ';
+    if (elScope) elScope.innerText = meta.detected_scope_label || meta.detected_scope_mode || 'Bütünsel';
+
+    const dStr = meta.detected_diameter_inch || `${meta.detected_diameter_mm} mm`;
+    const tStr = meta.detected_wall_thickness_mm ? `${meta.detected_wall_thickness_mm} mm` : '';
+    const gStr = meta.detected_grade || 'X65';
+    const pStr = meta.detected_process || 'SAWH';
+    const pslStr = meta.detected_psl || 'PSL2';
+    if (elPipe) elPipe.innerText = `${dStr} (${meta.detected_diameter_mm || ''} mm) x ${tStr} | ${gStr} ${pslStr} ${pStr}`;
+
+    if (selStd && effectiveConfig) {
+        if (effectiveConfig.standard_type === 'BOTAŞ') selStd.value = 'BOTAŞ';
+        else if (effectiveConfig.psl_level === 'PSL1') selStd.value = 'API_PSL1';
+        else selStd.value = 'API';
+    }
+    if (selScope && effectiveConfig) {
+        selScope.value = effectiveConfig.scope_mode || 'COMBINED';
+    }
 }
 
 async function startITPAudit(file = null, useDemo = false) {
@@ -2453,6 +2626,11 @@ async function startITPAudit(file = null, useDemo = false) {
 
         if (res.status === "success" || res.status === "warning") {
             currentITPAuditResult = res.audit_result;
+            currentITPExtractedItems = res.extracted_items || [];
+            currentITPDetectedMeta = res.detected_metadata || null;
+            currentITPEffectiveConfig = res.effective_config || pipeConfig;
+
+            renderITPAlignmentPanel(res.detected_metadata, res.effective_config);
             renderITPAuditResult(res.audit_result);
 
             // Persist latest audit in browser LocalStorage (R3 Solution)
@@ -2460,6 +2638,8 @@ async function startITPAudit(file = null, useDemo = false) {
                 localStorage.setItem("api5l_latest_itp_audit", JSON.stringify({
                     source: res.source || "ITP Document",
                     timestamp: new Date().toISOString(),
+                    detected_metadata: res.detected_metadata,
+                    effective_config: res.effective_config,
                     audit_result: res.audit_result
                 }));
             } catch (e) {
@@ -2523,6 +2703,8 @@ function renderITPAuditResult(auditData) {
     }
 
     if (btnExcel) btnExcel.disabled = false;
+    const btnPdf = document.getElementById("btn-export-itp-pdf");
+    if (btnPdf) btnPdf.disabled = false;
 
     renderITPAuditTable(rows);
 }
@@ -2640,8 +2822,13 @@ function loadSavedITPAuditFromStorage() {
             const data = JSON.parse(saved);
             if (data && data.audit_result) {
                 currentITPAuditResult = data.audit_result;
+                currentITPDetectedMeta = data.detected_metadata || null;
+                currentITPEffectiveConfig = data.effective_config || null;
+                if (data.detected_metadata) {
+                    renderITPAlignmentPanel(data.detected_metadata, data.effective_config);
+                }
                 renderITPAuditResult(data.audit_result);
-                const statusText = document.getElementById("itp-status-text");
+                const statusText = document.getElementById("itp-upload-status-text");
                 if (statusText) statusText.innerText = `📁 Kayıtlı denetim yüklendi (${data.source || "ITP"}).`;
             }
         }

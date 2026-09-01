@@ -10,7 +10,7 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 cd "$DIR"
 
 echo "======================================================================"
-echo "  🚀 API 5L PSL2 & BOTAŞ Boru Kalite Güvence Yazılımı v2.2.0"
+echo "  🚀 API 5L PSL2 & BOTAŞ Boru Kalite Güvence Yazılımı v2.3.0"
 echo "  💻 Sistem: $(uname -s) ($(uname -m))"
 echo "======================================================================"
 echo ""

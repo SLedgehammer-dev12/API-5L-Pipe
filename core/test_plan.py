@@ -621,10 +621,17 @@ def get_comprehensive_itp_specification(pipe_config: Optional[Dict[str, Any]] = 
     squareness_max = dim.get("pipe_end_squareness_max_mm", 1.6)
 
     # Weld geometry
-    weld_h_max = weld.get("weld_height_inside_mm", 2.625 if is_botas else 3.50)
-    radial_offset = weld.get("radial_offset_max_mm", 1.125 if is_botas else (1.50 if t_mm <= 15.0 else round(0.10 * t_mm, 2)))
-    peaking_max = dim.get("pipe_end_peaking_max_mm", 1.50 if is_botas else round(d_mm * 0.0015, 2))
-    misalignment_max = weld.get("misalignment_max_mm", 2.25 if is_botas else 3.0)
+    weld_h_val = weld.get("weld_height_inside_mm")
+    weld_h_max = weld_h_val if isinstance(weld_h_val, (int, float)) else (2.625 if is_botas else 3.50)
+
+    rad_val = weld.get("radial_offset_max_mm")
+    radial_offset = rad_val if isinstance(rad_val, (int, float)) else (1.125 if is_botas else (1.50 if t_mm <= 15.0 else round(0.10 * t_mm, 2)))
+
+    peak_val = dim.get("pipe_end_peaking_max_mm")
+    peaking_max = peak_val if isinstance(peak_val, (int, float)) else (1.50 if is_botas else round(d_mm * 0.0015, 2))
+
+    mis_val = weld.get("misalignment_max_mm")
+    misalignment_max = mis_val if isinstance(mis_val, (int, float)) else (2.25 if is_botas else 3.0)
 
     # Residual Stress
     residual_stress_max_mpa = round(0.10 * rt05_min, 1)
@@ -953,7 +960,7 @@ def get_comprehensive_itp_specification(pipe_config: Optional[Dict[str, Any]] = 
         })
 
     # 19. Weld Geometry & Peaking (if welded)
-    if is_welded:
+    if is_welded and not ("ERW" in process or "HFW" in process):
         master_list.append({
             "test_key": "weld_geometry_offset_height",
             "category": "Boyutsal & Geometri",
@@ -1216,5 +1223,202 @@ def get_comprehensive_itp_specification(pipe_config: Optional[Dict[str, Any]] = 
         "table_ref": "BOTAŞ Madde 8.1.1" if is_botas else freq_tbl,
         "is_mandatory": True,
     })
+
+    # 26. ERW Specific Process Checks
+    if "ERW" in process or "HFW" in process:
+        master_list.append({
+            "test_key": "erw_metallographic_seam",
+            "category": "Metalografi & Yapı",
+            "test_name": "Metalografik İnceleme & Mikro Yapı (ERW Seam Metallography)",
+            "standard_frequency": "Üretim başlangıcında, her döküm değişiminde ve ayar değişikliğinde",
+            "standard_frequency_en": "Start of production, each heat change and machine setup",
+            "standard_acceptance_criteria": "Martenzit yapısı kesinlikle olmayacak, tam normalizasyon sağlanacak; EN 10163-2 Sınıf B alt sınıf 3 yüzey kalitesi",
+            "clause_ref": "API 5L Madde 10.2.5.3 & EN 10163-2 Sınıf B",
+            "table_ref": "API 5L Madde 10.2.5",
+            "ndt_method_standard": "Optik Mikroskop / Metalografi Numunesi Dağlama",
+            "ndt_acceptance_level": "Sıfır Martenzit, Homojen Ferrit-Perlit Yapı",
+            "calculated_target_str": "Martenzit yapısı yasaktır; tam normalizasyon tavlaması uygulanacaktır",
+            "calculated_targets": {"martensite_allowed": False},
+            "is_mandatory": True,
+        })
+        master_list.append({
+            "test_key": "erw_flash_trim_weld",
+            "category": "Boyutsal & Geometri",
+            "test_name": "İç ve Dış Çapak Alma & Geometri (Flash Trim & Groove)",
+            "standard_frequency": "Her boruda (%100 tam boy)",
+            "standard_frequency_en": "100% of pipes along full weld seam",
+            "standard_acceptance_criteria": "İç çapak yüksekliği ≤ 1.1 mm; Oyuk derinliği ≤ 0.04 mm; Ofset ≤ 1.1 mm; Çapak sonrası kalan et kalınlığı ≥ t_min",
+            "clause_ref": "API 5L 46th/47th Ver. Madde 9.13.2",
+            "table_ref": "API 5L Madde 9.13.2",
+            "ndt_method_standard": "İç Çapak Derinlik Mastarı / Ultrasonik Cidar Ölçer",
+            "ndt_acceptance_level": "İç Çapak ≤ 1.1 mm, Oyuk ≤ 0.04 mm",
+            "calculated_target_str": "İç çapak max 1.1 mm | Oyuk derinliği max 0.04 mm | Kalan et kalınlığı ≥ t_min",
+            "calculated_targets": {"max_flash_trim_mm": 1.1, "max_groove_depth_mm": 0.04},
+            "is_mandatory": True,
+        })
+
+    # 27. 3LPE / HDPE External Coating Disciplinary Requirements (DIN 30670 / BOTAŞ 5410 R1 / EN 21809-1)
+    master_list.append({
+        "test_key": "coating_surface_prep_blasting",
+        "category": "Dış Kaplama (3LPE / HDPE)",
+        "test_name": "Yüzey Hazırlığı, Kumlama ve Temizlik (Surface Preparation & Blasting)",
+        "standard_frequency": "Her boru (%100 Sa 2.5 görsel) | Pürüzlülük/Toz/Tuz: 4 saatte 1",
+        "standard_frequency_en": "Each pipe (100% Sa 2.5) | Rz/Dust/Salt every 4 hours",
+        "standard_acceptance_criteria": "Temizlik: Min Sa 2½ (ISO 8501-1); Pürüzlülük: Rz 60-100 µm; Çiğ noktası +3 °C üzerinde; Toz Sınıfı ≤ 2; Tuz ≤ 20 mg/m² (2 µg/cm²)",
+        "clause_ref": "BOTAŞ 4-NGTL-0-GN-P-002-5410 R1 Madde 5.5 / DIN 30670 / EN 21809-1",
+        "table_ref": "BOTAŞ 5410 R1 / DIN 30670",
+        "ndt_method_standard": "ISO 8501-1 (Görsel Karşılaştırma) + Yüzey Profilometresi (Rz) + Bresle Tuz Kiti",
+        "ndt_acceptance_level": "Sa 2.5, Rz 60-100 µm, Toz ≤ Sınıf 2, Tuz ≤ 20 mg/m²",
+        "calculated_target_str": "Min Sa 2.5 | Rz: 60 - 100 µm | Sıcaklık ≥ Çiğ Noktası + 3 °C | Tuz ≤ 20 mg/m²",
+        "calculated_targets": {"min_sa_level": 2.5, "min_rz_um": 60, "max_rz_um": 100, "max_salt_mg_m2": 20.0},
+        "is_mandatory": True,
+    })
+    master_list.append({
+        "test_key": "coating_thickness_3lpe",
+        "category": "Dış Kaplama (3LPE / HDPE)",
+        "test_name": "3LPE / HDPE Kaplama Kalınlığı (Coating Thickness - FBE/Adhesive/PE)",
+        "standard_frequency": "Her boruda (%100 boru boyunca en az 12 nokta + kaynak kepi üzeri 4 nokta)",
+        "standard_frequency_en": "100% of pipes (at least 12 readings on body + 4 on weld seam)",
+        "standard_acceptance_criteria": "FBE Astar ≥ 120 µm; Yapıştırıcı ≥ 120 µm; Toplam 3LPE/HDPE ≥ 3.0 mm (3000 µm) (Kaynak kepi üzeri min kalınlıktan max %10 düşük olabilir)",
+        "clause_ref": "BOTAŞ 5410 R1 Madde 5.8 / DIN 30670 Tip S-v (Yükseltilmiş Kalınlık)",
+        "table_ref": "BOTAŞ 5410 R1 Tablo 5 / DIN 30670",
+        "ndt_method_standard": "Manyetik/Elektromanyetik Kaplama Kalınlık Ölçer (ISO 2808)",
+        "ndt_acceptance_level": "Toplam PE ≥ 3.0 mm (3000 µm), FBE ≥ 120 µm, Yapıştırıcı ≥ 120 µm",
+        "calculated_target_str": "Toplam 3LPE ≥ 3.0 mm (3000 µm) | FBE ≥ 120 µm | Yapıştırıcı ≥ 120 µm",
+        "calculated_targets": {"min_total_pe_mm": 3.0, "min_fbe_um": 120, "min_adhesive_um": 120},
+        "is_mandatory": True,
+    })
+    master_list.append({
+        "test_key": "coating_holiday_test",
+        "category": "Dış Kaplama (3LPE / HDPE)",
+        "test_name": "Elektrik Porozite / Süreksizlik Testi (Holiday Detection 25 kV)",
+        "standard_frequency": "Her boru (%100 tam yüzey taraması)",
+        "standard_frequency_en": "100% of pipe coated surface",
+        "standard_acceptance_criteria": "Test Gerilimi: 25.000 Volt (25 kV); Sıfır Kıvılcım / Hatasız (%100 kusursuz yalıtım)",
+        "clause_ref": "BOTAŞ 5410 R1 Madde 7.4.3 / DIN 30670 / EN 21809-1",
+        "table_ref": "BOTAŞ 5410 R1 Madde 7.4.3",
+        "ndt_method_standard": "Yüksek Gerilimli Holiday Dedektörü (25 kV Yaylı Elektrot)",
+        "ndt_acceptance_level": "25 kV Gerilimde Sıfır Delik / Sıfır Kıvılcım",
+        "calculated_target_str": "25 kV Yüksek Gerilim ile %100 Yüzey Taraması; kıvılcım/gözenek kesinlikle yasaktır",
+        "calculated_targets": {"voltage_kv": 25.0, "defects_allowed": 0},
+        "is_mandatory": True,
+    })
+    master_list.append({
+        "test_key": "coating_peel_adhesion",
+        "category": "Dış Kaplama (3LPE / HDPE)",
+        "test_name": "Soyulma Mukavemeti / Yapışma Testi (Peel Adhesion Test)",
+        "standard_frequency": "İlk boru ve her PE partisinde / her vardiya (3 adet numune)",
+        "standard_frequency_en": "First pipe and each PE batch / shift (3 specimens)",
+        "standard_acceptance_criteria": "(23 ± 2) °C'de ≥ 150 N/cm (veya ≥ 18 N/mm); (50 ± 2) °C'de ≥ 15 N/cm; Test hızı: 10 mm/dakika",
+        "clause_ref": "BOTAŞ 5410 R1 Madde 7.4.4 & Ek D / DIN 30670 / EN 21809-1",
+        "table_ref": "BOTAŞ 5410 R1 Ek D",
+        "ndt_method_standard": "Soyulma Test Cihazı (DIN 30670 / EN ISO 21809-1 Ek D)",
+        "ndt_acceptance_level": "23 °C ≥ 150 N/cm, 50 °C ≥ 15 N/cm",
+        "calculated_target_str": "23 °C'de Min 150 N/cm | 50 °C'de Min 15 N/cm",
+        "calculated_targets": {"min_peel_23c_n_cm": 150.0, "min_peel_50c_n_cm": 15.0},
+        "is_mandatory": True,
+    })
+    master_list.append({
+        "test_key": "coating_impact_resistance",
+        "category": "Dış Kaplama (3LPE / HDPE)",
+        "test_name": "Kaplama Darbe Direnci Testi (Impact Resistance Test)",
+        "standard_frequency": "Her vardiya ve et kalınlığı değişiminde (20 darbe)",
+        "standard_frequency_en": "Each shift and wall thickness change (20 impacts)",
+        "standard_acceptance_criteria": "Darbe Direnci ≥ 5 J/mm (23 ± 2 °C); 2.5 kg ağırlık 1 m'den düşürülecek; darbe sonrası 25 kV holiday testinde delinme/kıvılcım olmayacak",
+        "clause_ref": "BOTAŞ 5410 R1 Madde 7.4.5 / DIN 30670 / EN 21809-1",
+        "table_ref": "BOTAŞ 5410 R1 Madde 7.4.5",
+        "ndt_method_standard": "Düşen Ağırlıklı Darbe Cihazı (25 mm Yarımküre Uç) + 25 kV Holiday",
+        "ndt_acceptance_level": "Darbe Direnci ≥ 5 J/mm, 25 kV Holiday Delinme Yok",
+        "calculated_target_str": "Darbe Direnci ≥ 5.0 J/mm (2.5 kg ağırlık / 1 m düşüş) | 25 kV Holiday Hatasız",
+        "calculated_targets": {"min_impact_j_mm": 5.0},
+        "is_mandatory": True,
+    })
+    master_list.append({
+        "test_key": "coating_indentation",
+        "category": "Dış Kaplama (3LPE / HDPE)",
+        "test_name": "Delici Uca Batma / Girinti Direnci (Indentation Test)",
+        "standard_frequency": "Her PE partisinde (1 / Batch)",
+        "standard_frequency_en": "1 per PE batch",
+        "standard_acceptance_criteria": "Batma Derinliği: (23 ± 2) °C'de Azami 0.20 mm; (50 ± 2) °C'de Azami 0.30 mm",
+        "clause_ref": "BOTAŞ 5410 R1 Ek I / DIN 30670 / EN 21809-1",
+        "table_ref": "BOTAŞ 5410 R1 Ek I",
+        "ndt_method_standard": "Penetrasyon / İndentasyon Test Düzeneği (ISO 21809-1 Ek E)",
+        "ndt_acceptance_level": "23 °C ≤ 0.20 mm, 50 °C ≤ 0.30 mm",
+        "calculated_target_str": "Batma Derinliği: 23 °C'de ≤ 0.20 mm | 50 °C'de ≤ 0.30 mm",
+        "calculated_targets": {"max_indentation_23c_mm": 0.20, "max_indentation_50c_mm": 0.30},
+        "is_mandatory": True,
+    })
+    master_list.append({
+        "test_key": "coating_cathodic_disbondment",
+        "category": "Dış Kaplama (3LPE / HDPE)",
+        "test_name": "Katodik Soyulma Testi (Cathodic Disbondment - CD Test)",
+        "standard_frequency": "Sipariş başına / her ebatta 1 set",
+        "standard_frequency_en": "1 set per order / pipe size",
+        "standard_acceptance_criteria": "20 °C (28 Gün - 1.5 V): Max 7.0 mm soyulma yarıçapı | 65 °C (24 Saat - 3.5 V): Max 7.0 mm soyulma yarıçapı",
+        "clause_ref": "BOTAŞ 5410 R1 Madde 7.4.6 / ISO 21809-1 Ek H",
+        "table_ref": "ISO 21809-1 Ek H",
+        "ndt_method_standard": "Katodik Koruma Test Hücresi (Potansiyostat / Platin Elektrot)",
+        "ndt_acceptance_level": "CD Yarıçapı ≤ 7.0 mm",
+        "calculated_target_str": "20 °C 28 Gün CD ≤ 7.0 mm | 65 °C 24 Saat CD ≤ 7.0 mm",
+        "calculated_targets": {"max_cd_radius_mm": 7.0},
+        "is_mandatory": True,
+    })
+    master_list.append({
+        "test_key": "coating_cutback_bevel",
+        "category": "Dış Kaplama (3LPE / HDPE)",
+        "test_name": "Kaplamasız Uç Bölgesi ve Pah Açısı (Cutback Distance & Bevel)",
+        "standard_frequency": "Her borunun her iki ucunda (%100)",
+        "standard_frequency_en": "100% of pipe ends",
+        "standard_acceptance_criteria": "Cutback mesafesi: 80 - 100 mm; Kaplamasız boyasız bölüm: 45 - 55 mm; PE Pah Açısı: 20° - 30° (veya 30° - 50°); Korozyona karşı geçici şeffaf vernik koruması ve koruyucu uç tapası",
+        "clause_ref": "BOTAŞ 5410 R1 Madde 10 & 5140 R1 / DIN 30670",
+        "table_ref": "BOTAŞ 5410 R1 Madde 10",
+        "ndt_method_standard": "Kumpas / Mastar / Görsel Muayene",
+        "ndt_acceptance_level": "Cutback 80-100 mm, Boyasız 45-55 mm, Açı 20°-30°",
+        "calculated_target_str": "Cutback: 80 - 100 mm | Boyasız Bölüm: 45 - 55 mm | PE Açısı: 20° - 30° | Geçici Vernik & Tapa",
+        "calculated_targets": {"min_cutback_mm": 80, "max_cutback_mm": 100, "min_bare_mm": 45, "max_bare_mm": 55},
+        "is_mandatory": True,
+    })
+    master_list.append({
+        "test_key": "coating_repair_rules",
+        "category": "Dış Kaplama (3LPE / HDPE)",
+        "test_name": "Kaplama Kusur Tamir Kuralları (Coating Repair Limitations)",
+        "standard_frequency": "Uygulanan her kaplama tamirinde istisnasız uygulanır",
+        "standard_frequency_en": "Applied to every coating repair",
+        "standard_acceptance_criteria": "Bir boruda azami 3 tamir; Tek tamir alanı max 25 cm²; Toplam tamir alanı max 200 cm²; Astar boyaya inen hasarlarda ısıyla büzüşen yama ile min 50 mm sağlam kaplama üzerine bindirme; Tamir sonrası %100 25 kV holiday kontrolü",
+        "clause_ref": "BOTAŞ 5410 R1 Madde 9 / DIN 30670",
+        "table_ref": "BOTAŞ 5410 R1 Madde 9",
+        "ndt_method_standard": "Onaylı Kaplama Tamir Kiti + 25 kV Holiday Dedektörü",
+        "ndt_acceptance_level": "Max 3 Tamir / Boru, Tek Tamir ≤ 25 cm², Toplam ≤ 200 cm²",
+        "calculated_target_str": "Boru Başına Max 3 Tamir | Tek Tamir ≤ 25 cm² | Toplam ≤ 200 cm² | Yama Bindirme ≥ 50 mm",
+        "calculated_targets": {"max_repairs_per_pipe": 3, "max_single_repair_area_cm2": 25.0, "max_total_repair_area_cm2": 200.0, "min_patch_overlap_mm": 50.0},
+        "is_mandatory": True,
+    })
+    master_list.append({
+        "test_key": "personnel_qualification_ndt",
+        "category": "Kalite & Sertifikasyon",
+        "test_name": "NDT Personel Yetkinliği ve Sertifikasyonu (Personnel Qualification)",
+        "standard_frequency": "Proje başlangıcında ve denetim süresince geçerli sertifikalar",
+        "standard_frequency_en": "Valid certificates throughout the project",
+        "standard_acceptance_criteria": "NDT Süpervizörü / Seviye 3: EN ISO 9712 Level 3; NDT Operatörleri: EN ISO 9712 / EN ISO 11484 Level 1 veya Level 2",
+        "clause_ref": "BOTAŞ Şartnamesi Madde 8.8.1 / EN ISO 9712 / EN ISO 11484",
+        "table_ref": "EN ISO 9712 / EN ISO 11484",
+        "ndt_method_standard": "Personel Kalifikasyon Dosyası & Sertifika Kontrolü",
+        "ndt_acceptance_level": "Geçerli Level 2 / Level 3 Sertifikaları",
+        "calculated_target_str": "NDT Seviye 3: EN ISO 9712 Level 3 | Operatörler: EN ISO 9712 / 11484 Level 1/2",
+        "is_mandatory": True,
+    })
+
+    # Scope Mode Isolation (Discipline Filter)
+    scope_mode = str(cfg.get("scope_mode") or "COMBINED").upper()
+    if scope_mode == "COATING_ONLY":
+        master_list = [
+            it for it in master_list
+            if it.get("category") == "Kaplama Kalite ve Süreç Kontrolleri" or it.get("test_key", "").startswith("coating_") or it.get("test_key") == "personnel_qualification_ndt"
+        ]
+    elif scope_mode == "BARE_PIPE_ONLY":
+        master_list = [
+            it for it in master_list
+            if it.get("category") != "Kaplama Kalite ve Süreç Kontrolleri" and not it.get("test_key", "").startswith("coating_")
+        ]
 
     return master_list

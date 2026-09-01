@@ -1,11 +1,27 @@
-# What's New in API 5L Pipe QA/QC & Wall Thickness Suite (v2.2.0)
-## Yenilikler ve Sürüm Özeti - v2.2.0 (2026-09-01)
+# What's New in API 5L Pipe QA/QC & Wall Thickness Suite (v2.3.0)
+## Yenilikler ve Sürüm Özeti - v2.3.0 (2026-09-01)
 
 ---
 
-### 🇹🇷 Türkçe Özet
+### 🇹🇷 Türkçe Özet (v2.3.0)
 
-API 5L Pipe QA/QC Suite **v2.2.0** minör sürümü ile birlikte **Boru Kalite Güvence Matrisinde yer alan tüm boyutsal toleranslar ITP Akıllı Denetim Motoruna entegre edilmiş** ve **SAWH Helisel Sarım & Çift Taraflı Tozaltı Kaynağı (SAW) Canlı 3D/2D İnteraktif Simülasyon Motoru (`SawhSimulationEngine`)** ergonomik imalat kontrolleriyle sunulmuştur:
+API 5L Pipe QA/QC Suite **v2.3.0** sürümü ile birlikte **Resmi Yatay A4 PDF ITP Denetim Raporu Üreteci (`PDFExporter`)**, **Akıllı Standart & Kapsam Otomatik Algılama Motoru (`detect_itp_metadata`)** ve **Kullanıcı Etkileşimli Manuel Müdahale / Şartname Değiştirme Kartı** entegre edilmiştir:
+
+#### 1. 📄 Resmi PDF ITP Denetim ve Sapma Raporu (`PDFExporter`)
+- Yatay A4 formatında çok sayfalı, Türkçe karakter destekli, iki geçişli sayfalama (`NumberedCanvas` - Sayfa X / Y) mimarisi.
+- Proje künyesi, yönetici KPI dashboard kartları, kritik bulgular tablosu, uçtan uca yan yana karşılaştırma matrisi ve 3'lü resmi imza/onay bloğu.
+- Arayüzden tek tıkla `[ PDF Denetim Raporu İndir ]` butonuyla tarayıcıya anında indirme.
+
+#### 2. 🧠 Akıllı Standart & Kapsam Otomatik Algılama
+- Dokümandaki BOTAŞ, API 5L, ISO 3183 ve DIN 30670 referanslarını otomatik tarayarak standardı belirleme.
+- `Sadece 3LPE Dış Kaplama` (Tosçelik formatı), `Sadece Çıplak Boru` ve `Bütünsel` disiplin izolasyonu.
+- Çap ($D$), et kalınlığı ($t$), çelik kalitesi (X42/X65), PSL ve prosesi otomatik ayıklama.
+
+#### 3. 🎛️ Etkileşimli Manuel Müdahale & Hızlı Yeniden Denetim Kartı
+- Standart (BOTAŞ vs API 5L PSL2 vs PSL1) ve Kapsam (Bütünsel vs Kaplama vs Çıplak Boru) seçimi ve tek tıkla anında yeniden denetleme.
+- Dokümandaki boruyu projeye ekleme ve BOTAŞ ek sıkılıkları bilgilendirme kartı.
+
+---
 
 #### 1. 📏 Tüm Boru Boyut Ölçüleri ve Toleranslarının ITP Denetimine Eklenmesi
 - **Boru Ucu & Gövde Dış Çap Toleransları:** $d_{\text{end\_min}} - d_{\text{end\_max}}\text{ mm}$ ve $d_{\text{body\_min}} - d_{\text{body\_max}}\text{ mm}$ tolerans kontrolleri.

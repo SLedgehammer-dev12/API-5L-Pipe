@@ -85,18 +85,28 @@ class ITPAuditEngine:
         "dimensional_diameter_body": ["boru gövdesi dış çap", "gövde çapı", "gövde dış çap", "body diameter", "pipe body diameter", "dış çap - boru gövdesi", "cap toleransi - boru govdesi", "dis cap boru govdesi", "boru gövdesi çap toleransı", "gövde çap toleransı"],
         "dimensional_circumference_ends": ["boru ucu çevre", "çevre toleransı - boru ucu", "uç çevre", "circumference ends", "pipe ends circumference", "uc cevre", "boru ucu çevre toleransı", "boru çevre toleransı - boru ucu"],
         "dimensional_circumference_body": ["boru gövdesi çevre", "çevre toleransı - gövde", "çevre toleransı - boru gövdesi", "gövde çevre", "circumference body", "pipe body circumference", "govde cevre", "boru gövdesi çevre toleransı", "boru çevre toleransı - gövde"],
-        "dimensional_ovality_ends": ["boru ucu ovalite", "ovalite - boru ucu", "uç ovalite", "dairesellikten sapma - boru ucu", "ovality ends", "pipe ends ovality", "out of roundness ends", "uc ovalite", "ovalite - uc", "ovalite ucu", "boru ucu ovalitesi", "boru ucu ovalite toleransı"],
-        "dimensional_ovality_body": ["boru gövdesi ovalite", "gövde ovalite", "ovalite - boru gövdesi", "ovalite - gövde", "dairesellikten sapma - gövde", "ovality body", "pipe body ovality", "out of roundness body", "govde ovalite", "gövde ovalitesi", "boru gövdesi ovalite toleransı"],
+        "dimensional_ovality_ends": ["boru ucu ovalite", "ovalite - boru ucu", "uç ovalite", "dairesellikten sapma - boru ucu", "yuvarlaklıktan sapma - boru ucu", "ovality ends", "ovality end", "pipe ends ovality", "out of roundness ends", "uc ovalite", "ovalite - uc", "ovalite ucu", "boru ucu ovalitesi", "boru ucu ovalite toleransı", "ovalite / yuvarlaklıktan sapma - boru ucu"],
+        "dimensional_ovality_body": ["boru gövdesi ovalite", "gövde ovalite", "ovalite - boru gövdesi", "ovalite - gövde", "dairesellikten sapma - gövde", "yuvarlaklıktan sapma - boru gövdesi", "ovality body", "pipe body ovality", "out of roundness body", "govde ovalite", "gövde ovalitesi", "boru gövdesi ovalite toleransı", "ovalite / yuvarlaklıktan sapma - boru gövdesi"],
         "dimensional_wall_thickness": ["et kalınlığı", "wall thickness", "cidar kalınlığı", "thickness verification", "et kalınlığı ölçümü", "et kalinligi", "et kal"],
         "dimensional_weight": ["birim ağırlık", "boru ağırlığı", "weight per meter", "mass", "tartım", "kantar", "ağırlık toleransı", "pipe weight", "birim agirlik", "boru agirligi"],
         "dimensional_straightness": ["doğrusallık", "dogrusallik", "straightness", "doğrusallıktan sapma", "boru doğrusallığı", "straightness deviation", "toplam doğrusallık"],
         "dimensional_bevel_ends": ["alın kaynak ağzı", "kaynak ağzı", "kaynak agzi", "bevel", "bevel angle", "ağız açısı", "kök yüzeyi", "root face", "kaynak ağzı geometrisi", "alın kaynak ağzı açısı"],
         "dimensional_squareness_ends": ["diklik", "diklikten sapma", "squareness", "pipe end squareness", "uç diklik", "boru ucu diklik", "end squareness"],
-        "dimensional_diameter_ovality": ["dış çap", "ovallik", "çap toleransı", "diameter", "out of roundness", "ovality", "out-of-roundness", "dış çap ve ovallik", "dis cap", "dis cap ve ovallik"],
-        "dimensional_length_straightness_bevel": ["doğrusallık, boy", "boy ve kaynak ağzı", "length and bevel", "doğrusallık ve kaynak ağzı"],
-        "visual_surface": ["görsel muayene", "yüzey muayenesi", "visual inspection", "surface inspection", "gözle muayene", "görsel yüzey", "gorsel", "yuzey muayenesi"],
-        "residual_magnetism": ["kalıntı manyetizma", "manyetizma", "residual magnetism", "gaussmetre", "gauss", "kalinti manyetizma"],
-        "quality_marking_surface_prep": ["proje markalaması", "markalama", "stenciling", "şablonlama", "yüzey hazırlığı", "surface prep", "sa 2.5", "en 10204", "mtc", "kalite sertifikası", "3.1 sertifika", "3.2 sertifika", "marking", "sablonlama"],
+        "erw_metallographic_seam": ["metalografik", "metalografi", "martenzit", "mikro yapı", "tavlama", "normalizasyon sıcaklığı", "kaynak tavlama", "metallographic", "microstructure", "tavlama sıcaklığı"],
+        "erw_flash_trim_weld": ["çapak", "iç ve dış çapak", "çapak alma", "kaynak çapağı", "flash trim", "oyuk derinliği", "iç çapak", "dış çapak", "flash removal", "capak alma", "iç çapak alma", "dış çapak alma"],
+        "coating_surface_prep_blasting": ["kumlama", "yüzey hazırlığı", "yüzey temizliği", "surface preparation", "blasting", "sa 2.5", "yüzey profili", "rz", "toz testi", "tuz testi", "çiğ noktası", "kumlama öncesi", "kumlama sonrası", "boru yüzeyi kumlama", "boru yüzey kalitesi"],
+        "coating_thickness_3lpe": ["kaplama kalınlığı", "3lpe kalınlık", "hdpe kalınlık", "fbe kalınlığı", "yapıştırıcı kalınlığı", "pe kaplama", "coating thickness", "3lpe", "3l hdpe", "3000 mikron", "3 mm", "fbe kaplama", "yapışkan tabaka", "3lpe – muayene", "kaplama kalınlık"],
+        "coating_holiday_test": ["holiday", "elektrik testi", "porozite", "holiday dedektör", "kıvılcım", "25 kv", "25000 volt", "spark test", "pinhole", "elektrik (holiday) testi", "porozite kontrolü"],
+        "coating_peel_adhesion": ["soyulma", "yapışma", "peel adhesion", "peel strength", "150 n/cm", "18 n/mm", "soyulma testi", "pe kaplama testleri", "soyulma mukavemeti", "yapışma testi"],
+        "coating_impact_resistance": ["darbe direnci", "kaplama darbe", "impact resistance", "5 j/mm", "darbe testi kaplama", "darbe testi"],
+        "coating_indentation": ["delici uca direnç", "indentation", "batma direnci", "penetrasyon", "delici uç", "indentation test", "delici uca direnç testi", "batma"],
+        "coating_cathodic_disbondment": ["katodik", "cd test", "cathodic disbondment", "katodik test", "cd testi", "katodik soyulma testi", "disbondment", "katodik soyulma"],
+        "coating_cutback_bevel": ["cutback", "cut-back", "kaplamasız bölge", "boru ucu geri kesme", "pah açısı kaplama", "pe açısı", "cutback mesafesi", "koruyucu tapa", "vernik", "kaplamasız bölge (cut back) hazırlığı", "boru ucu koruma"],
+        "coating_repair_rules": ["kaplama tamiri", "kaplama kusur tamiri", "kusur tamir", "tamir metodu", "heatshrink", "yama malzemesi", "kaplama onarım", "coating repair", "pe tamiri", "tamir metodu ve kontrolü", "tamir"],
+        "personnel_qualification_ndt": ["personel yetkinliği", "ndt personeli", "seviye 3", "level 3", "level 2", "en iso 9712", "en iso 11484", "personel kalifikasyon", "ndt operatörleri"],
+        "visual_surface": ["görsel muayene", "yüzey muayenesi", "visual inspection", "surface inspection", "gözle muayene", "görsel yüzey", "gorsel", "yuzey muayenesi", "görsel kontrol"],
+        "residual_magnetism": ["kalıntı manyetizma", "manyetizma", "residual magnetism", "gaussmetre", "gauss", "kalinti manyetizma", "kalıcı manyetiklik"],
+        "quality_marking_surface_prep": ["proje markalaması", "markalama", "stenciling", "şablonlama", "yüzey hazırlığı", "surface prep", "en 10204", "mtc", "kalite sertifikası", "3.1 sertifika", "3.2 sertifika", "marking", "sablonlama", "sertifikalandırma"],
     }
 
     @classmethod
@@ -155,6 +165,22 @@ class ITPAuditEngine:
                 elif test_key == "quality_marking_surface_prep" and any(k in full_up_text for k in ("markalama", "sa 2.5", "stenciling", "şablon", "3.1", "3.2", "mtc")):
                     score += 50
                 elif test_key == "residual_stress" and any(k in full_up_text for k in ("artık stres", "residual stress", "halka kesme", "ring test")):
+                    score += 55
+                elif test_key == "coating_holiday_test" and any(k in full_up_text for k in ("holiday", "porozite", "25 kv", "gerilim")):
+                    score += 55
+                elif test_key == "coating_thickness_3lpe" and any(k in full_up_text for k in ("3lpe", "hdpe", "fbe", "kaplama kalın", "yapıştırıcı")):
+                    score += 55
+                elif test_key == "coating_peel_adhesion" and any(k in full_up_text for k in ("soyulma", "yapışma", "peel", "adhesion")):
+                    score += 55
+                elif test_key == "coating_cathodic_disbondment" and any(k in full_up_text for k in ("katodik", "cd test", "disbond")):
+                    score += 55
+                elif test_key == "coating_indentation" and any(k in full_up_text for k in ("indentation", "delici", "batma")):
+                    score += 55
+                elif test_key == "coating_surface_prep_blasting" and any(k in full_up_text for k in ("kumlama", "blasting", "sa 2.5", "yüzey hazırl")):
+                    score += 55
+                elif test_key == "erw_flash_trim_weld" and any(k in full_up_text for k in ("çapak", "flash", "trim", "oyuk")):
+                    score += 55
+                elif test_key == "erw_metallographic_seam" and any(k in full_up_text for k in ("metalograf", "martenzit", "tavlama")):
                     score += 55
 
                 # Anti-affinity penalties
@@ -353,6 +379,9 @@ class ITPAuditEngine:
                         "dimensional_straightness", "dimensional_bevel_ends",
                         "dimensional_squareness_ends", "dimensional_peaking_offset",
                         "weld_radial_offset", "weld_geometry_offset_height",
+                        "coating_holiday_test", "coating_thickness_3lpe",
+                        "coating_surface_prep_blasting", "coating_cutback_bevel",
+                        "erw_flash_trim_weld",
                         "dimensional_length_straightness_bevel", "ndt_pipe_ends", "ndt_bevel_mt",
                         "quality_marking_surface_prep", "dimensional_diameter_ovality", "dimensional_weight"):
             if canon_freq in (FrequencyCanonical.INADEQUATE_SAMPLING, FrequencyCanonical.PER_TEST_UNIT, FrequencyCanonical.PERIODIC_SHIFT):
@@ -719,7 +748,63 @@ class ITPAuditEngine:
                 issue_type = "CRITERIA_VIOLATION"
                 remarks.append("🔴 YÜZEY KUSUR DERİNLİĞİ: API 5L Madde 9.10.7 uyarınca kusur derinliği nominal et kalınlığının %12.5'ini aşamaz!")
 
-        # 2y. Pipe Ends & Bevel Geometry (Legacy Combined)
+        # 2y. 3LPE Coating Thickness
+        elif test_key == "coating_thickness_3lpe":
+            if re.search(r"(?:<|\b)(?:1\.[0-9]|2\.[0-4])\s*mm", up_crit_lower) or any(k in up_crit_lower for k in ("< 2.5 mm", "< 2.0 mm", "< 2.5mm", "< 100 µm")):
+                status = "NON_COMPLIANT"
+                issue_type = "CRITERIA_VIOLATION"
+                remarks.append("🔴 KAPLAMA KALINLIĞI YETERSİZ: BOTAŞ 5410 R1 ve DIN 30670 uyarınca 3LPE/HDPE toplam kalınlığı en az 3.0 mm (3000 µm), FBE ve yapıştırıcı en az 120 µm olmalıdır!")
+
+        # 2z. Coating Holiday Test
+        elif test_key == "coating_holiday_test":
+            if re.search(r"(?<![1-9])(?:10|12|15|18)\s*kv", up_crit_lower) or any(k in up_crit_lower for k in ("kıvılcım serbest", "delik serbest", "spark permitted")):
+                status = "NON_COMPLIANT"
+                issue_type = "CRITERIA_VIOLATION"
+                remarks.append("🔴 HOLIDAY TEST GERİLİMİ HATALI: BOTAŞ 5410 R1 uyarınca test gerilimi 25.000 Volt (25 kV) olmalı ve kesinlikle kıvılcım/delik oluşmamalıdır!")
+
+        # 2aa. Coating Peel Adhesion
+        elif test_key == "coating_peel_adhesion":
+            if re.search(r"(?:<|\b)(?<![1-9])(?:35|50|80|100)\s*n/cm", up_crit_lower) or "< 100" in up_crit_lower:
+                status = "NON_COMPLIANT"
+                issue_type = "CRITERIA_VIOLATION"
+                remarks.append("🔴 SOYULMA MUKAVEMETİ YETERSİZ: BOTAŞ 5410 R1 uyarınca 23 °C'de yapışma direnci en az 150 N/cm (veya 18 N/mm) olmalıdır!")
+
+        # 2ab. Coating Cathodic Disbondment (CD)
+        elif test_key == "coating_cathodic_disbondment":
+            if re.search(r"(?:>|\b)(?:1[0-9]|2[0-9])\s*mm", up_crit_lower) or any(k in up_crit_lower for k in ("> 10 mm", "> 12 mm", "> 15 mm")):
+                status = "NON_COMPLIANT"
+                issue_type = "CRITERIA_VIOLATION"
+                remarks.append("🔴 KATODİK SOYULMA LİMİTİ AŞILDI: ISO 21809-1 ve BOTAŞ uyarınca 28 gün (20 °C) / 24 saat (65 °C) katodik soyulma yarıçapı azami 7.0 mm olabilir!")
+
+        # 2ac. Coating Surface Preparation & Blasting
+        elif test_key == "coating_surface_prep_blasting":
+            if any(k in up_crit_lower for k in ("sa 2\b", "sa 1\b", "sa 2.0", "> 25 mg/m2", "> 30 mg/m2", "> 120 µm")):
+                status = "NON_COMPLIANT"
+                issue_type = "CRITERIA_VIOLATION"
+                remarks.append("🔴 KUMLAMA YÜZEY TEMİZLİĞİ YETERSİZ: Temizlik min Sa 2½, pürüzlülük Rz 60-100 µm ve tuz miktarı max 20 mg/m² (2 µg/cm²) olmalıdır!")
+
+        # 2ad. Coating Indentation
+        elif test_key == "coating_indentation":
+            if re.search(r"(?:>|\b)(?:0\.[4-9]|1\.[0-9])\s*mm", up_crit_lower) or any(k in up_crit_lower for k in ("> 0.4 mm", "> 0.5 mm", "0.5 mm", "0.6 mm")):
+                status = "NON_COMPLIANT"
+                issue_type = "CRITERIA_VIOLATION"
+                remarks.append("🔴 DELİCİ UÇ BATMA LİMİTİ AŞILDI: 23 °C'de batma derinliği max 0.20 mm, 50 °C'de max 0.30 mm olmalıdır!")
+
+        # 2ae. ERW Flash Trim & Groove
+        elif test_key == "erw_flash_trim_weld":
+            if any(k in up_crit_lower for k in ("> 1.5 mm", "> 1.2 mm", "1.5 mm", "2.0 mm", "> 0.1 mm")):
+                status = "NON_COMPLIANT"
+                issue_type = "CRITERIA_VIOLATION"
+                remarks.append("🔴 ERW ÇAPAK LİMİTİ AŞILDI: API 5L Madde 9.13.2 uyarınca iç çapak yüksekliği max 1.1 mm ve oyuk derinliği max 0.04 mm olmalıdır!")
+
+        # 2af. ERW Metallography
+        elif test_key == "erw_metallographic_seam":
+            if any(k in up_crit_lower for k in ("martenzit serbest", "martensite permitted")):
+                status = "NON_COMPLIANT"
+                issue_type = "CRITERIA_VIOLATION"
+                remarks.append("🔴 MARTENZİT YASAKTIR: ERW kaynak dikişinde martenzit yapısı kesinlikle yasaktır, tam normalizasyon tavlaması zorunludur!")
+
+        # 2ag. Pipe Ends & Bevel Geometry (Legacy Combined)
         elif test_key == "dimensional_length_straightness_bevel":
             if any(k in up_crit_lower for k in ("45°", "45 deg", "50°", "0.4% l", "0.5% l")):
                 status = "NON_COMPLIANT"

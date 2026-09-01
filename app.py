@@ -13,6 +13,7 @@ from core.database import API_5L_SMYS_TABLE, PIPE_SIZES_TABLE, normalize_design_
 from core.excel_exporter import ExcelExporter
 from core.i18n import TRANSLATIONS, get_text
 from core.itp_audit_engine import ITPAuditEngine
+from core.pdf_exporter import PDFExporter
 from core.pipe_qaqc_engine import PipeQAQCEngine
 from core.project_manager import ProjectManager
 from core.schemas import (
@@ -349,12 +350,15 @@ async def upload_and_audit_itp(
 
     if use_demo or file is None:
         extracted = UnlimitedOCREngine._heuristic_extract_fallback("demo")
+        demo_meta = UnlimitedOCREngine.detect_itp_metadata("", extracted, "Demo_BOTAŞ_ITP.pdf")
         audit_res = ITPAuditEngine.audit_itp(extracted, pipe_config)
         return JSONResponse(content={
             "status": "success",
             "is_fallback": False,
             "source": "Demo ITP Sample Data",
             "extracted_items": extracted,
+            "detected_metadata": demo_meta,
+            "effective_config": pipe_config,
             "audit_result": audit_res
         })
 
@@ -374,7 +378,24 @@ async def upload_and_audit_itp(
 
     parse_result = UnlimitedOCREngine.parse_pdf_or_image(content_bytes, filename)
     extracted_items = parse_result.get("items", [])
-    audit_res = ITPAuditEngine.audit_itp(extracted_items, pipe_config)
+    detected_meta = parse_result.get("detected_metadata", {})
+
+    # If pipe_config has unset/default values, enrich with detected metadata
+    effective_config = dict(pipe_config)
+    for k, det_k in (
+        ("standard_type", "detected_standard"),
+        ("scope_mode", "detected_scope_mode"),
+        ("material_grade", "detected_grade"),
+        ("manufacturing_process", "detected_process"),
+        ("psl_level", "detected_psl"),
+        ("diameter_mm", "detected_diameter_mm"),
+        ("diameter_inch", "detected_diameter_inch"),
+        ("wall_thickness_mm", "detected_wall_thickness_mm"),
+    ):
+        if det_k in detected_meta and (k not in pipe_config or pipe_config.get(k) in (None, "", "auto", "default")):
+            effective_config[k] = detected_meta[det_k]
+
+    audit_res = ITPAuditEngine.audit_itp(extracted_items, effective_config)
 
     # Persist in current project state if available
     try:
@@ -383,6 +404,8 @@ async def upload_and_audit_itp(
             current_proj["latest_itp_audit"] = {
                 "source": filename,
                 "engine": parse_result.get("engine", "Unlimited-OCR"),
+                "detected_metadata": detected_meta,
+                "effective_config": effective_config,
                 "audit_result": audit_res
             }
     except Exception as e:
@@ -395,6 +418,8 @@ async def upload_and_audit_itp(
         "source": filename,
         "engine": parse_result.get("engine", "Unlimited-OCR"),
         "extracted_items": extracted_items,
+        "detected_metadata": detected_meta,
+        "effective_config": effective_config,
         "audit_result": audit_res
     })
 
@@ -425,6 +450,26 @@ async def export_itp_audit_report(data: Dict[str, Any] = Body(...)):
     return StreamingResponse(
         excel_stream,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+    )
+
+@app.post("/api/itp/export-audit-pdf")
+async def export_itp_audit_pdf(data: Dict[str, Any] = Body(...)):
+    """
+    Generates and downloads publication-grade PDF audit discrepancy & compliance certificate.
+    """
+    audit_data = data.get("audit_result", {})
+    lang = data.get("lang", "tr")
+    pdf_stream = PDFExporter.export_itp_audit_pdf(audit_data, lang)
+
+    pipe = audit_data.get("pipe_summary", {})
+    d_inch = str(pipe.get("diameter_inch", "48in")).replace('"', '').replace("'", "").strip()
+    grade = pipe.get("material_grade", "X65")
+    filename = f"ITP_Audit_Report_{d_inch}_{grade}_API5L_BOTAS.pdf"
+
+    return StreamingResponse(
+        pdf_stream,
+        media_type="application/pdf",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'}
     )
 
