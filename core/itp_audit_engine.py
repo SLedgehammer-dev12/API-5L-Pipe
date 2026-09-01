@@ -16,6 +16,7 @@ Detects:
 import re
 from typing import Any, Dict, List
 from core.test_plan import get_comprehensive_itp_specification
+from core.itp_criteria_parser import ITPCriteriaParser
 
 
 class FrequencyCanonical:
@@ -58,55 +59,252 @@ class ITPAuditEngine:
     and 40+ computed pipe column parameters.
     """
 
-    # Keyword mappings to match uploaded row names to standard test keys
+    # Comprehensive bilingual (TR & EN) keyword mappings to match uploaded ITP test names to standard test keys
     TEST_MATCHER_KEYWORDS = {
-        "chemical_heat": ["ısı analizi", "döküm analizi", "heat analysis", "ladle analysis", "cast analysis", "ladle heat", "isi analizi"],
-        "chemical_product": ["ürün analizi", "product analysis", "check analysis", "product chemical", "urun analizi"],
-        "tensile_body": ["gövde çekme", "pipe body tensile", "body tensile", "çekme testi", "tensile test", "transverse tensile", "govde cekme"],
-        "tensile_weld": ["kaynak çekme", "weld tensile", "weld seam tensile", "kaynak dikişi çekme", "all weld tensile", "kaynak cekme"],
-        "cvn_body": ["gövde çentik", "gövde darbe", "cvn body", "charpy body", "body impact", "çentik darbe", "charpy v-notch", "govde centik"],
-        "cvn_weld_haz": ["kaynak darbe", "itab darbe", "haz impact", "weld impact", "cvn weld", "charpy weld", "weld & haz", "weld and haz", "kaynak & itab"],
-        "dwtt": ["dwtt", "drop weight", "yırtılma testi", "düşen ağırlık", "yirtilma testi", "dusen agirlik"],
-        "guided_bend": ["kılavuzlu bükme", "guided bend", "guided-bend", "kök bükme", "kapak bükme", "root bend", "face bend", "bend test", "kilavuzlu bukme", "mandrel"],
-        "flattening": ["düzleştirme", "flattening", "yassıltma", "duzlestirme"],
-        "hardness": ["sertlik", "hardness", "hv10", "hrc", "hbw"],
-        "residual_stress": ["artık stres", "residual stress", "halka kesme", "stres kontrolü", "ring test", "çevresel gerilme", "artik stres"],
-        "hydrostatic": ["hidrostatik", "hydrostatic", "su basınç", "basınç testi", "hydro test", "mill hydro", "basinc testi"],
-        "ndt_weld_seam": ["kaynak dikişi ndt", "kaynak ndt", "weld seam ndt", "weld ut", "weld rt", "radyografi", "ultrasonik kaynak", "ultrasonic weld", "weld inspection", "radiographic weld", "kaynak dikişi %100 ndt", "kaynak dikisi ndt"],
-        "ndt_pipe_body_lamination": ["gövde laminasyon", "gövdesi laminasyon", "body lamination", "gövde ut", "gövdesi ut", "sac laminasyon", "plaka laminasyon", "body laminar", "gövde laminas", "boru gövdesi ut laminasyon", "govde laminasyon"],
-        "ndt_pipe_ends": ["boru uçları ndt", "uç laminasyon", "pipe ends ndt", "laminar testing", "end ut", "ends ut", "boru uçları laminasyon", "uçları laminasyon", "uç laminar", "pipe ends laminar", "boru uclari laminasyon", "uclari laminasyon"],
-        "ndt_smls_body": ["dikişsiz gövde ndt", "smls body ndt", "flux leakage", "gövde ut", "seamless body", "dikissiz govde"],
-        "ndt_bevel_mt": ["kaynak ağzı mt", "tamir mt", "manyetik parçacık", "magnetic particle", "mpi", "bevel mt", "kaynak agzi mt", "manyetik muayene"],
-        "weld_repair_rules": ["tamir kuralları", "tamir kaynağı", "onarım", "weld repair", "repair procedure", "tamir şartları", "kaynak tamiri", "repair conditions", "tamir kurallari", "tamir sarti"],
-        "weld_geometry_offset_height": ["kaynak geometrisi", "kaynak dikiş yüksekliği", "kaynak yüksekliği", "weld height", "reinforcement", "weld reinforcement", "kaynak yuksekligi"],
-        "weld_radial_offset": ["radyal kaçıklık", "radial offset", "basamaklanma", "sac kenarları kaçıklık", "offset of plate edges", "kenar kaçıklığı", "radyal kaciklik"],
-        "dimensional_peaking_offset": ["tepeleşme", "tepelesme", "peaking", "weld peaking", "çıkıntı", "boru ucu tepeleşme", "end peaking"],
-        "dimensional_diameter_ends": ["boru ucu dış çap", "boru ucu çap", "uç çapı", "uç dış çap", "diameter ends", "pipe ends diameter", "dış çap - boru ucu", "cap toleransi - boru ucu", "dis cap boru ucu", "boru ucu çap toleransı", "boru ucu dış çap toleransı"],
-        "dimensional_diameter_body": ["boru gövdesi dış çap", "gövde çapı", "gövde dış çap", "body diameter", "pipe body diameter", "dış çap - boru gövdesi", "cap toleransi - boru govdesi", "dis cap boru govdesi", "boru gövdesi çap toleransı", "gövde çap toleransı"],
-        "dimensional_circumference_ends": ["boru ucu çevre", "çevre toleransı - boru ucu", "uç çevre", "circumference ends", "pipe ends circumference", "uc cevre", "boru ucu çevre toleransı", "boru çevre toleransı - boru ucu"],
-        "dimensional_circumference_body": ["boru gövdesi çevre", "çevre toleransı - gövde", "çevre toleransı - boru gövdesi", "gövde çevre", "circumference body", "pipe body circumference", "govde cevre", "boru gövdesi çevre toleransı", "boru çevre toleransı - gövde"],
-        "dimensional_ovality_ends": ["boru ucu ovalite", "ovalite - boru ucu", "uç ovalite", "dairesellikten sapma - boru ucu", "yuvarlaklıktan sapma - boru ucu", "ovality ends", "ovality end", "pipe ends ovality", "out of roundness ends", "uc ovalite", "ovalite - uc", "ovalite ucu", "boru ucu ovalitesi", "boru ucu ovalite toleransı", "ovalite / yuvarlaklıktan sapma - boru ucu"],
-        "dimensional_ovality_body": ["boru gövdesi ovalite", "gövde ovalite", "ovalite - boru gövdesi", "ovalite - gövde", "dairesellikten sapma - gövde", "yuvarlaklıktan sapma - boru gövdesi", "ovality body", "pipe body ovality", "out of roundness body", "govde ovalite", "gövde ovalitesi", "boru gövdesi ovalite toleransı", "ovalite / yuvarlaklıktan sapma - boru gövdesi"],
-        "dimensional_wall_thickness": ["et kalınlığı", "wall thickness", "cidar kalınlığı", "thickness verification", "et kalınlığı ölçümü", "et kalinligi", "et kal"],
-        "dimensional_weight": ["birim ağırlık", "boru ağırlığı", "weight per meter", "mass", "tartım", "kantar", "ağırlık toleransı", "pipe weight", "birim agirlik", "boru agirligi"],
-        "dimensional_straightness": ["doğrusallık", "dogrusallik", "straightness", "doğrusallıktan sapma", "boru doğrusallığı", "straightness deviation", "toplam doğrusallık"],
-        "dimensional_bevel_ends": ["alın kaynak ağzı", "kaynak ağzı", "kaynak agzi", "bevel", "bevel angle", "ağız açısı", "kök yüzeyi", "root face", "kaynak ağzı geometrisi", "alın kaynak ağzı açısı"],
-        "dimensional_squareness_ends": ["diklik", "diklikten sapma", "squareness", "pipe end squareness", "uç diklik", "boru ucu diklik", "end squareness"],
-        "erw_metallographic_seam": ["metalografik", "metalografi", "martenzit", "mikro yapı", "tavlama", "normalizasyon sıcaklığı", "kaynak tavlama", "metallographic", "microstructure", "tavlama sıcaklığı"],
-        "erw_flash_trim_weld": ["çapak", "iç ve dış çapak", "çapak alma", "kaynak çapağı", "flash trim", "oyuk derinliği", "iç çapak", "dış çapak", "flash removal", "capak alma", "iç çapak alma", "dış çapak alma"],
-        "coating_surface_prep_blasting": ["kumlama", "yüzey hazırlığı", "yüzey temizliği", "surface preparation", "blasting", "sa 2.5", "yüzey profili", "rz", "toz testi", "tuz testi", "çiğ noktası", "kumlama öncesi", "kumlama sonrası", "boru yüzeyi kumlama", "boru yüzey kalitesi"],
-        "coating_thickness_3lpe": ["kaplama kalınlığı", "3lpe kalınlık", "hdpe kalınlık", "fbe kalınlığı", "yapıştırıcı kalınlığı", "pe kaplama", "coating thickness", "3lpe", "3l hdpe", "3000 mikron", "3 mm", "fbe kaplama", "yapışkan tabaka", "3lpe – muayene", "kaplama kalınlık"],
-        "coating_holiday_test": ["holiday", "elektrik testi", "porozite", "holiday dedektör", "kıvılcım", "25 kv", "25000 volt", "spark test", "pinhole", "elektrik (holiday) testi", "porozite kontrolü"],
-        "coating_peel_adhesion": ["soyulma", "yapışma", "peel adhesion", "peel strength", "150 n/cm", "18 n/mm", "soyulma testi", "pe kaplama testleri", "soyulma mukavemeti", "yapışma testi"],
-        "coating_impact_resistance": ["darbe direnci", "kaplama darbe", "impact resistance", "5 j/mm", "darbe testi kaplama", "darbe testi"],
-        "coating_indentation": ["delici uca direnç", "indentation", "batma direnci", "penetrasyon", "delici uç", "indentation test", "delici uca direnç testi", "batma"],
-        "coating_cathodic_disbondment": ["katodik", "cd test", "cathodic disbondment", "katodik test", "cd testi", "katodik soyulma testi", "disbondment", "katodik soyulma"],
-        "coating_cutback_bevel": ["cutback", "cut-back", "kaplamasız bölge", "boru ucu geri kesme", "pah açısı kaplama", "pe açısı", "cutback mesafesi", "koruyucu tapa", "vernik", "kaplamasız bölge (cut back) hazırlığı", "boru ucu koruma"],
-        "coating_repair_rules": ["kaplama tamiri", "kaplama kusur tamiri", "kusur tamir", "tamir metodu", "heatshrink", "yama malzemesi", "kaplama onarım", "coating repair", "pe tamiri", "tamir metodu ve kontrolü", "tamir"],
-        "personnel_qualification_ndt": ["personel yetkinliği", "ndt personeli", "seviye 3", "level 3", "level 2", "en iso 9712", "en iso 11484", "personel kalifikasyon", "ndt operatörleri"],
-        "visual_surface": ["görsel muayene", "yüzey muayenesi", "visual inspection", "surface inspection", "gözle muayene", "görsel yüzey", "gorsel", "yuzey muayenesi", "görsel kontrol"],
-        "residual_magnetism": ["kalıntı manyetizma", "manyetizma", "residual magnetism", "gaussmetre", "gauss", "kalinti manyetizma", "kalıcı manyetiklik"],
-        "quality_marking_surface_prep": ["proje markalaması", "markalama", "stenciling", "şablonlama", "yüzey hazırlığı", "surface prep", "en 10204", "mtc", "kalite sertifikası", "3.1 sertifika", "3.2 sertifika", "marking", "sablonlama", "sertifikalandırma"],
+        "chemical_heat": [
+            "ısı analizi", "isi analizi", "döküm analizi", "dokum analizi", "pota analizi", "kimyasal bileşim",
+            "kimyasal analiz", "spektrometre", "ladle chemical", "heat analysis", "ladle analysis", "cast analysis",
+            "ladle heat", "chemical composition", "heat chemistry", "melt analysis", "ladle sample", "karbon eşdeğeri",
+            "carbon equivalent", "ceiiw", "cepcm", "kimyasal bileşim kontrolü", "heat chemical analysis"
+        ],
+        "chemical_product": [
+            "ürün analizi", "urun analizi", "ürün kimyasal", "product analysis", "check analysis", "product chemical",
+            "product chemistry", "pipe chemistry", "body chemical analysis", "ürün kontrol analizi", "mamul analizi",
+            "cross-product chemical", "pipe product analysis"
+        ],
+        "tensile_body": [
+            "gövde çekme", "govde cekme", "pipe body tensile", "body tensile", "çekme testi", "cekme testi",
+            "tensile test", "transverse tensile", "longitudinal tensile", "enine çekme", "boyuna çekme", "akma dayanımı",
+            "akma mukavemeti", "yield strength", "proof stress", "rt0.5", "rp0.2", "uts", "ultimate tensile",
+            "kopma uzaması", "elongation", "çekme deneyi", "strap specimen", "round bar tensile", "çekme - boru gövdesi",
+            "tensile test on pipe body", "body mechanical tensile", "çekme dayanımı", "yield to tensile ratio"
+        ],
+        "tensile_weld": [
+            "kaynak çekme", "kaynak cekme", "weld tensile", "weld seam tensile", "kaynak dikişi çekme", "all weld tensile",
+            "transverse weld tensile", "cross weld tensile", "kaynak dikiş çekme", "kaynak metali çekme",
+            "reduced section tensile", "kaynak çekme testi", "tensile test on weld seam"
+        ],
+        "cvn_body": [
+            "gövde çentik", "gövde darbe", "govde centik", "govde darbe", "cvn body", "charpy body", "body impact",
+            "çentik darbe", "charpy v-notch", "charpy impact", "absorbed energy", "darbe tokluğu", "yutulan enerji",
+            "gövde tokluk", "transverse charpy", "body cvn", "impact test body", "çentik darbe - boru gövdesi",
+            "çentik darbe testi (gövde)", "charpy v-notch on pipe body", "cvn impact test @ -20"
+        ],
+        "cvn_weld_haz": [
+            "kaynak darbe", "itab darbe", "haz impact", "weld impact", "cvn weld", "charpy weld", "weld & haz",
+            "weld and haz", "kaynak & itab", "kaynak ve itab", "fusion line impact", "erime hattı darbe", "weld metal cvn",
+            "fl+2mm", "fl+5mm", "kaynak çentik darbe", "çentik darbe - kaynak ve itab", "çentik darbe testi (kaynak/haz)",
+            "charpy v-notch on weld & haz", "heat affected zone impact", "weld center impact"
+        ],
+        "dwtt": [
+            "dwtt", "drop weight", "yırtılma testi", "yirtilma testi", "düşen ağırlık", "dusen agirlik",
+            "drop-weight tear test", "shear area", "liflilik oranı", "kırılma yüzeyi görünümü", "dwtt deneyi",
+            "düşen ağırlık darbe", "drop weight tear testing", "fracture appearance transit"
+        ],
+        "guided_bend": [
+            "kılavuzlu bükme", "kilavuzlu bukme", "guided bend", "guided-bend", "kök bükme", "kapak bükme", "yan bükme",
+            "root bend", "face bend", "side bend", "transverse bend", "bend test", "mandrel", "bükme deneyi",
+            "kılavuzlu bükme testi", "transverse guided bend test"
+        ],
+        "flattening": [
+            "düzleştirme", "duzlestirme", "flattening", "yassıltma", "flattening test", "ring flattening", "ezme testi",
+            "halka yassıltma", "yassıltma deneyi", "crush test", "hfw flattening"
+        ],
+        "hardness": [
+            "sertlik", "hardness", "hv10", "hrc", "hbw", "vickers", "vickers hardness", "rockwell", "brinell",
+            "sertlik taraması", "sertlik dağılımı", "traverse hardness", "weld hardness", "haz hardness",
+            "kaynak sertlik", "sertlik testi", "vickers hardness test hv10", "microhardness survey"
+        ],
+        "residual_stress": [
+            "artık stres", "artik stres", "artık gerilme", "residual stress", "halka kesme", "stres kontrolü",
+            "ring test", "çevresel gerilme", "ring slit test", "halka kesme deneyi", "kalıntı gerilme",
+            "residual stress measurement", "ring expansion test"
+        ],
+        "hydrostatic": [
+            "hidrostatik", "hydrostatic", "su basınç", "su basinc", "basınç testi", "basinc testi", "hydro test",
+            "mill hydro", "hydrostatic test", "sızdırmazlık", "leak tightness", "su basıncı",
+            "fabrika hidrostatik basınç testi", "hydrostatic pressure test", "full body hydro test"
+        ],
+        "ndt_weld_seam": [
+            "kaynak dikişi ndt", "kaynak ndt", "weld seam ndt", "weld ut", "weld rt", "radyografi", "ultrasonik kaynak",
+            "ultrasonic weld", "weld inspection", "radiographic weld", "kaynak dikişi %100 ndt", "kaynak dikisi ndt",
+            "paut", "phased array", "x-ray weld", "seam ut", "automated ultrasonic", "dikiş tahribatsız muayene",
+            "full length seam ut", "weld radiographic inspection", "digital rt on weld"
+        ],
+        "ndt_pipe_body_lamination": [
+            "gövde laminasyon", "gövdesi laminasyon", "body lamination", "gövde ut", "gövdesi ut", "sac laminasyon",
+            "plaka laminasyon", "body laminar", "gövde laminas", "boru gövdesi ut laminasyon", "govde laminasyon",
+            "full body ut", "mid-wall lamination", "gövde laminasyon kontrolü", "ultrasonic body lamination",
+            "plate ultrasonic testing", "strip body ut"
+        ],
+        "ndt_pipe_ends": [
+            "boru uçları ndt", "uç laminasyon", "pipe ends ndt", "laminar testing", "end ut", "ends ut",
+            "boru uçları laminasyon", "uçları laminasyon", "uç laminar", "pipe ends laminar", "boru uclari laminasyon",
+            "uclari laminasyon", "end zone ut", "pipe end scanning", "boru ucu laminasyon", "ultrasonic testing of pipe ends",
+            "end face lamination inspection"
+        ],
+        "ndt_smls_body": [
+            "dikişsiz gövde ndt", "smls body ndt", "flux leakage", "gövde ut", "seamless body", "dikissiz govde",
+            "mfl", "magnetic flux leakage", "eddy current smls", "full length seamless body inspection"
+        ],
+        "ndt_bevel_mt": [
+            "kaynak ağzı mt", "tamir mt", "manyetik parçacık", "magnetic particle", "mpi", "bevel mt",
+            "kaynak agzi mt", "manyetik muayene", "tamir yüzeyi mt", "alın kaynak ağzı mt", "mt inspection",
+            "magnetic particle inspection of bevel", "bevel end mpi"
+        ],
+        "weld_repair_rules": [
+            "tamir kuralları", "tamir kaynağı", "onarım", "weld repair", "repair procedure", "tamir şartları",
+            "kaynak tamiri", "repair conditions", "tamir kurallari", "tamir sarti", "repair limit",
+            "tamir kaynağı kuralları", "procedure for weld repair", "repair cavity rules"
+        ],
+        "weld_geometry_offset_height": [
+            "kaynak geometrisi", "kaynak dikiş yüksekliği", "kaynak yüksekliği", "weld height", "reinforcement",
+            "weld reinforcement", "kaynak yuksekligi", "weld crown", "weld cap", "iç paso yüksekliği",
+            "dış paso yüksekliği", "height of weld seam", "weld bead geometry", "reinforcement height"
+        ],
+        "weld_radial_offset": [
+            "radyal kaçıklık", "radial offset", "basamaklanma", "sac kenarları kaçıklık", "offset of plate edges",
+            "kenar kaçıklığı", "radyal kaciklik", "misalignment", "high-low", "sac basamaklanması",
+            "radial offset of strip edges", "edge offset"
+        ],
+        "dimensional_peaking_offset": [
+            "tepeleşme", "tepelesme", "peaking", "weld peaking", "çıkıntı", "boru ucu tepeleşme", "end peaking",
+            "body peaking", "kaynak tepeleşmesi", "peaking at seam", "weld seam peaking"
+        ],
+        "dimensional_diameter_ends": [
+            "boru ucu dış çap", "boru ucu çap", "uç çapı", "uç dış çap", "diameter ends", "pipe ends diameter",
+            "dış çap - boru ucu", "cap toleransi - boru ucu", "dis cap boru ucu", "boru ucu çap toleransı",
+            "boru ucu dış çap toleransı", "end od", "outside diameter ends", "diameter at ends",
+            "pipe end diameter tolerance", "calliper end diameter"
+        ],
+        "dimensional_diameter_body": [
+            "boru gövdesi dış çap", "gövde çapı", "gövde dış çap", "body diameter", "pipe body diameter",
+            "dış çap - boru gövdesi", "cap toleransi - boru govdesi", "dis cap boru govdesi",
+            "boru gövdesi çap toleransı", "gövde çap toleransı", "body od", "outside diameter body",
+            "diameter along body", "pi tape body diameter", "body diameter tolerance"
+        ],
+        "dimensional_circumference_ends": [
+            "boru ucu çevre", "çevre toleransı - boru ucu", "uç çevre", "circumference ends", "pipe ends circumference",
+            "uc cevre", "boru ucu çevre toleransı", "boru çevre toleransı - boru ucu", "pi tape ends", "pi-mezura uç",
+            "circumference at pipe ends"
+        ],
+        "dimensional_circumference_body": [
+            "boru gövdesi çevre", "çevre toleransı - gövde", "çevre toleransı - boru gövdesi", "gövde çevre",
+            "circumference body", "pipe body circumference", "govde cevre", "boru gövdesi çevre toleransı",
+            "boru çevre toleransı - gövde", "pi tape body", "circumference along body"
+        ],
+        "dimensional_ovality_ends": [
+            "boru ucu ovalite", "ovalite - boru ucu", "uç ovalite", "dairesellikten sapma - boru ucu",
+            "yuvarlaklıktan sapma - boru ucu", "ovality ends", "ovality end", "pipe ends ovality",
+            "out of roundness ends", "uc ovalite", "ovalite - uc", "ovalite ucu", "boru ucu ovalitesi",
+            "boru ucu ovalite toleransı", "ovalite / yuvarlaklıktan sapma - boru ucu", "out-of-roundness ends",
+            "end ovality", "out of roundness at pipe ends"
+        ],
+        "dimensional_ovality_body": [
+            "boru gövdesi ovalite", "gövde ovalite", "ovalite - boru gövdesi", "ovalite - gövde",
+            "dairesellikten sapma - gövde", "yuvarlaklıktan sapma - boru gövdesi", "ovality body",
+            "pipe body ovality", "out of roundness body", "govde ovalite", "gövde ovalitesi",
+            "boru gövdesi ovalite toleransı", "ovalite / yuvarlaklıktan sapma - boru gövdesi",
+            "out-of-roundness body", "body ovality", "out of roundness along body"
+        ],
+        "dimensional_wall_thickness": [
+            "et kalınlığı", "wall thickness", "cidar kalınlığı", "thickness verification",
+            "et kalınlığı ölçümü", "et kalinligi", "et kal", "wt tolerance", "minimum wall thickness",
+            "ultrasonic thickness", "et kalınlığı toleransı", "wall thickness tolerance", "nominal thickness check"
+        ],
+        "dimensional_weight": [
+            "birim ağırlık", "boru ağırlığı", "weight per meter", "mass", "tartım", "kantar",
+            "ağırlık toleransı", "pipe weight", "birim agirlik", "boru agirligi", "mass per unit length",
+            "weighing of pipe", "pipe mass tolerance", "scale weighting"
+        ],
+        "dimensional_straightness": [
+            "doğrusallık", "dogrusallik", "straightness", "doğrusallıktan sapma", "boru doğrusallığı",
+            "straightness deviation", "toplam doğrusallık", "full length straightness", "end straightness",
+            "düzlemsellik", "straightness verification", "string line measurement"
+        ],
+        "dimensional_bevel_ends": [
+            "alın kaynak ağzı", "kaynak ağzı", "kaynak agzi", "bevel", "bevel angle", "ağız açısı",
+            "kök yüzeyi", "root face", "kaynak ağzı geometrisi", "alın kaynak ağzı açısı", "end bevel",
+            "weld preparation", "pah açısı", "bevel angle and root face", "pipe end preparation"
+        ],
+        "dimensional_squareness_ends": [
+            "diklik", "diklikten sapma", "squareness", "pipe end squareness", "uç diklik", "boru ucu diklik",
+            "end squareness", "out-of-squareness", "gönye kaçıklığı", "squareness of pipe ends"
+        ],
+        "erw_metallographic_seam": [
+            "metalografik", "metalografi", "martenzit", "mikro yapı", "tavlama", "normalizasyon sıcaklığı",
+            "kaynak tavlama", "metallographic", "microstructure", "tavlama sıcaklığı", "seam heat treatment",
+            "seam normalization", "hfw seam metallography", "mikro yapı incelemesi", "metallographic examination of seam"
+        ],
+        "erw_flash_trim_weld": [
+            "çapak", "iç ve dış çapak", "çapak alma", "kaynak çapağı", "flash trim", "oyuk derinliği",
+            "iç çapak", "dış çapak", "flash removal", "capak alma", "iç çapak alma", "dış çapak alma",
+            "weld flash removal", "internal flash trim", "external flash trim", "height of remaining flash"
+        ],
+        "coating_surface_prep_blasting": [
+            "kumlama", "yüzey hazırlığı", "yüzey temizliği", "surface preparation", "blasting", "sa 2.5",
+            "yüzey profili", "rz", "toz testi", "tuz testi", "çiğ noktası", "kumlama öncesi", "kumlama sonrası",
+            "boru yüzeyi kumlama", "boru yüzey kalitesi", "grit blasting", "shot blasting", "anchor profile",
+            "surface cleanliness", "blast cleaning to sa 2.5", "surface profile rz"
+        ],
+        "coating_thickness_3lpe": [
+            "kaplama kalınlığı", "3lpe kalınlık", "hdpe kalınlık", "fbe kalınlığı", "yapıştırıcı kalınlığı",
+            "pe kaplama", "coating thickness", "3lpe", "3l hdpe", "3000 mikron", "3 mm", "fbe kaplama",
+            "yapışkan tabaka", "3lpe – muayene", "kaplama kalınlık", "total coating thickness",
+            "polyethylene thickness", "toplam kaplama kalınlığı", "3-layer pe coating thickness"
+        ],
+        "coating_holiday_test": [
+            "holiday", "elektrik testi", "porozite", "holiday dedektör", "kıvılcım", "25 kv", "25000 volt",
+            "spark test", "pinhole", "elektrik (holiday) testi", "porozite kontrolü", "holiday detection",
+            "high voltage spark test", "spark testing", "delik kontrolü", "holiday detector testing"
+        ],
+        "coating_peel_adhesion": [
+            "soyulma", "yapışma", "peel adhesion", "peel strength", "150 n/cm", "18 n/mm", "soyulma testi",
+            "pe kaplama testleri", "soyulma mukavemeti", "yapışma testi", "adhesion test", "peel resistance",
+            "yapışma dayanımı", "peel strength test at 23°c", "coating peel adhesion"
+        ],
+        "coating_impact_resistance": [
+            "darbe direnci", "kaplama darbe", "impact resistance", "5 j/mm", "darbe testi kaplama",
+            "darbe testi", "falling weight impact", "drop weight coating impact", "darbe dayanımı",
+            "impact strength of coating"
+        ],
+        "coating_indentation": [
+            "delici uca direnç", "indentation", "batma direnci", "penetrasyon", "delici uç", "indentation test",
+            "delici uca direnç testi", "batma", "penetration resistance", "delici uç batma", "indentation resistance test"
+        ],
+        "coating_cathodic_disbondment": [
+            "katodik", "cd test", "cathodic disbondment", "katodik test", "cd testi", "katodik soyulma testi",
+            "disbondment", "katodik soyulma", "28 days cd", "cathodic delamination", "cathodic disbondment 28 days"
+        ],
+        "coating_cutback_bevel": [
+            "cutback", "cut-back", "kaplamasız bölge", "boru ucu geri kesme", "pah açısı kaplama", "pe açısı",
+            "cutback mesafesi", "koruyucu tapa", "vernik", "kaplamasız bölge (cut back) hazırlığı",
+            "boru ucu koruma", "cutback length", "chamfer angle", "end cutback", "cutback preparation"
+        ],
+        "coating_repair_rules": [
+            "kaplama tamiri", "kaplama kusur tamiri", "kusur tamir", "tamir metodu", "heatshrink",
+            "yama malzemesi", "kaplama onarım", "coating repair", "pe tamiri", "tamir metodu ve kontrolü",
+            "tamir", "repair of coating", "melt stick repair", "patch repair", "coating defect repair"
+        ],
+        "personnel_qualification_ndt": [
+            "personel yetkinliği", "ndt personeli", "seviye 3", "level 3", "level 2", "en iso 9712",
+            "en iso 11484", "personel kalifikasyon", "ndt operatörleri", "ndt personnel qualification",
+            "operator certification", "asnt level ii", "iso 9712 level 2"
+        ],
+        "visual_surface": [
+            "görsel muayene", "yüzey muayenesi", "visual inspection", "surface inspection", "gözle muayene",
+            "görsel yüzey", "gorsel", "yuzey muayenesi", "görsel kontrol", "visual examination",
+            "surface imperfections", "gözle kontrol", "pipe visual inspection"
+        ],
+        "residual_magnetism": [
+            "kalıntı manyetizma", "manyetizma", "residual magnetism", "gaussmetre", "gauss", "kalinti manyetizma",
+            "kalıcı manyetiklik", "remanent magnetism", "magnetic field strength", "gauss level", "hall effect measurement"
+        ],
+        "quality_marking_surface_prep": [
+            "proje markalaması", "markalama", "stenciling", "şablonlama", "yüzey hazırlığı", "surface prep",
+            "en 10204", "mtc", "kalite sertifikası", "3.1 sertifika", "3.2 sertifika", "marking",
+            "sablonlama", "sertifikalandırma", "pipe marking", "die stamping", "inspection certificate 3.1"
+        ],
     }
 
     @classmethod
@@ -145,45 +343,84 @@ class ITPAuditEngine:
                     elif kw in full_up_text:
                         score = max(score, 30 + len(kw) * 2)
 
-                # Contextual & Specificity Reinforcement
-                if test_key == "ndt_pipe_ends" and any(k in full_up_text for k in ("uç", "uclari", "ends", "pipe end")):
+                # Contextual & Specificity Reinforcement (Bilingual TR & EN)
+                if test_key == "tensile_body" and any(k in full_up_text for k in ("gövde", "govde", "body", "pipe body", "transverse", "longitudinal", "base metal")):
+                    score += 40
+                elif test_key == "tensile_weld" and any(k in full_up_text for k in ("kaynak", "weld", "seam", "dikiş", "cross weld")):
                     score += 45
-                elif test_key == "ndt_pipe_body_lamination" and any(k in full_up_text for k in ("40%", "gövde laminas", "sac laminas", "12094", "body lamin")):
+                elif test_key == "cvn_body" and any(k in full_up_text for k in ("gövde", "govde", "body", "pipe body", "base metal", "charpy body")):
+                    score += 40
+                elif test_key == "cvn_weld_haz" and any(k in full_up_text for k in ("kaynak", "weld", "itab", "haz", "fusion line", "fl+2", "fl+5")):
                     score += 45
-                elif test_key == "ndt_weld_seam" and any(k in full_up_text for k in ("dikiş", "seam", "10893-11", "10893-6", "aut", "kaynak dikiş")):
-                    score += 50
-                elif test_key == "ndt_smls_body" and is_smls and any(k in full_up_text for k in ("dikişsiz", "smls", "10893-10", "flux")):
+                elif test_key == "dwtt" and any(k in full_up_text for k in ("dwtt", "drop weight", "shear", "liflilik", "tear test")):
+                    score += 55
+                elif test_key == "dimensional_diameter_ends" and any(k in full_up_text for k in ("uç", "uclari", "ends", "pipe end", "both ends", "pipe ends")):
                     score += 60
-                elif test_key == "weld_repair_rules" and any(k in full_up_text for k in ("tamir", "repair", "re-repair", "ön ısıtma", "preheat")):
+                elif test_key == "dimensional_diameter_body" and any(k in full_up_text for k in ("gövde", "govde", "body", "pipe body")):
+                    score += 60
+                elif test_key == "dimensional_ovality_ends" and any(k in full_up_text for k in ("uç", "uclari", "ends", "pipe end", "both ends", "pipe ends")):
+                    score += 60
+                elif test_key == "dimensional_ovality_body" and any(k in full_up_text for k in ("gövde", "govde", "body", "pipe body")):
+                    score += 60
+                elif test_key == "ndt_pipe_ends" and any(k in full_up_text for k in ("uç", "uclari", "ends", "pipe end", "end zone", "end face")):
+                    score += 45
+                elif test_key == "ndt_pipe_body_lamination" and any(k in full_up_text for k in ("40%", "gövde laminas", "sac laminas", "12094", "body lamin", "plate lamination", "full body ut")):
+                    score += 45
+                elif test_key == "ndt_weld_seam" and any(k in full_up_text for k in ("dikiş", "seam", "10893-11", "10893-6", "aut", "kaynak dikiş", "weld ut", "weld rt", "paut")):
                     score += 50
-                elif test_key == "dimensional_weight" and any(k in full_up_text for k in ("ağırlık", "weight", "kg/m", "kantar", "mass", "tartım")):
+                elif test_key == "ndt_smls_body" and is_smls and any(k in full_up_text for k in ("dikişsiz", "smls", "10893-10", "flux", "seamless")):
+                    score += 60
+                elif test_key == "ndt_bevel_mt" and any(k in full_up_text for k in ("kaynak ağzı mt", "bevel mt", "bevel mpi", "magnetic particle", "mpi")):
                     score += 50
-                elif test_key == "guided_bend" and any(k in full_up_text for k in ("mandrel", "bükme", "bend", "çene", "5173")):
+                elif test_key == "weld_repair_rules" and any(k in full_up_text for k in ("tamir", "repair", "re-repair", "ön ısıtma", "preheat", "repair procedure")):
                     score += 50
-                elif test_key == "weld_geometry_offset_height" and any(k in full_up_text for k in ("yükseklik", "kaçıklık", "offset", "peaking", "tepeleşme", "misalignment")):
+                elif test_key == "dimensional_weight" and any(k in full_up_text for k in ("ağırlık", "weight", "kg/m", "kantar", "mass", "tartım", "weighing")):
                     score += 50
-                elif test_key == "quality_marking_surface_prep" and any(k in full_up_text for k in ("markalama", "sa 2.5", "stenciling", "şablon", "3.1", "3.2", "mtc")):
+                elif test_key == "guided_bend" and any(k in full_up_text for k in ("mandrel", "bükme", "bend", "çene", "5173", "guided-bend", "root bend", "face bend")):
                     score += 50
-                elif test_key == "residual_stress" and any(k in full_up_text for k in ("artık stres", "residual stress", "halka kesme", "ring test")):
+                elif test_key == "flattening" and any(k in full_up_text for k in ("flattening", "yassıltma", "düzleştirme", "crush", "ring flattening")):
+                    score += 50
+                elif test_key == "hardness" and any(k in full_up_text for k in ("hardness", "sertlik", "hv10", "hrc", "vickers", "microhardness")):
+                    score += 50
+                elif test_key == "hydrostatic" and any(k in full_up_text for k in ("hydrostatic", "hydro", "hidrostatik", "bar", "psi", "smys", "holding time")):
+                    score += 50
+                elif test_key == "weld_geometry_offset_height" and any(k in full_up_text for k in ("yükseklik", "kaçıklık", "offset", "peaking", "tepeleşme", "misalignment", "weld crown", "weld height")):
+                    score += 50
+                elif test_key == "quality_marking_surface_prep" and any(k in full_up_text for k in ("markalama", "sa 2.5", "stenciling", "şablon", "3.1", "3.2", "mtc", "marking", "die stamp")):
+                    score += 50
+                elif test_key == "residual_stress" and any(k in full_up_text for k in ("artık stres", "residual stress", "halka kesme", "ring test", "slit ring")):
                     score += 55
-                elif test_key == "coating_holiday_test" and any(k in full_up_text for k in ("holiday", "porozite", "25 kv", "gerilim")):
+                elif test_key == "coating_holiday_test" and any(k in full_up_text for k in ("holiday", "porozite", "25 kv", "gerilim", "spark", "high voltage", "pinhole")):
                     score += 55
-                elif test_key == "coating_thickness_3lpe" and any(k in full_up_text for k in ("3lpe", "hdpe", "fbe", "kaplama kalın", "yapıştırıcı")):
+                elif test_key == "coating_thickness_3lpe" and any(k in full_up_text for k in ("3lpe", "hdpe", "fbe", "kaplama kalın", "yapıştırıcı", "coating thickness", "polyethylene")):
                     score += 55
-                elif test_key == "coating_peel_adhesion" and any(k in full_up_text for k in ("soyulma", "yapışma", "peel", "adhesion")):
+                elif test_key == "coating_peel_adhesion" and any(k in full_up_text for k in ("soyulma", "yapışma", "peel", "adhesion", "n/cm", "n/mm", "peel strength")):
                     score += 55
-                elif test_key == "coating_cathodic_disbondment" and any(k in full_up_text for k in ("katodik", "cd test", "disbond")):
+                elif test_key == "coating_cathodic_disbondment" and any(k in full_up_text for k in ("katodik", "cd test", "disbond", "cathodic", "28 days")):
                     score += 55
-                elif test_key == "coating_indentation" and any(k in full_up_text for k in ("indentation", "delici", "batma")):
+                elif test_key == "coating_indentation" and any(k in full_up_text for k in ("indentation", "delici", "batma", "penetration")):
                     score += 55
-                elif test_key == "coating_surface_prep_blasting" and any(k in full_up_text for k in ("kumlama", "blasting", "sa 2.5", "yüzey hazırl")):
+                elif test_key == "coating_surface_prep_blasting" and any(k in full_up_text for k in ("kumlama", "blasting", "sa 2.5", "yüzey hazırl", "grit blast", "anchor profile", "rz")):
                     score += 55
-                elif test_key == "erw_flash_trim_weld" and any(k in full_up_text for k in ("çapak", "flash", "trim", "oyuk")):
+                elif test_key == "coating_cutback_bevel" and any(k in full_up_text for k in ("cutback", "cut-back", "chamfer", "kaplamasız", "vernik", "protective cap")):
                     score += 55
-                elif test_key == "erw_metallographic_seam" and any(k in full_up_text for k in ("metalograf", "martenzit", "tavlama")):
+                elif test_key == "coating_repair_rules" and any(k in full_up_text for k in ("coating repair", "melt stick", "heatshrink", "kaplama tamir", "patch repair")):
+                    score += 55
+                elif test_key == "erw_flash_trim_weld" and any(k in full_up_text for k in ("çapak", "flash", "trim", "oyuk", "flash removal")):
+                    score += 55
+                elif test_key == "erw_metallographic_seam" and any(k in full_up_text for k in ("metalograf", "martenzit", "tavlama", "metallographic", "microstructure", "normalization")):
                     score += 55
 
-                # Anti-affinity penalties
+                # Disambiguation and Anti-affinity penalties
+                if test_key in ("tensile_body", "tensile_weld") and any(k in up_name for k in ("charpy", "cvn", "darbe", "çentik", "impact", "joule", "v-notch", "dwtt")):
+                    score = 0
+                elif test_key in ("cvn_body", "cvn_weld_haz", "dwtt") and any(k in up_name for k in ("tensile", "çekme", "cekme", "akma", "yield", "kopma uzama")) and not any(k in up_name for k in ("charpy", "cvn", "darbe", "çentik", "impact", "dwtt")):
+                    score = 0
+                elif test_key in ("dimensional_diameter_ends", "dimensional_diameter_body") and any(k in up_name for k in ("ovality", "ovalite", "roundness", "yuvarlaklık", "dairesellik")):
+                    score = 0
+                elif test_key in ("dimensional_ovality_ends", "dimensional_ovality_body") and any(k in up_name for k in ("outside diameter", "dış çap", "dis cap", "diameter tolerance")) and not any(k in up_name for k in ("ovality", "ovalite", "roundness", "yuvarlaklık", "dairesellik")):
+                    score = 0
+
                 if not is_smls and test_key == "ndt_smls_body":
                     score = 0
                 if is_smls and "weld" in test_key and test_key not in ("ndt_pipe_ends", "visual_surface"):
@@ -346,6 +583,7 @@ class ITPAuditEngine:
         and full dimensional/chemical/mechanical rules (A3 & A4 Solution).
         """
         test_key = master["test_key"]
+        up_name = str(uploaded.get("test_name") or "").strip()
         up_freq = str(uploaded.get("test_frequency") or "").strip()
         up_crit = str(uploaded.get("acceptance_criteria") or "").strip()
         up_std = str(uploaded.get("test_standard") or "").strip()
@@ -364,10 +602,11 @@ class ITPAuditEngine:
         std_type = str(pipe_config.get("standard_type") or pipe_config.get("standard_code") or "").upper()
         is_botas = "BOTAŞ" in std_type or "BOTAS" in std_type
 
+        up_name_lower = up_name.lower()
         up_freq_lower = up_freq.lower()
         up_crit_lower = up_crit.lower()
         up_std_lower = up_std.lower()
-        full_up_text = f"{up_crit_lower} {up_std_lower}"
+        full_up_text = f"{up_name_lower} {up_crit_lower} {up_std_lower}"
 
         # --- 1. Comprehensive Canonical Frequency Evaluation (R4 Solution) ---
         canon_freq = FrequencyNormalizer.normalize(up_freq)
@@ -406,12 +645,14 @@ class ITPAuditEngine:
 
         # --- 2. Comprehensive Criteria & Numeric Evaluations ---
 
+        # --- 2. Comprehensive Criteria & Numeric Evaluations (via ITPCriteriaParser) ---
+
         # 2a. CVN Body Impact
         if test_key == "cvn_body":
-            j_matches = re.findall(r"(\d+)\s*(?:j|joule)", up_crit_lower)
+            parsed_cvn = ITPCriteriaParser.parse_cvn_criteria(f"{up_crit_lower} {up_name.lower()}")
             req_avg = float(calc_targets.get("avg_j", 60.0 if is_botas else 41.0))
-            if j_matches:
-                val = float(j_matches[0])
+            if parsed_cvn["energy_avg_j"] is not None:
+                val = parsed_cvn["energy_avg_j"]
                 if val < req_avg:
                     status = "NON_COMPLIANT"
                     issue_type = "CRITERIA_VIOLATION"
@@ -420,36 +661,35 @@ class ITPAuditEngine:
                     status = "MORE_STRINGENT"
                     issue_type = "MORE_STRINGENT"
                     remarks.append(f"🟡 DAHA SIKI DARBE ENERJİSİ: İmalatçı {val:.0f} J taahhüt etmiştir (Hesaplanan: {req_avg:.0f} J).")
-            if is_botas and "0 °c" in full_up_text and "-20" not in full_up_text:
+            if is_botas and (("0 °c" in full_up_text or "0°c" in full_up_text) and "-20" not in full_up_text):
                 status = "NON_COMPLIANT"
                 issue_type = "CRITERIA_VIOLATION"
                 remarks.append("🔴 HATALI TEST SICAKLIĞI: BOTAŞ Madde 3.3.5 uyarınca gövde darbe deneyi -20 °C'de yapılmalıdır; ITP'de 0 °C belirtilmiştir!")
 
         # 2b. CVN Weld & HAZ Impact
         elif test_key == "cvn_weld_haz":
-            j_matches = re.findall(r"(\d+)\s*(?:j|joule)", up_crit_lower)
+            parsed_cvn = ITPCriteriaParser.parse_cvn_criteria(f"{up_crit_lower} {up_name.lower()}")
             req_avg = float(calc_targets.get("avg_j", 45.0 if is_botas else 27.0))
-            if j_matches:
-                val = float(j_matches[0])
+            if parsed_cvn["energy_avg_j"] is not None:
+                val = parsed_cvn["energy_avg_j"]
                 if val < req_avg:
                     status = "NON_COMPLIANT"
                     issue_type = "CRITERIA_VIOLATION"
                     remarks.append(f"🔴 YETERSİZ DARBE ENERJİSİ (KAYNAK/ITAB): Asgari ortalama {req_avg:.0f} J olmalıdır; ITP'de {val:.0f} J yazılmıştır!")
-            if is_botas and "0 °c" in full_up_text and "-20" not in full_up_text:
+            if is_botas and (("0 °c" in full_up_text or "0°c" in full_up_text) and "-20" not in full_up_text):
                 status = "NON_COMPLIANT"
                 issue_type = "CRITERIA_VIOLATION"
                 remarks.append("🔴 HATALI TEST SICAKLIĞI: BOTAŞ Madde 3.3.5 uyarınca Kaynak & ITAB darbe deneyi -20 °C'de yapılmalıdır!")
 
         # 2c. DWTT (Drop Weight Tear Test)
         elif test_key == "dwtt":
-            shear_matches = re.findall(r"(?:%\s*(\d+)|\b(\d+)\s*%)", up_crit_lower)
-            vals = [int(m[0] or m[1]) for m in shear_matches if (m[0] or m[1])]
-            if vals:
-                val_shear = vals[0]
+            parsed_cvn = ITPCriteriaParser.parse_cvn_criteria(f"{up_crit_lower} {up_name.lower()}")
+            if parsed_cvn["shear_area_percent"] is not None:
+                val_shear = parsed_cvn["shear_area_percent"]
                 if val_shear < 85:
                     status = "NON_COMPLIANT"
                     issue_type = "CRITERIA_VIOLATION"
-                    remarks.append(f"🔴 YETERSİZ DWTT SÜNEK KIRILMA: Ortalama sünek kırılma alanı min %85 olmalıdır; ITP'de %{val_shear} yazılmıştır!")
+                    remarks.append(f"🔴 YETERSİZ DWTT SÜNEK KIRILMA: Ortalama sünek kırılma alanı min %85 olmalıdır; ITP'de %{val_shear:.0f} yazılmıştır!")
             if is_botas and any(k in up_crit_lower for k in ("< 60", "<%60", "tekil < 60")):
                 pass  # Compliant individual rule
             elif is_botas and any(k in up_crit_lower for k in ("50%", "tekil 50", "40%")):
@@ -459,41 +699,39 @@ class ITPAuditEngine:
 
         # 2d. Tensile Body & Weld
         elif test_key == "tensile_body":
+            parsed_tensile = ITPCriteriaParser.parse_tensile_criteria(f"{up_crit_lower} {up_name.lower()}")
             # Yield Rt0.5
-            rt_matches = re.findall(r"rt0?\.?5?\s*[≥>=:]*\s*(\d+(?:\.\d+)?)", up_crit_lower)
             req_rt = float(calc_targets.get("yield_min_mpa", 450.0))
-            if rt_matches:
-                val_rt = float(rt_matches[0])
+            if parsed_tensile["yield_min"] is not None:
+                val_rt = parsed_tensile["yield_min"]
                 if val_rt < req_rt - 0.5:
                     status = "NON_COMPLIANT"
                     issue_type = "CRITERIA_VIOLATION"
                     remarks.append(f"🔴 DÜŞÜK AKMA MUKAVEMETİ: Asgari Rt0.5={req_rt:.1f} MPa olmalıdır; ITP'de {val_rt:.1f} MPa belirtilmiş!")
 
             # Elongation Af
-            af_matches = re.findall(r"(?:af|uzama|elongation)\s*[≥>=:]*\s*%?\s*(\d+(?:\.\d+)?)%?", up_crit_lower)
             req_af = float(calc_targets.get("elongation_min_pct", 19.5))
-            if af_matches:
-                val_af = float(af_matches[0])
+            if parsed_tensile["elongation_min"] is not None:
+                val_af = parsed_tensile["elongation_min"]
                 if val_af < (req_af - 0.2):
                     status = "NON_COMPLIANT"
                     issue_type = "CRITERIA_VIOLATION"
                     remarks.append(f"🔴 YETERSİZ KOPMA UZAMASI: Boru et kalınlığına göre asgari uzama %{req_af:.1f} iken ITP'de %{val_af:.1f} belirtilmiş!")
 
             # Y/T Ratio
-            yt_matches = re.findall(r"y\s*/\s*t\s*[≤<=:]*\s*0\.(\d+)", up_crit_lower)
             req_yt = float(calc_targets.get("yt_ratio_max", 0.90 if is_botas else 0.93))
-            if yt_matches:
-                val_yt = float("0." + yt_matches[0])
+            if parsed_tensile["ratio_max"] is not None:
+                val_yt = parsed_tensile["ratio_max"]
                 if val_yt > (req_yt + 0.005):
                     status = "NON_COMPLIANT"
                     issue_type = "CRITERIA_VIOLATION"
                     remarks.append(f"🔴 YÜKSEK Y/T ORANI: Azami Y/T={req_yt:.2f} olmalıdır; ITP'de {val_yt:.2f} yazılmıştır!")
 
         elif test_key == "tensile_weld":
-            rm_matches = re.findall(r"rm\s*[≥>=:]*\s*(\d+(?:\.\d+)?)", up_crit_lower)
+            parsed_tensile = ITPCriteriaParser.parse_tensile_criteria(f"{up_crit_lower} {up_name.lower()}")
             req_rm = float(calc_targets.get("tensile_min_mpa", 535.0))
-            if rm_matches:
-                val_rm = float(rm_matches[0])
+            if parsed_tensile["tensile_min"] is not None:
+                val_rm = parsed_tensile["tensile_min"]
                 if val_rm < req_rm - 0.5:
                     status = "NON_COMPLIANT"
                     issue_type = "CRITERIA_VIOLATION"
@@ -528,23 +766,22 @@ class ITPAuditEngine:
                     issue_type = "CRITERIA_VIOLATION"
                     remarks.append(f"🔴 YÜKSEK KÜKÜRT LİMİTİ: S max %{max_s:.3f} olmalıdır; ITP'de %{val_s:.3f} yazılmıştır!")
 
-        # 2f. Hydrostatic Pressure & Holding Time (A4 Solution)
+        # 2f. Hydrostatic Pressure & Holding Time (via ITPCriteriaParser)
         elif test_key == "hydrostatic":
-            time_matches = re.findall(r"(\d+)\s*(?:sn|saniye|sec|second)", up_crit_lower)
+            parsed_hydro = ITPCriteriaParser.parse_hydrostatic_criteria(f"{up_crit_lower} {up_name.lower()}")
             req_time = int(calc_targets.get("min_holding_time_sec", 20 if is_botas else (10 if (is_welded and d_mm > 457.0) else 5)))
             req_nom_p = float(calc_targets.get("nominal_pressure_bar", 100.0))
             req_min_p = float(calc_targets.get("min_pressure_bar", req_nom_p - 2.0 if is_botas else req_nom_p * 0.90))
 
-            if time_matches:
-                val_time = int(time_matches[0])
+            if parsed_hydro["holding_time_sec"] is not None:
+                val_time = int(parsed_hydro["holding_time_sec"])
                 if val_time < req_time:
                     status = "NON_COMPLIANT"
                     issue_type = "CRITERIA_VIOLATION"
                     remarks.append(f"🔴 YETERSİZ TEST SÜRESİ: Hidrostatik tutma süresi EN AZ {req_time} SANİYE olmalıdır; ITP'de {val_time} sn yazılmıştır!")
 
-            bar_matches = re.findall(r"(?:basınç|pressure|p|test|min|smys)?\s*[:=]?\s*(\d+(?:\.\d+)?)\s*(?:bar)", up_crit_lower)
-            if bar_matches:
-                val_p = float(bar_matches[-1])  # Take the target pressure value
+            if parsed_hydro["pressure_bar"] is not None:
+                val_p = parsed_hydro["pressure_bar"]
                 if val_p < req_min_p:
                     status = "NON_COMPLIANT"
                     issue_type = "CRITERIA_VIOLATION"
@@ -750,24 +987,27 @@ class ITPAuditEngine:
 
         # 2y. 3LPE Coating Thickness
         elif test_key == "coating_thickness_3lpe":
-            if re.search(r"(?:<|\b)(?:1\.[0-9]|2\.[0-4])\s*mm", up_crit_lower) or any(k in up_crit_lower for k in ("< 2.5 mm", "< 2.0 mm", "< 2.5mm", "< 100 µm")):
+            parsed_c = ITPCriteriaParser.parse_coating_criteria(f"{up_crit_lower} {up_name.lower()}")
+            if (parsed_c["thickness_mm"] is not None and parsed_c["thickness_mm"] < 2.50) or any(k in up_crit_lower for k in ("< 2.5 mm", "< 2.0 mm", "< 2.5mm", "< 100 µm")):
                 status = "NON_COMPLIANT"
                 issue_type = "CRITERIA_VIOLATION"
                 remarks.append("🔴 KAPLAMA KALINLIĞI YETERSİZ: BOTAŞ 5410 R1 ve DIN 30670 uyarınca 3LPE/HDPE toplam kalınlığı en az 3.0 mm (3000 µm), FBE ve yapıştırıcı en az 120 µm olmalıdır!")
 
         # 2z. Coating Holiday Test
         elif test_key == "coating_holiday_test":
-            if re.search(r"(?<![1-9])(?:10|12|15|18)\s*kv", up_crit_lower) or any(k in up_crit_lower for k in ("kıvılcım serbest", "delik serbest", "spark permitted")):
+            parsed_c = ITPCriteriaParser.parse_coating_criteria(f"{up_crit_lower} {up_name.lower()}")
+            if (parsed_c["holiday_kv"] is not None and parsed_c["holiday_kv"] < 24.5) or any(k in up_crit_lower for k in ("kıvılcım serbest", "delik serbest", "spark permitted")):
                 status = "NON_COMPLIANT"
                 issue_type = "CRITERIA_VIOLATION"
                 remarks.append("🔴 HOLIDAY TEST GERİLİMİ HATALI: BOTAŞ 5410 R1 uyarınca test gerilimi 25.000 Volt (25 kV) olmalı ve kesinlikle kıvılcım/delik oluşmamalıdır!")
 
         # 2aa. Coating Peel Adhesion
         elif test_key == "coating_peel_adhesion":
-            if re.search(r"(?:<|\b)(?<![1-9])(?:35|50|80|100)\s*n/cm", up_crit_lower) or "< 100" in up_crit_lower:
+            parsed_c = ITPCriteriaParser.parse_coating_criteria(f"{up_crit_lower} {up_name.lower()}")
+            if (parsed_c["peel_n_mm"] is not None and parsed_c["peel_n_mm"] < 14.5) or "< 100" in up_crit_lower:
                 status = "NON_COMPLIANT"
                 issue_type = "CRITERIA_VIOLATION"
-                remarks.append("🔴 SOYULMA MUKAVEMETİ YETERSİZ: BOTAŞ 5410 R1 uyarınca 23 °C'de yapışma direnci en az 150 N/cm (veya 18 N/mm) olmalıdır!")
+                remarks.append("🔴 SOYULMA MUKAVEMETİ YETERSİZ: BOTAŞ 5410 R1 uyarınca 23 °C'de yapışma direnci en az 150 N/cm (veya 15 N/mm) olmalıdır!")
 
         # 2ab. Coating Cathodic Disbondment (CD)
         elif test_key == "coating_cathodic_disbondment":

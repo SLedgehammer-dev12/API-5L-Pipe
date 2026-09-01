@@ -67,7 +67,7 @@ class NumberedCanvas(canvas.Canvas):
         self.setFont(font_to_use, 8)
         self.setFillColor(colors.HexColor("#64748B"))
         now_str = datetime.datetime.now().strftime("%d.%m.%Y %H:%M")
-        self.drawString(30, 16, f"Rapor Üretim Tarihi: {now_str} | Sistem: API 5L QA/QC Expert System v2.3.0")
+        self.drawString(30, 16, f"Rapor Üretim Tarihi: {now_str} | Sistem: API 5L QA/QC Expert System v2.4.0")
         
         page_text = f"Sayfa {self._pageNumber} / {page_count}"
         self.drawRightString(w - 30, 16, page_text)

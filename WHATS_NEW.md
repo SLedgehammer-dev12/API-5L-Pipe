@@ -1,25 +1,26 @@
-# What's New in API 5L Pipe QA/QC & Wall Thickness Suite (v2.3.0)
-## Yenilikler ve Sürüm Özeti - v2.3.0 (2026-09-01)
+# What's New in API 5L Pipe QA/QC & Wall Thickness Suite (v2.4.0)
+## Yenilikler ve Sürüm Özeti - v2.4.0 (2026-09-01)
 
 ---
 
-### 🇹🇷 Türkçe Özet (v2.3.0)
+### 🇹🇷 Türkçe Özet (v2.4.0)
 
-API 5L Pipe QA/QC Suite **v2.3.0** sürümü ile birlikte **Resmi Yatay A4 PDF ITP Denetim Raporu Üreteci (`PDFExporter`)**, **Akıllı Standart & Kapsam Otomatik Algılama Motoru (`detect_itp_metadata`)** ve **Kullanıcı Etkileşimli Manuel Müdahale / Şartname Değiştirme Kartı** entegre edilmiştir:
+API 5L Pipe QA/QC Suite **v2.4.0** sürümü ile birlikte **Çift Dilli (TR & EN) Kapsamlı Sanayi Anahtar Kelime Dağarcığı (`TEST_MATCHER_KEYWORDS`)**, **Çevrimdışı Sayısal Kriter & Değer Ayrıştırıcı Motoru (`ITPCriteriaParser`)** ve **Negatif Ağırlıklı Disambiguation Filtreleri** entegre edilmiştir:
 
-#### 1. 📄 Resmi PDF ITP Denetim ve Sapma Raporu (`PDFExporter`)
-- Yatay A4 formatında çok sayfalı, Türkçe karakter destekli, iki geçişli sayfalama (`NumberedCanvas` - Sayfa X / Y) mimarisi.
-- Proje künyesi, yönetici KPI dashboard kartları, kritik bulgular tablosu, uçtan uca yan yana karşılaştırma matrisi ve 3'lü resmi imza/onay bloğu.
-- Arayüzden tek tıkla `[ PDF Denetim Raporu İndir ]` butonuyla tarayıcıya anında indirme.
+#### 1. 🌐 Çift Dilli (TR & EN) Genişletilmiş Sanayi Terminolojisi
+- Uluslararası (API 5L, ISO 3183, ASTM, DIN 30670, Shell DEP, Aramco, DNV) ve yerel (BOTAŞ, Borusan, Tosçelik, Erciyas, Emek, Umran) 100'den fazla terim, kısaltma ve test başlığı eklendi.
+- Çekme ($R_{t0.5}, R_m, A\%$), Çentik Darbe (Charpy, FL+2, FL+5), DWTT, NDT (AUT, PAUT, RT, UT, MPI), Boyutlar ve 3LPE Kaplama terminolojisi tam kapsam altına alındı.
 
-#### 2. 🧠 Akıllı Standart & Kapsam Otomatik Algılama
-- Dokümandaki BOTAŞ, API 5L, ISO 3183 ve DIN 30670 referanslarını otomatik tarayarak standardı belirleme.
-- `Sadece 3LPE Dış Kaplama` (Tosçelik formatı), `Sadece Çıplak Boru` ve `Bütünsel` disiplin izolasyonu.
-- Çap ($D$), et kalınlığı ($t$), çelik kalitesi (X42/X65), PSL ve prosesi otomatik ayıklama.
+#### 2. 🧮 Çevrimdışı Sayısal Kriter Ayrıştırıcı Motoru (`ITPCriteriaParser`)
+- Harici internet veya LLM/GPU gerektirmeyen, %100 yerel çalışan regex tabanlı fiziksel varlık ve birim ayrıştırıcı motoru geliştirildi.
+- Çoklu karakterli operatörler (`<=`, `>=`, `:=`, `≤`, `≥`, `%`) ve farklı notasyon formatlarından akma, çekme, Y/T oranı, darbe enerjisi, hidrostatik basınç/süre ve toleransları hatasız hesaplar.
 
-#### 3. 🎛️ Etkileşimli Manuel Müdahale & Hızlı Yeniden Denetim Kartı
-- Standart (BOTAŞ vs API 5L PSL2 vs PSL1) ve Kapsam (Bütünsel vs Kaplama vs Çıplak Boru) seçimi ve tek tıkla anında yeniden denetleme.
-- Dokümandaki boruyu projeye ekleme ve BOTAŞ ek sıkılıkları bilgilendirme kartı.
+#### 3. 🎯 Karışmayı Önleyici Ayrıştırma ve Negatif Ağırlıklandırma
+- Çekme ile Darbe (Charpy/CVN) testlerinin karışmasını önleyen negatif ağırlıklandırma kuralları eklendi.
+- Dış Çap ile Ovalite testlerinin metin benzerliğinden dolayı yanlış eşleşmesini engelleyen bağlamsal filtreler devreye alındı.
+
+#### 4. 🧪 59/59 Kapsamlı Test Süiti (%100 PASS)
+- `test_51` ve `test_52` ile tüm test senaryoları doğrulandı.
 
 ---
 

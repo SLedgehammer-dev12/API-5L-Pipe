@@ -1609,9 +1609,98 @@ class TestPipeQAQCSuite(unittest.TestCase):
         excel_buf = ExcelExporter.export_itp_audit_report(audit1, lang="tr")
         self.assertGreater(len(excel_buf.getvalue()), 5000)
 
+    def test_51_english_and_expanded_bilingual_itp_matching(self):
+        """
+        Validates that international English-only ITP test names, abbreviations, and mixed
+        Turkish/English mill nomenclature are correctly mapped to standard test keys.
+        """
+        from core.itp_audit_engine import ITPAuditEngine
+
+        pipe_cfg = {
+            "diameter_mm": 1219.0, "diameter_inch": '48"', "wall_thickness_mm": 18.0,
+            "material_grade": "X65", "manufacturing_process": "SAWH", "standard_type": "BOTAŞ",
+            "psl_level": "PSL2", "scope_mode": "COMBINED"
+        }
+
+        english_itp_items = [
+            {"test_name": "Ladle Heat Chemical Analysis", "test_frequency": "Per Heat", "acceptance_criteria": "C max 0.12, CEpcm max 0.20", "test_standard": "API Spec 5L / ASTM A751"},
+            {"test_name": "Transverse Tensile Test on Pipe Body", "test_frequency": "1 per test unit (max 50 pipes)", "acceptance_criteria": "Rt0.5: 450-570 MPa, Rm: 535-760 MPa", "test_standard": "ISO 6892-1"},
+            {"test_name": "Charpy V-Notch Impact Test on Pipe Body @ -20°C", "test_frequency": "1 per test unit (max 50 pipes)", "acceptance_criteria": "Min 60 J avg / 45 J ind @ -20°C", "test_standard": "ISO 148-1"},
+            {"test_name": "Charpy V-Notch on Weld Seam & HAZ", "test_frequency": "1 per test unit (max 50 pipes)", "acceptance_criteria": "Min 50 J avg / 38 J ind @ -20°C", "test_standard": "ISO 148-1"},
+            {"test_name": "Drop-Weight Tear Testing (DWTT)", "test_frequency": "1 per heat", "acceptance_criteria": "Min 85% avg shear area @ 0°C", "test_standard": "API 5L / ASTM E436"},
+            {"test_name": "Mill Hydrostatic Pressure Test", "test_frequency": "100% of all pipes", "acceptance_criteria": "155 bar, min 10 seconds duration", "test_standard": "API 5L Section 10.2.6"},
+            {"test_name": "Full Length Automated Ultrasonic Testing (AUT) of Weld Seam", "test_frequency": "100% of weld seams", "acceptance_criteria": "EN ISO 10893-11 U2 acceptance level", "test_standard": "EN ISO 10893-11"},
+            {"test_name": "Ultrasonic Testing of Pipe Ends for Lamination", "test_frequency": "100% of pipe ends (50 mm band)", "acceptance_criteria": "EN ISO 10893-8 Table 2", "test_standard": "EN ISO 10893-8"},
+            {"test_name": "Outside Diameter at Pipe Ends", "test_frequency": "100% of pipes (both ends)", "acceptance_criteria": "±1.6 mm or -0.5 / +2.0 mm", "test_standard": "API 5L Table 10"},
+            {"test_name": "Out of Roundness (Ovality) at Pipe Ends", "test_frequency": "100% of pipes", "acceptance_criteria": "Max 3.05 mm (BOTAŞ 5120)", "test_standard": "API 5L / BOTAŞ"},
+            {"test_name": "Ultrasonic Wall Thickness Verification", "test_frequency": "100% of pipes", "acceptance_criteria": "-0% / +10.0% (BOTAŞ 5120 Clause 5.1)", "test_standard": "EN ISO 10893-12"},
+            {"test_name": "High Voltage Spark Testing (Holiday Detection)", "test_frequency": "100% of coated surface", "acceptance_criteria": "25 kV, defect-free continuous spark test", "test_standard": "DIN 30670 / NACE RP0274"},
+            {"test_name": "3-Layer Polyethylene Coating Thickness", "test_frequency": "100% of coated pipes", "acceptance_criteria": "Min 3.0 mm (Reinforced Class v)", "test_standard": "DIN 30670 / BOTAŞ 5410"},
+            {"test_name": "Peel Strength Test (Adhesion at 23°C)", "test_frequency": "1 pipe per shift / lot", "acceptance_criteria": "Min 150 N/cm (15 N/mm)", "test_standard": "DIN 30670 Clause 5.2.3"}
+        ]
+
+        res = ITPAuditEngine.audit_itp(english_itp_items, pipe_cfg)
+        self.assertIsNotNone(res)
+        self.assertGreaterEqual(res["kpi"]["total_tests_audited"], 14)
+
+        # Confirm all 14 English items were matched to correct standard test keys
+        matched_keys = [r["test_key"] for r in res["audit_rows"] if not r.get("uploaded_frequency", "").startswith("—")]
+        self.assertIn("chemical_heat", matched_keys)
+        self.assertIn("tensile_body", matched_keys)
+        self.assertIn("cvn_body", matched_keys)
+        self.assertIn("cvn_weld_haz", matched_keys)
+        self.assertIn("dwtt", matched_keys)
+        self.assertIn("hydrostatic", matched_keys)
+        self.assertIn("ndt_weld_seam", matched_keys)
+        self.assertIn("ndt_pipe_ends", matched_keys)
+        self.assertIn("dimensional_diameter_ends", matched_keys)
+        self.assertIn("dimensional_ovality_ends", matched_keys)
+        self.assertIn("dimensional_wall_thickness", matched_keys)
+        self.assertIn("coating_holiday_test", matched_keys)
+        self.assertIn("coating_thickness_3lpe", matched_keys)
+        self.assertIn("coating_peel_adhesion", matched_keys)
+
+    def test_52_numerical_criteria_entity_parser(self):
+        """
+        Validates the ITPCriteriaParser numerical extraction across tensile, CVN,
+        hydrostatic, coating, and dimensional criteria in multiple notation formats.
+        """
+        from core.itp_criteria_parser import ITPCriteriaParser
+
+        # 1. Tensile
+        t1 = ITPCriteriaParser.parse_tensile_criteria("Rt0.5: 450 - 570 MPa, Rm: 535-760 MPa, Rt/Rm <= 0.93, Uzama: >= %23")
+        self.assertEqual(t1["yield_min"], 450.0)
+        self.assertEqual(t1["yield_max"], 570.0)
+        self.assertEqual(t1["tensile_min"], 535.0)
+        self.assertEqual(t1["tensile_max"], 760.0)
+        self.assertEqual(t1["ratio_max"], 0.93)
+        self.assertEqual(t1["elongation_min"], 23.0)
+
+        # 2. CVN
+        cvn1 = ITPCriteriaParser.parse_cvn_criteria("-20°C'de ortalama min 60 J, tekil min 45 J, %85 shear")
+        self.assertEqual(cvn1["temp_c"], -20.0)
+        self.assertEqual(cvn1["energy_avg_j"], 60.0)
+        self.assertEqual(cvn1["energy_min_j"], 45.0)
+        self.assertEqual(cvn1["shear_area_percent"], 85.0)
+
+        # 3. Hydrostatic
+        h1 = ITPCriteriaParser.parse_hydrostatic_criteria("155.4 bar, %95 SMYS, 10 saniye süreyle")
+        self.assertAlmostEqual(h1["pressure_bar"], 155.4, places=1)
+        self.assertEqual(h1["holding_time_sec"], 10.0)
+        self.assertEqual(h1["smys_percent"], 95.0)
+
+        # 4. Coating
+        c1 = ITPCriteriaParser.parse_coating_criteria("Min 3.0 mm toplam kalınlık, 25 kV holiday, 150 N/cm soyulma, Rz 60-100 µm")
+        self.assertEqual(c1["thickness_mm"], 3.0)
+        self.assertEqual(c1["holiday_kv"], 25.0)
+        self.assertEqual(c1["peel_n_mm"], 15.0)
+        self.assertEqual(c1["roughness_rz_min_um"], 60.0)
+        self.assertEqual(c1["roughness_rz_max_um"], 100.0)
+
 
 if __name__ == '__main__':
     unittest.main()
+
 
 
 
