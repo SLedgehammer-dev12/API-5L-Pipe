@@ -145,8 +145,9 @@ class UnlimitedOCREngine:
                 except Exception as e_tab:
                     logger.debug(f"fitz find_tables error on page: {e_tab}")
 
-            # If digital text extraction returned no text (scanned image PDF), attempt OCR on rasterized pages
-            if not text_content.strip() and not extracted_rows:
+            # If digital text extraction returned no text (scanned image PDF), or very few tables extracted,
+            # attempt OCR on rasterized pages
+            if (not text_content.strip() or len(text_content.strip()) < 100) and len(extracted_rows) < 5:
                 try:
                     import pytesseract
                     from PIL import Image
@@ -186,9 +187,17 @@ class UnlimitedOCREngine:
         if not table_data or len(table_data) < 1:
             return [], last_state
 
+        # Check first 2 rows for header keywords (Kapsam table spans 2 rows)
+        first_two_headers = " ".join(" ".join(str(c or "") for c in r) for r in table_data[:2]).lower()
         raw_joined_header = " ".join(str(c or "") for c in table_data[0]).lower()
-        # Skip document title blocks and signature/abbreviation footers
-        if any(k in raw_joined_header for k in ("kısaltmalar", "hazırlayan", "onaylayan", "temsilcisi", "sayfa no", "revizyon no", "sipariş bilgileri")):
+        # Skip document title blocks, Kapsam scope table, and signature/abbreviation footers + Kısaltma Listesi 2-col table
+        if any(k in first_two_headers for k in ("kısaltmalar", "hazırlayan", "onaylayan", "temsilcisi", "sayfa no", "revizyon no", "sipariş bilgileri", "kısaltma listesi")):
+            return [], last_state
+        # Kapsam scope table (Sıra | Çap | Kalınlık | Çelik Kalitesi) - scope, not ITP test
+        if "sıra" in first_two_headers and "çap" in first_two_headers and "kalınlık" in first_two_headers:
+            return [], last_state
+        # 2-col abbreviation table (AUT | Otomatik Ultrasonik Test) - skip
+        if len(table_data[0]) == 2 and any(str(c or "").strip().upper() in ("AUT","DWT","HAZ","HRC","HT","MUT","MPQT","MTC","NDT","RT","SAWH","SMYS","TDC","UT","W.T.","OD","NA") for c in [r[0] for r in table_data[1:5] if r and r[0]]):
             return [], last_state
 
         # 1. Scan first 5 rows for header definition
@@ -323,12 +332,14 @@ class UnlimitedOCREngine:
             elif activity_val and len(activity_val) > 2:
                 test_name = activity_val
 
-            # Filter out non-test metadata lines (e.g. document code, dates, revision numbers)
+            # Filter out non-test metadata lines (e.g. document code, dates, revision numbers, Kapsam header fragments)
             if not test_name or len(test_name) < 2 or test_name.lower() in ("no", "item", "test", "faaliyet", "aktivite", "tarih", "imza", "isim", "isim :"):
                 continue
             if re.match(r"^[\d\s,.\-/%]+$", test_name):
                 continue
-            if any(k in test_name.lower() for k in ("tos-itp", "gbb-itp", "rev.", "sayfa no", "müşteri", "sipariş no")):
+            if any(k in test_name.lower() for k in ("tos-itp", "gbb-itp", "rev.", "sayfa no", "müşteri", "sipariş no", "çap (mm)", "kalınlık (mm)", "kabul kriterleri kontrol yöntemi", "genel proje bilgileri")):
+                continue
+            if test_name.strip().lower() in ("kapsam", "sıra", "çap", "kalınlık", "çelik kalitesi"):
                 continue
 
             freq = str(row[idx_freq] or "").strip() if 0 <= idx_freq < len(row) else ""
@@ -658,9 +669,12 @@ class UnlimitedOCREngine:
         Automatically detects pipe manufacturing & coating standards, scope discipline,
         geometry, grade, and project metadata from extracted text and structured ITP items.
         """
-        text_lower = (extracted_text or "").replace("I", "ı").replace("İ", "i").lower()
-        fn_lower = (filename or "").replace("I", "ı").replace("İ", "i").lower()
-        items_text = " ".join([f"{it.get('test_name', '')} {it.get('acceptance_criteria', '')}" for it in items]).replace("I", "ı").replace("İ", "i").lower()
+        # Use case-insensitive matching that handles Turkish İ/ı correctly: lower with both variants
+        def _norm(s: str) -> str:
+            return (s or "").lower().replace("ı", "i").replace("İ", "i").replace("i̇", "i")
+        text_lower = _norm(extracted_text)
+        fn_lower = _norm(filename)
+        items_text = _norm(" ".join([f"{it.get('test_name', '')} {it.get('acceptance_criteria', '')}" for it in items]))
         combined_text = f"{text_lower} {fn_lower} {items_text}"
 
         # 1. Standard Detection
@@ -679,14 +693,16 @@ class UnlimitedOCREngine:
         coating_hits = sum(1 for k in coating_kw if k in combined_text)
         bare_hits = sum(1 for k in bare_kw if k in combined_text)
 
-        # Check filename or title cues
-        if any(k in fn_lower or k in text_lower[:500] for k in ("combined", "bütünsel", "tam kapsam", "full combined", "imalat ve kaplama")):
+        # Check filename or title cues (normalized)
+        def _has_any(keys, txt):
+            return any(_norm(k) in txt for k in keys)
+        if _has_any(("combined", "bütünsel", "tam kapsam", "full combined", "imalat ve kaplama"), fn_lower) or _has_any(("combined", "bütünsel", "tam kapsam", "full combined", "imalat ve kaplama"), text_lower[:500]):
             scope_mode = "COMBINED"
             scope_label = "Bütünsel (İmalat + 3LPE Dış Kaplama)"
-        elif any(k in fn_lower or k in text_lower[:500] for k in ("hdpe kaplama", "dış kaplama", "coating only", "sadece kaplama", "din 30670", "tos-itp-şrk-002")):
+        elif _has_any(("hdpe kaplama", "dış kaplama", "coating only", "sadece kaplama", "din 30670", "tos-itp-şrk-002"), fn_lower) or _has_any(("hdpe kaplama", "dış kaplama", "coating only", "sadece kaplama", "din 30670", "tos-itp-şrk-002"), text_lower[:500]):
             scope_mode = "COATING_ONLY"
             scope_label = "Sadece 3LPE Dış Kaplama (DIN 30670 / BOTAŞ 5410 R1)"
-        elif any(k in fn_lower or k in text_lower[:500] for k in ("siyah boru", "çıplak boru", "bare pipe", "tos-itp-şrk-001", "bare_pipe")):
+        elif _has_any(("siyah boru", "çıplak boru", "bare pipe", "tos-itp-şrk-001", "bare_pipe"), fn_lower) or _has_any(("siyah boru", "çıplak boru", "bare pipe", "tos-itp-şrk-001", "bare_pipe"), text_lower[:500]):
             scope_mode = "BARE_PIPE_ONLY"
             scope_label = "Sadece Çıplak Boru İmalatı (API 5L / BOTAŞ 5120 R7)"
         elif coating_hits >= 4 and bare_hits >= 4:
@@ -734,7 +750,60 @@ class UnlimitedOCREngine:
         else:
             psl = "PSL2"
 
-        # 6. Diameter & Wall Thickness
+        # 5b. Delivery Condition Detection (M, N, Q, R)
+        delivery_condition = "M"  # Default
+        # Look for "Delivery Condition: M" or "Teslim Koşulu: M" or "M" in tables
+        delivery_patterns = [
+            r"delivery\s*condition\s*[:\s]*([MNQR])\b",
+            r"teslim\s*koşulu\s*[:\s]*([MNQR])\b",
+            r"delivery\s*cond\.?\s*[:\s]*([MNQR])\b",
+            r"\b([MNQR])\s*(?:teslim|delivery|cond)\b",
+        ]
+        for pattern in delivery_patterns:
+            m = re.search(pattern, text_lower)
+            if m:
+                delivery_condition = m.group(1).upper()
+                break
+        # Also check for "M" "N" "Q" "R" in tables near "Delivery" or "Teslim"
+        if delivery_condition == "M":
+            # Look for "M" in context of delivery condition tables
+            m_del = re.search(r"(?:delivery|teslim|cond)\s*[:\s]*([MNQR])\b", text_lower)
+            if m_del:
+                delivery_condition = m_del.group(1).upper()
+
+        # 6. Grade Detection with Delivery Suffix (e.g., X65M, X70M, X52M, X65Q, X65N)
+        grade = "X65"
+        delivery_condition_for_grade = delivery_condition
+        grades = [
+            ("X80", "X80"), ("X70", "X70"), ("X65", "X65"), ("X60", "X60"),
+            ("X56", "X56"), ("X52", "X52"), ("X46", "X46"), ("X42", "X42"),
+            ("GRADE B", "Grade B"), ("GR.B", "Grade B"), ("GRB", "Grade B"), ("L485", "X70"),
+            ("L450", "X65"), ("L415", "X60"), ("L360", "X52"), ("L290", "X42"), ("L245", "Grade B")
+        ]
+        # First try to find grade with delivery suffix (e.g., X65M, X70M, X52M, X65Q, X65N)
+        grade_with_delivery = None
+        for code, clean_name in grades:
+            # Try with delivery suffix first (X65M, X70M, X52M, X65Q, X65N, X65R)
+            for suffix in ["M", "N", "Q", "R"]:
+                if re.search(r"\b" + code.lower() + suffix + r"\b", text_lower):
+                    grade_with_delivery = clean_name
+                    delivery_condition_for_grade = suffix
+                    break
+            if grade_with_delivery:
+                break
+            # Then try without suffix
+            if re.search(r"\b" + code.lower() + r"\b", text_lower) or re.search(r"\b" + code.lower() + r"m\b", text_lower):
+                grade_with_delivery = clean_name
+                break
+        
+        if grade_with_delivery:
+            grade = grade_with_delivery
+            # If we found grade with delivery suffix, use that delivery condition
+            # But keep the one detected from text if more specific
+            if delivery_condition == "M" and delivery_condition_for_grade != "M":
+                delivery_condition = delivery_condition_for_grade
+
+        # 4. Process Detection
         d_mm = 1219.0
         d_inch = '48"'
         t_mm = 14.30
@@ -760,23 +829,48 @@ class UnlimitedOCREngine:
                 d_inch = in_val
                 break
 
-        # Check scope table row matches e.g. "1 219,1 6,40 PSL 2 X42M" - collect ALL variants
-        scope_rows = re.findall(r"(\d+)\s+([\d.,]+)\s+([\d.,]+)\s+([a-zA-Z0-9\-]+)", text_lower)
+# Check scope table row matches e.g. "1 219,1 6,40 PSL 2 X42M" - collect ALL variants (Kapsam table, 4 variants)
+        # Only consider rows near Kapsam header to avoid weight tables
+        kaps_idx = text_lower.find("kapsam")
+        kaps_text = text_lower[kaps_idx:kaps_idx+3000] if kaps_idx != -1 else text_lower
+        scope_rows = re.findall(r"(\d+)\s+([\d.,]+)\s+([\d.,]+)\s+([a-zA-Z0-9\-]+)", kaps_text if kaps_idx != -1 else text_lower)
         scope_variants: List[Dict[str, Any]] = []
+        # Known diameter set for strict filtering (avoid weight table false positives like 226.09)
+        known_d_set = {mm for mm, _, _ in known_diameters}
         if scope_rows:
             for _, d_raw, t_raw, _ in scope_rows:
                 try:
                     d_parsed = float(d_raw.replace(",", "."))
                     t_parsed = float(t_raw.replace(",", "."))
-                    if 50.0 <= d_parsed <= 3000.0 and 2.0 <= t_parsed <= 60.0:
+                    # Strict: diameter must be a known pipe size, thickness plausible
+                    if any(abs(d_parsed - kd) < 0.5 for kd in known_d_set) and 2.0 <= t_parsed <= 60.0:
                         # Deduplicate
                         if not any(abs(v["diameter_mm"] - d_parsed) < 0.5 and abs(v["wall_thickness_mm"] - t_parsed) < 0.1 for v in scope_variants):
                             scope_variants.append({"diameter_mm": d_parsed, "wall_thickness_mm": t_parsed})
                 except Exception:
                     continue
-            if scope_variants:
-                d_mm = scope_variants[0]["diameter_mm"]
-                t_mm = scope_variants[0]["wall_thickness_mm"]
+
+        # 2. Fallback: Try to find hydrostatic test pressure table (e.g., "Dış Çap 914,4 Et Kalınlık 11,10 Basınç 109")
+        if not scope_variants:
+            hydro_rows = re.findall(r"(\d{3,4}[.,]\d)\s+(\d{1,2}[.,]\d{1,2})\s+(\d{2,4})", text_lower)
+            for d_raw, t_raw, p_raw in hydro_rows:
+                try:
+                    d_parsed = float(d_raw.replace(",", "."))
+                    t_parsed = float(t_raw.replace(",", "."))
+                    p_parsed = float(p_raw)
+                    # Validate: diameter is known pipe size, pressure is realistic (50-250 bar)
+                    if any(abs(d_parsed - kd) < 0.5 for kd in known_d_set) and 2.0 <= t_parsed <= 60.0 and 50 <= p_parsed <= 250:
+                        if not any(abs(v["diameter_mm"] - d_parsed) < 0.5 and abs(v["wall_thickness_mm"] - t_parsed) < 0.1 for v in scope_variants):
+                            scope_variants.append({"diameter_mm": d_parsed, "wall_thickness_mm": t_parsed})
+                except Exception:
+                    continue
+
+        # Select first variant as default
+        if scope_variants:
+            d_mm = scope_variants[0]["diameter_mm"]
+            t_mm = scope_variants[0]["wall_thickness_mm"]
+
+        # Final fallback: known wall thicknesses
         if not scope_variants:
             known_wts = [25.4, 22.2, 19.1, 17.5, 15.9, 14.3, 12.7, 11.1, 9.5, 8.2, 7.9, 7.1, 6.4, 5.6, 4.8]
             for w in known_wts:
@@ -785,6 +879,8 @@ class UnlimitedOCREngine:
                     t_mm = w
                     break
 
+        customer = "BOTAŞ" if has_botas else "Genel Müşteri"
+        
         customer = "BOTAŞ" if has_botas else "Genel Müşteri"
         proj_m = re.search(r"proje(?: ismi)?\s*[:\n]\s*([^\n\r]+)", text_lower)
         project_name = proj_m.group(1).strip() if proj_m else ("BOTAŞ Doğal Gaz Boru Hattı Projesi" if has_botas else "Çelik Boru İmalat & Test Projesi")
@@ -820,6 +916,7 @@ class UnlimitedOCREngine:
             "detected_process": process,
             "detected_grade": grade,
             "detected_psl": psl,
+            "detected_delivery_condition": delivery_condition,
             "detected_diameter_mm": d_mm,
             "detected_diameter_inch": d_inch,
             "detected_wall_thickness_mm": t_mm,

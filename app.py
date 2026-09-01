@@ -391,9 +391,19 @@ async def upload_and_audit_itp(
         ("diameter_mm", "detected_diameter_mm"),
         ("diameter_inch", "detected_diameter_inch"),
         ("wall_thickness_mm", "detected_wall_thickness_mm"),
+        ("delivery_condition", "detected_delivery_condition"),
     ):
         if det_k in detected_meta and (k not in pipe_config or pipe_config.get(k) in (None, "", "auto", "default")):
             effective_config[k] = detected_meta[det_k]
+
+    # Handle coating-only scope: filter items to coating-related tests only
+    scope_mode = effective_config.get("scope_mode", detected_meta.get("detected_scope_mode", "BARE_PIPE_ONLY"))
+    if scope_mode == "COATING_ONLY":
+        # Filter items to only coating-related tests
+        coating_keywords = ("kaplama", "kumlama", "holiday", "peel", "soyulma", "darbe", "indentation", "katodik", "cutback", "cut back", "fbe", "3lpe", "hdpe", "boyasız", "yama")
+        extracted_items = [it for it in extracted_items if any(kw in (it.get("test_name") or "").lower() for kw in coating_keywords)]
+        # Also add detected coating items from metadata
+        effective_config["scope_mode"] = "COATING_ONLY"
 
     # Multi-variant detection: same diameter with several wall thicknesses (e.g. 914.4×11.10/12.70/15.90/17.50)
     scope_variants = detected_meta.get("scope_variants", []) if isinstance(detected_meta, dict) else []

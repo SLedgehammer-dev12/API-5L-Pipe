@@ -38,14 +38,14 @@ class FrequencyNormalizer:
         if not t or t == "—":
             return FrequencyCanonical.UNKNOWN
         
-        # Sparse sampling detection (e.g. 1/200 boru, 1 per 100, 50 boruda 1, 1/10)
+        # Sparse sampling detection (e.g. 1/200 boru, 1 per 100, 50 boruda 1, 1/10, 25 boruda 1)
         m_sparse = re.search(r'(?:1\s*/\s*(\d+)|1\s+per\s+(\d+)|(\d+)\s*boruda\s*1)', t)
         if m_sparse:
             denom = int(m_sparse.group(1) or m_sparse.group(2) or m_sparse.group(3))
             if denom >= 5:
                 return FrequencyCanonical.INADEQUATE_SAMPLING
 
-        if any(k in t for k in ("1 per 5", "1 per 10", "1/5", "1/10", "spot", "örneklem", "5%", "10%", "10 boruda 1", "5 boruda 1", "20 boruda 1", "sample 1 per shift")):
+        if any(k in t for k in ("1 per 5", "1 per 10", "1/5", "1/10", "spot", "örneklem", "5%", "10%", "10 boruda 1", "5 boruda 1", "20 boruda 1", "25 boruda 1", "50 boruda 1", "100 boruda 1", "200 boruda 1", "sample 1 per shift")):
             return FrequencyCanonical.INADEQUATE_SAMPLING
         if any(k in t for k in ("her boru", "%100", "100%", "each pipe", "all pipes", "tüm borular", "istisnasız", "every pipe", "her kaynaklı boru")):
             return FrequencyCanonical.EVERY_PIPE_100
@@ -137,7 +137,8 @@ class ITPAuditEngine:
             "kaynak dikişi ndt", "kaynak ndt", "weld seam ndt", "weld ut", "weld rt", "radyografi", "ultrasonik kaynak",
             "ultrasonic weld", "weld inspection", "radiographic weld", "kaynak dikişi %100 ndt", "kaynak dikisi ndt",
             "paut", "phased array", "x-ray weld", "seam ut", "automated ultrasonic", "dikiş tahribatsız muayene",
-            "full length seam ut", "weld radiographic inspection", "digital rt on weld"
+            "full length seam ut", "weld radiographic inspection", "digital rt on weld",
+            "%100", "100%", "100 %", "100%", "%100", "100 percent", "full length"
         ],
         "ndt_pipe_body_lamination": [
             "gövde laminasyon", "gövdesi laminasyon", "body lamination", "gövde ut", "gövdesi ut", "sac laminasyon",
@@ -331,6 +332,10 @@ class ITPAuditEngine:
 
         process = str(pipe_config.get("manufacturing_process") or "SAWH").upper()
         is_smls = any(k in process for k in ("SMLS", "SEAMLESS", "DIKISSIZ"))
+        
+        # Turkish İ/ı normalization for matching
+        def _norm_tr(s: str) -> str:
+            return (s or "").lower().replace("ı", "i").replace("İ", "i").replace("i̇", "i")
 
         # --- 1. Compute Scored Bipartite Match Matrix (A2 Solution) ---
         candidates = []
@@ -339,82 +344,83 @@ class ITPAuditEngine:
             keywords = cls.TEST_MATCHER_KEYWORDS.get(test_key, [])
 
             for u_idx, up_item in enumerate(uploaded_items):
-                up_name = str(up_item.get("test_name") or "").lower()
-                up_crit = str(up_item.get("acceptance_criteria") or "").lower()
-                up_std = str(up_item.get("test_standard") or "").lower()
+                up_name = _norm_tr(up_item.get("test_name") or "")
+                up_crit = _norm_tr(up_item.get("acceptance_criteria") or "")
+                up_std = _norm_tr(up_item.get("test_standard") or "")
                 full_up_text = f"{up_name} {up_crit} {up_std}"
 
                 score = 0
                 for kw in keywords:
-                    if kw in up_name:
-                        score = max(score, 60 + len(kw) * 3)
-                    elif kw in full_up_text:
-                        score = max(score, 30 + len(kw) * 2)
+                    norm_kw = _norm_tr(kw)
+                    if norm_kw in up_name:
+                        score = max(score, 60 + len(norm_kw) * 3)
+                    elif norm_kw in full_up_text:
+                        score = max(score, 30 + len(norm_kw) * 2)
 
                 # Contextual & Specificity Reinforcement (Bilingual TR & EN)
-                if test_key == "tensile_body" and any(k in full_up_text for k in ("gövde", "govde", "body", "pipe body", "transverse", "longitudinal", "base metal")):
+                if test_key == "tensile_body" and any(_norm_tr(k) in full_up_text for k in ("gövde", "govde", "body", "pipe body", "transverse", "longitudinal", "base metal")):
                     score += 40
-                elif test_key == "tensile_weld" and any(k in full_up_text for k in ("kaynak", "weld", "seam", "dikiş", "cross weld")):
+                elif test_key == "tensile_weld" and any(_norm_tr(k) in full_up_text for k in ("kaynak", "weld", "seam", "dikiş", "cross weld")):
                     score += 45
-                elif test_key == "cvn_body" and any(k in full_up_text for k in ("gövde", "govde", "body", "pipe body", "base metal", "charpy body")):
+                elif test_key == "cvn_body" and any(_norm_tr(k) in full_up_text for k in ("gövde", "govde", "body", "pipe body", "base metal", "charpy body")):
                     score += 40
-                elif test_key == "cvn_weld_haz" and any(k in full_up_text for k in ("kaynak", "weld", "itab", "haz", "fusion line", "fl+2", "fl+5")):
+                elif test_key == "cvn_weld_haz" and any(_norm_tr(k) in full_up_text for k in ("kaynak", "weld", "itab", "haz", "fusion line", "fl+2", "fl+5")):
                     score += 45
-                elif test_key == "dwtt" and any(k in full_up_text for k in ("dwtt", "drop weight", "shear", "liflilik", "tear test")):
+                elif test_key == "dwtt" and any(_norm_tr(k) in full_up_text for k in ("dwtt", "drop weight", "shear", "liflilik", "tear test")):
                     score += 55
-                elif test_key == "dimensional_diameter_ends" and any(k in full_up_text for k in ("uç", "uclari", "ends", "pipe end", "both ends", "pipe ends")):
+                elif test_key == "dimensional_diameter_ends" and any(_norm_tr(k) in full_up_text for k in ("uç", "uclari", "ends", "pipe end", "both ends", "pipe ends")):
                     score += 60
-                elif test_key == "dimensional_diameter_body" and any(k in full_up_text for k in ("gövde", "govde", "body", "pipe body")):
+                elif test_key == "dimensional_diameter_body" and any(_norm_tr(k) in full_up_text for k in ("gövde", "govde", "body", "pipe body")):
                     score += 60
-                elif test_key == "dimensional_ovality_ends" and any(k in full_up_text for k in ("uç", "uclari", "ends", "pipe end", "both ends", "pipe ends")):
+                elif test_key == "dimensional_ovality_ends" and any(_norm_tr(k) in full_up_text for k in ("uç", "uclari", "ends", "pipe end", "both ends", "pipe ends")):
                     score += 60
-                elif test_key == "dimensional_ovality_body" and any(k in full_up_text for k in ("gövde", "govde", "body", "pipe body")):
+                elif test_key == "dimensional_ovality_body" and any(_norm_tr(k) in full_up_text for k in ("gövde", "govde", "body", "pipe body")):
                     score += 60
-                elif test_key == "ndt_pipe_ends" and any(k in full_up_text for k in ("uç", "uclari", "ends", "pipe end", "end zone", "end face")):
+                elif test_key == "ndt_pipe_ends" and any(_norm_tr(k) in full_up_text for k in ("uç", "uclari", "ends", "pipe end", "end zone", "end face")):
                     score += 45
-                elif test_key == "ndt_pipe_body_lamination" and any(k in full_up_text for k in ("40%", "gövde laminas", "sac laminas", "12094", "body lamin", "plate lamination", "full body ut")):
+                elif test_key == "ndt_pipe_body_lamination" and any(_norm_tr(k) in full_up_text for k in ("40%", "gövde laminas", "sac laminas", "12094", "body lamin", "plate lamination", "full body ut")):
                     score += 45
-                elif test_key == "ndt_weld_seam" and any(k in full_up_text for k in ("dikiş", "seam", "10893-11", "10893-6", "aut", "kaynak dikiş", "weld ut", "weld rt", "paut")):
+                elif test_key == "ndt_weld_seam" and any(_norm_tr(k) in full_up_text for k in ("dikiş", "seam", "10893-11", "10893-6", "aut", "kaynak dikiş", "weld ut", "weld rt", "paut")):
                     score += 50
-                elif test_key == "ndt_smls_body" and is_smls and any(k in full_up_text for k in ("dikişsiz", "smls", "10893-10", "flux", "seamless")):
+                elif test_key == "ndt_smls_body" and is_smls and any(_norm_tr(k) in full_up_text for k in ("dikişsiz", "smls", "10893-10", "flux", "seamless")):
                     score += 60
-                elif test_key == "ndt_bevel_mt" and any(k in full_up_text for k in ("kaynak ağzı mt", "bevel mt", "bevel mpi", "magnetic particle", "mpi")):
+                elif test_key == "ndt_bevel_mt" and any(_norm_tr(k) in full_up_text for k in ("kaynak ağzı mt", "bevel mt", "bevel mpi", "magnetic particle", "mpi")):
                     score += 50
-                elif test_key == "weld_repair_rules" and any(k in full_up_text for k in ("tamir", "repair", "re-repair", "ön ısıtma", "preheat", "repair procedure")):
+                elif test_key == "weld_repair_rules" and any(_norm_tr(k) in full_up_text for k in ("tamir", "repair", "re-repair", "ön ısıtma", "preheat", "repair procedure")):
                     score += 50
-                elif test_key == "dimensional_weight" and any(k in full_up_text for k in ("ağırlık", "weight", "kg/m", "kantar", "mass", "tartım", "weighing")):
+                elif test_key == "dimensional_weight" and any(_norm_tr(k) in full_up_text for k in ("ağırlık", "weight", "kg/m", "kantar", "mass", "tartım", "weighing")):
                     score += 50
-                elif test_key == "guided_bend" and any(k in full_up_text for k in ("mandrel", "bükme", "bend", "çene", "5173", "guided-bend", "root bend", "face bend")):
+                elif test_key == "guided_bend" and any(_norm_tr(k) in full_up_text for k in ("mandrel", "bükme", "bend", "çene", "5173", "guided-bend", "root bend", "face bend")):
                     score += 50
-                elif test_key == "flattening" and any(k in full_up_text for k in ("flattening", "yassıltma", "düzleştirme", "crush", "ring flattening")):
+                elif test_key == "flattening" and any(_norm_tr(k) in full_up_text for k in ("flattening", "yassıltma", "düzleştirme", "crush", "ring flattening")):
                     score += 50
-                elif test_key == "hardness" and any(k in full_up_text for k in ("hardness", "sertlik", "hv10", "hrc", "vickers", "microhardness")):
+                elif test_key == "hardness" and any(_norm_tr(k) in full_up_text for k in ("hardness", "sertlik", "hv10", "hrc", "vickers", "microhardness")):
                     score += 50
-                elif test_key == "hydrostatic" and any(k in full_up_text for k in ("hydrostatic", "hydro", "hidrostatik", "bar", "psi", "smys", "holding time")):
+                elif test_key == "hydrostatic" and any(_norm_tr(k) in full_up_text for k in ("hydrostatic", "hydro", "hidrostatik", "bar", "psi", "smys", "holding time")):
                     score += 50
-                elif test_key == "weld_geometry_offset_height" and any(k in full_up_text for k in ("yükseklik", "kaçıklık", "offset", "peaking", "tepeleşme", "misalignment", "weld crown", "weld height")):
+                elif test_key == "weld_geometry_offset_height" and any(_norm_tr(k) in full_up_text for k in ("yükseklik", "kaçıklık", "offset", "peaking", "tepeleşme", "misalignment", "weld crown", "weld height")):
                     score += 50
-                elif test_key == "quality_marking_surface_prep" and any(k in full_up_text for k in ("markalama", "sa 2.5", "stenciling", "şablon", "3.1", "3.2", "mtc", "marking", "die stamp")):
+                elif test_key == "quality_marking_surface_prep" and any(_norm_tr(k) in full_up_text for k in ("markalama", "sa 2.5", "stenciling", "şablon", "3.1", "3.2", "mtc", "marking", "die stamp")):
                     score += 50
-                elif test_key == "residual_stress" and any(k in full_up_text for k in ("artık stres", "residual stress", "halka kesme", "ring test", "slit ring")):
+                elif test_key == "residual_stress" and any(_norm_tr(k) in full_up_text for k in ("artık stres", "residual stress", "halka kesme", "ring test", "slit ring")):
                     score += 55
-                elif test_key == "coating_holiday_test" and any(k in full_up_text for k in ("holiday", "porozite", "25 kv", "gerilim", "spark", "high voltage", "pinhole")):
+                elif test_key == "coating_holiday_test" and any(_norm_tr(k) in full_up_text for k in ("holiday", "porozite", "25 kv", "gerilim", "spark", "high voltage", "pinhole")):
                     score += 55
-                elif test_key == "coating_thickness_3lpe" and any(k in full_up_text for k in ("3lpe", "hdpe", "fbe", "kaplama kalın", "yapıştırıcı", "coating thickness", "polyethylene")):
+                elif test_key == "coating_thickness_3lpe" and any(_norm_tr(k) in full_up_text for k in ("3lpe", "hdpe", "fbe", "kaplama kalın", "yapıştırıcı", "coating thickness", "polyethylene")):
                     score += 55
-                elif test_key == "coating_peel_adhesion" and any(k in full_up_text for k in ("soyulma", "yapışma", "peel", "adhesion", "n/cm", "n/mm", "peel strength")):
+                elif test_key == "coating_peel_adhesion" and any(_norm_tr(k) in full_up_text for k in ("soyulma", "yapışma", "peel", "adhesion", "n/cm", "n/mm", "peel strength")):
                     score += 55
-                elif test_key == "coating_cathodic_disbondment" and any(k in full_up_text for k in ("katodik", "cd test", "disbond", "cathodic", "28 days")):
+                elif test_key == "coating_cathodic_disbondment" and any(_norm_tr(k) in full_up_text for k in ("katodik", "cd test", "disbond", "cathodic", "28 days")):
                     score += 55
-                elif test_key == "coating_indentation" and any(k in full_up_text for k in ("indentation", "delici", "batma", "penetration")):
+                elif test_key == "coating_indentation" and any(_norm_tr(k) in full_up_text for k in ("indentation", "delici", "batma", "penetration")):
                     score += 55
-                elif test_key == "coating_surface_prep_blasting" and any(k in full_up_text for k in ("kumlama", "blasting", "sa 2.5", "yüzey hazırl", "grit blast", "anchor profile", "rz")):
+                elif test_key == "coating_surface_prep_blasting" and any(_norm_tr(k) in full_up_text for k in ("kumlama", "blasting", "sa 2.5", "yüzey hazırl", "grit blast", "anchor profile", "rz")):
                     score += 55
-                elif test_key == "coating_cutback_bevel" and any(k in full_up_text for k in ("cutback", "cut-back", "chamfer", "kaplamasız", "vernik", "protective cap")):
+                elif test_key == "coating_cutback_bevel" and any(_norm_tr(k) in full_up_text for k in ("cutback", "cut-back", "chamfer", "kaplamasız", "vernik", "protective cap")):
                     score += 55
-                elif test_key == "coating_repair_rules" and any(k in full_up_text for k in ("coating repair", "melt stick", "heatshrink", "kaplama tamir", "patch repair")):
+                elif test_key == "coating_repair_rules" and any(_norm_tr(k) in full_up_text for k in ("coating repair", "melt stick", "heatshrink", "kaplama tamir", "patch repair")):
                     score += 55
-                elif test_key == "erw_flash_trim_weld" and any(k in full_up_text for k in ("çapak", "flash", "trim", "oyuk", "flash removal")):
+                elif test_key == "erw_flash_trim_weld" and any(_norm_tr(k) in full_up_text for k in ("çapak", "flash", "trim", "oyuk", "flash removal")):
                     score += 55
                 elif test_key == "erw_metallographic_seam" and any(k in full_up_text for k in ("metalograf", "martenzit", "tavlama", "metallographic", "microstructure", "normalization")):
                     score += 55
@@ -913,12 +919,20 @@ class ITPAuditEngine:
                 issue_type = "CRITERIA_VIOLATION"
                 remarks.append("🔴 AĞIRLIK TOLERANSI AŞILDI: API 5L Madde 9.11.2 uyarınca münferit boru ağırlık toleransı -%3.5 / +%10.0'dur!")
 
-        # 2n. Weld Geometry (Weld Height, Radial Offset, Peaking)
+        # 2n. Weld Geometry (Weld Height, Radial Offset, Peaking) - numeric comparison
         elif test_key == "weld_geometry_offset_height":
-            if is_botas and any(k in up_crit_lower for k in ("3.5 mm", "3.0 mm", "4.0 mm")):
-                status = "NON_COMPLIANT"
-                issue_type = "CRITERIA_VIOLATION"
-                remarks.append("🔴 KAYNAK YÜKSEKLİK LİMİTİ: BOTAŞ Çizelge 4 uyarınca iç/dış kaynak dikiş yüksekliği azami 2.625 mm olabilir!")
+            req_h = float(calc_targets.get("max_weld_height_mm", 2.625 if is_botas else 3.5))
+            # Extract numeric weld height e.g. "Max. 3,37 mm" or "2,6 mm"
+            h_vals = re.findall(r'(\d+(?:[.,]\d+)?)\s*mm', up_crit_lower.replace(",", "."))
+            if h_vals:
+                try:
+                    max_uploaded_h = max(float(v) for v in h_vals)
+                    if max_uploaded_h > req_h + 0.05:
+                        status = "NON_COMPLIANT"
+                        issue_type = "CRITERIA_VIOLATION"
+                        remarks.append(f"🔴 KAYNAK YÜKSEKLİK LİMİTİ: BOTAŞ Çizelge 4 uyarınca iç/dış kaynak dikiş yüksekliği azami {req_h:.2f} mm olabilir; ITP'de {max_uploaded_h:.2f} mm yazılmıştır!")
+                except Exception:
+                    pass
 
         elif test_key == "weld_radial_offset":
             req_rad = float(calc_targets.get("max_radial_offset_mm", 1.5))
