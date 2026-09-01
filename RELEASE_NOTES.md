@@ -1,39 +1,44 @@
-# Sürüm Notları / Release Notes - v2.4.0
+# Sürüm Notları / Release Notes - v2.5.0
 
-## 🚀 API 5L PSL1/PSL2 & BOTAŞ Boru Kalite Güvence, Et Kalınlığı Tasarım ve Akıllı ITP Denetim Süiti (v2.4.0)
+## 🚀 API 5L PSL1/PSL2 & BOTAŞ Boru Kalite Güvence, Et Kalınlığı Tasarım ve Akıllı ITP Denetim Süiti (v2.5.0)
 
-Bu sürüm (**v2.4.0**), **Çift Dilli (İngilizce & Türkçe) Genişletilmiş Sanayi Terminolojisi Sözlüğü (`Bilingual Industrial Thesaurus`)**, **Çevrimdışı Sayısal Kriter ve Varlık Ayrıştırıcı Motoru (`ITPCriteriaParser`)** ve **Disambiguation / Anti-Affinity Test Eşleştirme Filtreleri** ile ITP denetim doğruluğunu %100 seviyesine çıkarmaktadır.
-
----
-
-### 🌟 v2.4.0 ile Gelen Başlıca Yenilikler
-
-1. **🌐 Çift Dilli (TR & EN) Kapsamlı Sanayi Anahtar Kelime Dağarcığı (`TEST_MATCHER_KEYWORDS`):**
-   - Uluslararası şartnamelerde (API 5L, ISO 3183, ASTM A370/A751/E436, DIN 30670, Shell DEP, Saudi Aramco, TOTAL, DNV) ve yerel şartnamelerde (BOTAŞ, Borusan, Tosçelik, Erciyas, Emek, Umran) kullanılan 100'den fazla İngilizce ve Türkçe terim, kısaltma ve test ismi eşleştiriciye eklendi.
-   - Çekme ($R_{t0.5}, R_m, A\%$), Çentik Darbe (Charpy V-Notch, FL+2, FL+5), DWTT, NDT (AUT, PAUT, RT, UT, MPI), Boyutsal Ölçümler ve 3LPE Kaplama terminolojisi tam kapsam altına alındı.
-
-2. **🧮 Çevrimdışı Sayısal Değer & Kriter Ayrıştırıcı Motoru (`ITPCriteriaParser`):**
-   - Harici internet veya LLM bağımlılığı olmadan %100 yerel ve deterministik çalışan fiziksel birim ve operatör ayrıştırıcı motoru yazıldı.
-   - Çoklu karakterli karşılaştırma operatörleri (`<=`, `>=`, `:=`, `≤`, `≥`, `%`) ve farklı notasyon formatlarındaki metinlerden akma, çekme, Y/T oranı, darbe enerjisi, sünek kırılma yüzdesi, hidrostatik basınç/süre, kaplama kalınlığı ve toleransları hatasız ayıklar.
-
-3. **🎯 Karışmayı Önleyici Ayrıştırma ve Negatif Ağırlıklandırma (Disambiguation / Anti-Affinity):**
-   - Çekme testleri ile Çentik Darbe (Charpy/CVN) testlerinin metin benzerliklerinden dolayı birbirine karışması engellendi.
-   - Dış Çap ölçümleri ile Ovalite kontrollerinin boru ucu/gövde bazında doğru test maddesine eşleşmesi garanti altına alındı.
-
-4. **🧪 59/59 Kapsamlı Test Süiti (%100 PASS):**
-   - `test_51` (İngilizce & Hibrit ITP Eşleştirme) ve `test_52` (Sayısal Kriter Ayrıştırma) testleri ile tüm test senaryoları doğrulandı.
+Bu sürüm (**v2.5.0**), **API Spec 5L 46. & 47. Baskı Dinamik Standart Seçicisi**, **Çıplak Boru & 3LPE Dış Kaplama Hibrit Çift Skorlama Sistemi**, **H/W/R/I/C Şahitlik ve Durdurma Noktaları İzolasyonu**, **Çok Sayfalı Birleştirilmiş Tablo & Sayısal Eşik Doğrulama Motoru** ve **64/64 Kapsamlı Test Süiti** ile ITP denetimlerini eksiksiz kılmaktadır.
 
 ---
 
-### 💻 İndirme Bağlantıları (v2.4.0)
+### 🌟 v2.5.0 ile Gelen Başlıca Yenilikler
+
+1. **📚 API Spec 5L 46. Baskı vs 47. Baskı Dinamik Seçeneği:**
+   - 46. ve 47. baskılar arasındaki kritik standart madde ve çizelge farkları (Hidrostatik Çizelge 26 / Barlow formülü, ERW Normalizasyon Madde 10.2.5.3, Çekme Çizelge 7, Çentik Darbe Çizelge 8) ayrıştırıldı.
+   - Denetim raporlarında ve Excel çıktılarında standart baskısı dinamik olarak referans gösterilir.
+
+2. **📊 Hibrit Çift Skorlama Sistemi (Çıplak Boru & 3LPE Kaplama):**
+   - Çıplak Boru Uyum Puanı (`bare_pipe_score_percent`) ve 3LPE Dış Kaplama Uyum Puanı (`coating_score_percent`) birbirinden bağımsız olarak hesaplanır.
+   - Kombine denetimlerde %70 Çıplak Boru / %30 Kaplama ağırlıklı genel uyum skoru üretilir; tek disiplinli ITP yüklemelerinde ise diğer disiplin cezalandırılmadan izole edilir.
+
+3. **🛡️ H/W/R/I/C Şahitlik Noktaları (Witness / Hold Matrix) Ayrıştırması:**
+   - İmalatçı, Üçüncü Taraf Gözetim (TPI) ve Müşteri (BOTAŞ) şahitlik ve durdurma noktaları kabul kriterlerinden temiz şekilde ayrıştırıldı.
+   - Excel ve PDF raporlarına özel şahitlik matrisi sütunu eklendi.
+
+4. **🔍 Gelişmiş Frekans & NDT Seviyesi Reddi:**
+   - `1/200 boru`, `1 per 100`, `50 boruda 1` gibi yetersiz seyrek frekanslar `INADEQUATE_SAMPLING` olarak tanınıp uygunsuzluk olarak işaretlenir.
+   - NDT kaynak dikişi kabul kriterinde yetersiz kalan `U1 / U1H / U3 / U4` seviyeleri reddedilir, `ISO 10893-11 Seviye U2` zorunluluğu denetlenir.
+
+5. **🧪 64/64 Kapsamlı Test Süiti (%100 PASS):**
+   - Borusan GBB 18 sayfalık tablo matrisi, seyrek frekans reddi, NDT U1 reddi, 46. baskı eşleşmeleri ve hibrit çift skorlama dahil tüm 64 test senaryosu %100 başarıyla geçmektedir.
+
+---
+
+### 💻 İndirme Bağlantıları (v2.5.0)
 
 - **🪟 Windows (x64):**  
-  [**`API-5L-Pipe-Windows-x64-v2.4.0.exe` İndir**](https://github.com/SLedgehammer-dev12/API-5L-Pipe/releases/download/v2.4.0/API-5L-Pipe-Windows-x64-v2.4.0.exe)  
+  [**`API-5L-Pipe-Windows-x64-v2.5.0.exe` İndir**](https://github.com/SLedgehammer-dev12/API-5L-Pipe/releases/download/v2.5.0/API-5L-Pipe-Windows-x64-v2.5.0.exe)  
   *Tek dosyadır, kurulum gerektirmez. Doğrudan çift tıklayarak çalıştırabilirsiniz.*
 
 - **🍏 macOS (Apple Silicon M1/M2/M3/M4 & Intel):**  
-  [**`API-5L-Pipe-macOS-v2.4.0.dmg` İndir**](https://github.com/SLedgehammer-dev12/API-5L-Pipe/releases/download/v2.4.0/API-5L-Pipe-macOS-v2.4.0.dmg)  
+  [**`API-5L-Pipe-macOS-v2.5.0.dmg` İndir**](https://github.com/SLedgehammer-dev12/API-5L-Pipe/releases/download/v2.5.0/API-5L-Pipe-macOS-v2.5.0.dmg)  
   *Disk kalıbını açıp `API-5L-Pipe.app` uygulamasını Applications klasörüne sürükleyin.*
+
 
 ---
 

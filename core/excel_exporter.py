@@ -373,13 +373,14 @@ class ExcelExporter:
         pipe = audit_data.get("pipe_summary", {})
         kpi = audit_data.get("kpi", {})
 
+        std_ed_title = pipe.get("standard_edition", "API Spec 5L 47. Baskı")
         # Header Title
-        ws.merge_cells("A1:I1")
-        ws.cell(1, 1, "API 5L 47. BASKI & BOTAŞ - ITP AKILLI DENETİM VE SAPMA RAPORU").font = font_title
+        ws.merge_cells("A1:J1")
+        ws.cell(1, 1, f"{std_ed_title} - ITP AKILLI DENETİM VE SAPMA RAPORU").font = font_title
         ws.cell(1, 1).alignment = align_left
 
         # Pipe Metadata Box
-        ws.merge_cells("A2:I2")
+        ws.merge_cells("A2:J2")
         d_inch_str = pipe.get("diameter_inch", "48in")
         d_mm_str = pipe.get("diameter_mm", "1219")
         wt_mm_str = pipe.get("wall_thickness_mm", "14.3")
@@ -387,12 +388,20 @@ class ExcelExporter:
         psl_str = pipe.get("psl_level", "PSL2")
         process_str = pipe.get("manufacturing_process", "SAWH")
         score_val = kpi.get("compliance_score_percent", 0.0)
+        bare_s = kpi.get("bare_pipe_score_percent")
+        coat_s = kpi.get("coating_score_percent")
         verdict_str = kpi.get("overall_verdict", "N/A")
+
+        scores_summary = f"Genel Uyum: %{score_val}"
+        if bare_s is not None:
+            scores_summary += f" | Çıplak Boru: %{bare_s}"
+        if coat_s is not None:
+            scores_summary += f" | 3LPE Kaplama: %{coat_s}"
 
         meta_str = (
             f"Boru Özellikleri: {d_inch_str} ({d_mm_str} mm) x {wt_mm_str} mm | "
             f"Kalite: {grade_str} {psl_str} | Üretim: {process_str} | "
-            f"Uyum Puanı: %{score_val} ({verdict_str})"
+            f"{scores_summary} ({verdict_str})"
         )
         ws.cell(2, 1, meta_str).font = font_small
         ws.cell(2, 1).alignment = align_left
@@ -407,6 +416,7 @@ class ExcelExporter:
             "API 5L / BOTAŞ Şartname Frekansı",
             "İmalatçı ITP Kabul Kriteri",
             "Standart Kabul Kriteri (Limit Değer)",
+            "Şahitlik Noktaları (C/W/H)",
             "Denetim Durumu & Bulgular",
         ]
         
@@ -423,6 +433,8 @@ class ExcelExporter:
         for row in audit_data.get("audit_rows", []):
             ws.row_dimensions[current_r].height = 36
             status = row.get("status", "COMPLIANT")
+            ip = row.get("inspection_points", {})
+            ip_str = f"Üretici: {ip.get('mfg', 'C')} | TPI: {ip.get('tpi', 'W')} | İdare: {ip.get('client', 'W')}" if isinstance(ip, dict) and ip else "C / W / H"
             
             c_name = ws.cell(current_r, 1, row.get("test_name", "—"))
             c_cat = ws.cell(current_r, 2, row.get("category", "—"))
@@ -432,26 +444,79 @@ class ExcelExporter:
             c_st_f = ws.cell(current_r, 6, row.get("standard_frequency", "—"))
             c_up_c = ws.cell(current_r, 7, row.get("uploaded_criteria", "—"))
             c_st_c = ws.cell(current_r, 8, row.get("standard_criteria", "—"))
-            c_rem = ws.cell(current_r, 9, row.get("audit_remarks", "—"))
+            c_ip = ws.cell(current_r, 9, ip_str)
+            c_rem = ws.cell(current_r, 10, row.get("audit_remarks", "—"))
 
             status_fill = fill_pass if status == "COMPLIANT" else (fill_warn if status == "MORE_STRINGENT" else fill_fail)
 
-            for cell in (c_name, c_cat, c_target, c_ndt, c_up_f, c_st_f, c_up_c, c_st_c, c_rem):
+            for cell in (c_name, c_cat, c_target, c_ndt, c_up_f, c_st_f, c_up_c, c_st_c, c_ip, c_rem):
                 cell.font = font_regular
                 cell.border = border_all
                 cell.alignment = align_left
 
             c_target.font = font_bold
+            c_ip.alignment = align_center
             c_rem.fill = status_fill
             c_rem.font = font_bold if status != "COMPLIANT" else font_regular
             c_name.fill = fill_zebra if current_r % 2 == 0 else PatternFill(fill_type=None)
 
             current_r += 1
 
-        # Column Widths
-        widths = [26, 16, 28, 24, 24, 28, 26, 32, 45]
+        # Column Widths & Freeze Panes & Auto Filter
+        widths = [26, 16, 28, 22, 22, 26, 26, 30, 24, 45]
         for idx, w in enumerate(widths, 1):
             ws.column_dimensions[get_column_letter(idx)].width = w
+
+        ws.freeze_panes = "A5"
+        if current_r > 5:
+            ws.auto_filter.ref = f"A4:J{current_r - 1}"
+
+        # Sheet 2: Findings & Non-Compliances
+        findings = audit_data.get("findings", [])
+        if findings:
+            ws_f = wb.create_sheet(title="Bulgular ve Sapmalar")
+            ws_f.views.sheetView[0].showGridLines = True
+            ws_f.merge_cells("A1:E1")
+            ws_f.cell(1, 1, "ITP DENETİMİ SAPMA VE UYARILAR LİSTESİ").font = font_title
+            ws_f.cell(1, 1).alignment = align_left
+
+            f_headers = ["Önem Seviyesi", "Madde / Test Adı", "Kusur Türü", "Şartname / Madde Ref.", "Denetçi Açıklaması"]
+            ws_f.row_dimensions[3].height = 26
+            for col_idx, text in enumerate(f_headers, 1):
+                c = ws_f.cell(3, col_idx, text)
+                c.font = font_header
+                c.fill = fill_header
+                c.alignment = align_center
+                c.border = border_all
+
+            f_row = 4
+            for find in findings:
+                ws_f.row_dimensions[f_row].height = 30
+                sev = find.get("severity", "INFO")
+                sev_fill = fill_fail if sev == "CRITICAL" else fill_warn
+
+                c_sev = ws_f.cell(f_row, 1, sev)
+                c_tname = ws_f.cell(f_row, 2, find.get("test_name", "—"))
+                c_type = ws_f.cell(f_row, 3, find.get("issue_type", "—"))
+                c_clause = ws_f.cell(f_row, 4, find.get("clause_ref", "—"))
+                c_msg = ws_f.cell(f_row, 5, find.get("message", "—"))
+
+                for cell in (c_sev, c_tname, c_type, c_clause, c_msg):
+                    cell.font = font_regular
+                    cell.border = border_all
+                    cell.alignment = align_left
+
+                c_sev.fill = sev_fill
+                c_sev.font = font_bold
+                c_sev.alignment = align_center
+                f_row += 1
+
+            f_widths = [16, 26, 22, 24, 60]
+            for idx, w in enumerate(f_widths, 1):
+                ws_f.column_dimensions[get_column_letter(idx)].width = w
+
+            ws_f.freeze_panes = "A4"
+            ws_f.auto_filter.ref = f"A3:E{f_row - 1}"
 
         output = io.BytesIO()
         wb.save(output)

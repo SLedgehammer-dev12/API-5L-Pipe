@@ -67,7 +67,7 @@ class NumberedCanvas(canvas.Canvas):
         self.setFont(font_to_use, 8)
         self.setFillColor(colors.HexColor("#64748B"))
         now_str = datetime.datetime.now().strftime("%d.%m.%Y %H:%M")
-        self.drawString(30, 16, f"Rapor Üretim Tarihi: {now_str} | Sistem: API 5L QA/QC Expert System v2.4.0")
+        self.drawString(30, 16, f"Rapor Üretim Tarihi: {now_str} | Sistem: API 5L QA/QC Expert System v2.5.0")
         
         page_text = f"Sayfa {self._pageNumber} / {page_count}"
         self.drawRightString(w - 30, 16, page_text)
@@ -213,13 +213,12 @@ class PDFExporter:
         grade = pipe.get("material_grade", "X65")
         process = pipe.get("manufacturing_process", "SAWH")
         psl = pipe.get("psl_level", "PSL2")
-        std_type = pipe.get("standard_type", "BOTAŞ")
-        scope_mode = pipe.get("scope_mode", "COMBINED")
 
         # --- 1. Header Banner ---
+        std_ed_name = str(pipe.get("standard_edition") or "API Spec 5L 47. Baskı & BOTAŞ Şartnamesi")
         banner_table_data = [
             [
-                Paragraph("<b>API 5L 47. BASKI & BOTAŞ ŞARTNAMESİ</b><br/><font size=7 color='#64748B'>BORU İMALAT VE DIŞ KAPLAMA KALİTE GÜVENCE SİSTEMİ</font>", body_style),
+                Paragraph(f"<b>{std_ed_name.upper()}</b><br/><font size=7 color='#64748B'>BORU İMALAT VE DIŞ KAPLAMA KALİTE GÜVENCE SİSTEMİ</font>", body_style),
                 Paragraph("<font size=12><b>ITP UYGUNLUK VE SAPMA DENETİM RAPORU</b></font><br/><font size=7 color='#64748B'>Inspection & Test Plan (ITP) Compliance & Gap Audit Certificate</font>", ParagraphStyle("RAlign", parent=title_style, alignment=2, fontSize=12, leading=15)),
             ]
         ]
@@ -236,6 +235,8 @@ class PDFExporter:
 
         # --- 2. Project, Specification & KPI Dashboard Grid ---
         score_val = kpi.get("compliance_score_percent", 100.0)
+        bare_s = kpi.get("bare_pipe_score_percent")
+        coat_s = kpi.get("coating_score_percent")
         verdict = kpi.get("overall_verdict", "APPROVED")
         is_pass = verdict == "APPROVED"
         verdict_text = "ONAYLANDI (APPROVED)" if is_pass else "RED / REVİZYON GEREKLİ (REJECTED)"
@@ -246,14 +247,20 @@ class PDFExporter:
         proj_str = str(audit_data.get("project_name") or "Doğalgaz Boru Hattı Projesi")
         src_file = str(audit_data.get("source_filename") or "İmalatçı ITP Dokümanı")
 
+        scores_summary_html = f"<font color='#1E40AF'><b>Genel: %{score_val:.1f}</b></font>"
+        if bare_s is not None:
+            scores_summary_html += f" | <font color='#065F46'><b>Çıplak Boru: %{bare_s:.1f}</b></font>"
+        if coat_s is not None:
+            scores_summary_html += f" | <font color='#7C3AED'><b>3LPE Kaplama: %{coat_s:.1f}</b></font>"
+
         spec_box_data = [
             [
                 Paragraph(f"<b>Proje / Müşteri:</b> {cust_str} — {proj_str}", body_style),
-                Paragraph(f"<b>Denetim Standardı:</b> <font color='#1D4ED8'><b>{std_type} (5120 R7 + 5410 R1) & API 5L 47th</b></font>", body_style),
+                Paragraph(f"<b>Denetim Standardı:</b> <font color='#1D4ED8'><b>{std_ed_name}</b></font>", body_style),
             ],
             [
                 Paragraph(f"<b>Boru Ebat & Malzeme:</b> <b>{d_inch} ({d_mm} mm) x {t_mm} mm</b> | <b>{grade} {psl} {process}</b>", body_style),
-                Paragraph(f"<b>Denetim Kapsamı:</b> <b>{scope_mode}</b>", body_style),
+                Paragraph(f"<b>Disiplin Puanları:</b> {scores_summary_html}", body_style),
             ],
             [
                 Paragraph(f"<b>Kaynak ITP Dokümanı:</b> {src_file} ({len(rows)} Test Kalemi)", body_style),

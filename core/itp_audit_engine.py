@@ -37,6 +37,14 @@ class FrequencyNormalizer:
         t = (freq_text or "").lower().strip()
         if not t or t == "—":
             return FrequencyCanonical.UNKNOWN
+        
+        # Sparse sampling detection (e.g. 1/200 boru, 1 per 100, 50 boruda 1, 1/10)
+        m_sparse = re.search(r'(?:1\s*/\s*(\d+)|1\s+per\s+(\d+)|(\d+)\s*boruda\s*1)', t)
+        if m_sparse:
+            denom = int(m_sparse.group(1) or m_sparse.group(2) or m_sparse.group(3))
+            if denom >= 5:
+                return FrequencyCanonical.INADEQUATE_SAMPLING
+
         if any(k in t for k in ("1 per 5", "1 per 10", "1/5", "1/10", "spot", "örneklem", "5%", "10%", "10 boruda 1", "5 boruda 1", "20 boruda 1", "sample 1 per shift")):
             return FrequencyCanonical.INADEQUATE_SAMPLING
         if any(k in t for k in ("her boru", "%100", "100%", "each pipe", "all pipes", "tüm borular", "istisnasız", "every pipe", "her kaynaklı boru")):
@@ -460,7 +468,15 @@ class ITPAuditEngine:
                         "table_ref": master_item["table_ref"]
                     })
             else:
-                # Missing from uploaded ITP
+                # Missing or Not Detected from uploaded ITP
+                is_scanned_or_sparse = len(uploaded_items) < 15
+                issue_code = "MISSING_MANDATORY_TEST"
+                remark_text = (
+                    f"🔴 ZORUNLU TEST EKSİK VEYA DOKÜMANDA ALGILANAMADI: {master_item['clause_ref']} kapsamındaki bu test imalatçı ITP'sinde yer almamakta veya otomatik tespit edilememiştir; lütfen manuel doğrulayınız."
+                    if is_scanned_or_sparse else
+                    f"🔴 ZORUNLU TEST EKSİK: {master_item['clause_ref']} uyarınca zorunlu olan bu test imalatçı ITP'sinde bulunmamaktadır!"
+                )
+
                 if master_item["is_mandatory"]:
                     row_eval = {
                         "test_key": test_key,
@@ -469,21 +485,24 @@ class ITPAuditEngine:
                         "calculated_target": master_item.get("calculated_target_str", "—"),
                         "ndt_method_standard": master_item.get("ndt_method_standard", "—"),
                         "ndt_acceptance_level": master_item.get("ndt_acceptance_level", "—"),
-                        "uploaded_frequency": "— (ITP'de Bulunamadı / Eksik)",
+                        "uploaded_frequency": "— (Dokümanda Tespit Edilemedi)" if is_scanned_or_sparse else "— (ITP'de Bulunamadı / Eksik)",
                         "standard_frequency": master_item["standard_frequency"],
                         "uploaded_criteria": "—",
                         "standard_criteria": master_item["standard_acceptance_criteria"],
                         "status": "NON_COMPLIANT",
-                        "issue_type": "MISSING_MANDATORY_TEST",
-                        "audit_remarks": f"🔴 ZORUNLU TEST EKSİK: {master_item['clause_ref']} uyarınca zorunlu olan bu test imalatçı ITP'sinde bulunmamaktadır!",
+                        "issue_type": issue_code,
+                        "audit_remarks": remark_text,
                         "clause_ref": master_item["clause_ref"],
-                        "table_ref": master_item["table_ref"]
+                        "table_ref": master_item["table_ref"],
+                        "is_coating": master_item.get("is_coating", False),
+                        "reading_confidence": "NOT_DETECTED",
+                        "inspection_points": {"mfg": "—", "tpi": "—", "client": "—"}
                     }
                     audit_rows.append(row_eval)
                     findings.append({
                         "test_name": master_item["test_name"],
-                        "severity": "CRITICAL",
-                        "issue_type": "MISSING_MANDATORY_TEST",
+                        "severity": "WARNING" if is_scanned_or_sparse else "CRITICAL",
+                        "issue_type": issue_code,
                         "message": row_eval["audit_remarks"],
                         "clause_ref": master_item["clause_ref"],
                         "table_ref": master_item["table_ref"]
@@ -504,7 +523,10 @@ class ITPAuditEngine:
                         "issue_type": "OPTIONAL_NOT_SPECIFIED",
                         "audit_remarks": "🟢 İsteğe bağlı standart maddesi; ITP'de yer almaması uygundur.",
                         "clause_ref": master_item["clause_ref"],
-                        "table_ref": master_item["table_ref"]
+                        "table_ref": master_item["table_ref"],
+                        "is_coating": master_item.get("is_coating", False),
+                        "reading_confidence": "NOT_DETECTED",
+                        "inspection_points": {"mfg": "—", "tpi": "—", "client": "—"}
                     })
 
         # Process any extra unmapped items in uploaded ITP
@@ -525,28 +547,52 @@ class ITPAuditEngine:
                     "issue_type": "ADDITIONAL_TEST",
                     "audit_remarks": "🟡 Standart haricinde ek kalite kontrol testi taahhüt edilmiştir.",
                     "clause_ref": "Ek Müşteri Şartı",
-                    "table_ref": "—"
+                    "table_ref": "—",
+                    "is_coating": "kaplama" in str(up_item.get("test_name", "")).lower() or "coating" in str(up_item.get("test_name", "")).lower(),
+                    "reading_confidence": up_item.get("reading_confidence", "HIGH"),
+                    "inspection_points": up_item.get("inspection_points", {"mfg": "C", "tpi": "W", "client": "W"})
                 })
 
-        # Calculate Statistics & Weighted Compliance Score (A5 Solution)
+        # Calculate Statistics & Hybrid Dual Compliance Score (Bare Pipe vs Coating)
+        bare_rows = [r for r in audit_rows if not r.get("is_coating", False)]
+        coat_rows = [r for r in audit_rows if r.get("is_coating", False)]
+
+        # Bare pipe score
+        bare_total = len(bare_rows)
+        bare_more_str = sum(1 for r in bare_rows if r["status"] == "MORE_STRINGENT")
+        bare_comp = sum(1 for r in bare_rows if r["status"] == "COMPLIANT")
+        bare_score = max(0.0, round(((bare_comp + (0.5 * bare_more_str)) / bare_total) * 100.0, 1)) if bare_total > 0 else None
+
+        # Coating score
+        coat_total = len(coat_rows)
+        coat_more_str = sum(1 for r in coat_rows if r["status"] == "MORE_STRINGENT")
+        coat_comp = sum(1 for r in coat_rows if r["status"] == "COMPLIANT")
+        coat_score = max(0.0, round(((coat_comp + (0.5 * coat_more_str)) / coat_total) * 100.0, 1)) if coat_total > 0 else None
+
         total_rows = len(audit_rows)
         non_compliant_count = sum(1 for r in audit_rows if r["status"] == "NON_COMPLIANT")
         more_stringent_count = sum(1 for r in audit_rows if r["status"] == "MORE_STRINGENT")
         compliant_count = sum(1 for r in audit_rows if r["status"] == "COMPLIANT")
 
-        if total_rows > 0:
-            if non_compliant_count > 0:
-                compliance_score = max(0.0, round(((compliant_count + (0.5 * more_stringent_count) - (1.5 * non_compliant_count)) / total_rows) * 100.0, 1))
-                overall_verdict = "REJECTED"
-            elif more_stringent_count > 0:
-                compliance_score = round(((compliant_count + more_stringent_count) / total_rows * 100.0), 1)
-                overall_verdict = "APPROVED_WITH_COMMENTS"
-            else:
-                compliance_score = 100.0
-                overall_verdict = "APPROVED"
+        if bare_score is not None and coat_score is not None:
+            compliance_score = round((0.70 * bare_score) + (0.30 * coat_score), 1)
+        elif bare_score is not None:
+            compliance_score = bare_score
+        elif coat_score is not None:
+            compliance_score = coat_score
         else:
             compliance_score = 100.0
+
+        if non_compliant_count > 0:
+            overall_verdict = "REJECTED"
+        elif more_stringent_count > 0:
+            overall_verdict = "APPROVED_WITH_COMMENTS"
+        else:
             overall_verdict = "APPROVED"
+
+        std_ed = "API Spec 5L 46. Baskı" if "46" in str(pipe_config.get("standard_edition", "")).lower() else "API Spec 5L 47. Baskı"
+        if "BOTAŞ" in str(pipe_config.get("standard_type", "")).upper():
+            std_ed += " & BOTAŞ 5120 R7 / 5410 R1"
 
         return {
             "pipe_summary": {
@@ -556,7 +602,7 @@ class ITPAuditEngine:
                 "material_grade": pipe_config.get("material_grade", "X65"),
                 "manufacturing_process": pipe_config.get("manufacturing_process", "SAWH"),
                 "psl_level": pipe_config.get("psl_level", "PSL2"),
-                "standard_edition": "API Spec 5L 47th Edition / BOTAŞ Şartnamesi"
+                "standard_edition": std_ed
             },
             "kpi": {
                 "total_tests_audited": total_rows,
@@ -564,6 +610,8 @@ class ITPAuditEngine:
                 "more_stringent_count": more_stringent_count,
                 "non_compliant_count": non_compliant_count,
                 "compliance_score_percent": compliance_score,
+                "bare_pipe_score_percent": bare_score,
+                "coating_score_percent": coat_score,
                 "overall_verdict": overall_verdict
             },
             "findings_count": len(findings),
@@ -611,7 +659,11 @@ class ITPAuditEngine:
         # --- 1. Comprehensive Canonical Frequency Evaluation (R4 Solution) ---
         canon_freq = FrequencyNormalizer.normalize(up_freq)
 
-        if test_key in ("hydrostatic", "ndt_weld_seam", "visual_surface", "dimensional_wall_thickness",
+        if canon_freq == FrequencyCanonical.INADEQUATE_SAMPLING:
+            status = "NON_COMPLIANT"
+            issue_type = "INADEQUATE_SAMPLING_FREQUENCY"
+            remarks.append(f"🔴 NUMUNE FREKANSI YETERSİZ (SEYREK FREKANS): API 5L / BOTAŞ şartnamesi uyarınca test ünitesi veya döküm frekansı aşılmıştır; '{up_freq}' kabul edilemez.")
+        elif test_key in ("hydrostatic", "ndt_weld_seam", "visual_surface", "dimensional_wall_thickness",
                         "dimensional_diameter_ends", "dimensional_diameter_body",
                         "dimensional_circumference_ends", "dimensional_circumference_body",
                         "dimensional_ovality_ends", "dimensional_ovality_body",
@@ -623,7 +675,7 @@ class ITPAuditEngine:
                         "erw_flash_trim_weld",
                         "dimensional_length_straightness_bevel", "ndt_pipe_ends", "ndt_bevel_mt",
                         "quality_marking_surface_prep", "dimensional_diameter_ovality", "dimensional_weight"):
-            if canon_freq in (FrequencyCanonical.INADEQUATE_SAMPLING, FrequencyCanonical.PER_TEST_UNIT, FrequencyCanonical.PERIODIC_SHIFT):
+            if canon_freq in (FrequencyCanonical.PER_TEST_UNIT, FrequencyCanonical.PERIODIC_SHIFT):
                 status = "NON_COMPLIANT"
                 issue_type = "INADEQUATE_FREQUENCY"
                 remarks.append(f"🔴 FREKANS YETERSİZ: Standart gereği bu test İSTİSNASIZ HER BORUDA (%100) yapılmalıdır; '{up_freq}' kabul edilemez.")
@@ -633,7 +685,7 @@ class ITPAuditEngine:
                 issue_type = "INADEQUATE_FREQUENCY"
                 remarks.append("🔴 FREKANS YETERSİZ: Ürün analizi ısı başına en az 2 adet (ayrı borulardan) yapılmalıdır (API 5L 9.2).")
         elif test_key == "chemical_heat":
-            if canon_freq == FrequencyCanonical.INADEQUATE_SAMPLING or any(k in up_freq_lower for k in ("1 per 5", "1 per 10", "1/5", "1/10")):
+            if any(k in up_freq_lower for k in ("1 per 5", "1 per 10", "1/5", "1/10")):
                 status = "NON_COMPLIANT"
                 issue_type = "INADEQUATE_FREQUENCY"
                 remarks.append("🔴 FREKANS YETERSİZ: Döküm analizi istisnasız her dökümde (per heat) yapılmalıdır!")
@@ -821,10 +873,10 @@ class ITPAuditEngine:
 
         # 2j. NDT Weld Seam
         elif test_key == "ndt_weld_seam":
-            if any(k in full_up_text for k in ("u3", "u4", "n10", "class a")):
+            if re.search(r'\b(?:u1|u1h|u3|u4|n10)\b', full_up_text) or any(k in full_up_text for k in ("seviye u1", "level u1", "u1h", "class a")):
                 status = "NON_COMPLIANT"
                 issue_type = "CRITERIA_VIOLATION"
-                remarks.append("🔴 YETERSİZ NDT KABUL SEVİYESİ: Kaynak dikişi AUT için ISO 10893-11 Seviye U2 ve RT için ISO 10893-6 Sınıf B zorunludur!")
+                remarks.append("🔴 YETERSİZ NDT KABUL SEVİYESİ: Kaynak dikişi AUT için ISO 10893-11 Seviye U2 ve RT için ISO 10893-6 Sınıf B zorunludur (U1 / U1H kabul edilemez)!")
 
         # 2k. NDT Body Lamination (BOTAŞ %40 scan)
         elif test_key == "ndt_pipe_body_lamination":
@@ -958,50 +1010,115 @@ class ITPAuditEngine:
                 remarks.append("🔴 KAYNAK AĞZI AÇISI HATALI: Standart alın kaynak ağzı açısı 30° (+5°/-0°) (veya 35°) olmalıdır!")
 
         # 2u. Squareness
-        elif test_key == "dimensional_squareness_ends":
-            if any(k in up_crit_lower for k in ("> 3.0 mm", ">3.0", "4.0 mm", "5.0 mm")):
+        elif test_key in ("dimensional_squareness_ends", "dimensional_squareness"):
+            if any(k in up_crit_lower for k in ("> 3.0 mm", ">3.0", "4.0 mm", "5.0 mm", "2.5 mm", "3.0 mm", "3.5 mm")):
                 status = "NON_COMPLIANT"
                 issue_type = "CRITERIA_VIOLATION"
-                remarks.append("🔴 DİKLİKTEN SAPMA LİMİTİ AŞILDI: Boru ucu diklikten sapma azami 1.6 mm olmalıdır!")
+                remarks.append("🔴 DİKLİKTEN SAPMA LİMİTİ AŞILDI: API 5L Çizelge 11 uyarınca boru ucu diklikten sapma azami 1.6 mm olmalıdır!")
 
-        # 2v. Guided Bend Test
-        elif test_key == "guided_bend":
-            if any(k in up_crit_lower for k in ("çatlak serbest", "crack permitted", "> 6.4 mm", ">6.4 mm", "> 7 mm")):
+        # 2v. Wall Thickness
+        elif test_key == "dimensional_wall_thickness":
+            parsed_dim = ITPCriteriaParser.parse_dimensional_criteria(up_crit_lower)
+            if parsed_dim.get("minus_pct") is not None:
+                minus_p = parsed_dim["minus_pct"]
+                allowed_minus = 10.0 if not is_botas else 8.0
+                if minus_p > allowed_minus:
+                    status = "NON_COMPLIANT"
+                    issue_type = "CRITERIA_VIOLATION"
+                    remarks.append(f"🔴 ET KALINLIĞI EKSİ TOLERANSI AŞILDI: İzin verilen azami eksi tolerans -%{allowed_minus:.1f}'dir; ITP'de -%{minus_p:.1f} yazılmıştır!")
+            elif any(k in up_crit_lower for k in ("-12.5%", "-15%", "-%12.5", "-%15")):
                 status = "NON_COMPLIANT"
                 issue_type = "CRITERIA_VIOLATION"
-                remarks.append("🔴 KILAVUZLU BÜKME KUSURU: API 5L Madde 9.10.3 uyarınca hiçbir yönde >3.2 mm çatlak/kusur kabul edilemez!")
+                remarks.append("🔴 ET KALINLIĞI EKSİ TOLERANSI AŞILDI: API 5L Çizelge 11 / BOTAŞ uyarınca eksi tolerans aşılmıştır!")
 
-        # 2w. Flattening Test
-        elif test_key == "flattening":
-            if any(k in up_crit_lower for k in ("laminasyon serbest", "çatlak serbest", "crack permitted")):
+        # 2w. Dimensional Diameter (Body & Ends)
+        elif test_key in ("dimensional_diameter_ends", "dimensional_diameter_body"):
+            req_d_min = float(calc_targets.get("d_end_min_mm" if "ends" in test_key else "d_body_min_mm", d_mm - 3.2))
+            req_d_max = float(calc_targets.get("d_end_max_mm" if "ends" in test_key else "d_body_max_mm", d_mm + 3.2))
+            parsed_dim = ITPCriteriaParser.parse_dimensional_criteria(up_crit_lower)
+            
+            if parsed_dim.get("plus_mm") is not None and parsed_dim.get("plus_mm") > (abs(req_d_max - d_mm) + 1.0):
                 status = "NON_COMPLIANT"
                 issue_type = "CRITERIA_VIOLATION"
-                remarks.append("🔴 YASSILTMA KUSURU: API 5L Madde 9.10.2 uyarınca dikiş açılması veya gövde çatlağı kesinlikle yasaktır!")
-
-        # 2x. Visual & Surface Preparation
-        elif test_key == "visual_surface":
-            if any(k in up_crit_lower for k in ("> %15", ">%15", "> 15%", "0.20t", "0.25t")):
+                remarks.append(f"🔴 DIŞ ÇAP ARTI TOLERANSI AŞILDI: İzin verilen azami artı tolerans +{abs(req_d_max-d_mm):.2f} mm'dir!")
+            elif parsed_dim.get("minus_mm") is not None and parsed_dim.get("minus_mm") > (abs(d_mm - req_d_min) + 1.0):
                 status = "NON_COMPLIANT"
                 issue_type = "CRITERIA_VIOLATION"
-                remarks.append("🔴 YÜZEY KUSUR DERİNLİĞİ: API 5L Madde 9.10.7 uyarınca kusur derinliği nominal et kalınlığının %12.5'ini aşamaz!")
+                remarks.append(f"🔴 DIŞ ÇAP EKSİ TOLERANSI AŞILDI: İzin verilen azami eksi tolerans -{abs(d_mm-req_d_min):.2f} mm'dir!")
 
-        # 2y. 3LPE Coating Thickness
+        # 2x. Ovality (Out of Roundness)
+        elif test_key in ("dimensional_ovality_ends", "dimensional_ovality_body"):
+            req_ov = float(calc_targets.get("ovality_end_max_mm" if "ends" in test_key else "ovality_body_max_mm", 4.0))
+            parsed_dim = ITPCriteriaParser.parse_dimensional_criteria(up_crit_lower)
+            if parsed_dim.get("max_limit_mm") is not None and parsed_dim["max_limit_mm"] > (req_ov + 0.5):
+                status = "NON_COMPLIANT"
+                issue_type = "CRITERIA_VIOLATION"
+                remarks.append(f"🔴 OVALİTE LİMİTİ AŞILDI: Azami izin verilen dairesellikten sapma {req_ov:.2f} mm'dir; ITP'de {parsed_dim['max_limit_mm']:.2f} mm belirtilmiştir!")
+
+        # 2y. Residual Magnetism
+        elif test_key == "residual_magnetism":
+            if re.search(r'(?<![\d.])\b(?:50|40)\s*gauss\b|(?<![\d.])\b5(?:\.0)?\s*mt\b', up_crit_lower):
+                status = "NON_COMPLIANT"
+                issue_type = "CRITERIA_VIOLATION"
+                remarks.append("🔴 MANYETİZMA LİMİTİ AŞILDI: BOTAŞ Madde 8.1.1 ve API 5L 9.14 uyarınca artık manyetizma ortalama max 3.0 mT (30 Gauss), tekil max 3.5 mT (35 Gauss) olmalıdır!")
+
+        # 2z. Surface Quality
+        elif test_key == "surface_visual_quality":
+            if any(k in up_crit_lower for k in ("sınıf a", "class a")):
+                status = "NON_COMPLIANT"
+                issue_type = "CRITERIA_VIOLATION"
+                remarks.append("🔴 YÜZEY KALİTE SINIFI YETERSİZ: BOTAŞ Madde 8.2 uyarınca EN 10163-2 Sınıf B Alt Sınıf 3 yüzey kalitesi şarttır!")
+
+        # 2aa. Stenciling / Marking
+        elif test_key == "pipe_marking_stenciling":
+            if not any(k in full_up_text for k in ("api", "botaş", "botas", "en 10204", "3.1", "3.2", "barkod", "şablon", "markalama")):
+                status = "NON_COMPLIANT"
+                issue_type = "CRITERIA_VIOLATION"
+                remarks.append("🔴 EKSİK PROJE MARKALAMASI: Boru üzerinde API 5L Monogramı, BOTAŞ Proje Kodu, Isı/Boru No ve EN 10204 3.1/3.2 sertifikası yer almalıdır!")
+
+        # 2ab. Personnel Qualification
+        elif test_key == "personnel_qualification_ndt":
+            if any(k in full_up_text for k in ("sertifikasız", "level 1 süpervizör", "asnt level 1")):
+                status = "NON_COMPLIANT"
+                issue_type = "CRITERIA_VIOLATION"
+                remarks.append("🔴 NDT PERSONEL YETKİNLİK HATASI: NDT Süpervizörü EN ISO 9712 Level 3, operatörler ise Level 2 sertifikalı olmalıdır!")
+
+        # 2ac. Laboratory Qualification
+        elif test_key == "laboratory_qualification":
+            if any(k in full_up_text for k in ("akreditesiz", "türkak yok", "no accreditation")):
+                status = "NON_COMPLIANT"
+                issue_type = "CRITERIA_VIOLATION"
+                remarks.append("🔴 LABORATUVAR AKREDİTASYONU EKSİK: İmalatçı test laboratuvarı ISO/IEC 17025 (TÜRKAK / ILAC) akreditasyonuna sahip olmalıdır!")
+
+        # 2ad. 3LPE Coating Thickness
         elif test_key == "coating_thickness_3lpe":
             parsed_c = ITPCriteriaParser.parse_coating_criteria(f"{up_crit_lower} {up_name.lower()}")
-            if (parsed_c["thickness_mm"] is not None and parsed_c["thickness_mm"] < 2.50) or any(k in up_crit_lower for k in ("< 2.5 mm", "< 2.0 mm", "< 2.5mm", "< 100 µm")):
+            if (parsed_c["total_pe_mm"] is not None and parsed_c["total_pe_mm"] < 2.85) or "< 2.5" in up_crit_lower:
                 status = "NON_COMPLIANT"
                 issue_type = "CRITERIA_VIOLATION"
-                remarks.append("🔴 KAPLAMA KALINLIĞI YETERSİZ: BOTAŞ 5410 R1 ve DIN 30670 uyarınca 3LPE/HDPE toplam kalınlığı en az 3.0 mm (3000 µm), FBE ve yapıştırıcı en az 120 µm olmalıdır!")
+                remarks.append("🔴 3LPE KAPLAMA KALINLIĞI YETERSİZ: BOTAŞ 5410 R1 ve DIN 30670 Yükseltilmiş Tip (v) uyarınca toplam PE kalınlığı en az 3.0 mm (3000 µm) olmalıdır!")
+            if parsed_c["fbe_um"] is not None and parsed_c["fbe_um"] < 100:
+                status = "NON_COMPLIANT"
+                issue_type = "CRITERIA_VIOLATION"
+                remarks.append("🔴 FBE ASTAR KALINLIĞI YETERSİZ: FBE epoksi astar kalınlığı en az 120 µm olmalıdır!")
 
-        # 2z. Coating Holiday Test
+        # 2ae. Coating Impact Resistance
+        elif test_key == "coating_impact_resistance":
+            parsed_c = ITPCriteriaParser.parse_coating_criteria(f"{up_crit_lower} {up_name.lower()}")
+            if (parsed_c["impact_j_mm"] is not None and parsed_c["impact_j_mm"] < 4.8) or "< 5" in up_crit_lower:
+                status = "NON_COMPLIANT"
+                issue_type = "CRITERIA_VIOLATION"
+                remarks.append("🔴 KAPLAMA DARBE DİRENCİ YETERSİZ: BOTAŞ 5410 R1 uyarınca darbe enerjisi en az 5.0 J/mm (veya 7.0 J/mm) olmalıdır!")
+
+        # 2af. Coating Holiday Test
         elif test_key == "coating_holiday_test":
             parsed_c = ITPCriteriaParser.parse_coating_criteria(f"{up_crit_lower} {up_name.lower()}")
-            if (parsed_c["holiday_kv"] is not None and parsed_c["holiday_kv"] < 24.5) or any(k in up_crit_lower for k in ("kıvılcım serbest", "delik serbest", "spark permitted")):
+            if (parsed_c["holiday_kv"] is not None and parsed_c["holiday_kv"] < 24.0) or re.search(r'(?<![\d.])\b(?:15|10|5)\s*kv\b', up_crit_lower):
                 status = "NON_COMPLIANT"
                 issue_type = "CRITERIA_VIOLATION"
                 remarks.append("🔴 HOLIDAY TEST GERİLİMİ HATALI: BOTAŞ 5410 R1 uyarınca test gerilimi 25.000 Volt (25 kV) olmalı ve kesinlikle kıvılcım/delik oluşmamalıdır!")
 
-        # 2aa. Coating Peel Adhesion
+        # 2ag. Coating Peel Adhesion
         elif test_key == "coating_peel_adhesion":
             parsed_c = ITPCriteriaParser.parse_coating_criteria(f"{up_crit_lower} {up_name.lower()}")
             if (parsed_c["peel_n_mm"] is not None and parsed_c["peel_n_mm"] < 14.5) or "< 100" in up_crit_lower:
@@ -1009,47 +1126,47 @@ class ITPAuditEngine:
                 issue_type = "CRITERIA_VIOLATION"
                 remarks.append("🔴 SOYULMA MUKAVEMETİ YETERSİZ: BOTAŞ 5410 R1 uyarınca 23 °C'de yapışma direnci en az 150 N/cm (veya 15 N/mm) olmalıdır!")
 
-        # 2ab. Coating Cathodic Disbondment (CD)
+        # 2ah. Coating Cathodic Disbondment (CD)
         elif test_key == "coating_cathodic_disbondment":
             if re.search(r"(?:>|\b)(?:1[0-9]|2[0-9])\s*mm", up_crit_lower) or any(k in up_crit_lower for k in ("> 10 mm", "> 12 mm", "> 15 mm")):
                 status = "NON_COMPLIANT"
                 issue_type = "CRITERIA_VIOLATION"
                 remarks.append("🔴 KATODİK SOYULMA LİMİTİ AŞILDI: ISO 21809-1 ve BOTAŞ uyarınca 28 gün (20 °C) / 24 saat (65 °C) katodik soyulma yarıçapı azami 7.0 mm olabilir!")
 
-        # 2ac. Coating Surface Preparation & Blasting
+        # 2ai. Coating Surface Preparation & Blasting
         elif test_key == "coating_surface_prep_blasting":
             if any(k in up_crit_lower for k in ("sa 2\b", "sa 1\b", "sa 2.0", "> 25 mg/m2", "> 30 mg/m2", "> 120 µm")):
                 status = "NON_COMPLIANT"
                 issue_type = "CRITERIA_VIOLATION"
                 remarks.append("🔴 KUMLAMA YÜZEY TEMİZLİĞİ YETERSİZ: Temizlik min Sa 2½, pürüzlülük Rz 60-100 µm ve tuz miktarı max 20 mg/m² (2 µg/cm²) olmalıdır!")
 
-        # 2ad. Coating Indentation
+        # 2aj. Coating Indentation
         elif test_key == "coating_indentation":
             if re.search(r"(?:>|\b)(?:0\.[4-9]|1\.[0-9])\s*mm", up_crit_lower) or any(k in up_crit_lower for k in ("> 0.4 mm", "> 0.5 mm", "0.5 mm", "0.6 mm")):
                 status = "NON_COMPLIANT"
                 issue_type = "CRITERIA_VIOLATION"
                 remarks.append("🔴 DELİCİ UÇ BATMA LİMİTİ AŞILDI: 23 °C'de batma derinliği max 0.20 mm, 50 °C'de max 0.30 mm olmalıdır!")
 
-        # 2ae. ERW Flash Trim & Groove
+        # 2ak. Flattening Test
+        elif test_key == "flattening":
+            if any(k in up_crit_lower for k in ("laminasyon serbest", "çatlak serbest", "crack permitted")):
+                status = "NON_COMPLIANT"
+                issue_type = "CRITERIA_VIOLATION"
+                remarks.append("🔴 YASSILTMA KUSURU: API 5L Madde 9.10.2 uyarınca dikiş açılması veya gövde çatlağı kesinlikle yasaktır!")
+
+        # 2al. ERW Flash Trim & Groove
         elif test_key == "erw_flash_trim_weld":
-            if any(k in up_crit_lower for k in ("> 1.5 mm", "> 1.2 mm", "1.5 mm", "2.0 mm", "> 0.1 mm")):
+            if any(k in up_crit_lower for k in ("> 1.5 mm", "> 1.2 mm", "1.5 mm", "2.0 mm", "> 0.1 mm", "> 0.5 mm", "0.5 mm", "0.6 mm")):
                 status = "NON_COMPLIANT"
                 issue_type = "CRITERIA_VIOLATION"
                 remarks.append("🔴 ERW ÇAPAK LİMİTİ AŞILDI: API 5L Madde 9.13.2 uyarınca iç çapak yüksekliği max 1.1 mm ve oyuk derinliği max 0.04 mm olmalıdır!")
 
-        # 2af. ERW Metallography
+        # 2am. ERW Metallography
         elif test_key == "erw_metallographic_seam":
             if any(k in up_crit_lower for k in ("martenzit serbest", "martensite permitted")):
                 status = "NON_COMPLIANT"
                 issue_type = "CRITERIA_VIOLATION"
                 remarks.append("🔴 MARTENZİT YASAKTIR: ERW kaynak dikişinde martenzit yapısı kesinlikle yasaktır, tam normalizasyon tavlaması zorunludur!")
-
-        # 2ag. Pipe Ends & Bevel Geometry (Legacy Combined)
-        elif test_key == "dimensional_length_straightness_bevel":
-            if any(k in up_crit_lower for k in ("45°", "45 deg", "50°", "0.4% l", "0.5% l")):
-                status = "NON_COMPLIANT"
-                issue_type = "CRITERIA_VIOLATION"
-                remarks.append("🔴 KAYNAK AĞZI VEYA DOĞRUSALLIK SAPMASI: Kaynak ağzı açısı 30° (+5°/-0°) ve boru toplam doğrusallığı max %0.2L olmalıdır!")
 
         # Final remarks formatting
         if not remarks:
@@ -1075,6 +1192,8 @@ class ITPAuditEngine:
             "issue_type": issue_type,
             "audit_remarks": remarks_text,
             "clause_ref": master["clause_ref"],
-            "table_ref": master["table_ref"]
+            "table_ref": master["table_ref"],
+            "is_coating": master.get("is_coating", False),
+            "reading_confidence": uploaded.get("reading_confidence", "HIGH"),
+            "inspection_points": uploaded.get("inspection_points", {"mfg": "C", "tpi": "W", "client": "W"})
         }
-

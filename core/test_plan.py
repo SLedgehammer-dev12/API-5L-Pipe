@@ -1408,17 +1408,40 @@ def get_comprehensive_itp_specification(pipe_config: Optional[Dict[str, Any]] = 
         "is_mandatory": True,
     })
 
+    edition = str(cfg.get("standard_edition") or cfg.get("edition") or "47th").lower()
+    for it in master_list:
+        is_coat = it.get("test_key", "").startswith("coating_") or "Kaplama" in it.get("category", "")
+        it["is_coating"] = is_coat
+
+        if "46" in edition and not is_botas:
+            tkey = it.get("test_key", "")
+            if tkey == "hydrostatic":
+                it["clause_ref"] = "API 5L 46. Baskı Madde 10.2.6 & Tablo 26"
+                it["table_ref"] = "API 5L 46. Baskı Tablo 26"
+            elif tkey == "erw_metallographic_seam":
+                it["clause_ref"] = "API 5L 46. Baskı Madde 10.2.5.3 Normalizasyon"
+                it["table_ref"] = "API 5L 46. Baskı Madde 10.2.5.3"
+            elif tkey == "tensile_body":
+                it["clause_ref"] = "API 5L 46. Baskı Madde 9.3 & Tablo 7"
+                it["table_ref"] = "API 5L 46. Baskı Tablo 7 / Çizelge 6"
+            elif tkey == "cvn_body":
+                it["clause_ref"] = "API 5L 46. Baskı Madde 9.8 & Tablo 8"
+                it["table_ref"] = "API 5L 46. Baskı Tablo 8"
+            elif tkey == "chemical_heat":
+                it["clause_ref"] = "API 5L 46. Baskı Madde 9.2 & Tablo 4/5"
+                it["table_ref"] = "API 5L 46. Baskı Tablo 4/5"
+
     # Scope Mode Isolation (Discipline Filter)
     scope_mode = str(cfg.get("scope_mode") or "COMBINED").upper()
     if scope_mode == "COATING_ONLY":
         master_list = [
             it for it in master_list
-            if it.get("category") == "Kaplama Kalite ve Süreç Kontrolleri" or it.get("test_key", "").startswith("coating_") or it.get("test_key") == "personnel_qualification_ndt"
+            if it.get("is_coating", False) or it.get("test_key") == "personnel_qualification_ndt"
         ]
     elif scope_mode == "BARE_PIPE_ONLY":
         master_list = [
             it for it in master_list
-            if it.get("category") != "Kaplama Kalite ve Süreç Kontrolleri" and not it.get("test_key", "").startswith("coating_")
+            if not it.get("is_coating", False)
         ]
 
     return master_list

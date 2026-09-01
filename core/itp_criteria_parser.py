@@ -149,6 +149,8 @@ class ITPCriteriaParser:
         t = (text or "").lower().replace(",", ".")
         res: Dict[str, Optional[float]] = {
             "thickness_mm": None,
+            "total_pe_mm": None,
+            "fbe_um": None,
             "holiday_kv": None,
             "peel_n_mm": None,
             "impact_j_mm": None,
@@ -159,11 +161,20 @@ class ITPCriteriaParser:
         # Coating Thickness: 'min 3.0 mm', 'min 3000 µm', '2.7 mm'
         m_thk_mm = re.search(r'(?:min|azami)?\s*(\d+(?:\.\d+)?)\s*mm\b', t)
         if m_thk_mm and float(m_thk_mm.group(1)) < 20.0:
-            res["thickness_mm"] = float(m_thk_mm.group(1))
+            val_thk = float(m_thk_mm.group(1))
+            res["thickness_mm"] = val_thk
+            res["total_pe_mm"] = val_thk
         else:
             m_thk_um = re.search(r'(\d{3,5})\s*(?:µm|um|mikron|micron)', t)
             if m_thk_um:
-                res["thickness_mm"] = float(m_thk_um.group(1)) / 1000.0
+                val_thk = float(m_thk_um.group(1)) / 1000.0
+                res["thickness_mm"] = val_thk
+                res["total_pe_mm"] = val_thk
+
+        # FBE thickness: 'fbe 120 µm', 'epoksi 100 um'
+        m_fbe = re.search(r'(?:fbe|epoksi|epoxy|astar)\s*[:=≥≥]*\s*(\d+(?:\.\d+)?)\s*(?:µm|um)', t)
+        if m_fbe:
+            res["fbe_um"] = float(m_fbe.group(1))
 
         # Holiday voltage: '25 kV', '25000 V', '25kv'
         m_kv = re.search(r'(\d+(?:\.\d+)?)\s*kv\b', t)
@@ -183,6 +194,11 @@ class ITPCriteriaParser:
             if m_peel_mm:
                 res["peel_n_mm"] = float(m_peel_mm.group(1))
 
+        # Impact resistance: '5 J/mm', '5.0 j/mm'
+        m_imp = re.search(r'(\d+(?:\.\d+)?)\s*j/mm\b', t)
+        if m_imp:
+            res["impact_j_mm"] = float(m_imp.group(1))
+
         # Roughness Rz: 'Rz 60-100 µm'
         m_rz = re.search(r'rz\s*(\d+)\s*(?:[-–/]\s*(\d+))?', t)
         if m_rz:
@@ -195,14 +211,20 @@ class ITPCriteriaParser:
     @classmethod
     def parse_dimensional_criteria(cls, text: str) -> Dict[str, Optional[float]]:
         """
-        Extracts dimensional limits: tolerance (± mm), max value (mm),
+        Extracts dimensional limits: tolerance (± mm or %), max value (mm),
         angle (degrees °), root face (mm).
         """
         t = (text or "").lower().replace(",", ".")
         res: Dict[str, Optional[float]] = {
             "plus_tol_mm": None,
             "minus_tol_mm": None,
+            "plus_mm": None,
+            "minus_mm": None,
+            "plus_pct": None,
+            "minus_pct": None,
             "max_val_mm": None,
+            "max_limit_mm": None,
+            "min_limit_mm": None,
             "angle_deg": None,
             "root_face_mm": None
         }
@@ -210,13 +232,36 @@ class ITPCriteriaParser:
         # ± X.X mm
         m_pm = re.search(r'[±\+\-]\s*(\d+(?:\.\d+)?)\s*mm', t)
         if m_pm:
-            res["plus_tol_mm"] = float(m_pm.group(1))
-            res["minus_tol_mm"] = float(m_pm.group(1))
+            val_pm = float(m_pm.group(1))
+            res["plus_tol_mm"] = val_pm
+            res["minus_tol_mm"] = val_pm
+            res["plus_mm"] = val_pm
+            res["minus_mm"] = val_pm
+
+        # +X.X / -Y.Y mm
+        m_plus = re.search(r'\+\s*(\d+(?:\.\d+)?)\s*mm', t)
+        if m_plus:
+            res["plus_mm"] = float(m_plus.group(1))
+            res["plus_tol_mm"] = float(m_plus.group(1))
+        m_minus = re.search(r'-\s*(\d+(?:\.\d+)?)\s*mm', t)
+        if m_minus:
+            res["minus_mm"] = float(m_minus.group(1))
+            res["minus_tol_mm"] = float(m_minus.group(1))
+
+        # Minus percentage (e.g. -%12.5, -12.5%, -8%)
+        m_pct_min = re.search(r'[-–]\s*[%]?\s*(\d+(?:\.\d+)?)\s*%', t)
+        if m_pct_min:
+            res["minus_pct"] = float(m_pct_min.group(1))
+        m_pct_min2 = re.search(r'[-–]\s*%\s*(\d+(?:\.\d+)?)', t)
+        if m_pct_min2:
+            res["minus_pct"] = float(m_pct_min2.group(1))
 
         # Max / Azami X.X mm
         m_max = re.search(r'(?:max|azami|en çok|≤)\s*(\d+(?:\.\d+)?)\s*mm', t)
         if m_max:
-            res["max_val_mm"] = float(m_max.group(1))
+            val_m = float(m_max.group(1))
+            res["max_val_mm"] = val_m
+            res["max_limit_mm"] = val_m
 
         # Angle: '30°', '30 deg', '35°'
         m_ang = re.search(r'(\d+)\s*(?:°|deg|derece)', t)

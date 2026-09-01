@@ -1697,9 +1697,171 @@ class TestPipeQAQCSuite(unittest.TestCase):
         self.assertEqual(c1["roughness_rz_min_um"], 60.0)
         self.assertEqual(c1["roughness_rz_max_um"], 100.0)
 
+    def test_53_borusan_18_page_itp_table_parsing_and_witness_extraction(self):
+        """
+        Verifies that UnlimitedOCREngine._parse_table_matrix_into_itp correctly extracts
+        Borusan / BOTAŞ style multi-column table matrices with witness/hold columns (C/W/H)
+        and preserves HIGH reading confidence without mixing criteria with witness markers.
+        """
+        from core.unlimited_ocr_engine import UnlimitedOCREngine
+
+        # Simulated Borusan GBB 18-page style multi-column table matrix
+        table_matrix = [
+            ["No", "Proses / Faaliyet", "Kontrol Maddesi / Test Parametresi", "Numune Sıklığı", "Numune Yeri", "Kontrol Eden Şartname", "Kabul Kriteri / Tolerans", "İmalatçı", "TPI", "BOTAŞ"],
+            ["1.0", "Hammadde Giriş", "Rulo Sac Kimyasal Analizi (Ladle/Product)", "Her dökümde 1 analiz", "Pota / Sac Başı", "API 5L / BOTAŞ 5120 R7", "C ≤ 0.12%, P ≤ 0.020%, S ≤ 0.010%, CE_IIW ≤ 0.40", "C", "W", "H"],
+            ["1.1", "Hammadde Giriş", "Rulo Sac Mekanik Çekme Testi", "Her test ünitesinde 1 set", "Rulo ucu", "ISO 6892-1 / BOTAŞ", "Rt0.5: 450 - 570 MPa, Rm: 535 - 760 MPa, Af ≥ %19.5", "C", "W", "H"],
+            ["2.0", "Boru Şekillendirme & Kaynak", "ERW Yüksek Frekans Kaynak Dikişi", "%100 boru boyu", "Kaynak dikişi", "API 5L Madde 10.2.5.3", "Tam normalizasyon tavlaması, sıfır martenzit", "C", "W", "W"],
+            ["3.0", "Tahribatsız Muayene", "Kaynak Dikişi Otomatik Ultrasonik (AUT)", "%100 tam boy", "Kaynak dikişi", "ISO 10893-11", "Kabul Seviyesi ISO 10893-11 Seviye U2", "C", "W", "H"],
+            ["4.0", "Fabrika Testi", "Fabrika Hidrostatik Basınç Testi", "Her boruda %100", "Tüm boru", "API 5L / BOTAŞ Madde 8.4", "Min 168.0 bar, 20 saniye tutma süresi, sızıntısız", "C", "W", "H"],
+            ["5.0", "Dış Kaplama", "3LPE Kaplama Kalınlığı ve 25 kV Holiday", "Her boru (%100)", "Gövde ve kaynak kepi", "DIN 30670 / BOTAŞ 5410 R1", "Toplam 3LPE ≥ 3.0 mm, FBE ≥ 120 µm, 25 kV sıfır kıvılcım", "C", "W", "H"]
+        ]
+
+        items, state = UnlimitedOCREngine._parse_table_matrix_into_itp(table_matrix)
+        self.assertEqual(len(items), 6)
+        self.assertEqual(items[0]["reading_confidence"], "HIGH")
+        self.assertEqual(items[0]["inspection_points"]["mfg"], "C")
+        self.assertEqual(items[0]["inspection_points"]["tpi"], "W")
+        self.assertEqual(items[0]["inspection_points"]["client"], "H")
+        self.assertIn("0.12%", items[0]["acceptance_criteria"])
+
+        # Continuation table without header on next page
+        cont_table = [
+            ["6.0", "Son Kontrol", "Görsel ve Boyutsal Son Muayene", "Her boru (%100)", "Boru uçları ve gövde", "API 5L 46th/47th / BOTAŞ", "Çap, et kalınlığı, ovallik, diklik ve kaynak ağzı şartnameye uygun", "C", "W", "H"]
+        ]
+        cont_items, _ = UnlimitedOCREngine._parse_table_matrix_into_itp(cont_table, last_state=state)
+        self.assertEqual(len(cont_items), 1)
+        self.assertEqual(cont_items[0]["reading_confidence"], "MEDIUM")
+        self.assertEqual(cont_items[0]["inspection_points"]["client"], "H")
+
+    def test_54_inadequate_sampling_sparse_frequency_1_per_200(self):
+        """
+        Verifies that sparse sampling expressions (e.g. '1/200 boru', '1 per 100 pipes', '50 boruda 1')
+        are normalized to INADEQUATE_SAMPLING and flagged as NON_COMPLIANT in audit.
+        """
+        from core.itp_audit_engine import FrequencyNormalizer, FrequencyCanonical, ITPAuditEngine
+
+        self.assertEqual(FrequencyNormalizer.normalize("1/200 boru"), FrequencyCanonical.INADEQUATE_SAMPLING)
+        self.assertEqual(FrequencyNormalizer.normalize("1 / 200"), FrequencyCanonical.INADEQUATE_SAMPLING)
+        self.assertEqual(FrequencyNormalizer.normalize("1 per 100 pipes"), FrequencyCanonical.INADEQUATE_SAMPLING)
+        self.assertEqual(FrequencyNormalizer.normalize("50 boruda 1"), FrequencyCanonical.INADEQUATE_SAMPLING)
+        self.assertEqual(FrequencyNormalizer.normalize("1/10"), FrequencyCanonical.INADEQUATE_SAMPLING)
+
+        # Audit with 1/200 frequency
+        pipe_cfg = {
+            "diameter_mm": 219.1, "diameter_inch": '8"', "wall_thickness_mm": 6.40,
+            "material_grade": "X42", "manufacturing_process": "ERW", "standard_type": "BOTAŞ",
+            "psl_level": "PSL2"
+        }
+        sparse_items = [
+            {
+                "test_name": "Gövde Çekme Testi (Body Tensile)",
+                "test_frequency": "1/200 boru (seyrek frekans)",
+                "acceptance_criteria": "Rt0.5 ≥ 290 MPa, Rm ≥ 415 MPa, Af ≥ %23.0"
+            }
+        ]
+        res = ITPAuditEngine.audit_itp(sparse_items, pipe_cfg)
+        tensile_row = next(r for r in res["audit_rows"] if r["test_key"] == "tensile_body")
+        self.assertEqual(tensile_row["status"], "NON_COMPLIANT")
+        self.assertEqual(tensile_row["issue_type"], "INADEQUATE_SAMPLING_FREQUENCY")
+
+    def test_55_ndt_acceptance_level_u1_vs_u2_compliance(self):
+        """
+        Verifies that NDT weld seam acceptance level U1 / U1H produces NON_COMPLIANT rejection
+        while ISO 10893-11 Level U2 passes as COMPLIANT.
+        """
+        from core.itp_audit_engine import ITPAuditEngine
+
+        pipe_cfg = {
+            "diameter_mm": 1219.0, "diameter_inch": '48"', "wall_thickness_mm": 14.30,
+            "material_grade": "X65", "manufacturing_process": "SAWH", "standard_type": "BOTAŞ",
+            "psl_level": "PSL2"
+        }
+
+        # Substandard U1 level
+        u1_items = [
+            {
+                "test_name": "Kaynak Dikişi NDT Ultrasonik Muayene",
+                "test_frequency": "%100 tam boy",
+                "test_standard": "ISO 10893-11",
+                "acceptance_criteria": "Kabul Seviyesi ISO 10893-11 Seviye U1 (Substandard)"
+            }
+        ]
+        res_u1 = ITPAuditEngine.audit_itp(u1_items, pipe_cfg)
+        ndt_row = next(r for r in res_u1["audit_rows"] if r["test_key"] == "ndt_weld_seam")
+        self.assertEqual(ndt_row["status"], "NON_COMPLIANT")
+        self.assertIn("U2", ndt_row["audit_remarks"])
+
+        # Compliant U2 level
+        u2_items = [
+            {
+                "test_name": "Kaynak Dikişi NDT Ultrasonik Muayene",
+                "test_frequency": "%100 tam boy",
+                "test_standard": "ISO 10893-11",
+                "acceptance_criteria": "Kabul Seviyesi ISO 10893-11 Seviye U2 ve RT ISO 10893-6 Sınıf B"
+            }
+        ]
+        res_u2 = ITPAuditEngine.audit_itp(u2_items, pipe_cfg)
+        ndt_row_u2 = next(r for r in res_u2["audit_rows"] if r["test_key"] == "ndt_weld_seam")
+        self.assertEqual(ndt_row_u2["status"], "COMPLIANT")
+
+    def test_56_api5l_46th_vs_47th_edition_clause_and_table_mapping(self):
+        """
+        Verifies dynamic mapping of API 5L 46th vs 47th Edition clauses and Excel export headers.
+        """
+        from core.test_plan import get_comprehensive_itp_specification
+        from core.excel_exporter import ExcelExporter
+        from core.itp_audit_engine import ITPAuditEngine
+
+        cfg_46 = {
+            "diameter_mm": 219.1, "diameter_inch": '8"', "wall_thickness_mm": 6.40,
+            "material_grade": "X42", "manufacturing_process": "ERW", "standard_type": "API 5L",
+            "psl_level": "PSL2", "standard_edition": "46th"
+        }
+        spec_46 = get_comprehensive_itp_specification(cfg_46)
+        hydro_item = next(it for it in spec_46 if it["test_key"] == "hydrostatic")
+        norm_item = next(it for it in spec_46 if it["test_key"] == "erw_metallographic_seam")
+
+        self.assertIn("46. Baskı", hydro_item["clause_ref"])
+        self.assertIn("Tablo 26", hydro_item["table_ref"])
+        self.assertIn("46. Baskı", norm_item["clause_ref"])
+
+        # Test Excel Exporter with 46th edition header and findings sheet
+        audit_res = ITPAuditEngine.audit_itp([], cfg_46)
+        excel_buf = ExcelExporter.export_itp_audit_report(audit_res)
+        self.assertGreater(len(excel_buf.getvalue()), 5000)
+
+    def test_57_hybrid_dual_scoring_bare_pipe_vs_coating_isolation(self):
+        """
+        Verifies hybrid dual scoring (bare_pipe_score_percent, coating_score_percent, overall_score).
+        """
+        from core.itp_audit_engine import ITPAuditEngine
+
+        pipe_cfg = {
+            "diameter_mm": 1219.0, "diameter_inch": '48"', "wall_thickness_mm": 14.30,
+            "material_grade": "X65", "manufacturing_process": "SAWH", "standard_type": "BOTAŞ",
+            "psl_level": "PSL2"
+        }
+
+        # Perfect bare pipe items + substandard coating items
+        mixed_items = [
+            {"test_name": "Isı Analizi (Ladle Heat)", "test_frequency": "Her dökümde 1", "acceptance_criteria": "C ≤ 0.12%, P ≤ 0.020%, S ≤ 0.010%, CE_IIW ≤ 0.40"},
+            {"test_name": "Gövde Çekme Testi", "test_frequency": "Test ünitesi başına 2 set", "acceptance_criteria": "Rt0.5: 450 - 570 MPa, Rm: 535 - 760 MPa, Af ≥ %19.5, Y/T ≤ 0.90"},
+            {"test_name": "Gövde Çentik Darbe (-20°C)", "test_frequency": "Test ünitesi başına 1 set", "acceptance_criteria": "Min. Ortalama 60 J, Min. Tekil 45 J"},
+            {"test_name": "Fabrika Hidrostatik Testi", "test_frequency": "%100 her boru", "acceptance_criteria": "Min. 168.0 bar, 20 sn süreyle"},
+            {"test_name": "3LPE Kaplama Kalınlığı", "test_frequency": "Her boru", "acceptance_criteria": "Toplam 3LPE < 2.0 mm (Yetersiz)"}
+        ]
+
+        res = ITPAuditEngine.audit_itp(mixed_items, pipe_cfg)
+        kpi = res["kpi"]
+        self.assertIsNotNone(kpi["bare_pipe_score_percent"])
+        self.assertIsNotNone(kpi["coating_score_percent"])
+        # Coating score is penalized by substandard thickness, but bare pipe score remains unaffected by coating rules
+        self.assertGreater(kpi["bare_pipe_score_percent"], kpi["coating_score_percent"])
+
 
 if __name__ == '__main__':
     unittest.main()
+
 
 
 

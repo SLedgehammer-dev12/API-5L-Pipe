@@ -201,9 +201,18 @@ class UnlimitedOCREngine:
         idx_std = -1
         idx_crit = -1
         idx_clause = -1
+        idx_mfg = -1
+        idx_tpi = -1
+        idx_client = -1
 
         for r_i, r in enumerate(table_data[:5]):
             cand_row = [str(c or "").lower().strip() for c in r]
+            if not cand_row or not any(cand_row):
+                continue
+            # If the first cell is a pure numeric row index (e.g. '1.0', '6.0', '12'), it is a data row, not a header!
+            if re.match(r'^\d+(?:\.\d+)*$', cand_row[0].strip()):
+                continue
+
             cand_act = -1
             cand_feat = -1
             cand_freq = -1
@@ -211,42 +220,56 @@ class UnlimitedOCREngine:
             cand_std = -1
             cand_crit = -1
             cand_clause = -1
+            cand_mfg = -1
+            cand_tpi = -1
+            cand_client = -1
 
             for col_i, col_text in enumerate(cand_row):
-                if cand_act == -1 and any(k in col_text for k in ("faaliyet", "aktivite", "activity", "proses", "tanım")):
-                    cand_act = col_i
-                elif cand_feat == -1 and any(k in col_text for k in ("ürün özelli", "özellik", "gereksinim", "parametre", "inceleme", "test adı", "muayene türü", "özelliği", "kontrolü", "muayene / test")):
+                # Independent Column Identification (No elif masking)
+                if cand_feat == -1 and any(k in col_text for k in ("ürün özelli", "özellik", "gereksinim", "parametre", "test adı", "muayene türü", "özelliği", "kontrolü", "muayene / test", "test parametre")):
                     cand_feat = col_i
-                elif cand_act == -1 and any(k in col_text for k in ("test", "inspection", "muayene", "deney", "item", "scope")):
+                if cand_act == -1 and any(k in col_text for k in ("faaliyet", "aktivite", "activity", "proses", "tanım", "aşama", "proses aşaması", "operasyon")):
+                    cand_act = col_i
+                elif cand_act == -1 and any(k in col_text for k in ("test", "inspection", "muayene", "deney", "item", "scope")) and cand_feat != col_i:
                     cand_act = col_i
                 
                 if cand_freq == -1 and any(k in col_text for k in ("freq", "extent", "frekans", "sıklık", "adet", "rate", "aralık", "frequency", "sıklığı", "numune alma", "numune boyutu")):
                     cand_freq = col_i
                 if cand_loc == -1 and any(k in col_text for k in ("location", "specimen", "yer", "numune", "yön", "örnek", "position", "gerçekleştiren", "sorumlu")):
                     cand_loc = col_i
-                if cand_std == -1 and any(k in col_text for k in ("kontrol eden", "kontrol doküman", "standard", "method", "metot", "prosedür", "code", "standart", "doküman", "dokümanı")):
+                if cand_std == -1 and any(k in col_text for k in ("kontrol eden", "kontrol doküman", "standard", "method", "metot", "prosedür", "code", "standart", "doküman", "dokümanı", "şartname", "şartnamesi", "spec")):
                     cand_std = col_i
-                if cand_crit == -1 and any(k in col_text for k in ("kabul", "kriter", "acceptance", "criteria", "limit", "tolerans", "requirement", "şart")):
+                if cand_crit == -1 and "şartname" not in col_text and any(k in col_text for k in ("kabul", "kriter", "acceptance", "criteria", "limit", "tolerans", "requirement", "kabul şartı", "onay kriteri")):
                     cand_crit = col_i
-                if cand_clause == -1 and any(k in col_text for k in ("clause", "madde", "ref", "section", "spec", "referans")):
+                if cand_clause == -1 and any(k in col_text for k in ("clause", "madde", "ref", "section", "referans")):
                     cand_clause = col_i
 
+                # Witness / Hold Point Columns (C / H / W / I / R)
+                if cand_mfg == -1 and any(k in col_text for k in ("imalatçı", "üretici", "mfg", "manufacturer", "borusan", "tosçelik", "toscelik", "erciyas", "yapımcı")):
+                    cand_mfg = col_i
+                if cand_tpi == -1 and any(k in col_text for k in ("tpi", "gözetim", "3rd party", "üçüncü taraf", "denetim kurumu", "mümessil", "tüv", "lloyd", "sgs", "bv")):
+                    cand_tpi = col_i
+                if cand_client == -1 and any(k in col_text for k in ("müşteri", "botaş", "botas", "işveren", "client", "idare", "owner", "alıcı")):
+                    cand_client = col_i
+
             matched = sum(1 for idx in (cand_act, cand_feat, cand_freq, cand_std, cand_crit, cand_clause) if idx != -1)
-            if matched >= 2:
+            if matched >= 1 and (cand_act != -1 or cand_feat != -1 or (cand_std != -1 and cand_crit != -1)):
                 header_row = cand_row
                 header_row_idx = r_i
                 idx_activity, idx_feature, idx_freq, idx_loc, idx_std, idx_crit, idx_clause = (
                     cand_act, cand_feat, cand_freq, cand_loc, cand_std, cand_crit, cand_clause
                 )
+                idx_mfg, idx_tpi, idx_client = cand_mfg, cand_tpi, cand_client
                 break
 
         start_row = 1
+        confidence_level = "HIGH"
         if header_row_idx != -1:
             if idx_feature == -1 and idx_activity != -1 and len(header_row) > 3:
                 idx_feature = 2 if idx_activity != 2 else (3 if len(header_row) > 3 else 1)
 
             current_state = {
-                "indices": (idx_activity, idx_feature, idx_freq, idx_loc, idx_std, idx_crit, idx_clause),
+                "indices": (idx_activity, idx_feature, idx_freq, idx_loc, idx_std, idx_crit, idx_clause, idx_mfg, idx_tpi, idx_client),
                 "num_cols": len(header_row),
                 "last_parent_activity": last_state.get("last_parent_activity", "") if last_state else ""
             }
@@ -254,7 +277,8 @@ class UnlimitedOCREngine:
         elif last_state and (abs(len(table_data[0]) - last_state["num_cols"]) <= 4 or len(table_data[0]) >= 6):
             # Continuation table on next page without repeated header
             current_state = last_state
-            idx_activity, idx_feature, idx_freq, idx_loc, idx_std, idx_crit, idx_clause = current_state["indices"]
+            confidence_level = "MEDIUM"
+            idx_activity, idx_feature, idx_freq, idx_loc, idx_std, idx_crit, idx_clause, idx_mfg, idx_tpi, idx_client = current_state["indices"]
             ncols = len(table_data[0])
             idx_activity = min(idx_activity, ncols - 1) if idx_activity >= 0 else 1
             idx_feature = min(idx_feature, ncols - 1) if idx_feature >= 0 else 2
@@ -263,6 +287,9 @@ class UnlimitedOCREngine:
             idx_std = min(idx_std, ncols - 1) if idx_std >= 0 else -1
             idx_crit = min(idx_crit, ncols - 1) if idx_crit >= 0 else -1
             idx_clause = min(idx_clause, ncols - 1) if idx_clause >= 0 else -1
+            idx_mfg = min(idx_mfg, ncols - 1) if idx_mfg >= 0 else -1
+            idx_tpi = min(idx_tpi, ncols - 1) if idx_tpi >= 0 else -1
+            idx_client = min(idx_client, ncols - 1) if idx_client >= 0 else -1
             start_row = 0
         else:
             return [], last_state
@@ -310,6 +337,11 @@ class UnlimitedOCREngine:
             crit = str(row[idx_crit] or "").strip() if 0 <= idx_crit < len(row) else ""
             clause = str(row[idx_clause] or "").strip() if 0 <= idx_clause < len(row) else "API 5L / BOTAŞ 5120 / 5410 R1"
 
+            # Extract Witness / Hold Points (C, H, W, I, R)
+            mfg_val = str(row[idx_mfg] or "").strip().upper() if 0 <= idx_mfg < len(row) else "C"
+            tpi_val = str(row[idx_tpi] or "").strip().upper() if 0 <= idx_tpi < len(row) else "W"
+            client_val = str(row[idx_client] or "").strip().upper() if 0 <= idx_client < len(row) else "W"
+
             if not freq:
                 freq = cls._extract_frequency_from_text(f"{test_name} {crit}") or "Test ünitesi (lot) başına 1 set"
             if not crit:
@@ -323,6 +355,12 @@ class UnlimitedOCREngine:
                 "test_standard": std.replace("\n", " ").strip(),
                 "acceptance_criteria": crit.replace("\n", " ").strip(),
                 "clause_reference": clause.replace("\n", " ").strip(),
+                "inspection_points": {
+                    "mfg": mfg_val,
+                    "tpi": tpi_val,
+                    "client": client_val
+                },
+                "reading_confidence": confidence_level,
                 "raw_text": " | ".join(str(c or "").replace("\n", " ").strip() for c in row)
             })
 
@@ -405,6 +443,12 @@ class UnlimitedOCREngine:
                             "test_standard": "API Spec 5L 47. Baskı",
                             "acceptance_criteria": crit or "API 5L / BOTAŞ şartname limitlerine uygun",
                             "clause_reference": "API 5L / İmalatçı ITP",
+                            "inspection_points": {
+                                "mfg": "C",
+                                "tpi": "W",
+                                "client": "W"
+                            },
+                            "reading_confidence": "LOW",
                             "raw_text": line
                         })
                     break

@@ -1,26 +1,35 @@
-# What's New in API 5L Pipe QA/QC & Wall Thickness Suite (v2.4.0)
-## Yenilikler ve Sürüm Özeti - v2.4.0 (2026-09-01)
+# What's New in API 5L Pipe QA/QC & Wall Thickness Suite (v2.5.0)
+## Yenilikler ve Sürüm Özeti - v2.5.0 (2026-09-01)
 
 ---
 
-### 🇹🇷 Türkçe Özet (v2.4.0)
+### 🇹🇷 Türkçe Özet (v2.5.0)
 
-API 5L Pipe QA/QC Suite **v2.4.0** sürümü ile birlikte **Çift Dilli (TR & EN) Kapsamlı Sanayi Anahtar Kelime Dağarcığı (`TEST_MATCHER_KEYWORDS`)**, **Çevrimdışı Sayısal Kriter & Değer Ayrıştırıcı Motoru (`ITPCriteriaParser`)** ve **Negatif Ağırlıklı Disambiguation Filtreleri** entegre edilmiştir:
+API 5L Pipe QA/QC Suite **v2.5.0** sürümü ile birlikte **API Spec 5L 46. & 47. Baskı Dinamik Standart Seçicisi**, **Çıplak Boru & 3LPE Dış Kaplama Hibrit Çift Skorlama Sistemi**, **H/W/R/I/C Şahitlik ve Durdurma Noktaları İzolasyonu**, **Çok Sayfalı Birleştirilmiş Tablo & Sayısal Eşik Doğrulama Motoru** ve **64/64 Kapsamlı Test Süiti** entegre edilmiştir:
 
-#### 1. 🌐 Çift Dilli (TR & EN) Genişletilmiş Sanayi Terminolojisi
-- Uluslararası (API 5L, ISO 3183, ASTM, DIN 30670, Shell DEP, Aramco, DNV) ve yerel (BOTAŞ, Borusan, Tosçelik, Erciyas, Emek, Umran) 100'den fazla terim, kısaltma ve test başlığı eklendi.
-- Çekme ($R_{t0.5}, R_m, A\%$), Çentik Darbe (Charpy, FL+2, FL+5), DWTT, NDT (AUT, PAUT, RT, UT, MPI), Boyutlar ve 3LPE Kaplama terminolojisi tam kapsam altına alındı.
+#### 1. 📚 API Spec 5L 46. Baskı vs 47. Baskı Dinamik Seçeneği
+- 46. ve 47. baskılar arasındaki kritik standart madde ve çizelge farkları (Hidrostatik Çizelge 26 / Barlow formülü, ERW Normalizasyon Madde 10.2.5.3, Çekme Çizelge 7, Çentik Darbe Çizelge 8) ayrıştırıldı.
+- Denetim raporlarında ve Excel çıktılarında standart baskısı dinamik olarak referans gösterilir.
 
-#### 2. 🧮 Çevrimdışı Sayısal Kriter Ayrıştırıcı Motoru (`ITPCriteriaParser`)
-- Harici internet veya LLM/GPU gerektirmeyen, %100 yerel çalışan regex tabanlı fiziksel varlık ve birim ayrıştırıcı motoru geliştirildi.
-- Çoklu karakterli operatörler (`<=`, `>=`, `:=`, `≤`, `≥`, `%`) ve farklı notasyon formatlarından akma, çekme, Y/T oranı, darbe enerjisi, hidrostatik basınç/süre ve toleransları hatasız hesaplar.
+#### 2. 📊 Hibrit Çift Skorlama Sistemi (Çıplak Boru & 3LPE Kaplama)
+- Çıplak Boru Uyum Puanı (`bare_pipe_score_percent`) ve 3LPE Dış Kaplama Uyum Puanı (`coating_score_percent`) birbirinden bağımsız olarak hesaplanır.
+- Kombine denetimlerde %70 Çıplak Boru / %30 Kaplama ağırlıklı genel uyum skoru üretilir; tek disiplinli ITP yüklemelerinde ise diğer disiplin cezalandırılmadan izole edilir.
 
-#### 3. 🎯 Karışmayı Önleyici Ayrıştırma ve Negatif Ağırlıklandırma
-- Çekme ile Darbe (Charpy/CVN) testlerinin karışmasını önleyen negatif ağırlıklandırma kuralları eklendi.
-- Dış Çap ile Ovalite testlerinin metin benzerliğinden dolayı yanlış eşleşmesini engelleyen bağlamsal filtreler devreye alındı.
+#### 3. 🛡️ H/W/R/I/C Şahitlik Noktaları (Witness / Hold Matrix) Ayrıştırması
+- İmalatçı, Üçüncü Taraf Gözetim (TPI) ve Müşteri (BOTAŞ) şahitlik ve durdurma noktaları kabul kriterlerinden temiz şekilde ayrıştırıldı.
+- Excel ve PDF raporlarına özel şahitlik matrisi sütunu eklendi.
 
-#### 4. 🧪 59/59 Kapsamlı Test Süiti (%100 PASS)
-- `test_51` ve `test_52` ile tüm test senaryoları doğrulandı.
+#### 4. 🔍 Gelişmiş Frekans & NDT Seviyesi Reddi
+- `1/200 boru`, `1 per 100`, `50 boruda 1` gibi yetersiz seyrek frekanslar `INADEQUATE_SAMPLING` olarak tanınıp uygunsuzluk olarak işaretlenir.
+- NDT kaynak dikişi kabul kriterinde yetersiz kalan `U1 / U1H / U3 / U4` seviyeleri reddedilir, `ISO 10893-11 Seviye U2` zorunluluğu denetlenir.
+
+#### 5. 🧪 64/64 Kapsamlı Test Süiti (%100 PASS)
+- Borusan GBB 18 sayfalık tablo matrisi, seyrek frekans reddi, NDT U1 reddi, 46. baskı eşleşmeleri ve hibrit çift skorlama dahil tüm 64 test senaryosu %100 başarıyla geçmektedir.
+
+---
+
+### Sürüm Özeti - v2.4.0 (2026-09-01)
+
 
 ---
 
