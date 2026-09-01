@@ -78,17 +78,27 @@ class ITPCriteriaParser:
         if m_temp:
             res["temp_c"] = float(m_temp.group(1))
 
-        # Average energy: 'ort 40 J', 'avg 40 J', 'ortalama min 40 J', '40/30 J', 'min 40 J'
-        m_avg = re.search(r'(?:ort(?:alama)?|avg|average|min)?\s*(\d+(?:\.\d+)?)\s*(?:[-–/]\s*(\d+(?:\.\d+)?))?\s*(?:j|joule)', t)
-        if m_avg:
-            v1 = float(m_avg.group(1))
-            v2 = float(m_avg.group(2)) if m_avg.group(2) else None
+        # 1. Explicit average energy: 'ortalama 48 J', 'min ortalama 48 J', 'ort 48 J', 'avg 48 J'
+        m_avg_exp = re.search(r'(?:ort(?:alama)?|avg|average)\s*(?:min)?\s*[:=≥>]?\s*(\d+(?:\.\d+)?)\s*(?:[-–/]\s*(\d+(?:\.\d+)?))?\s*(?:j|joule)?', t)
+        if m_avg_exp:
+            v1 = float(m_avg_exp.group(1))
+            v2 = float(m_avg_exp.group(2)) if m_avg_exp.group(2) else None
             if v2:
-                # e.g. 40/30 J -> avg=40, min=30
                 res["energy_avg_j"] = max(v1, v2)
                 res["energy_min_j"] = min(v1, v2)
             else:
                 res["energy_avg_j"] = v1
+        else:
+            # Fallback average energy: '40/30 J', 'min 40 J'
+            m_avg = re.search(r'(?:min)?\s*(\d+(?:\.\d+)?)\s*(?:[-–/]\s*(\d+(?:\.\d+)?))?\s*(?:j|joule)', t)
+            if m_avg:
+                v1 = float(m_avg.group(1))
+                v2 = float(m_avg.group(2)) if m_avg.group(2) else None
+                if v2:
+                    res["energy_avg_j"] = max(v1, v2)
+                    res["energy_min_j"] = min(v1, v2)
+                else:
+                    res["energy_avg_j"] = v1
 
         # Explicit single minimum: 'tekil min 30 J', 'single min 30 J', 'ind 30 J'
         m_ind = re.search(r'(?:tekil|single|ind(?:ividual)?)\s*(?:min)?\s*[:=≥>]?\s*(\d+(?:\.\d+)?)\s*(?:j|joule)?', t)

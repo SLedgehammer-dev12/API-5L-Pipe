@@ -2324,6 +2324,8 @@ let currentITPFilter = "ALL";
 let currentITPExtractedItems = [];
 let currentITPDetectedMeta = null;
 let currentITPEffectiveConfig = null;
+let currentITPVariantAudits = [];
+let currentITPScopeVariants = [];
 
 function setupITPAuditUI() {
     const fileInput = document.getElementById("itp-file-input");
@@ -2629,8 +2631,11 @@ async function startITPAudit(file = null, useDemo = false) {
             currentITPExtractedItems = res.extracted_items || [];
             currentITPDetectedMeta = res.detected_metadata || null;
             currentITPEffectiveConfig = res.effective_config || pipeConfig;
+            currentITPVariantAudits = res.variant_audits || [];
+            currentITPScopeVariants = res.scope_variants || (res.detected_metadata?.scope_variants || []);
 
             renderITPAlignmentPanel(res.detected_metadata, res.effective_config);
+            renderITPVariantTabs(currentITPVariantAudits, currentITPScopeVariants);
             renderITPAuditResult(res.audit_result);
 
             // Persist latest audit in browser LocalStorage (R3 Solution)
@@ -2663,6 +2668,46 @@ async function startITPAudit(file = null, useDemo = false) {
     } finally {
         if (btnStart) btnStart.disabled = false;
     }
+}
+
+function renderITPVariantTabs(variantAudits, scopeVariants) {
+    const container = document.getElementById("itp-variant-tabs");
+    const buttonsDiv = document.getElementById("itp-variant-buttons");
+    const countSpan = document.getElementById("itp-variant-count");
+    if (!container || !buttonsDiv) return;
+    if (!variantAudits || variantAudits.length <= 1) {
+        container.classList.add("hidden");
+        return;
+    }
+    container.classList.remove("hidden");
+    if (countSpan) countSpan.innerText = `${variantAudits.length} varyant`;
+    buttonsDiv.innerHTML = "";
+    variantAudits.forEach((va, idx) => {
+        const cfg = va.pipe_config || {};
+        const label = `${cfg.diameter_inch || cfg.diameter_mm} × ${cfg.wall_thickness_mm} mm`;
+        const isActive = idx === 0;
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = isActive ? "px-2.5 py-1 rounded-full text-xs font-bold bg-indigo-600 text-white shadow" : "px-2.5 py-1 rounded-full text-xs font-semibold bg-white border border-indigo-200 text-indigo-700 hover:bg-indigo-100";
+        btn.innerText = label;
+        btn.onclick = () => switchITPVariant(idx);
+        buttonsDiv.appendChild(btn);
+    });
+}
+
+function switchITPVariant(idx) {
+    if (!currentITPVariantAudits || !currentITPVariantAudits[idx]) return;
+    const va = currentITPVariantAudits[idx];
+    currentITPAuditResult = va.audit_result;
+    // Update active styling
+    const buttonsDiv = document.getElementById("itp-variant-buttons");
+    if (buttonsDiv) {
+        Array.from(buttonsDiv.children).forEach((b, i) => {
+            b.className = i === idx ? "px-2.5 py-1 rounded-full text-xs font-bold bg-indigo-600 text-white shadow" : "px-2.5 py-1 rounded-full text-xs font-semibold bg-white border border-indigo-200 text-indigo-700 hover:bg-indigo-100";
+        });
+    }
+    renderITPAuditResult(va.audit_result);
+    showToast(`Varyant ${idx+1}: ${va.pipe_config.diameter_inch} × ${va.pipe_config.wall_thickness_mm} mm denetimi gösteriliyor`, "info");
 }
 
 function renderITPAuditResult(auditData) {

@@ -760,20 +760,24 @@ class UnlimitedOCREngine:
                 d_inch = in_val
                 break
 
-        # Check scope table row matches e.g. "1 219,1 6,40 PSL 2 X42M"
+        # Check scope table row matches e.g. "1 219,1 6,40 PSL 2 X42M" - collect ALL variants
         scope_rows = re.findall(r"(\d+)\s+([\d.,]+)\s+([\d.,]+)\s+([a-zA-Z0-9\-]+)", text_lower)
+        scope_variants: List[Dict[str, Any]] = []
         if scope_rows:
-            _, d_raw, t_raw, g_raw = scope_rows[0]
-            try:
-                d_parsed = float(d_raw.replace(",", "."))
-                t_parsed = float(t_raw.replace(",", "."))
-                if 50.0 <= d_parsed <= 3000.0:
-                    d_mm = d_parsed
-                if 2.0 <= t_parsed <= 60.0:
-                    t_mm = t_parsed
-            except Exception:
-                pass
-        else:
+            for _, d_raw, t_raw, _ in scope_rows:
+                try:
+                    d_parsed = float(d_raw.replace(",", "."))
+                    t_parsed = float(t_raw.replace(",", "."))
+                    if 50.0 <= d_parsed <= 3000.0 and 2.0 <= t_parsed <= 60.0:
+                        # Deduplicate
+                        if not any(abs(v["diameter_mm"] - d_parsed) < 0.5 and abs(v["wall_thickness_mm"] - t_parsed) < 0.1 for v in scope_variants):
+                            scope_variants.append({"diameter_mm": d_parsed, "wall_thickness_mm": t_parsed})
+                except Exception:
+                    continue
+            if scope_variants:
+                d_mm = scope_variants[0]["diameter_mm"]
+                t_mm = scope_variants[0]["wall_thickness_mm"]
+        if not scope_variants:
             known_wts = [25.4, 22.2, 19.1, 17.5, 15.9, 14.3, 12.7, 11.1, 9.5, 8.2, 7.9, 7.1, 6.4, 5.6, 4.8]
             for w in known_wts:
                 w_str = str(w).replace(".", "[.,]")
@@ -791,6 +795,21 @@ class UnlimitedOCREngine:
         if d_mm and t_mm:
             confidence += 10
 
+        # Build inch string for scope variants
+        def _to_inch_str(mm_val: float) -> str:
+            for mm_c, in_c, _ in known_diameters:
+                if abs(mm_c - mm_val) < 0.5:
+                    return in_c
+            return f'{mm_val:.1f} mm'
+        
+        # scope_variants already built, ensure inch string present
+        for v in scope_variants if 'scope_variants' in locals() else []:
+            v["diameter_inch"] = _to_inch_str(v["diameter_mm"])
+            v["material_grade"] = grade
+            v["manufacturing_process"] = process
+            v["psl_level"] = psl
+            v["standard_type"] = std_type
+
         return {
             "customer": customer,
             "project_name": project_name.title(),
@@ -804,6 +823,7 @@ class UnlimitedOCREngine:
             "detected_diameter_mm": d_mm,
             "detected_diameter_inch": d_inch,
             "detected_wall_thickness_mm": t_mm,
+            "scope_variants": scope_variants if 'scope_variants' in locals() else [],
             "spec_references": {
                 "botas_pipe_5120": has_botas,
                 "botas_coating_5410": has_botas or has_din30670,

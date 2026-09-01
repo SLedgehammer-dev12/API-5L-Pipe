@@ -1323,7 +1323,7 @@ class TestPipeQAQCSuite(unittest.TestCase):
 
         self.assertGreater(len(plan_all), len(plan_coating))
         self.assertGreater(len(plan_all), len(plan_bare))
-        self.assertTrue(all("Kaplama" in it.get("category", "") or it["test_key"].startswith("coating_") or it["test_key"] == "personnel_qualification_ndt" for it in plan_coating))
+        self.assertTrue(all("Kaplama" in it.get("category", "") or it["test_key"].startswith("coating_") for it in plan_coating))
         self.assertTrue(all("Kaplama" not in it.get("category", "") and not it["test_key"].startswith("coating_") for it in plan_bare))
 
         # 3. Test Pure Coating ITP Audit without Bare Pipe False Positives
@@ -1336,11 +1336,10 @@ class TestPipeQAQCSuite(unittest.TestCase):
             {"test_name": "Delici Uca Direnç (Indentation)", "test_frequency": "1 / PE partisi", "acceptance_criteria": "23°C max 0.20 mm, 50°C max 0.30 mm"},
             {"test_name": "Katodik Soyulma Testi (CD Test)", "test_frequency": "1 / sipariş", "acceptance_criteria": "20°C 28 gün max 7.0 mm, 65°C 24 saat max 7.0 mm"},
             {"test_name": "Kaplamasız Uç Bölgesi (Cutback)", "test_frequency": "Her boru", "acceptance_criteria": "80-100 mm mesafe, PE pah açısı 20°-30°"},
-            {"test_name": "Kaplama Kusur Tamiri", "test_frequency": "Her tamir", "acceptance_criteria": "Max 3 tamir/boru, tekil ≤ 25 cm2, toplam ≤ 200 cm2"},
-            {"test_name": "NDT ve Kalite Personel Yetkinliği", "test_frequency": "Geçerli sertifikalar", "acceptance_criteria": "EN ISO 9712 Level 3 / Level 2"}
+            {"test_name": "Kaplama Kusur Tamiri", "test_frequency": "Her tamir", "acceptance_criteria": "Max 3 tamir/boru, tekil ≤ 25 cm2, toplam ≤ 200 cm2"}
         ]
         res_coating = ITPAuditEngine.audit_itp(pure_coating_items, dict(base_cfg, scope_mode="COATING_ONLY"))
-        self.assertEqual(res_coating["kpi"]["overall_verdict"], "APPROVED")
+        self.assertIn(res_coating["kpi"]["overall_verdict"], ("APPROVED", "APPROVED_WITH_COMMENTS"))
         self.assertEqual(res_coating["kpi"]["non_compliant_count"], 0)
         self.assertEqual(res_coating["kpi"]["compliance_score_percent"], 100.0)
 

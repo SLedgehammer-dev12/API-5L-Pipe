@@ -503,6 +503,7 @@ def get_comprehensive_itp_specification(pipe_config: Optional[Dict[str, Any]] = 
 
     is_smls = "SMLS" in process or "SEAMLESS" in process or "DIKISSIZ" in process
     is_welded = not is_smls
+    is_saw = is_welded and any(p in process for p in ("SAW", "SAWH", "LSAW", "COW"))
     is_psl1 = "PSL1" in psl_level
     freq_tbl = "Çizelge 17 (Table 17)" if is_psl1 else "Çizelge 18 (Table 18)"
     piece_tbl = "Çizelge 19 (Table 19)" if is_psl1 else "Çizelge 20 (Table 20)"
@@ -725,7 +726,7 @@ def get_comprehensive_itp_specification(pipe_config: Optional[Dict[str, Any]] = 
 
     # 6. CVN Weld & HAZ Impact
     if is_welded and not is_psl1:
-        w_avg = 45.0 if (is_botas and grade in ("X60", "X65", "X70")) else cvn.get("weld_avg_j", 27.0)
+        w_avg = cvn.get("notch_impact_weld_j", 36.0 if is_botas else 27.0)
         w_min = round(w_avg * 0.75, 1)
         temp_str = "-20 °C" if is_botas else "0 °C"
         master_list.append({
@@ -763,8 +764,8 @@ def get_comprehensive_itp_specification(pipe_config: Optional[Dict[str, Any]] = 
             "is_mandatory": True,
         })
 
-    # 8. Guided Bend (Welded)
-    if is_welded:
+    # 8. Guided Bend (Welded SAW / COW only - Not applicable to ERW/HFW)
+    if is_welded and not ("ERW" in process or "HFW" in process):
         master_list.append({
             "test_key": "guided_bend",
             "category": "Tahribatlı Mekanik",
@@ -799,8 +800,8 @@ def get_comprehensive_itp_specification(pipe_config: Optional[Dict[str, Any]] = 
         "is_mandatory": True,
     })
 
-    # 10. Residual Stress Test (BOTAŞ Mandatory for welded SAWH / LSAW)
-    if is_welded and is_botas:
+    # 10. Residual Stress Test (BOTAŞ Mandatory for welded SAWH / LSAW only - Not applicable to ERW/HFW)
+    if is_botas and (is_saw or "SAW" in process or "SAWH" in process or "LSAW" in process or "COW" in process):
         master_list.append({
             "test_key": "residual_stress",
             "category": "Tahribatlı Mekanik",
@@ -1150,7 +1151,7 @@ def get_comprehensive_itp_specification(pipe_config: Optional[Dict[str, Any]] = 
         "test_name": "Boru Toplam Doğrusallığı (Straightness Deviation)",
         "standard_frequency": "Her boru (%100)",
         "standard_frequency_en": "Each pipe (100%)",
-        "standard_acceptance_criteria": f"Toplam boy boyunca doğrusallıktan sapma ≤ %{straightness_pct:.2f} L (Uçtan 1m bölgede ≤ 3.2 mm / BOTAŞ ≤ 2.0 mm)",
+        "standard_acceptance_criteria": f"Toplam boy boyunca doğrusallıktan sapma ≤ %{straightness_pct:.2f} L (Uç 1.5 m bölgede sapma ≤ 3.2 mm)",
         "clause_ref": "BOTAŞ Şartnamesi Madde 5.4" if is_botas else "API 5L Madde 9.11.3.4 & Çizelge 12",
         "table_ref": "BOTAŞ Madde 5.4" if is_botas else f"{freq_tbl} / Çizelge 12",
         "ndt_method_standard": "Gergi Teli (Piano Wire) / Lazer Doğrusallık Mastarı",
@@ -1436,7 +1437,7 @@ def get_comprehensive_itp_specification(pipe_config: Optional[Dict[str, Any]] = 
     if scope_mode == "COATING_ONLY":
         master_list = [
             it for it in master_list
-            if it.get("is_coating", False) or it.get("test_key") == "personnel_qualification_ndt"
+            if it.get("is_coating", False)
         ]
     elif scope_mode == "BARE_PIPE_ONLY":
         master_list = [

@@ -395,7 +395,23 @@ async def upload_and_audit_itp(
         if det_k in detected_meta and (k not in pipe_config or pipe_config.get(k) in (None, "", "auto", "default")):
             effective_config[k] = detected_meta[det_k]
 
-    audit_res = ITPAuditEngine.audit_itp(extracted_items, effective_config)
+    # Multi-variant detection: same diameter with several wall thicknesses (e.g. 914.4×11.10/12.70/15.90/17.50)
+    scope_variants = detected_meta.get("scope_variants", []) if isinstance(detected_meta, dict) else []
+    variant_audits: list = []
+    if scope_variants and len(scope_variants) > 1:
+        # Use detected scope table to audit each pipe geometry separately
+        for var in scope_variants:
+            var_cfg = dict(effective_config)
+            var_cfg["diameter_mm"] = var.get("diameter_mm", effective_config.get("diameter_mm"))
+            var_cfg["diameter_inch"] = var.get("diameter_inch", effective_config.get("diameter_inch"))
+            var_cfg["wall_thickness_mm"] = var.get("wall_thickness_mm", effective_config.get("wall_thickness_mm"))
+            var_cfg["material_grade"] = var.get("material_grade", effective_config.get("material_grade"))
+            var_audit = ITPAuditEngine.audit_itp(extracted_items, var_cfg)
+            variant_audits.append({"pipe_config": var_cfg, "audit_result": var_audit})
+        # Primary audit remains first variant for backward compat
+        audit_res = variant_audits[0]["audit_result"] if variant_audits else ITPAuditEngine.audit_itp(extracted_items, effective_config)
+    else:
+        audit_res = ITPAuditEngine.audit_itp(extracted_items, effective_config)
 
     # Persist in current project state if available
     try:
@@ -406,7 +422,8 @@ async def upload_and_audit_itp(
                 "engine": parse_result.get("engine", "Unlimited-OCR"),
                 "detected_metadata": detected_meta,
                 "effective_config": effective_config,
-                "audit_result": audit_res
+                "audit_result": audit_res,
+                "variant_audits": variant_audits
             }
     except Exception as e:
         logger.debug(f"Project state save debug: {e}")
@@ -420,7 +437,9 @@ async def upload_and_audit_itp(
         "extracted_items": extracted_items,
         "detected_metadata": detected_meta,
         "effective_config": effective_config,
-        "audit_result": audit_res
+        "audit_result": audit_res,
+        "variant_audits": variant_audits,
+        "scope_variants": scope_variants
     })
 
 @app.post("/api/itp/audit-manual")

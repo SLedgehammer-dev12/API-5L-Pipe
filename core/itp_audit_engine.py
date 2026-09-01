@@ -561,13 +561,13 @@ class ITPAuditEngine:
         bare_total = len(bare_rows)
         bare_more_str = sum(1 for r in bare_rows if r["status"] == "MORE_STRINGENT")
         bare_comp = sum(1 for r in bare_rows if r["status"] == "COMPLIANT")
-        bare_score = max(0.0, round(((bare_comp + (0.5 * bare_more_str)) / bare_total) * 100.0, 1)) if bare_total > 0 else None
+        bare_score = max(0.0, round(((bare_comp + bare_more_str) / bare_total) * 100.0, 1)) if bare_total > 0 else None
 
         # Coating score
         coat_total = len(coat_rows)
         coat_more_str = sum(1 for r in coat_rows if r["status"] == "MORE_STRINGENT")
         coat_comp = sum(1 for r in coat_rows if r["status"] == "COMPLIANT")
-        coat_score = max(0.0, round(((coat_comp + (0.5 * coat_more_str)) / coat_total) * 100.0, 1)) if coat_total > 0 else None
+        coat_score = max(0.0, round(((coat_comp + coat_more_str) / coat_total) * 100.0, 1)) if coat_total > 0 else None
 
         total_rows = len(audit_rows)
         non_compliant_count = sum(1 for r in audit_rows if r["status"] == "NON_COMPLIANT")
@@ -702,7 +702,7 @@ class ITPAuditEngine:
         # 2a. CVN Body Impact
         if test_key == "cvn_body":
             parsed_cvn = ITPCriteriaParser.parse_cvn_criteria(f"{up_crit_lower} {up_name.lower()}")
-            req_avg = float(calc_targets.get("avg_j", 60.0 if is_botas else 41.0))
+            req_avg = float(calc_targets.get("avg_j", 48.0 if (is_botas and "X52" in str(pipe_config.get("material_grade", ""))) else (60.0 if is_botas else 41.0)))
             if parsed_cvn["energy_avg_j"] is not None:
                 val = parsed_cvn["energy_avg_j"]
                 if val < req_avg:
@@ -721,7 +721,7 @@ class ITPAuditEngine:
         # 2b. CVN Weld & HAZ Impact
         elif test_key == "cvn_weld_haz":
             parsed_cvn = ITPCriteriaParser.parse_cvn_criteria(f"{up_crit_lower} {up_name.lower()}")
-            req_avg = float(calc_targets.get("avg_j", 45.0 if is_botas else 27.0))
+            req_avg = float(calc_targets.get("avg_j", 36.0 if (is_botas and "X52" in str(pipe_config.get("material_grade", ""))) else (45.0 if is_botas else 27.0)))
             if parsed_cvn["energy_avg_j"] is not None:
                 val = parsed_cvn["energy_avg_j"]
                 if val < req_avg:
