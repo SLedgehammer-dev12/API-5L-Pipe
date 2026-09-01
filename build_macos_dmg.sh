@@ -20,6 +20,9 @@ echo "  📦 Building macOS .app and .dmg for ${APP_NAME} v${VERSION}"
 echo "  💻 Architecture: $(uname -m)"
 echo "======================================================================"
 
+export KIVY_NO_CONFIG=1
+export KIVY_NO_FILELOG=1
+
 # Build .app bundle using PyInstaller without UPX (UPX triggers false antivirus heuristics)
 echo "🔨 Compiling standalone binary..."
 pyinstaller \
@@ -27,13 +30,13 @@ pyinstaller \
     --windowed \
     --noconfirm \
     --noupx \
-    --icon "static/icon/app_icon.icns" \
+    --icon "$DIR/static/icon/app_icon.icns" \
     --workpath "$BUILD_DIR" \
     --distpath "$DIST_DIR" \
     --specpath "$BUILD_DIR" \
-    --add-data "static:static" \
-    --add-data "templates:templates" \
-    --add-data "core:core" \
+    --add-data "$DIR/static:static" \
+    --add-data "$DIR/templates:templates" \
+    --add-data "$DIR/core:core" \
     --hidden-import "app" \
     --hidden-import "core" \
     --hidden-import "core.database" \

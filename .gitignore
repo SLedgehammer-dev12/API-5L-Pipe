@@ -20,3 +20,5 @@ ENV/
 ~$*.xlsx
 *.pipeproj_temp
 .pytest_cache/
+build/
+dist/
