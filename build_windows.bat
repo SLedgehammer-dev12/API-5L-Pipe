@@ -55,6 +55,12 @@ pyinstaller --name "API-5L-Pipe-Windows-x64-v%VERSION%" ^
     --hidden-import "openpyxl" ^
     --hidden-import "jinja2" ^
     --hidden-import "pydantic" ^
+    --hidden-import "core.pdf_exporter" ^
+    --hidden-import "core.unlimited_ocr_engine" ^
+    --hidden-import "core.itp_audit_engine" ^
+    --hidden-import "core.sawh_engine" ^
+    --collect-all reportlab ^
+    --collect-all fitz ^
     --collect-all httpx ^
     --collect-all anyio ^
     --collect-all httpcore ^
