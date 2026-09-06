@@ -3,7 +3,35 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.9.0] - 2026-08-31 (BOTAŞ 75/82.5 Bar İstasyon Ayrımı, Kullanıcı Tanımlı Korozyon Payı & Negatif Tolerans Esnekliği)
+## [2.7.0] - 2026-09-06 (Doğal Gaz Boru Hatları 3LPE, İç Epoksi, FBE/ARO ITP Kütüphanesi & Ağır Et Kalınlığı Desteği)
+
+### 🎉 Eklenen Özellikler (Added)
+- **Doğal Gaz Boru Hatları Kapsamlı ITP Kütüphanesi (26 Doküman):**
+  - **3LPE Dış Polietilen Kaplama ITP** (`18_API_5L_42in_X70_3LPE_Polyethylene_Coated_Gas_Mainline_ITP.pdf`): ISO 21809-1 / DIN 30670 / BOTAŞ uyumlu, 22 kritik adımlı denetim matrisi (Sa 2.5, 25 kV holiday testi, soyulma, katodik ayrılma, darbe ve batma direnci).
+  - **İç Akış Artırıcı Epoksi Kaplama ITP** (`19_API_RP_5L2_Internal_Flow_Efficiency_Epoxy_Coated_Gas_Pipe_ITP.pdf`): API RP 5L2 / ISO 15741 uyumlu (Rz <= 25 µm pürüzlülük ile gaz debi artışı, hızlı dekompresyon testi, MEK çift silme, çapraz kesme).
+  - **Çift Katmanlı FBE/ARO Kaplama ITP** (`20_API_5L_Dual_Layer_FBE_Coated_Gas_Pipeline_ITP.pdf`): CSA Z245.20 / NACE SP0394 uyumlu yatay sondaj (HDD) ve aşınma korumalı kaplama denetimi.
+  - **56" X80 Ağır Etli Mega Gaz Hattı ITP** (`21_API_5L_56in_X80_Heavy_Wall_Gas_Mainline_ITP.pdf`): API 5L PSL 2 / ISO 3183 ultra yüksek basınç (120 bar) 190.5 bar hidrostatik testli boru denetimi.
+  - **IOGP JIP33 Uluslararası ITP Dokümanları** (`S-616Q`, `S-616`, `S-715Q`) ve TPI bağımsız gözetim matrisleri sisteme entegre edildi.
+- **Golden Master Regresyon Sistemi:** 26 ITP dosyasının tamamı için OCR ve denetim özetleri otomatik üretildi (`tests/golden_master/`).
+- **93/93 Kapsamlı Test Süiti:** Tüm birim ve regresyon testleri 93 teste genişletildi ve %100 başarı sağlandı.
+
+### 🛠️ Düzeltmeler (Fixed)
+- **Ağır Et Kalınlığı ($t > 25.0\text{ mm}$) Desteği:** API 5L Madde 9.2.3 uyarınca kimyasal analizin anlaşmaya bağlı (`as_agreed`) olduğu durumlarda `NoneType` formatlama hatası giderildi.
+- **OCR Sayfa Tablosu İzolasyonu:** Uluslararası ITP matrislerinde çok sütunlu sayfa yapılarında en az 1 madde tespit doğrulama esnekliği sağlandı.
+
+---
+
+## [2.6.0] - 2026-09-02 (Çoklu Ebat/Kapsam Denetimi, Teslim Koşulu Ayrıştırma, Türkçe Karakter Normalizasyonu)
+
+### 🎉 Eklenen Özellikler (Added)
+- **Çoklu Ebat (Multi-Variant) ITP Denetimi:** Kapsam ve hidrostatik test tablolarından aynı çapta birden fazla et kalınlığını tespit edebilme ve tüm varyantlar için denetim üretebilme (TOS-001: 4 varyant).
+- **Teslim Koşulu (M/N/Q/R) & Kalite Soneki Çıkarımı:** Çelik kalitesi ile birleşik gelen teslim koşullarını (X65M, X70M, X52M vb.) ayrıştırma.
+- **Sadece Kaplama (Coating-Only) Kapsam Desteği:** DIN 30670 kaplama ITP'lerinde boru imalat maddelerini filtreleme.
+- **Türkçe İ/ı ve Büyük/Küçük Harf Normalizasyonu (`_norm_tr`):** OCR çıktılarındaki Türkçe karakter uyuşmazlıklarının giderilmesi.
+
+---
+
+
 
 ### 🎉 Eklenen Özellikler (Added)
 - **BOTAŞ F=0.50 İstasyon Et Kalınlığı Ayrımı (75 Bar vs 82.5 Bar):** BOTAŞ standart veritabanında istasyon boruları için 75 bar (`0.50_ist_75bar`) ve 82.5 bar (`0.50_ist_82_5bar`) et kalınlıkları ayrıştırıldı.

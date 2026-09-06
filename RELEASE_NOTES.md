@@ -1,8 +1,41 @@
-# Sürüm Notları / Release Notes - v2.5.0
+# Sürüm Notları / Release Notes - v2.7.0
 
-## 🚀 API 5L PSL1/PSL2 & BOTAŞ Boru Kalite Güvence, Et Kalınlığı Tasarım ve Akıllı ITP Denetim Süiti (v2.5.0)
+## 🚀 API 5L PSL1/PSL2 & BOTAŞ Boru Kalite Güvence, Et Kalınlığı Tasarım ve Akıllı ITP Denetim Süiti (v2.7.0)
 
-Bu sürüm (**v2.5.0**), **API Spec 5L 46. & 47. Baskı Dinamik Standart Seçicisi**, **Çıplak Boru & 3LPE Dış Kaplama Hibrit Çift Skorlama Sistemi**, **H/W/R/I/C Şahitlik ve Durdurma Noktaları İzolasyonu**, **Çok Sayfalı Birleştirilmiş Tablo & Sayısal Eşik Doğrulama Motoru** ve **64/64 Kapsamlı Test Süiti** ile ITP denetimlerini eksiksiz kılmaktadır.
+Bu sürüm (**v2.7.0**), **Doğal Gaz Boru Hatları 3LPE Dış Polietilen Kaplama**, **İç Akış Artırıcı Epoksi Kaplama**, **Çift Katmanlı FBE/ARO**, **Ağır Etli (t > 25 mm) Mega Boru Desteği**, **Uluslararası IOGP JIP33 Kalite Dokümanları Entegrasyonu** ve **93/93 Kapsamlı Test Süiti** ile ITP denetimlerini eksiksiz kılmaktadır.
+
+---
+
+### 🌟 v2.7.0 ile Gelen Başlıca Yenilikler
+
+1. **📦 Genişletilmiş Doğal Gaz Boru Hattı ITP Kütüphanesi (26 Doküman):**
+   - **3LPE Dış Kaplama:** ISO 21809-1 / DIN 30670 / BOTAŞ uyumlu, 22 kritik adımlı denetim matrisi (Sa 2.5, 25 kV holiday testi, soyulma, katodik ayrılma, darbe ve batma direnci).
+   - **İç Akış Artırıcı Epoksi Kaplama:** API RP 5L2 / ISO 15741 uyumlu (Rz <= 25 µm hidrolik pürüzlülük ile gaz debi artışı, hızlı gaz dekompresyon testi, MEK 50 çift silme).
+   - **Çift Katmanlı FBE/ARO Kaplama:** CSA Z245.20 / NACE SP0394 uyumlu yatay sondaj (HDD) ve aşınma korumalı kaplama denetimi.
+   - **56" X80 Ağır Etli Mega Boru:** API 5L PSL 2 / ISO 3183 ultra yüksek basınç (120 bar) 190.5 bar hidrostatik testli boru denetimi.
+   - **IOGP JIP33 Kalite Standartları:** S-616Q, S-616 ve S-715Q normatif gözetim matrisleri sisteme entegre edildi.
+
+2. **⚙️ Ağır Et Kalınlığı ($t > 25.0\text{ mm}$) API 5L 9.2.3 Desteği:**
+   - Ağır et kalınlıklarında API 5L Madde 9.2.3 uyarınca kimyasal analizin anlaşmaya bağlı (`as_agreed`) olduğu durumlar güvenli varsayılan değerlerle desteklenerek olası `NoneType` formatlama açıkları giderildi.
+
+3. **🧪 93/93 Kapsamlı Test Süiti (%100 PASS):**
+   - 26 ITP dosyasının tamamı deterministik golden master testleriyle indekslendi, 93 testin tamamı 0 hata ile doğrulandı.
+
+---
+
+### 💻 İndirme Bağlantıları (v2.7.0)
+
+- **🪟 Windows (x64):**  
+  [**`API-5L-Pipe-Windows-x64-v2.7.0.exe` İndir**](https://github.com/SLedgehammer-dev12/API-5L-Pipe/releases/download/v2.7.0/API-5L-Pipe-Windows-x64-v2.7.0.exe)  
+  *Tek dosyadır, kurulum gerektirmez. Doğrudan çift tıklayarak çalıştırabilirsiniz.*
+
+- **🍏 macOS (Apple Silicon M1/M2/M3/M4 & Intel):**  
+  [**`API-5L-Pipe-macOS-v2.7.0.dmg` İndir**](https://github.com/SLedgehammer-dev12/API-5L-Pipe/releases/download/v2.7.0/API-5L-Pipe-macOS-v2.7.0.dmg)  
+  *Disk kalıbını açıp `API-5L-Pipe.app` uygulamasını Applications klasörüne sürükleyin.*
+
+---
+
+### Sürüm Özeti - v2.5.0 (2026-09-01)
 
 ---
 

@@ -1,9 +1,28 @@
-# What's New in API 5L Pipe QA/QC & Wall Thickness Suite (v2.5.0)
-## Yenilikler ve Sürüm Özeti - v2.5.0 (2026-09-01)
+# What's New in API 5L Pipe QA/QC & Wall Thickness Suite (v2.7.0)
+## Yenilikler ve Sürüm Özeti - v2.7.0 (2026-09-06)
 
 ---
 
-### 🇹🇷 Türkçe Özet (v2.5.0)
+### 🇹🇷 Türkçe Özet (v2.7.0)
+
+API 5L Pipe QA/QC Suite **v2.7.0** sürümü ile birlikte **Doğal Gaz Boru Hatları 3LPE Dış Polietilen Kaplama**, **İç Akış Artırıcı Sıvı Epoksi Kaplama**, **Çift Katmanlı FBE/ARO Kaplama**, **Ağır Et Kalınlığı (t > 25 mm) Desteği**, **IOGP JIP33 Kalite ve Şartname Entegrasyonu** ve **93/93 Kapsamlı Test Süiti** entegre edilmiştir:
+
+#### 1. 📦 Kapsamlı Doğal Gaz Boru Hattı ITP Kütüphanesi (26 Doküman)
+- **3LPE Dış Polietilen Kaplama (ISO 21809-1 / DIN 30670 / BOTAŞ):** 22 maddelik eksiksiz kaplama ITP'si. Sa 2.5 kumlama, Rz 60-100 µm angular profil, Bresle tuzu $\le 20\text{ mg/m}^2$, FBE ve yapıştırıcı katmanları, min 3.0 mm HDPE ekstrüzyon, 25 kV %100 holiday testi, 23 °C'de $\ge 35\text{ N/cm}$ ve 50 °C'de $\ge 15\text{ N/cm}$ soyulma dayanımı, katodik ayrılma ve darbe/batma direnci kontrolleri.
+- **İç Akış Artırıcı Sıvı Epoksi Kaplama (API RP 5L2 / ISO 15741):** 50-75 µm kuru film kalınlığı, gaz debisinde %5-8 hidrolik artış sağlayan $Rz \le 25\ \mu\text{m}$ yüzey pürüzlülüğü, MEK 50 çift silme kürlenme testi, Sınıf 0 çapraz kesme yapışma ve 100 bar ani gaz dekompresyonunda sıfır kabarma kriterleri.
+- **Çift Katmanlı FBE/ARO Kaplama (CSA Z245.20 / NACE SP0394):** Yatay sondaj ve zorlu zeminler için 750-1000 µm toplam kalınlık, taban korozyon katmanı + darbe/aşınma dirençli ARO üst katman, DSC termal analizi ve -30 °C'de mandrel bükme testi.
+- **56" X80 Ağır Etli Mega Gaz Hattı (API 5L PSL 2):** 25.40 mm et kalınlığında ultra temiz çelik, 190.5 bar (%100 SMYS) 20 saniye hidrostatik test, -20 °C'de 100 Joule darbe tokluğu ve %100 AUT/RT NDT denetimleri.
+- **IOGP JIP33 Kalite Standartları:** S-616Q, S-616 ve S-715Q normatif gözetim matrisleri sisteme dahil edildi.
+
+#### 2. ⚙️ Ağır Et Kalınlığı ($t > 25.0\text{ mm}$) API 5L 9.2.3 Desteği
+- $t > 25.0\text{ mm}$ ağır etli borularda API 5L Madde 9.2.3 uyarınca kimyasal analizin anlaşmaya bağlı (`as_agreed`) olduğu durumlar güvenli varsayılan değerlerle desteklenerek olası `NoneType` formatlama açıkları giderildi.
+
+#### 3. 🧪 93/93 Kapsamlı Test Süiti (%100 PASS)
+- 26 ITP dosyasının tamamı deterministik golden master testleriyle indekslendi, 93 testin tamamı 0 hata ile doğrulandı.
+
+---
+
+### Yenilikler ve Sürüm Özeti - v2.5.0 (2026-09-01)
 
 API 5L Pipe QA/QC Suite **v2.5.0** sürümü ile birlikte **API Spec 5L 46. & 47. Baskı Dinamik Standart Seçicisi**, **Çıplak Boru & 3LPE Dış Kaplama Hibrit Çift Skorlama Sistemi**, **H/W/R/I/C Şahitlik ve Durdurma Noktaları İzolasyonu**, **Çok Sayfalı Birleştirilmiş Tablo & Sayısal Eşik Doğrulama Motoru** ve **64/64 Kapsamlı Test Süiti** entegre edilmiştir:
 

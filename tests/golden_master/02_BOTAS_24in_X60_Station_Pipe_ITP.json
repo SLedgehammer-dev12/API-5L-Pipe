@@ -1,0 +1,710 @@
+{
+  "file": "02_BOTAS_24in_X60_Station_Pipe_ITP.pdf",
+  "metadata": {
+    "detected_diameter_mm": 610.0,
+    "detected_diameter_inch": "24\"",
+    "detected_wall_thickness_mm": 12.7,
+    "detected_grade": "X60",
+    "detected_process": "LSAW",
+    "detected_standard": "BOTAŞ",
+    "detected_psl": "PSL2",
+    "detected_scope_mode": "BARE_PIPE_ONLY",
+    "scope_variants_count": 0
+  },
+  "parse_result": {
+    "status": "success",
+    "is_fallback": false,
+    "items_count": 13
+  },
+  "pipe_config_used": {
+    "diameter_mm": 610.0,
+    "diameter_inch": "24\"",
+    "wall_thickness_mm": 12.7,
+    "material_grade": "X60",
+    "manufacturing_process": "LSAW",
+    "standard_type": "BOTAŞ",
+    "psl_level": "PSL2",
+    "delivery_condition": "M"
+  },
+  "kpi": {
+    "total_tests_audited": 42,
+    "compliant_count": 11,
+    "more_stringent_count": 0,
+    "non_compliant_count": 31,
+    "bare_pipe_score_percent": 33.3,
+    "coating_score_percent": 0.0,
+    "overall_verdict": "REJECTED"
+  },
+  "audit_rows": [
+    {
+      "test_name": "Isı Analizi (Heat Analysis)",
+      "status": "NON_COMPLIANT",
+      "issue_type": "CRITERIA_VIOLATION",
+      "uploaded_frequency": "Once per heat of steel",
+      "standard_frequency": "Hammadde: ebat bazında her döküm (per heat)",
+      "uploaded_criteria": "C <= 0.16%, P <= 0.025%, S <= 0.010%, CE IIW _ <= 0.40",
+      "standard_criteria": "C ≤ 0.12%, P ≤ 0.025%, S ≤ 0.010%, N ≤ 0.009%, CE_IIW ≤ 0.40 (BOTAŞ Madde 3.2 & Tablo 1)",
+      "audit_remarks": "🔴 YÜKSEK KARBON LİMİTİ: C max %0.12 olmalıdır; ITP'de %0.16 yazılmıştır!"
+    },
+    {
+      "test_name": "Ürün Analizi (Product Analysis)",
+      "status": "NON_COMPLIANT",
+      "issue_type": "CRITERIA_VIOLATION",
+      "uploaded_frequency": "Two analyses per test unit",
+      "standard_frequency": "Boru: ebat bazında her lot (per test unit)",
+      "uploaded_criteria": "C <= 0.16%, P <= 0.025%, S <= 0.010%, CE Pcm <= 0.22 _",
+      "standard_criteria": "C ≤ 0.12%, P ≤ 0.025%, S ≤ 0.010%, N ≤ 0.009%, CE_IIW ≤ 0.40 (BOTAŞ Madde 3.2 & Tablo 1)",
+      "audit_remarks": "🔴 YÜKSEK KARBON LİMİTİ: C max %0.12 olmalıdır; ITP'de %0.16 yazılmıştır!"
+    },
+    {
+      "test_name": "Gövde Çekme Testi (Pipe Body Tensile)",
+      "status": "COMPLIANT",
+      "issue_type": "CONFORMING",
+      "uploaded_frequency": "2 sets per test unit (1 for IDARE 5 yrs)",
+      "standard_frequency": "Test ünitesi (lot) başına 2 set numune (1. set test, 2. set 5 yıl saklanır)",
+      "uploaded_criteria": "Rt0.5 >= 415 MPa, Rm: 520-760 MPa, Af >= 21%, Y/T <= 0.90",
+      "standard_criteria": "Rt0.5: 415.0 - 565.0 MPa, Rm: 520.0 - 760.0 MPa, Af ≥ 16.1%, Y/T ≤ 0.90",
+      "audit_remarks": "🟢 BOTAŞ Çelik Boru Şartnamesi (4-NGTL-0-GN-P-002-5120 R7) ve hesaplanan boru parametrelerine tam uyumludur."
+    },
+    {
+      "test_name": "Kaynak Çekme Testi (Weld Tensile)",
+      "status": "COMPLIANT",
+      "issue_type": "CONFORMING",
+      "uploaded_frequency": "2 sets per test unit",
+      "standard_frequency": "Test ünitesi (lot) başına 1 test",
+      "uploaded_criteria": "Rm >= 520 MPa across weld, Elongation >= 10%",
+      "standard_criteria": "Rm ≥ 520.0 MPa, Min uzama ≥ %10 (BOTAŞ Madde 3.3.2.3)",
+      "audit_remarks": "🟢 BOTAŞ Çelik Boru Şartnamesi (4-NGTL-0-GN-P-002-5120 R7) ve hesaplanan boru parametrelerine tam uyumludur."
+    },
+    {
+      "test_name": "Gövde Çentik Darbe Testi (CVN Body Impact)",
+      "status": "NON_COMPLIANT",
+      "issue_type": "MISSING_MANDATORY_TEST",
+      "uploaded_frequency": "— (Dokümanda Tespit Edilemedi)",
+      "standard_frequency": "Test ünitesi (lot) başına 1 set (3 numune) (-20 °C'de test)",
+      "uploaded_criteria": "—",
+      "standard_criteria": "Gövde (-20 °C): Min Ort. 60 J, Min Tek 45 J (BOTAŞ Tablo 3)",
+      "audit_remarks": "🔴 ZORUNLU TEST EKSİK VEYA DOKÜMANDA ALGILANAMADI: BOTAŞ Şartnamesi Madde 3.3.5 & Tablo 3 kapsamındaki bu test imalatçı ITP'sinde yer almamakta veya otomatik tespit edilememiştir; lütfen manuel doğrulayınız."
+    },
+    {
+      "test_name": "Kaynak & ITAB Çentik Darbe (CVN Weld & HAZ)",
+      "status": "COMPLIANT",
+      "issue_type": "CONFORMING",
+      "uploaded_frequency": "1 set weld + 1 set HAZ at -20 °C",
+      "standard_frequency": "Test ünitesi başına 1 set kaynak + 1 set ITAB (3+3 numune) (-20 °C test)",
+      "uploaded_criteria": "At -20 °C: Min Avg 45 Joules, Min Individual 34 Joules",
+      "standard_criteria": "Kaynak & ITAB (-20 °C): Min Ort. 45 J, Min Tek 34 J (BOTAŞ Tablo 3)",
+      "audit_remarks": "🟢 BOTAŞ Çelik Boru Şartnamesi (4-NGTL-0-GN-P-002-5120 R7) ve hesaplanan boru parametrelerine tam uyumludur."
+    },
+    {
+      "test_name": "DWTT (Düşen Ağırlık Yırtılma Testi)",
+      "status": "COMPLIANT",
+      "issue_type": "CONFORMING",
+      "uploaded_frequency": "Once per heat at 0 °C",
+      "standard_frequency": "Isı / test ünitesi başına 1 test (2 numune) (0 °C test)",
+      "uploaded_criteria": "At 0 °C: Average shear area >= 85%, No single specimen < 60%",
+      "standard_criteria": "Ortalama sünek kırılma alanı ≥ %85 ve hiçbir münferit numune < %60 olamaz (0 °C / BOTAŞ Madde 3.3.6.4)",
+      "audit_remarks": "🟢 BOTAŞ Çelik Boru Şartnamesi (4-NGTL-0-GN-P-002-5120 R7) ve hesaplanan boru parametrelerine tam uyumludur."
+    },
+    {
+      "test_name": "Kılavuzlu Bükme Testi (Guided-Bend)",
+      "status": "NON_COMPLIANT",
+      "issue_type": "MISSING_MANDATORY_TEST",
+      "uploaded_frequency": "— (Dokümanda Tespit Edilemedi)",
+      "standard_frequency": "Test ünitesi (lot) başına 1 set (1 kök + 1 kapak veya 2 yan bükme)",
+      "uploaded_criteria": "—",
+      "standard_criteria": "Mandrel Ag: 200.0 mm, Çene Bg: 228.6 mm; 180° bükmede kaynak/ITAB'da > 3.2 mm çatlak oluşmayacak",
+      "audit_remarks": "🔴 ZORUNLU TEST EKSİK VEYA DOKÜMANDA ALGILANAMADI: BOTAŞ Madde 3.1.6 & 3.3.4 / API 5L 9.7 & 10.2.4.6 kapsamındaki bu test imalatçı ITP'sinde yer almamakta veya otomatik tespit edilememiştir; lütfen manuel doğrulayınız."
+    },
+    {
+      "test_name": "Sertlik Testi (Hardness Testing)",
+      "status": "NON_COMPLIANT",
+      "issue_type": "MISSING_MANDATORY_TEST",
+      "uploaded_frequency": "— (Dokümanda Tespit Edilemedi)",
+      "standard_frequency": "Test ünitesi (lot) başına 1 makro enine kesit",
+      "uploaded_criteria": "—",
+      "standard_criteria": "Maksimum 300 HV10 (Aşılması durumunda o dökümdeki boruların %100'ü test edilir)",
+      "audit_remarks": "🔴 ZORUNLU TEST EKSİK VEYA DOKÜMANDA ALGILANAMADI: BOTAŞ Şartnamesi Madde 3.3.7 kapsamındaki bu test imalatçı ITP'sinde yer almamakta veya otomatik tespit edilememiştir; lütfen manuel doğrulayınız."
+    },
+    {
+      "test_name": "Artık Stres Testi (Residual Stress Ring Test)",
+      "status": "COMPLIANT",
+      "issue_type": "CONFORMING",
+      "uploaded_frequency": "Every heat (per heat mandatory)",
+      "standard_frequency": "Her çap ve et kalınlığı için ve ÇAP/ET KALINLIĞI DEĞİŞMESE DAHİ HER DÖKÜM (HEAT) İÇİN 1 halka",
+      "uploaded_criteria": "S <= 0.10 x SMYS (Max 41.5 MPa)",
+      "standard_criteria": "Artık stres S ≤ 41.5 MPa (0.10 × SMYS), Halka açılma Δ ≤ 3.50 mm (BOTAŞ Madde 3.3.9)",
+      "audit_remarks": "🟢 BOTAŞ Çelik Boru Şartnamesi (4-NGTL-0-GN-P-002-5120 R7) ve hesaplanan boru parametrelerine tam uyumludur."
+    },
+    {
+      "test_name": "Fabrika Hidrostatik Basınç Testi",
+      "status": "NON_COMPLIANT",
+      "issue_type": "CRITERIA_VIOLATION",
+      "uploaded_frequency": "Each pipe (100% all pipes)",
+      "standard_frequency": "Her boru (%100 tüm borular)",
+      "uploaded_criteria": "Pressure: 100% SMYS (170 bar), Duration: MINIMUM 20 SECONDS",
+      "standard_criteria": "Min Test Basıncı: 172.8 bar (SMYS %100, +0/-2 bar), Min Tutma Süresi: 20 saniye (BOTAŞ Madde 8.4)",
+      "audit_remarks": "🔴 DÜŞÜK HİDROSTATİK BASINÇ: Boru için hesaplanan fabrika test basıncı 172.8 bar (Kabul: min 170.8 bar) iken ITP'de 170.0 bar taahhüt edilmiş!"
+    },
+    {
+      "test_name": "Kaynak Dikişi %100 Tahribatsız Muayene (UT / RT)",
+      "status": "COMPLIANT",
+      "issue_type": "CONFORMING",
+      "uploaded_frequency": "100% full length of weld",
+      "standard_frequency": "Her kaynaklı boru tam boy dikişi (%100)",
+      "uploaded_criteria": "100% Online UT inspection plus RT verification of ends",
+      "standard_criteria": "Kaynaktan hemen sonra On-line UT + Hidro/tamir/ısıl işlem sonrası Off-line Radyolojik Muayene (BOTAŞ Madde 8.8.4.2)",
+      "audit_remarks": "🟢 BOTAŞ Çelik Boru Şartnamesi (4-NGTL-0-GN-P-002-5120 R7) ve hesaplanan boru parametrelerine tam uyumludur."
+    },
+    {
+      "test_name": "Boru Gövdesi UT Laminasyon Muayenesi (Body Laminar Testing)",
+      "status": "NON_COMPLIANT",
+      "issue_type": "MISSING_MANDATORY_TEST",
+      "uploaded_frequency": "— (Dokümanda Tespit Edilemedi)",
+      "standard_frequency": "Boru formu verildikten sonra boru gövde yüzeyinin EN AZ %40'INI TARAYACAK ŞEKİLDE",
+      "uploaded_criteria": "—",
+      "standard_criteria": "ISO 12094 Sınıf B1 kabul kriterleri (Rulo/sac tamamı B1)",
+      "audit_remarks": "🔴 ZORUNLU TEST EKSİK VEYA DOKÜMANDA ALGILANAMADI: BOTAŞ Şartnamesi Madde 8.8.4.4.1 kapsamındaki bu test imalatçı ITP'sinde yer almamakta veya otomatik tespit edilememiştir; lütfen manuel doğrulayınız."
+    },
+    {
+      "test_name": "Boru Uçları Laminasyon Kontrolü (UT Laminar Testing)",
+      "status": "COMPLIANT",
+      "issue_type": "CONFORMING",
+      "uploaded_frequency": "100% of all pipe ends",
+      "standard_frequency": "Her boru (%100) uç kısımlarında en az 50 mm genişlikte bölge",
+      "uploaded_criteria": "100% pipe ends scanned (min 50 mm band, no defect)",
+      "standard_criteria": "Boru uçlarında en az 50 mm bant boyunca laminasyon kusuru bulunmayacaktır (Kusur boyutu > 6.0 mm veya > 100 mm² yasaktır)",
+      "audit_remarks": "🟢 BOTAŞ Çelik Boru Şartnamesi (4-NGTL-0-GN-P-002-5120 R7) ve hesaplanan boru parametrelerine tam uyumludur."
+    },
+    {
+      "test_name": "Kaynak Ağzı ve Tamir Yüzeyi Manyetik Parçacık (MT)",
+      "status": "NON_COMPLIANT",
+      "issue_type": "MISSING_MANDATORY_TEST",
+      "uploaded_frequency": "— (Dokümanda Tespit Edilemedi)",
+      "standard_frequency": "Her boru (%100) alın kaynak ağızları ve tüm tamir bölgeleri",
+      "uploaded_criteria": "—",
+      "standard_criteria": "Kaynak ağızlarında ve tamir yüzeyinde çatlak, katmer veya lineer kusur bulunmayacaktır",
+      "audit_remarks": "🔴 ZORUNLU TEST EKSİK VEYA DOKÜMANDA ALGILANAMADI: API 5L Ek E.6 / BOTAŞ Madde 8.8.4 kapsamındaki bu test imalatçı ITP'sinde yer almamakta veya otomatik tespit edilememiştir; lütfen manuel doğrulayınız."
+    },
+    {
+      "test_name": "Kaynak ve Gövde Tamir Kuralları (Repair Conditions)",
+      "status": "NON_COMPLIANT",
+      "issue_type": "MISSING_MANDATORY_TEST",
+      "uploaded_frequency": "— (Dokümanda Tespit Edilemedi)",
+      "standard_frequency": "Oluşan her tamir işleminde istisnasız uygulanır",
+      "uploaded_criteria": "—",
+      "standard_criteria": "Gövdeye kaynak tamiri YASAK; Tek tamir boyu ≤ 150 mm; Uçta 300 mm tamir yasağı; Re-repair YASAK; >X52 ve t>10mm için ≥ 100°C ön ısıtma; Tamir sonrası %100 RT+MT ve %100 RE-HYDRO (BOTAŞ Madde 9.1 & Ek C)",
+      "audit_remarks": "🔴 ZORUNLU TEST EKSİK VEYA DOKÜMANDA ALGILANAMADI: BOTAŞ Şartnamesi Madde 9.1 & Ek C / API 5L Ek C kapsamındaki bu test imalatçı ITP'sinde yer almamakta veya otomatik tespit edilememiştir; lütfen manuel doğrulayınız."
+    },
+    {
+      "test_name": "Kaynak Dikiş Yüksekliği (Weld Reinforcement Height - Inside & Outside)",
+      "status": "NON_COMPLIANT",
+      "issue_type": "MISSING_MANDATORY_TEST",
+      "uploaded_frequency": "— (Dokümanda Tespit Edilemedi)",
+      "standard_frequency": "Her kaynaklı boruda %100 dikiş boyunca mastar ve optik ölçüm ile",
+      "uploaded_criteria": "—",
+      "standard_criteria": "İç/Dış Kaynak Yüksekliği: 0.50 mm - 2.62 mm | Eksenel Kaçıklık ≤ 2.25 mm (BOTAŞ Çizelge 4)",
+      "audit_remarks": "🔴 ZORUNLU TEST EKSİK VEYA DOKÜMANDA ALGILANAMADI: BOTAŞ Madde 8.8.4 & Çizelge 4 / API 5L Madde 9.13 & Çizelge 16 kapsamındaki bu test imalatçı ITP'sinde yer almamakta veya otomatik tespit edilememiştir; lütfen manuel doğrulayınız."
+    },
+    {
+      "test_name": "Sac Kenarları Radyal Kaçıklık / Basamaklanma (Radial Offset)",
+      "status": "NON_COMPLIANT",
+      "issue_type": "MISSING_MANDATORY_TEST",
+      "uploaded_frequency": "— (Dokümanda Tespit Edilemedi)",
+      "standard_frequency": "Her kaynaklı boruda %100 dikiş boyunca",
+      "uploaded_criteria": "—",
+      "standard_criteria": "Radyal Kaçıklık ≤ 1.12 mm (BOTAŞ: 1.12 mm / API 5L Çizelge 14)",
+      "audit_remarks": "🔴 ZORUNLU TEST EKSİK VEYA DOKÜMANDA ALGILANAMADI: BOTAŞ Şartnamesi Madde 8.8.4 kapsamındaki bu test imalatçı ITP'sinde yer almamakta veya otomatik tespit edilememiştir; lütfen manuel doğrulayınız."
+    },
+    {
+      "test_name": "Boru Ucu Tepeleşme / Çıkıntı (Pipe End Peaking)",
+      "status": "NON_COMPLIANT",
+      "issue_type": "MISSING_MANDATORY_TEST",
+      "uploaded_frequency": "— (Dokümanda Tespit Edilemedi)",
+      "standard_frequency": "Her kaynaklı borunun her iki ucunda (%100)",
+      "uploaded_criteria": "—",
+      "standard_criteria": "Boru Ucu Tepeleşme (Peaking) ≤ 1.50 mm (BOTAŞ Çizelge 4 / API 5L Çizelge 16)",
+      "audit_remarks": "🔴 ZORUNLU TEST EKSİK VEYA DOKÜMANDA ALGILANAMADI: BOTAŞ Şartnamesi Madde 5.1 & Çizelge 4 kapsamındaki bu test imalatçı ITP'sinde yer almamakta veya otomatik tespit edilememiştir; lütfen manuel doğrulayınız."
+    },
+    {
+      "test_name": "Boru Ucu Dış Çap Toleransı (Diameter Tolerance - Pipe Ends)",
+      "status": "NON_COMPLIANT",
+      "issue_type": "MISSING_MANDATORY_TEST",
+      "uploaded_frequency": "— (Dokümanda Tespit Edilemedi)",
+      "standard_frequency": "Her borunun her iki ucunda (%100)",
+      "uploaded_criteria": "—",
+      "standard_criteria": "Uç Çapı Kabul Aralığı: 608.40 mm - 611.60 mm (+1.60 / -1.60 mm)",
+      "audit_remarks": "🔴 ZORUNLU TEST EKSİK VEYA DOKÜMANDA ALGILANAMADI: BOTAŞ Şartnamesi Madde 5.1 & 8.1.2.4 kapsamındaki bu test imalatçı ITP'sinde yer almamakta veya otomatik tespit edilememiştir; lütfen manuel doğrulayınız."
+    },
+    {
+      "test_name": "Boru Gövdesi Dış Çap Toleransı (Diameter Tolerance - Pipe Body)",
+      "status": "NON_COMPLIANT",
+      "issue_type": "INADEQUATE_FREQUENCY",
+      "uploaded_frequency": "1 set (3 specimens) per lot at -20 °C",
+      "standard_frequency": "D ≥ 20\" borularda istisnasız %100 tüm borular; D < 20\" borularda vardiya başı / periyodik",
+      "uploaded_criteria": "At -20 °C: Min Avg 60 Joules, Min Individual 45 Joules",
+      "standard_criteria": "Gövde Çapı Kabul Aralığı: 605.43 mm - 613.20 mm (+3.20 / -4.57 mm)",
+      "audit_remarks": "🔴 FREKANS YETERSİZ: Standart gereği bu test İSTİSNASIZ HER BORUDA (%100) yapılmalıdır; '1 set (3 specimens) per lot at -20 °C' kabul edilemez."
+    },
+    {
+      "test_name": "Boru Çevre Toleransı - Boru Ucu (Circumference Tolerance - Pipe Ends)",
+      "status": "NON_COMPLIANT",
+      "issue_type": "MISSING_MANDATORY_TEST",
+      "uploaded_frequency": "— (Dokümanda Tespit Edilemedi)",
+      "standard_frequency": "Her borunun her iki ucunda (%100)",
+      "uploaded_criteria": "—",
+      "standard_criteria": "Boru Ucu Çevre Kabul Aralığı: 1911.3 mm - 1921.4 mm (π·D_end)",
+      "audit_remarks": "🔴 ZORUNLU TEST EKSİK VEYA DOKÜMANDA ALGILANAMADI: BOTAŞ Şartnamesi Madde 5.1 / API 5L Madde 9.11.1 kapsamındaki bu test imalatçı ITP'sinde yer almamakta veya otomatik tespit edilememiştir; lütfen manuel doğrulayınız."
+    },
+    {
+      "test_name": "Boru Çevre Toleransı - Gövde (Circumference Tolerance - Pipe Body)",
+      "status": "NON_COMPLIANT",
+      "issue_type": "MISSING_MANDATORY_TEST",
+      "uploaded_frequency": "— (Dokümanda Tespit Edilemedi)",
+      "standard_frequency": "D ≥ 20\" borularda %100 tüm borular; D < 20\" borularda vardiya başı / periyodik",
+      "uploaded_criteria": "—",
+      "standard_criteria": "Boru Gövdesi Çevre Kabul Aralığı: 1902.0 mm - 1926.4 mm (π·D_body)",
+      "audit_remarks": "🔴 ZORUNLU TEST EKSİK VEYA DOKÜMANDA ALGILANAMADI: BOTAŞ Şartnamesi Madde 5.1 / API 5L Madde 9.11.1 kapsamındaki bu test imalatçı ITP'sinde yer almamakta veya otomatik tespit edilememiştir; lütfen manuel doğrulayınız."
+    },
+    {
+      "test_name": "Ovalite - Boru Ucu (Out-of-Roundness - Pipe Ends)",
+      "status": "COMPLIANT",
+      "issue_type": "CONFORMING",
+      "uploaded_frequency": "100% of all pipes (D, t, L)",
+      "standard_frequency": "Her borunun her iki ucunda (%100)",
+      "uploaded_criteria": "End ovality <= 50% API 5L Table 10; Straightness <= 0.10% L; t=12.70 mm (-8/+15%)",
+      "standard_criteria": "Boru Ucu Azami Ovalite: ≤ 3.05 mm (D_max - D_min ≤ 3.05 mm)",
+      "audit_remarks": "🟢 BOTAŞ Çelik Boru Şartnamesi (4-NGTL-0-GN-P-002-5120 R7) ve hesaplanan boru parametrelerine tam uyumludur."
+    },
+    {
+      "test_name": "Ovalite - Boru Gövdesi (Out-of-Roundness - Pipe Body)",
+      "status": "NON_COMPLIANT",
+      "issue_type": "MISSING_MANDATORY_TEST",
+      "uploaded_frequency": "— (Dokümanda Tespit Edilemedi)",
+      "standard_frequency": "D ≥ 20\" borularda %100 tüm borular; D < 20\" borularda vardiya başı / periyodik",
+      "uploaded_criteria": "—",
+      "standard_criteria": "Boru Gövdesi Azami Ovalite: ≤ 6.10 mm (D_max - D_min ≤ 6.10 mm)",
+      "audit_remarks": "🔴 ZORUNLU TEST EKSİK VEYA DOKÜMANDA ALGILANAMADI: BOTAŞ Şartnamesi Madde 5.1 kapsamındaki bu test imalatçı ITP'sinde yer almamakta veya otomatik tespit edilememiştir; lütfen manuel doğrulayınız."
+    },
+    {
+      "test_name": "Et Kalınlığı Ölçümü ve Toleransı (Wall Thickness Verification)",
+      "status": "COMPLIANT",
+      "issue_type": "CONFORMING",
+      "uploaded_frequency": "100% of all pipes (D, t, L)",
+      "standard_frequency": "Her boru (%100) uçlardan ve gövdeden ultrasonik/mikrometre ile",
+      "uploaded_criteria": "End ovality <= 50% API 5L Table 10; Straightness <= 0.10% L; t=12.70 mm (-8/+15%)",
+      "standard_criteria": "Nominal: 12.70 mm | Kabul Edilen Aralık: 11.68 mm - 14.60 mm (-%8.0 / +%15.0)",
+      "audit_remarks": "🟢 BOTAŞ Çelik Boru Şartnamesi (4-NGTL-0-GN-P-002-5120 R7) ve hesaplanan boru parametrelerine tam uyumludur."
+    },
+    {
+      "test_name": "Boru Birim Ağırlığı ve Toleransı (Weight per Meter & Tolerance)",
+      "status": "NON_COMPLIANT",
+      "issue_type": "MISSING_MANDATORY_TEST",
+      "uploaded_frequency": "— (Dokümanda Tespit Edilemedi)",
+      "standard_frequency": "Her boruda (%100 münferit kantar tartımı)",
+      "uploaded_criteria": "—",
+      "standard_criteria": "Teorik Ağırlık: 187.07 kg/m | Münferit Boru Sınırı: 180.53 kg/m - 205.78 kg/m (-%3.5 / +%10.0)",
+      "audit_remarks": "🔴 ZORUNLU TEST EKSİK VEYA DOKÜMANDA ALGILANAMADI: API 5L Madde 9.11.2 & 10.2.8.7 / BOTAŞ kapsamındaki bu test imalatçı ITP'sinde yer almamakta veya otomatik tespit edilememiştir; lütfen manuel doğrulayınız."
+    },
+    {
+      "test_name": "Boru Toplam Doğrusallığı (Straightness Deviation)",
+      "status": "COMPLIANT",
+      "issue_type": "CONFORMING",
+      "uploaded_frequency": "100% of all pipes (D, t, L)",
+      "standard_frequency": "Her boru (%100)",
+      "uploaded_criteria": "End ovality <= 50% API 5L Table 10; Straightness <= 0.10% L; t=12.70 mm (-8/+15%)",
+      "standard_criteria": "Toplam boy boyunca doğrusallıktan sapma ≤ %0.10 L (Uç 1.5 m bölgede sapma ≤ 3.2 mm)",
+      "audit_remarks": "🟢 BOTAŞ Çelik Boru Şartnamesi (4-NGTL-0-GN-P-002-5120 R7) ve hesaplanan boru parametrelerine tam uyumludur."
+    },
+    {
+      "test_name": "Alın Kaynak Ağzı Açısı ve Kök Yüzeyi (Bevel Angle & Root Face)",
+      "status": "NON_COMPLIANT",
+      "issue_type": "MISSING_MANDATORY_TEST",
+      "uploaded_frequency": "— (Dokümanda Tespit Edilemedi)",
+      "standard_frequency": "Her borunun her iki ucunda (%100)",
+      "uploaded_criteria": "—",
+      "standard_criteria": "Kaynak Ağzı Açısı: 30° (+5° / -0°) (veya 35°), Kök Yüzeyi (Root Face): 1.6 ± 0.8 mm",
+      "audit_remarks": "🔴 ZORUNLU TEST EKSİK VEYA DOKÜMANDA ALGILANAMADI: BOTAŞ Şartnamesi Madde 7.2 kapsamındaki bu test imalatçı ITP'sinde yer almamakta veya otomatik tespit edilememiştir; lütfen manuel doğrulayınız."
+    },
+    {
+      "test_name": "Boru Ucu Diklikten Sapma (Pipe End Squareness)",
+      "status": "NON_COMPLIANT",
+      "issue_type": "MISSING_MANDATORY_TEST",
+      "uploaded_frequency": "— (Dokümanda Tespit Edilemedi)",
+      "standard_frequency": "Her borunun her iki ucunda (%100)",
+      "uploaded_criteria": "—",
+      "standard_criteria": "Boru ucu diklikten sapma ≤ 1.60 mm",
+      "audit_remarks": "🔴 ZORUNLU TEST EKSİK VEYA DOKÜMANDA ALGILANAMADI: BOTAŞ Şartnamesi Madde 5.5 kapsamındaki bu test imalatçı ITP'sinde yer almamakta veya otomatik tespit edilememiştir; lütfen manuel doğrulayınız."
+    },
+    {
+      "test_name": "Görsel Yüzey ve Kusur Muayenesi (Visual Inspection)",
+      "status": "COMPLIANT",
+      "issue_type": "CONFORMING",
+      "uploaded_frequency": "100% internal and external",
+      "standard_frequency": "D ≥ 20\" borularda istisnasız %100 boru kaynağı (iç/dış) ve %100 gövde (iç/dış) görsel muayenesi",
+      "uploaded_criteria": "100% visual inspection, no crack, no sliver, no lamination",
+      "standard_criteria": "EN 10163-2 Sınıf B Altsınıf 3 (Keskin köşeli hata kabul edilmez, gövde/kaynak çatlak yok, derinlik ≤ %12.5 t)",
+      "audit_remarks": "🟢 BOTAŞ Çelik Boru Şartnamesi (4-NGTL-0-GN-P-002-5120 R7) ve hesaplanan boru parametrelerine tam uyumludur."
+    },
+    {
+      "test_name": "Kalıntı Manyetizma Ölçümü (Residual Magnetism)",
+      "status": "NON_COMPLIANT",
+      "issue_type": "MISSING_MANDATORY_TEST",
+      "uploaded_frequency": "— (Dokümanda Tespit Edilemedi)",
+      "standard_frequency": "Vardiyada EN AZ İKİ DEFA ölçülerek kayıt altına alınır",
+      "uploaded_criteria": "—",
+      "standard_criteria": "Ortalama ≤ 3.0 mT (30 Gauss), hiçbir münferit nokta > 3.5 mT (35 Gauss) olmayacaktır (Madde 8.1.1 / 9.14)",
+      "audit_remarks": "🔴 ZORUNLU TEST EKSİK VEYA DOKÜMANDA ALGILANAMADI: BOTAŞ Şartnamesi Madde 8.1.1 kapsamındaki bu test imalatçı ITP'sinde yer almamakta veya otomatik tespit edilememiştir; lütfen manuel doğrulayınız."
+    },
+    {
+      "test_name": "Yüzey Hazırlığı, Kumlama ve Temizlik (Surface Preparation & Blasting)",
+      "status": "NON_COMPLIANT",
+      "issue_type": "MISSING_MANDATORY_TEST",
+      "uploaded_frequency": "— (Dokümanda Tespit Edilemedi)",
+      "standard_frequency": "Her boru (%100 Sa 2.5 görsel) | Pürüzlülük/Toz/Tuz: 4 saatte 1",
+      "uploaded_criteria": "—",
+      "standard_criteria": "Temizlik: Min Sa 2½ (ISO 8501-1); Pürüzlülük: Rz 60-100 µm; Çiğ noktası +3 °C üzerinde; Toz Sınıfı ≤ 2; Tuz ≤ 20 mg/m² (2 µg/cm²)",
+      "audit_remarks": "🔴 ZORUNLU TEST EKSİK VEYA DOKÜMANDA ALGILANAMADI: BOTAŞ 4-NGTL-0-GN-P-002-5410 R1 Madde 5.5 / DIN 30670 / EN 21809-1 kapsamındaki bu test imalatçı ITP'sinde yer almamakta veya otomatik tespit edilememiştir; lütfen manuel doğrulayınız."
+    },
+    {
+      "test_name": "3LPE / HDPE Kaplama Kalınlığı (Coating Thickness - FBE/Adhesive/PE)",
+      "status": "NON_COMPLIANT",
+      "issue_type": "MISSING_MANDATORY_TEST",
+      "uploaded_frequency": "— (Dokümanda Tespit Edilemedi)",
+      "standard_frequency": "Her boruda (%100 boru boyunca en az 12 nokta + kaynak kepi üzeri 4 nokta)",
+      "uploaded_criteria": "—",
+      "standard_criteria": "FBE Astar ≥ 120 µm; Yapıştırıcı ≥ 120 µm; Toplam 3LPE/HDPE ≥ 3.0 mm (3000 µm) (Kaynak kepi üzeri min kalınlıktan max %10 düşük olabilir)",
+      "audit_remarks": "🔴 ZORUNLU TEST EKSİK VEYA DOKÜMANDA ALGILANAMADI: BOTAŞ 5410 R1 Madde 5.8 / DIN 30670 Tip S-v (Yükseltilmiş Kalınlık) kapsamındaki bu test imalatçı ITP'sinde yer almamakta veya otomatik tespit edilememiştir; lütfen manuel doğrulayınız."
+    },
+    {
+      "test_name": "Elektrik Porozite / Süreksizlik Testi (Holiday Detection 25 kV)",
+      "status": "NON_COMPLIANT",
+      "issue_type": "MISSING_MANDATORY_TEST",
+      "uploaded_frequency": "— (Dokümanda Tespit Edilemedi)",
+      "standard_frequency": "Her boru (%100 tam yüzey taraması)",
+      "uploaded_criteria": "—",
+      "standard_criteria": "Test Gerilimi: 25.000 Volt (25 kV); Sıfır Kıvılcım / Hatasız (%100 kusursuz yalıtım)",
+      "audit_remarks": "🔴 ZORUNLU TEST EKSİK VEYA DOKÜMANDA ALGILANAMADI: BOTAŞ 5410 R1 Madde 7.4.3 / DIN 30670 / EN 21809-1 kapsamındaki bu test imalatçı ITP'sinde yer almamakta veya otomatik tespit edilememiştir; lütfen manuel doğrulayınız."
+    },
+    {
+      "test_name": "Soyulma Mukavemeti / Yapışma Testi (Peel Adhesion Test)",
+      "status": "NON_COMPLIANT",
+      "issue_type": "MISSING_MANDATORY_TEST",
+      "uploaded_frequency": "— (Dokümanda Tespit Edilemedi)",
+      "standard_frequency": "İlk boru ve her PE partisinde / her vardiya (3 adet numune)",
+      "uploaded_criteria": "—",
+      "standard_criteria": "(23 ± 2) °C'de ≥ 150 N/cm (veya ≥ 18 N/mm); (50 ± 2) °C'de ≥ 15 N/cm; Test hızı: 10 mm/dakika",
+      "audit_remarks": "🔴 ZORUNLU TEST EKSİK VEYA DOKÜMANDA ALGILANAMADI: BOTAŞ 5410 R1 Madde 7.4.4 & Ek D / DIN 30670 / EN 21809-1 kapsamındaki bu test imalatçı ITP'sinde yer almamakta veya otomatik tespit edilememiştir; lütfen manuel doğrulayınız."
+    },
+    {
+      "test_name": "Kaplama Darbe Direnci Testi (Impact Resistance Test)",
+      "status": "NON_COMPLIANT",
+      "issue_type": "MISSING_MANDATORY_TEST",
+      "uploaded_frequency": "— (Dokümanda Tespit Edilemedi)",
+      "standard_frequency": "Her vardiya ve et kalınlığı değişiminde (20 darbe)",
+      "uploaded_criteria": "—",
+      "standard_criteria": "Darbe Direnci ≥ 5 J/mm (23 ± 2 °C); 2.5 kg ağırlık 1 m'den düşürülecek; darbe sonrası 25 kV holiday testinde delinme/kıvılcım olmayacak",
+      "audit_remarks": "🔴 ZORUNLU TEST EKSİK VEYA DOKÜMANDA ALGILANAMADI: BOTAŞ 5410 R1 Madde 7.4.5 / DIN 30670 / EN 21809-1 kapsamındaki bu test imalatçı ITP'sinde yer almamakta veya otomatik tespit edilememiştir; lütfen manuel doğrulayınız."
+    },
+    {
+      "test_name": "Delici Uca Batma / Girinti Direnci (Indentation Test)",
+      "status": "NON_COMPLIANT",
+      "issue_type": "MISSING_MANDATORY_TEST",
+      "uploaded_frequency": "— (Dokümanda Tespit Edilemedi)",
+      "standard_frequency": "Her PE partisinde (1 / Batch)",
+      "uploaded_criteria": "—",
+      "standard_criteria": "Batma Derinliği: (23 ± 2) °C'de Azami 0.20 mm; (50 ± 2) °C'de Azami 0.30 mm",
+      "audit_remarks": "🔴 ZORUNLU TEST EKSİK VEYA DOKÜMANDA ALGILANAMADI: BOTAŞ 5410 R1 Ek I / DIN 30670 / EN 21809-1 kapsamındaki bu test imalatçı ITP'sinde yer almamakta veya otomatik tespit edilememiştir; lütfen manuel doğrulayınız."
+    },
+    {
+      "test_name": "Katodik Soyulma Testi (Cathodic Disbondment - CD Test)",
+      "status": "NON_COMPLIANT",
+      "issue_type": "MISSING_MANDATORY_TEST",
+      "uploaded_frequency": "— (Dokümanda Tespit Edilemedi)",
+      "standard_frequency": "Sipariş başına / her ebatta 1 set",
+      "uploaded_criteria": "—",
+      "standard_criteria": "20 °C (28 Gün - 1.5 V): Max 7.0 mm soyulma yarıçapı | 65 °C (24 Saat - 3.5 V): Max 7.0 mm soyulma yarıçapı",
+      "audit_remarks": "🔴 ZORUNLU TEST EKSİK VEYA DOKÜMANDA ALGILANAMADI: BOTAŞ 5410 R1 Madde 7.4.6 / ISO 21809-1 Ek H kapsamındaki bu test imalatçı ITP'sinde yer almamakta veya otomatik tespit edilememiştir; lütfen manuel doğrulayınız."
+    },
+    {
+      "test_name": "Kaplamasız Uç Bölgesi ve Pah Açısı (Cutback Distance & Bevel)",
+      "status": "NON_COMPLIANT",
+      "issue_type": "MISSING_MANDATORY_TEST",
+      "uploaded_frequency": "— (Dokümanda Tespit Edilemedi)",
+      "standard_frequency": "Her borunun her iki ucunda (%100)",
+      "uploaded_criteria": "—",
+      "standard_criteria": "Cutback mesafesi: 80 - 100 mm; Kaplamasız boyasız bölüm: 45 - 55 mm; PE Pah Açısı: 20° - 30° (veya 30° - 50°); Korozyona karşı geçici şeffaf vernik koruması ve koruyucu uç tapası",
+      "audit_remarks": "🔴 ZORUNLU TEST EKSİK VEYA DOKÜMANDA ALGILANAMADI: BOTAŞ 5410 R1 Madde 10 & 5140 R1 / DIN 30670 kapsamındaki bu test imalatçı ITP'sinde yer almamakta veya otomatik tespit edilememiştir; lütfen manuel doğrulayınız."
+    },
+    {
+      "test_name": "Kaplama Kusur Tamir Kuralları (Coating Repair Limitations)",
+      "status": "NON_COMPLIANT",
+      "issue_type": "MISSING_MANDATORY_TEST",
+      "uploaded_frequency": "— (Dokümanda Tespit Edilemedi)",
+      "standard_frequency": "Uygulanan her kaplama tamirinde istisnasız uygulanır",
+      "uploaded_criteria": "—",
+      "standard_criteria": "Bir boruda azami 3 tamir; Tek tamir alanı max 25 cm²; Toplam tamir alanı max 200 cm²; Astar boyaya inen hasarlarda ısıyla büzüşen yama ile min 50 mm sağlam kaplama üzerine bindirme; Tamir sonrası %100 25 kV holiday kontrolü",
+      "audit_remarks": "🔴 ZORUNLU TEST EKSİK VEYA DOKÜMANDA ALGILANAMADI: BOTAŞ 5410 R1 Madde 9 / DIN 30670 kapsamındaki bu test imalatçı ITP'sinde yer almamakta veya otomatik tespit edilememiştir; lütfen manuel doğrulayınız."
+    },
+    {
+      "test_name": "NDT Personel Yetkinliği ve Sertifikasyonu (Personnel Qualification)",
+      "status": "NON_COMPLIANT",
+      "issue_type": "MISSING_MANDATORY_TEST",
+      "uploaded_frequency": "— (Dokümanda Tespit Edilemedi)",
+      "standard_frequency": "Proje başlangıcında ve denetim süresince geçerli sertifikalar",
+      "uploaded_criteria": "—",
+      "standard_criteria": "NDT Süpervizörü / Seviye 3: EN ISO 9712 Level 3; NDT Operatörleri: EN ISO 9712 / EN ISO 11484 Level 1 veya Level 2",
+      "audit_remarks": "🔴 ZORUNLU TEST EKSİK VEYA DOKÜMANDA ALGILANAMADI: BOTAŞ Şartnamesi Madde 8.8.1 / EN ISO 9712 / EN ISO 11484 kapsamındaki bu test imalatçı ITP'sinde yer almamakta veya otomatik tespit edilememiştir; lütfen manuel doğrulayınız."
+    }
+  ],
+  "findings": [
+    {
+      "test_name": "Isı Analizi (Heat Analysis)",
+      "severity": "CRITICAL",
+      "issue_type": "CRITERIA_VIOLATION",
+      "message": "🔴 YÜKSEK KARBON LİMİTİ: C max %0.12 olmalıdır; ITP'de %0.16 yazılmıştır!",
+      "clause_ref": "BOTAŞ Şartnamesi Madde 3.2.2.4 & Tablo 1",
+      "table_ref": "BOTAŞ Tablo 1"
+    },
+    {
+      "test_name": "Ürün Analizi (Product Analysis)",
+      "severity": "CRITICAL",
+      "issue_type": "CRITERIA_VIOLATION",
+      "message": "🔴 YÜKSEK KARBON LİMİTİ: C max %0.12 olmalıdır; ITP'de %0.16 yazılmıştır!",
+      "clause_ref": "BOTAŞ Şartnamesi Madde 3.2.2.4 & Tablo 1",
+      "table_ref": "BOTAŞ Tablo 1"
+    },
+    {
+      "test_name": "Gövde Çentik Darbe Testi (CVN Body Impact)",
+      "severity": "WARNING",
+      "issue_type": "MISSING_MANDATORY_TEST",
+      "message": "🔴 ZORUNLU TEST EKSİK VEYA DOKÜMANDA ALGILANAMADI: BOTAŞ Şartnamesi Madde 3.3.5 & Tablo 3 kapsamındaki bu test imalatçı ITP'sinde yer almamakta veya otomatik tespit edilememiştir; lütfen manuel doğrulayınız.",
+      "clause_ref": "BOTAŞ Şartnamesi Madde 3.3.5 & Tablo 3",
+      "table_ref": "BOTAŞ Tablo 3"
+    },
+    {
+      "test_name": "Kılavuzlu Bükme Testi (Guided-Bend)",
+      "severity": "WARNING",
+      "issue_type": "MISSING_MANDATORY_TEST",
+      "message": "🔴 ZORUNLU TEST EKSİK VEYA DOKÜMANDA ALGILANAMADI: BOTAŞ Madde 3.1.6 & 3.3.4 / API 5L 9.7 & 10.2.4.6 kapsamındaki bu test imalatçı ITP'sinde yer almamakta veya otomatik tespit edilememiştir; lütfen manuel doğrulayınız.",
+      "clause_ref": "BOTAŞ Madde 3.1.6 & 3.3.4 / API 5L 9.7 & 10.2.4.6",
+      "table_ref": "Çizelge 18 (Table 18) / Çizelge 20 (Table 20) / Çizelge 15"
+    },
+    {
+      "test_name": "Sertlik Testi (Hardness Testing)",
+      "severity": "WARNING",
+      "issue_type": "MISSING_MANDATORY_TEST",
+      "message": "🔴 ZORUNLU TEST EKSİK VEYA DOKÜMANDA ALGILANAMADI: BOTAŞ Şartnamesi Madde 3.3.7 kapsamındaki bu test imalatçı ITP'sinde yer almamakta veya otomatik tespit edilememiştir; lütfen manuel doğrulayınız.",
+      "clause_ref": "BOTAŞ Şartnamesi Madde 3.3.7",
+      "table_ref": "BOTAŞ Madde 3.3.7"
+    },
+    {
+      "test_name": "Fabrika Hidrostatik Basınç Testi",
+      "severity": "CRITICAL",
+      "issue_type": "CRITERIA_VIOLATION",
+      "message": "🔴 DÜŞÜK HİDROSTATİK BASINÇ: Boru için hesaplanan fabrika test basıncı 172.8 bar (Kabul: min 170.8 bar) iken ITP'de 170.0 bar taahhüt edilmiş!",
+      "clause_ref": "BOTAŞ Şartnamesi Madde 8.4.1 & 8.4.2",
+      "table_ref": "BOTAŞ Madde 8.4"
+    },
+    {
+      "test_name": "Boru Gövdesi UT Laminasyon Muayenesi (Body Laminar Testing)",
+      "severity": "WARNING",
+      "issue_type": "MISSING_MANDATORY_TEST",
+      "message": "🔴 ZORUNLU TEST EKSİK VEYA DOKÜMANDA ALGILANAMADI: BOTAŞ Şartnamesi Madde 8.8.4.4.1 kapsamındaki bu test imalatçı ITP'sinde yer almamakta veya otomatik tespit edilememiştir; lütfen manuel doğrulayınız.",
+      "clause_ref": "BOTAŞ Şartnamesi Madde 8.8.4.4.1",
+      "table_ref": "ISO 12094 B1 / BOTAŞ"
+    },
+    {
+      "test_name": "Kaynak Ağzı ve Tamir Yüzeyi Manyetik Parçacık (MT)",
+      "severity": "WARNING",
+      "issue_type": "MISSING_MANDATORY_TEST",
+      "message": "🔴 ZORUNLU TEST EKSİK VEYA DOKÜMANDA ALGILANAMADI: API 5L Ek E.6 / BOTAŞ Madde 8.8.4 kapsamındaki bu test imalatçı ITP'sinde yer almamakta veya otomatik tespit edilememiştir; lütfen manuel doğrulayınız.",
+      "clause_ref": "API 5L Ek E.6 / BOTAŞ Madde 8.8.4",
+      "table_ref": "ISO 10893-5 / ASTM E709"
+    },
+    {
+      "test_name": "Kaynak ve Gövde Tamir Kuralları (Repair Conditions)",
+      "severity": "WARNING",
+      "issue_type": "MISSING_MANDATORY_TEST",
+      "message": "🔴 ZORUNLU TEST EKSİK VEYA DOKÜMANDA ALGILANAMADI: BOTAŞ Şartnamesi Madde 9.1 & Ek C / API 5L Ek C kapsamındaki bu test imalatçı ITP'sinde yer almamakta veya otomatik tespit edilememiştir; lütfen manuel doğrulayınız.",
+      "clause_ref": "BOTAŞ Şartnamesi Madde 9.1 & Ek C / API 5L Ek C",
+      "table_ref": "API 5L Annex C / BOTAŞ Madde 9"
+    },
+    {
+      "test_name": "Kaynak Dikiş Yüksekliği (Weld Reinforcement Height - Inside & Outside)",
+      "severity": "WARNING",
+      "issue_type": "MISSING_MANDATORY_TEST",
+      "message": "🔴 ZORUNLU TEST EKSİK VEYA DOKÜMANDA ALGILANAMADI: BOTAŞ Madde 8.8.4 & Çizelge 4 / API 5L Madde 9.13 & Çizelge 16 kapsamındaki bu test imalatçı ITP'sinde yer almamakta veya otomatik tespit edilememiştir; lütfen manuel doğrulayınız.",
+      "clause_ref": "BOTAŞ Madde 8.8.4 & Çizelge 4 / API 5L Madde 9.13 & Çizelge 16",
+      "table_ref": "BOTAŞ Çizelge 4 / API 5L Çizelge 16"
+    },
+    {
+      "test_name": "Sac Kenarları Radyal Kaçıklık / Basamaklanma (Radial Offset)",
+      "severity": "WARNING",
+      "issue_type": "MISSING_MANDATORY_TEST",
+      "message": "🔴 ZORUNLU TEST EKSİK VEYA DOKÜMANDA ALGILANAMADI: BOTAŞ Şartnamesi Madde 8.8.4 kapsamındaki bu test imalatçı ITP'sinde yer almamakta veya otomatik tespit edilememiştir; lütfen manuel doğrulayınız.",
+      "clause_ref": "BOTAŞ Şartnamesi Madde 8.8.4",
+      "table_ref": "BOTAŞ Madde 8.8.4 / API 5L Çizelge 14"
+    },
+    {
+      "test_name": "Boru Ucu Tepeleşme / Çıkıntı (Pipe End Peaking)",
+      "severity": "WARNING",
+      "issue_type": "MISSING_MANDATORY_TEST",
+      "message": "🔴 ZORUNLU TEST EKSİK VEYA DOKÜMANDA ALGILANAMADI: BOTAŞ Şartnamesi Madde 5.1 & Çizelge 4 kapsamındaki bu test imalatçı ITP'sinde yer almamakta veya otomatik tespit edilememiştir; lütfen manuel doğrulayınız.",
+      "clause_ref": "BOTAŞ Şartnamesi Madde 5.1 & Çizelge 4",
+      "table_ref": "BOTAŞ Çizelge 4 / API 5L Çizelge 16"
+    },
+    {
+      "test_name": "Boru Ucu Dış Çap Toleransı (Diameter Tolerance - Pipe Ends)",
+      "severity": "WARNING",
+      "issue_type": "MISSING_MANDATORY_TEST",
+      "message": "🔴 ZORUNLU TEST EKSİK VEYA DOKÜMANDA ALGILANAMADI: BOTAŞ Şartnamesi Madde 5.1 & 8.1.2.4 kapsamındaki bu test imalatçı ITP'sinde yer almamakta veya otomatik tespit edilememiştir; lütfen manuel doğrulayınız.",
+      "clause_ref": "BOTAŞ Şartnamesi Madde 5.1 & 8.1.2.4",
+      "table_ref": "BOTAŞ Madde 5.1"
+    },
+    {
+      "test_name": "Boru Gövdesi Dış Çap Toleransı (Diameter Tolerance - Pipe Body)",
+      "severity": "CRITICAL",
+      "issue_type": "INADEQUATE_FREQUENCY",
+      "message": "🔴 FREKANS YETERSİZ: Standart gereği bu test İSTİSNASIZ HER BORUDA (%100) yapılmalıdır; '1 set (3 specimens) per lot at -20 °C' kabul edilemez.",
+      "clause_ref": "BOTAŞ Şartnamesi Madde 5.1 & 8.1.2.4",
+      "table_ref": "BOTAŞ Madde 5.1"
+    },
+    {
+      "test_name": "Boru Çevre Toleransı - Boru Ucu (Circumference Tolerance - Pipe Ends)",
+      "severity": "WARNING",
+      "issue_type": "MISSING_MANDATORY_TEST",
+      "message": "🔴 ZORUNLU TEST EKSİK VEYA DOKÜMANDA ALGILANAMADI: BOTAŞ Şartnamesi Madde 5.1 / API 5L Madde 9.11.1 kapsamındaki bu test imalatçı ITP'sinde yer almamakta veya otomatik tespit edilememiştir; lütfen manuel doğrulayınız.",
+      "clause_ref": "BOTAŞ Şartnamesi Madde 5.1 / API 5L Madde 9.11.1",
+      "table_ref": "BOTAŞ Madde 5.1 / API 5L Çizelge 10"
+    },
+    {
+      "test_name": "Boru Çevre Toleransı - Gövde (Circumference Tolerance - Pipe Body)",
+      "severity": "WARNING",
+      "issue_type": "MISSING_MANDATORY_TEST",
+      "message": "🔴 ZORUNLU TEST EKSİK VEYA DOKÜMANDA ALGILANAMADI: BOTAŞ Şartnamesi Madde 5.1 / API 5L Madde 9.11.1 kapsamındaki bu test imalatçı ITP'sinde yer almamakta veya otomatik tespit edilememiştir; lütfen manuel doğrulayınız.",
+      "clause_ref": "BOTAŞ Şartnamesi Madde 5.1 / API 5L Madde 9.11.1",
+      "table_ref": "BOTAŞ Madde 5.1 / API 5L Çizelge 10"
+    },
+    {
+      "test_name": "Ovalite - Boru Gövdesi (Out-of-Roundness - Pipe Body)",
+      "severity": "WARNING",
+      "issue_type": "MISSING_MANDATORY_TEST",
+      "message": "🔴 ZORUNLU TEST EKSİK VEYA DOKÜMANDA ALGILANAMADI: BOTAŞ Şartnamesi Madde 5.1 kapsamındaki bu test imalatçı ITP'sinde yer almamakta veya otomatik tespit edilememiştir; lütfen manuel doğrulayınız.",
+      "clause_ref": "BOTAŞ Şartnamesi Madde 5.1",
+      "table_ref": "BOTAŞ Madde 5.1"
+    },
+    {
+      "test_name": "Boru Birim Ağırlığı ve Toleransı (Weight per Meter & Tolerance)",
+      "severity": "WARNING",
+      "issue_type": "MISSING_MANDATORY_TEST",
+      "message": "🔴 ZORUNLU TEST EKSİK VEYA DOKÜMANDA ALGILANAMADI: API 5L Madde 9.11.2 & 10.2.8.7 / BOTAŞ kapsamındaki bu test imalatçı ITP'sinde yer almamakta veya otomatik tespit edilememiştir; lütfen manuel doğrulayınız.",
+      "clause_ref": "API 5L Madde 9.11.2 & 10.2.8.7 / BOTAŞ",
+      "table_ref": "Çizelge 18 (Table 18) / Madde 9.11.2"
+    },
+    {
+      "test_name": "Alın Kaynak Ağzı Açısı ve Kök Yüzeyi (Bevel Angle & Root Face)",
+      "severity": "WARNING",
+      "issue_type": "MISSING_MANDATORY_TEST",
+      "message": "🔴 ZORUNLU TEST EKSİK VEYA DOKÜMANDA ALGILANAMADI: BOTAŞ Şartnamesi Madde 7.2 kapsamındaki bu test imalatçı ITP'sinde yer almamakta veya otomatik tespit edilememiştir; lütfen manuel doğrulayınız.",
+      "clause_ref": "BOTAŞ Şartnamesi Madde 7.2",
+      "table_ref": "BOTAŞ Madde 7.2 / API 5L Madde 9.12"
+    },
+    {
+      "test_name": "Boru Ucu Diklikten Sapma (Pipe End Squareness)",
+      "severity": "WARNING",
+      "issue_type": "MISSING_MANDATORY_TEST",
+      "message": "🔴 ZORUNLU TEST EKSİK VEYA DOKÜMANDA ALGILANAMADI: BOTAŞ Şartnamesi Madde 5.5 kapsamındaki bu test imalatçı ITP'sinde yer almamakta veya otomatik tespit edilememiştir; lütfen manuel doğrulayınız.",
+      "clause_ref": "BOTAŞ Şartnamesi Madde 5.5",
+      "table_ref": "BOTAŞ Madde 5.5 / API 5L Madde 9.12"
+    },
+    {
+      "test_name": "Kalıntı Manyetizma Ölçümü (Residual Magnetism)",
+      "severity": "WARNING",
+      "issue_type": "MISSING_MANDATORY_TEST",
+      "message": "🔴 ZORUNLU TEST EKSİK VEYA DOKÜMANDA ALGILANAMADI: BOTAŞ Şartnamesi Madde 8.1.1 kapsamındaki bu test imalatçı ITP'sinde yer almamakta veya otomatik tespit edilememiştir; lütfen manuel doğrulayınız.",
+      "clause_ref": "BOTAŞ Şartnamesi Madde 8.1.1",
+      "table_ref": "BOTAŞ Madde 8.1.1"
+    },
+    {
+      "test_name": "Yüzey Hazırlığı, Kumlama ve Temizlik (Surface Preparation & Blasting)",
+      "severity": "WARNING",
+      "issue_type": "MISSING_MANDATORY_TEST",
+      "message": "🔴 ZORUNLU TEST EKSİK VEYA DOKÜMANDA ALGILANAMADI: BOTAŞ 4-NGTL-0-GN-P-002-5410 R1 Madde 5.5 / DIN 30670 / EN 21809-1 kapsamındaki bu test imalatçı ITP'sinde yer almamakta veya otomatik tespit edilememiştir; lütfen manuel doğrulayınız.",
+      "clause_ref": "BOTAŞ 4-NGTL-0-GN-P-002-5410 R1 Madde 5.5 / DIN 30670 / EN 21809-1",
+      "table_ref": "BOTAŞ 5410 R1 / DIN 30670"
+    },
+    {
+      "test_name": "3LPE / HDPE Kaplama Kalınlığı (Coating Thickness - FBE/Adhesive/PE)",
+      "severity": "WARNING",
+      "issue_type": "MISSING_MANDATORY_TEST",
+      "message": "🔴 ZORUNLU TEST EKSİK VEYA DOKÜMANDA ALGILANAMADI: BOTAŞ 5410 R1 Madde 5.8 / DIN 30670 Tip S-v (Yükseltilmiş Kalınlık) kapsamındaki bu test imalatçı ITP'sinde yer almamakta veya otomatik tespit edilememiştir; lütfen manuel doğrulayınız.",
+      "clause_ref": "BOTAŞ 5410 R1 Madde 5.8 / DIN 30670 Tip S-v (Yükseltilmiş Kalınlık)",
+      "table_ref": "BOTAŞ 5410 R1 Tablo 5 / DIN 30670"
+    },
+    {
+      "test_name": "Elektrik Porozite / Süreksizlik Testi (Holiday Detection 25 kV)",
+      "severity": "WARNING",
+      "issue_type": "MISSING_MANDATORY_TEST",
+      "message": "🔴 ZORUNLU TEST EKSİK VEYA DOKÜMANDA ALGILANAMADI: BOTAŞ 5410 R1 Madde 7.4.3 / DIN 30670 / EN 21809-1 kapsamındaki bu test imalatçı ITP'sinde yer almamakta veya otomatik tespit edilememiştir; lütfen manuel doğrulayınız.",
+      "clause_ref": "BOTAŞ 5410 R1 Madde 7.4.3 / DIN 30670 / EN 21809-1",
+      "table_ref": "BOTAŞ 5410 R1 Madde 7.4.3"
+    },
+    {
+      "test_name": "Soyulma Mukavemeti / Yapışma Testi (Peel Adhesion Test)",
+      "severity": "WARNING",
+      "issue_type": "MISSING_MANDATORY_TEST",
+      "message": "🔴 ZORUNLU TEST EKSİK VEYA DOKÜMANDA ALGILANAMADI: BOTAŞ 5410 R1 Madde 7.4.4 & Ek D / DIN 30670 / EN 21809-1 kapsamındaki bu test imalatçı ITP'sinde yer almamakta veya otomatik tespit edilememiştir; lütfen manuel doğrulayınız.",
+      "clause_ref": "BOTAŞ 5410 R1 Madde 7.4.4 & Ek D / DIN 30670 / EN 21809-1",
+      "table_ref": "BOTAŞ 5410 R1 Ek D"
+    },
+    {
+      "test_name": "Kaplama Darbe Direnci Testi (Impact Resistance Test)",
+      "severity": "WARNING",
+      "issue_type": "MISSING_MANDATORY_TEST",
+      "message": "🔴 ZORUNLU TEST EKSİK VEYA DOKÜMANDA ALGILANAMADI: BOTAŞ 5410 R1 Madde 7.4.5 / DIN 30670 / EN 21809-1 kapsamındaki bu test imalatçı ITP'sinde yer almamakta veya otomatik tespit edilememiştir; lütfen manuel doğrulayınız.",
+      "clause_ref": "BOTAŞ 5410 R1 Madde 7.4.5 / DIN 30670 / EN 21809-1",
+      "table_ref": "BOTAŞ 5410 R1 Madde 7.4.5"
+    },
+    {
+      "test_name": "Delici Uca Batma / Girinti Direnci (Indentation Test)",
+      "severity": "WARNING",
+      "issue_type": "MISSING_MANDATORY_TEST",
+      "message": "🔴 ZORUNLU TEST EKSİK VEYA DOKÜMANDA ALGILANAMADI: BOTAŞ 5410 R1 Ek I / DIN 30670 / EN 21809-1 kapsamındaki bu test imalatçı ITP'sinde yer almamakta veya otomatik tespit edilememiştir; lütfen manuel doğrulayınız.",
+      "clause_ref": "BOTAŞ 5410 R1 Ek I / DIN 30670 / EN 21809-1",
+      "table_ref": "BOTAŞ 5410 R1 Ek I"
+    },
+    {
+      "test_name": "Katodik Soyulma Testi (Cathodic Disbondment - CD Test)",
+      "severity": "WARNING",
+      "issue_type": "MISSING_MANDATORY_TEST",
+      "message": "🔴 ZORUNLU TEST EKSİK VEYA DOKÜMANDA ALGILANAMADI: BOTAŞ 5410 R1 Madde 7.4.6 / ISO 21809-1 Ek H kapsamındaki bu test imalatçı ITP'sinde yer almamakta veya otomatik tespit edilememiştir; lütfen manuel doğrulayınız.",
+      "clause_ref": "BOTAŞ 5410 R1 Madde 7.4.6 / ISO 21809-1 Ek H",
+      "table_ref": "ISO 21809-1 Ek H"
+    },
+    {
+      "test_name": "Kaplamasız Uç Bölgesi ve Pah Açısı (Cutback Distance & Bevel)",
+      "severity": "WARNING",
+      "issue_type": "MISSING_MANDATORY_TEST",
+      "message": "🔴 ZORUNLU TEST EKSİK VEYA DOKÜMANDA ALGILANAMADI: BOTAŞ 5410 R1 Madde 10 & 5140 R1 / DIN 30670 kapsamındaki bu test imalatçı ITP'sinde yer almamakta veya otomatik tespit edilememiştir; lütfen manuel doğrulayınız.",
+      "clause_ref": "BOTAŞ 5410 R1 Madde 10 & 5140 R1 / DIN 30670",
+      "table_ref": "BOTAŞ 5410 R1 Madde 10"
+    },
+    {
+      "test_name": "Kaplama Kusur Tamir Kuralları (Coating Repair Limitations)",
+      "severity": "WARNING",
+      "issue_type": "MISSING_MANDATORY_TEST",
+      "message": "🔴 ZORUNLU TEST EKSİK VEYA DOKÜMANDA ALGILANAMADI: BOTAŞ 5410 R1 Madde 9 / DIN 30670 kapsamındaki bu test imalatçı ITP'sinde yer almamakta veya otomatik tespit edilememiştir; lütfen manuel doğrulayınız.",
+      "clause_ref": "BOTAŞ 5410 R1 Madde 9 / DIN 30670",
+      "table_ref": "BOTAŞ 5410 R1 Madde 9"
+    },
+    {
+      "test_name": "NDT Personel Yetkinliği ve Sertifikasyonu (Personnel Qualification)",
+      "severity": "WARNING",
+      "issue_type": "MISSING_MANDATORY_TEST",
+      "message": "🔴 ZORUNLU TEST EKSİK VEYA DOKÜMANDA ALGILANAMADI: BOTAŞ Şartnamesi Madde 8.8.1 / EN ISO 9712 / EN ISO 11484 kapsamındaki bu test imalatçı ITP'sinde yer almamakta veya otomatik tespit edilememiştir; lütfen manuel doğrulayınız.",
+      "clause_ref": "BOTAŞ Şartnamesi Madde 8.8.1 / EN ISO 9712 / EN ISO 11484",
+      "table_ref": "EN ISO 9712 / EN ISO 11484"
+    }
+  ]
+}

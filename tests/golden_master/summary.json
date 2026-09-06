@@ -1,0 +1,218 @@
+{
+  "generated_at": "2026-09-06 21:50:25.535721",
+  "total_files": 26,
+  "total_checks": 1456,
+  "total_compliant": 264,
+  "total_more": 512,
+  "total_non": 680,
+  "files": [
+    {
+      "file": "01_BOTAS_48in_X65_SAWH_Mainline_ITP.pdf",
+      "total": 42,
+      "compliant": 28,
+      "more": 0,
+      "non": 14,
+      "verdict": "REJECTED"
+    },
+    {
+      "file": "02_BOTAS_24in_X60_Station_Pipe_ITP.pdf",
+      "total": 42,
+      "compliant": 11,
+      "more": 0,
+      "non": 31,
+      "verdict": "REJECTED"
+    },
+    {
+      "file": "03_API_5L_48in_X70_PSL2_SAWH_Standard_ITP.pdf",
+      "total": 40,
+      "compliant": 15,
+      "more": 0,
+      "non": 25,
+      "verdict": "REJECTED"
+    },
+    {
+      "file": "04_API_5L_36in_X65_PSL2_LSAW_ITP.pdf",
+      "total": 40,
+      "compliant": 12,
+      "more": 1,
+      "non": 27,
+      "verdict": "REJECTED"
+    },
+    {
+      "file": "05_API_5L_20in_X52_PSL2_HFW_ERW_ITP.pdf",
+      "total": 39,
+      "compliant": 10,
+      "more": 1,
+      "non": 28,
+      "verdict": "REJECTED"
+    },
+    {
+      "file": "06_API_5L_12in_X52_PSL2_SMLS_Seamless_ITP.pdf",
+      "total": 32,
+      "compliant": 7,
+      "more": 1,
+      "non": 24,
+      "verdict": "REJECTED"
+    },
+    {
+      "file": "07_API_5L_16in_Grade_B_PSL1_SMLS_ITP.pdf",
+      "total": 33,
+      "compliant": 7,
+      "more": 1,
+      "non": 25,
+      "verdict": "REJECTED"
+    },
+    {
+      "file": "08_Vendor_ITP_With_Defects_Discrepancy_Test.pdf",
+      "total": 40,
+      "compliant": 3,
+      "more": 0,
+      "non": 37,
+      "verdict": "REJECTED"
+    },
+    {
+      "file": "09_ADNOC_Spec_42in_X65_Sour_Service_ITP.pdf",
+      "total": 42,
+      "compliant": 7,
+      "more": 3,
+      "non": 32,
+      "verdict": "REJECTED"
+    },
+    {
+      "file": "10_Aramco_01_SAMSS_035_30in_X60_ITP.pdf",
+      "total": 40,
+      "compliant": 11,
+      "more": 1,
+      "non": 28,
+      "verdict": "REJECTED"
+    },
+    {
+      "file": "11_Shell_DEP_31_40_20_37_28in_X70_Offshore_ITP.pdf",
+      "total": 41,
+      "compliant": 8,
+      "more": 2,
+      "non": 31,
+      "verdict": "REJECTED"
+    },
+    {
+      "file": "12_TANAP_Style_56in_X70_Mainline_ITP.pdf",
+      "total": 41,
+      "compliant": 15,
+      "more": 2,
+      "non": 24,
+      "verdict": "REJECTED"
+    },
+    {
+      "file": "13_Inspection_for_Industry_Line_Pipe_ITP.pdf",
+      "total": 65,
+      "compliant": 0,
+      "more": 23,
+      "non": 42,
+      "verdict": "REJECTED"
+    },
+    {
+      "file": "14_IOGP_JIP33_S-616Q_API_5L_Quality_Requirements_ITP.pdf",
+      "total": 37,
+      "compliant": 5,
+      "more": 4,
+      "non": 28,
+      "verdict": "REJECTED"
+    },
+    {
+      "file": "15_IOGP_JIP33_S-616_API_5L_Line_Pipe_Specification.pdf",
+      "total": 391,
+      "compliant": 13,
+      "more": 358,
+      "non": 20,
+      "verdict": "REJECTED"
+    },
+    {
+      "file": "16_Global_TPI_Pipe_Inspection_and_Test_Plan.pdf",
+      "total": 44,
+      "compliant": 10,
+      "more": 4,
+      "non": 30,
+      "verdict": "REJECTED"
+    },
+    {
+      "file": "17_IOGP_JIP33_S-715Q_Coating_and_Painting_Quality_ITP.pdf",
+      "total": 43,
+      "compliant": 0,
+      "more": 3,
+      "non": 40,
+      "verdict": "REJECTED"
+    },
+    {
+      "file": "18_API_5L_42in_X70_3LPE_Polyethylene_Coated_Gas_Mainline_ITP.pdf",
+      "total": 23,
+      "compliant": 6,
+      "more": 14,
+      "non": 3,
+      "verdict": "REJECTED"
+    },
+    {
+      "file": "19_API_RP_5L2_Internal_Flow_Efficiency_Epoxy_Coated_Gas_Pipe_ITP.pdf",
+      "total": 48,
+      "compliant": 5,
+      "more": 8,
+      "non": 35,
+      "verdict": "REJECTED"
+    },
+    {
+      "file": "20260302 ITP-BOTAS-26-037-041 BOTAŞ Hizan İlçesi DGBH HFW TR.pdf",
+      "total": 41,
+      "compliant": 8,
+      "more": 1,
+      "non": 32,
+      "verdict": "REJECTED"
+    },
+    {
+      "file": "20_API_5L_Dual_Layer_FBE_Coated_Gas_Pipeline_ITP.pdf",
+      "total": 44,
+      "compliant": 6,
+      "more": 4,
+      "non": 34,
+      "verdict": "REJECTED"
+    },
+    {
+      "file": "21_API_5L_56in_X80_Heavy_Wall_Gas_Mainline_ITP.pdf",
+      "total": 41,
+      "compliant": 17,
+      "more": 2,
+      "non": 22,
+      "verdict": "REJECTED"
+    },
+    {
+      "file": "Ahmetli ve Sarıgöl İlçeleri Doğalgaz Boru Hattı Çelik Boru Mal Alım İşi için Nihai Teslim ve Termin Programı.pdf",
+      "total": 39,
+      "compliant": 10,
+      "more": 1,
+      "non": 28,
+      "verdict": "REJECTED"
+    },
+    {
+      "file": "GBB-ITP-ERW-BOT-2620 BOTAŞ Manisa PID11337 ITP.pdf",
+      "total": 58,
+      "compliant": 16,
+      "more": 19,
+      "non": 23,
+      "verdict": "REJECTED"
+    },
+    {
+      "file": "TOS-ITP-ŞRK-001 Siyah Boru Muayene ve Test Planı-ŞARKÖY Rev1.pdf",
+      "total": 76,
+      "compliant": 25,
+      "more": 34,
+      "non": 17,
+      "verdict": "REJECTED"
+    },
+    {
+      "file": "TOS-ITP-ŞRK-002 DIN 30670 Dış Kaplama Muayene ve Test Planı-ŞARKÖY Rev1.pdf",
+      "total": 34,
+      "compliant": 9,
+      "more": 25,
+      "non": 0,
+      "verdict": "APPROVED_WITH_COMMENTS"
+    }
+  ]
+}

@@ -531,15 +531,23 @@ def get_comprehensive_itp_specification(pipe_config: Optional[Dict[str, Any]] = 
     weights = qc.get("weights_and_safety", {})
 
     # Chemical limits
-    c_max = chem.get("C_max", 0.12 if is_botas else 0.16)
-    p_max = 0.025 if is_botas else chem.get("P_max", 0.020)
-    s_max = 0.010 if is_botas else chem.get("S_max", 0.010)
+    c_max = chem.get("C_max")
+    if c_max is None:
+        c_max = 0.12 if is_botas else 0.16
+    p_max = chem.get("P_max")
+    if p_max is None:
+        p_max = 0.025 if is_botas else 0.020
+    s_max = chem.get("S_max")
+    if s_max is None:
+        s_max = 0.010 if is_botas else 0.010
     ce_iiw_max = 0.40 if is_botas else chem.get("CE_IIW_max")
     ce_pcm_max = 0.22 if is_botas else chem.get("CE_Pcm_max")
     ce_str = f", CE_IIW ≤ {ce_iiw_max:.2f}" if ce_iiw_max else (f", CE_Pcm ≤ {ce_pcm_max:.2f}" if ce_pcm_max else "")
     
     if is_botas:
         chem_crit = f"C ≤ {c_max:.2f}%, P ≤ {p_max:.3f}%, S ≤ {s_max:.3f}%, N ≤ 0.009%{ce_str} (BOTAŞ Madde 3.2 & Tablo 1)"
+    elif chem.get("as_agreed"):
+        chem_crit = f"t > 25.0 mm: Kimyasal bileşim anlaşmaya bağlıdır (API 5L 9.2.3). Tipik: C ≤ {c_max:.2f}%, P ≤ {p_max:.3f}%, S ≤ {s_max:.3f}%{ce_str}"
     else:
         chem_crit = f"C ≤ {c_max:.2f}%, P ≤ {p_max:.3f}%, S ≤ {s_max:.3f}%{ce_str} (API 5L Çizelge 5)"
 
@@ -589,9 +597,9 @@ def get_comprehensive_itp_specification(pipe_config: Optional[Dict[str, Any]] = 
         jaw_opening = mandrel_dia + 3.2 + (2.0 * t_mm)
 
     # Unit Weight
-    w_nom = weights.get("weight_nominal_kg_m", 0.0246615 * t_mm * (d_mm - t_mm))
-    w_min = weights.get("weight_min_kg_m", round(w_nom * (1.0 - 0.035), 2))
-    w_max = weights.get("weight_max_kg_m", round(w_nom * (1.0 + 0.10), 2))
+    weight_nom = weights.get("weight_nominal_kg_m", 0.0246615 * t_mm * (d_mm - t_mm))
+    weight_min = weights.get("weight_min_kg_m", round(weight_nom * (1.0 - 0.035), 2))
+    weight_max = weights.get("weight_max_kg_m", round(weight_nom * (1.0 + 0.10), 2))
 
     # Dimensional & Circumference tolerances
     d_body_min = dim.get("diameter_body_min_mm", d_mm - 4.0)
@@ -613,10 +621,16 @@ def get_comprehensive_itp_specification(pipe_config: Optional[Dict[str, Any]] = 
     if not isinstance(ovality_body, (int, float)):
         ovality_body = 6.10 if is_botas else 18.30
 
-    t_min = wall_tol.get("min_mm", round(t_mm * 0.92, 2))
-    t_max = wall_tol.get("max_mm", round(t_mm * 1.15, 2))
-    t_neg_pct = round(((t_mm - t_min) / t_mm) * 100.0, 1)
-    t_pos_pct = round(((t_max - t_mm) / t_mm) * 100.0, 1)
+    if is_botas:
+        t_neg_pct = 8.0
+        t_pos_pct = 15.0 if t_mm < 15.0 else 10.0
+        t_min = round(t_mm * (1.0 - t_neg_pct / 100.0), 2)
+        t_max = round(t_mm * (1.0 + t_pos_pct / 100.0), 2)
+    else:
+        t_min = wall_tol.get("min_mm", round(t_mm * 0.90, 2))
+        t_max = wall_tol.get("max_mm", round(t_mm * 1.10, 2))
+        t_neg_pct = round(((t_mm - t_min) / t_mm) * 100.0, 1)
+        t_pos_pct = round(((t_max - t_mm) / t_mm) * 100.0, 1)
 
     straightness_pct = 0.10 if is_botas else 0.20
     squareness_max = dim.get("pipe_end_squareness_max_mm", 1.6)
@@ -652,7 +666,7 @@ def get_comprehensive_itp_specification(pipe_config: Optional[Dict[str, Any]] = 
             "ndt_method_standard": "ASTM A751 / ISO 14284 (OES / XRF Spektrometre)",
             "ndt_acceptance_level": "API 5L Çizelge 5 / BOTAŞ Tablo 1 Limitleri",
             "calculated_target_str": f"C ≤ {c_max:.2f}%, P ≤ {p_max:.3f}%, S ≤ {s_max:.3f}%{ce_str}",
-            "calculated_targets": {"C_max": c_max, "P_max": p_max, "S_max": s_max, "CE_IIW_max": ce_iiw_max, "CE_Pcm_max": ce_pcm_max},
+            "calculated_targets": {"C_max": c_max, "P_max": p_max, "S_max": s_max, "CE_IIW_max": ce_iiw_max, "CE_Pcm_max": ce_pcm_max, "N_max": 0.009 if is_botas else None},
             "is_mandatory": True,
         },
         # 2. Chemical Product Analysis
@@ -668,7 +682,7 @@ def get_comprehensive_itp_specification(pipe_config: Optional[Dict[str, Any]] = 
             "ndt_method_standard": "ISO 14284 / ASTM A751",
             "ndt_acceptance_level": "API 5L Çizelge 5 / BOTAŞ Tablo 1 Limitleri",
             "calculated_target_str": f"C ≤ {c_max:.2f}%, P ≤ {p_max:.3f}%, S ≤ {s_max:.3f}%{ce_str}",
-            "calculated_targets": {"C_max": c_max, "P_max": p_max, "S_max": s_max, "CE_IIW_max": ce_iiw_max, "CE_Pcm_max": ce_pcm_max},
+            "calculated_targets": {"C_max": c_max, "P_max": p_max, "S_max": s_max, "CE_IIW_max": ce_iiw_max, "CE_Pcm_max": ce_pcm_max, "N_max": 0.009 if is_botas else None},
             "is_mandatory": True,
         },
         # 3. Pipe Body Tensile Test
@@ -726,8 +740,8 @@ def get_comprehensive_itp_specification(pipe_config: Optional[Dict[str, Any]] = 
 
     # 6. CVN Weld & HAZ Impact
     if is_welded and not is_psl1:
-        w_avg = cvn.get("notch_impact_weld_j", 36.0 if is_botas else 27.0)
-        w_min = round(w_avg * 0.75, 1)
+        cvn_weld_avg = cvn.get("notch_impact_weld_j", 36.0 if is_botas else 27.0)
+        cvn_weld_min = round(cvn_weld_avg * 0.75, 1)
         temp_str = "-20 °C" if is_botas else "0 °C"
         master_list.append({
             "test_key": "cvn_weld_haz",
@@ -735,13 +749,13 @@ def get_comprehensive_itp_specification(pipe_config: Optional[Dict[str, Any]] = 
             "test_name": "Kaynak & ITAB Çentik Darbe (CVN Weld & HAZ)",
             "standard_frequency": f"Test ünitesi başına 1 set kaynak + 1 set ITAB (3+3 numune) ({temp_str} test)",
             "standard_frequency_en": f"Once per test unit: 1 set weld seam + 1 set HAZ at {temp_str}",
-            "standard_acceptance_criteria": f"Kaynak & ITAB ({temp_str}): Min Ort. {w_avg:.0f} J, Min Tek {w_min:.0f} J" + (" (BOTAŞ Tablo 3)" if is_botas else ""),
+            "standard_acceptance_criteria": f"Kaynak & ITAB ({temp_str}): Min Ort. {cvn_weld_avg:.0f} J, Min Tek {cvn_weld_min:.0f} J" + (" (BOTAŞ Tablo 3)" if is_botas else ""),
             "clause_ref": "BOTAŞ Şartnamesi Madde 3.3.5 & Tablo 3" if is_botas else "API 5L Madde 9.8.3 & 10.2.4.3",
             "table_ref": "BOTAŞ Tablo 3" if is_botas else f"{freq_tbl} / {piece_tbl}",
             "ndt_method_standard": f"ISO 148-1 / ASTM A370 (Kaynak Ekseni ve Füzyon Hattı {temp_str})",
-            "ndt_acceptance_level": f"Min Ortalama: {w_avg:.0f} J, Min Tekil: {w_min:.0f} J",
-            "calculated_target_str": f"Test Sıcaklığı: {temp_str} | Min Ortalama: {w_avg:.0f} J, Min Münferit: {w_min:.0f} J",
-            "calculated_targets": {"temp_c": cvn_temp, "avg_j": w_avg, "min_j": w_min},
+            "ndt_acceptance_level": f"Min Ortalama: {cvn_weld_avg:.0f} J, Min Tekil: {cvn_weld_min:.0f} J",
+            "calculated_target_str": f"Test Sıcaklığı: {temp_str} | Min Ortalama: {cvn_weld_avg:.0f} J, Min Münferit: {cvn_weld_min:.0f} J",
+            "calculated_targets": {"temp_c": cvn_temp, "avg_j": cvn_weld_avg, "min_j": cvn_weld_min},
             "is_mandatory": True,
         })
 
@@ -797,7 +811,7 @@ def get_comprehensive_itp_specification(pipe_config: Optional[Dict[str, Any]] = 
         "ndt_acceptance_level": f"Azami Sertlik ≤ {hardness_max:.0f} HV10",
         "calculated_target_str": f"Maksimum {hardness_max:.0f} HV10 (Gövde, ITAB ve Kaynak Dikişi)",
         "calculated_targets": {"max_hv10": hardness_max},
-        "is_mandatory": True,
+        "is_mandatory": not is_psl1,
     })
 
     # 10. Residual Stress Test (BOTAŞ Mandatory for welded SAWH / LSAW only - Not applicable to ERW/HFW)
@@ -1134,13 +1148,13 @@ def get_comprehensive_itp_specification(pipe_config: Optional[Dict[str, Any]] = 
         "test_name": "Boru Birim Ağırlığı ve Toleransı (Weight per Meter & Tolerance)",
         "standard_frequency": "Her boruda (%100 münferit kantar tartımı)",
         "standard_frequency_en": "Each pipe (100% weighing or per lot)",
-        "standard_acceptance_criteria": f"Teorik Ağırlık: {w_nom:.2f} kg/m | Münferit Boru Sınırı: {w_min:.2f} kg/m - {w_max:.2f} kg/m (-%3.5 / +%10.0)",
+        "standard_acceptance_criteria": f"Teorik Ağırlık: {weight_nom:.2f} kg/m | Münferit Boru Sınırı: {weight_min:.2f} kg/m - {weight_max:.2f} kg/m (-%3.5 / +%10.0)",
         "clause_ref": "API 5L Madde 9.11.2 & 10.2.8.7 / BOTAŞ",
         "table_ref": f"{freq_tbl} / Madde 9.11.2",
         "ndt_method_standard": "Kalibreli Yük Hücresi / Endüstriyel Kantar",
-        "ndt_acceptance_level": f"W = {w_nom:.2f} kg/m (-%3.5 / +%10.0)",
-        "calculated_target_str": f"Teorik: {w_nom:.2f} kg/m | Münferit Boru: {w_min:.2f} - {w_max:.2f} kg/m (-%3.5 / +%10.0)",
-        "calculated_targets": {"nominal_kg_m": w_nom, "min_kg_m": w_min, "max_kg_m": w_max, "neg_tol_pct": 3.5, "pos_tol_pct": 10.0},
+        "ndt_acceptance_level": f"W = {weight_nom:.2f} kg/m (-%3.5 / +%10.0)",
+        "calculated_target_str": f"Teorik: {weight_nom:.2f} kg/m | Münferit Boru: {weight_min:.2f} - {weight_max:.2f} kg/m (-%3.5 / +%10.0)",
+        "calculated_targets": {"nominal_kg_m": weight_nom, "min_kg_m": weight_min, "max_kg_m": weight_max, "neg_tol_pct": 3.5, "pos_tol_pct": 10.0},
         "is_mandatory": True,
     })
 

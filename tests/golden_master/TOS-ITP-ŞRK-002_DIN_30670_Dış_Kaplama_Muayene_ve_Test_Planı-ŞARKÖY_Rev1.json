@@ -1,0 +1,381 @@
+{
+  "file": "TOS-ITP-ŞRK-002 DIN 30670 Dış Kaplama Muayene ve Test Planı-ŞARKÖY Rev1.pdf",
+  "metadata": {
+    "detected_diameter_mm": 914.4,
+    "detected_diameter_inch": "36\"",
+    "detected_wall_thickness_mm": 11.1,
+    "detected_grade": "X65",
+    "detected_process": "SAWH",
+    "detected_standard": "BOTAŞ",
+    "detected_psl": "PSL2",
+    "detected_scope_mode": "COATING_ONLY",
+    "scope_variants_count": 4
+  },
+  "parse_result": {
+    "status": "success",
+    "is_fallback": false,
+    "items_count": 34
+  },
+  "pipe_config_used": {
+    "diameter_mm": 914.4,
+    "wall_thickness_mm": 11.1,
+    "diameter_inch": "36\"",
+    "material_grade": "X65",
+    "manufacturing_process": "SAWH",
+    "psl_level": "PSL2",
+    "standard_type": "BOTAŞ",
+    "scope_mode": "COATING_ONLY"
+  },
+  "kpi": {
+    "total_tests_audited": 34,
+    "compliant_count": 9,
+    "more_stringent_count": 25,
+    "non_compliant_count": 0,
+    "bare_pipe_score_percent": 100.0,
+    "coating_score_percent": 100.0,
+    "overall_verdict": "APPROVED_WITH_COMMENTS"
+  },
+  "audit_rows": [
+    {
+      "test_name": "Yüzey Hazırlığı, Kumlama ve Temizlik (Surface Preparation & Blasting)",
+      "status": "COMPLIANT",
+      "issue_type": "CONFORMING",
+      "uploaded_frequency": "— (Tablodan Okunamadı)",
+      "standard_frequency": "Her boru (%100 Sa 2.5 görsel) | Pürüzlülük/Toz/Tuz: 4 saatte 1",
+      "uploaded_criteria": "API 5L / BOTAŞ şartname limitlerine uygun",
+      "standard_criteria": "Temizlik: Min Sa 2½ (ISO 8501-1); Pürüzlülük: Rz 60-100 µm; Çiğ noktası +3 °C üzerinde; Toz Sınıfı ≤ 2; Tuz ≤ 20 mg/m² (2 µg/cm²)",
+      "audit_remarks": "🟢 BOTAŞ Çelik Boru Şartnamesi (4-NGTL-0-GN-P-002-5120 R7) ve hesaplanan boru parametrelerine tam uyumludur."
+    },
+    {
+      "test_name": "3LPE / HDPE Kaplama Kalınlığı (Coating Thickness - FBE/Adhesive/PE)",
+      "status": "COMPLIANT",
+      "issue_type": "CONFORMING",
+      "uploaded_frequency": "— (Tablodan Okunamadı)",
+      "standard_frequency": "Her boruda (%100 boru boyunca en az 12 nokta + kaynak kepi üzeri 4 nokta)",
+      "uploaded_criteria": "API 5L / BOTAŞ şartname limitlerine uygun",
+      "standard_criteria": "FBE Astar ≥ 120 µm; Yapıştırıcı ≥ 120 µm; Toplam 3LPE/HDPE ≥ 3.0 mm (3000 µm) (Kaynak kepi üzeri min kalınlıktan max %10 düşük olabilir)",
+      "audit_remarks": "🟢 BOTAŞ Çelik Boru Şartnamesi (4-NGTL-0-GN-P-002-5120 R7) ve hesaplanan boru parametrelerine tam uyumludur."
+    },
+    {
+      "test_name": "Elektrik Porozite / Süreksizlik Testi (Holiday Detection 25 kV)",
+      "status": "COMPLIANT",
+      "issue_type": "CONFORMING",
+      "uploaded_frequency": "— (Tablodan Okunamadı)",
+      "standard_frequency": "Her boru (%100 tam yüzey taraması)",
+      "uploaded_criteria": "API 5L / BOTAŞ şartname limitlerine uygun",
+      "standard_criteria": "Test Gerilimi: 25.000 Volt (25 kV); Sıfır Kıvılcım / Hatasız (%100 kusursuz yalıtım)",
+      "audit_remarks": "🟢 BOTAŞ Çelik Boru Şartnamesi (4-NGTL-0-GN-P-002-5120 R7) ve hesaplanan boru parametrelerine tam uyumludur."
+    },
+    {
+      "test_name": "Soyulma Mukavemeti / Yapışma Testi (Peel Adhesion Test)",
+      "status": "COMPLIANT",
+      "issue_type": "CONFORMING",
+      "uploaded_frequency": "— (Tablodan Okunamadı)",
+      "standard_frequency": "İlk boru ve her PE partisinde / her vardiya (3 adet numune)",
+      "uploaded_criteria": "API 5L / BOTAŞ şartname limitlerine uygun",
+      "standard_criteria": "(23 ± 2) °C'de ≥ 150 N/cm (veya ≥ 18 N/mm); (50 ± 2) °C'de ≥ 15 N/cm; Test hızı: 10 mm/dakika",
+      "audit_remarks": "🟢 BOTAŞ Çelik Boru Şartnamesi (4-NGTL-0-GN-P-002-5120 R7) ve hesaplanan boru parametrelerine tam uyumludur."
+    },
+    {
+      "test_name": "Kaplama Darbe Direnci Testi (Impact Resistance Test)",
+      "status": "COMPLIANT",
+      "issue_type": "CONFORMING",
+      "uploaded_frequency": "— (Tablodan Okunamadı)",
+      "standard_frequency": "Her vardiya ve et kalınlığı değişiminde (20 darbe)",
+      "uploaded_criteria": "API 5L / BOTAŞ şartname limitlerine uygun",
+      "standard_criteria": "Darbe Direnci ≥ 5 J/mm (23 ± 2 °C); 2.5 kg ağırlık 1 m'den düşürülecek; darbe sonrası 25 kV holiday testinde delinme/kıvılcım olmayacak",
+      "audit_remarks": "🟢 BOTAŞ Çelik Boru Şartnamesi (4-NGTL-0-GN-P-002-5120 R7) ve hesaplanan boru parametrelerine tam uyumludur."
+    },
+    {
+      "test_name": "Delici Uca Batma / Girinti Direnci (Indentation Test)",
+      "status": "COMPLIANT",
+      "issue_type": "CONFORMING",
+      "uploaded_frequency": "— (Tablodan Okunamadı)",
+      "standard_frequency": "Her PE partisinde (1 / Batch)",
+      "uploaded_criteria": "API 5L / BOTAŞ şartname limitlerine uygun",
+      "standard_criteria": "Batma Derinliği: (23 ± 2) °C'de Azami 0.20 mm; (50 ± 2) °C'de Azami 0.30 mm",
+      "audit_remarks": "🟢 BOTAŞ Çelik Boru Şartnamesi (4-NGTL-0-GN-P-002-5120 R7) ve hesaplanan boru parametrelerine tam uyumludur."
+    },
+    {
+      "test_name": "Katodik Soyulma Testi (Cathodic Disbondment - CD Test)",
+      "status": "COMPLIANT",
+      "issue_type": "CONFORMING",
+      "uploaded_frequency": "— (Tablodan Okunamadı)",
+      "standard_frequency": "Sipariş başına / her ebatta 1 set",
+      "uploaded_criteria": "API 5L / BOTAŞ şartname limitlerine uygun",
+      "standard_criteria": "20 °C (28 Gün - 1.5 V): Max 7.0 mm soyulma yarıçapı | 65 °C (24 Saat - 3.5 V): Max 7.0 mm soyulma yarıçapı",
+      "audit_remarks": "🟢 BOTAŞ Çelik Boru Şartnamesi (4-NGTL-0-GN-P-002-5120 R7) ve hesaplanan boru parametrelerine tam uyumludur."
+    },
+    {
+      "test_name": "Kaplamasız Uç Bölgesi ve Pah Açısı (Cutback Distance & Bevel)",
+      "status": "COMPLIANT",
+      "issue_type": "CONFORMING",
+      "uploaded_frequency": "— (Tablodan Okunamadı)",
+      "standard_frequency": "Her borunun her iki ucunda (%100)",
+      "uploaded_criteria": "API 5L / BOTAŞ şartname limitlerine uygun",
+      "standard_criteria": "Cutback mesafesi: 80 - 100 mm; Kaplamasız boyasız bölüm: 45 - 55 mm; PE Pah Açısı: 20° - 30° (veya 30° - 50°); Korozyona karşı geçici şeffaf vernik koruması ve koruyucu uç tapası",
+      "audit_remarks": "🟢 BOTAŞ Çelik Boru Şartnamesi (4-NGTL-0-GN-P-002-5120 R7) ve hesaplanan boru parametrelerine tam uyumludur."
+    },
+    {
+      "test_name": "Kaplama Kusur Tamir Kuralları (Coating Repair Limitations)",
+      "status": "COMPLIANT",
+      "issue_type": "CONFORMING",
+      "uploaded_frequency": "— (Tablodan Okunamadı)",
+      "standard_frequency": "Uygulanan her kaplama tamirinde istisnasız uygulanır",
+      "uploaded_criteria": "API 5L / BOTAŞ şartname limitlerine uygun",
+      "standard_criteria": "Bir boruda azami 3 tamir; Tek tamir alanı max 25 cm²; Toplam tamir alanı max 200 cm²; Astar boyaya inen hasarlarda ısıyla büzüşen yama ile min 50 mm sağlam kaplama üzerine bindirme; Tamir sonrası %100 25 kV holiday kontrolü",
+      "audit_remarks": "🟢 BOTAŞ Çelik Boru Şartnamesi (4-NGTL-0-GN-P-002-5120 R7) ve hesaplanan boru parametrelerine tam uyumludur."
+    },
+    {
+      "test_name": "Çap (mm)",
+      "status": "MORE_STRINGENT",
+      "issue_type": "ADDITIONAL_TEST",
+      "uploaded_frequency": "— (Tablodan Okunamadı)",
+      "standard_frequency": "Standart Dışı / İmalatçı Özel Testi",
+      "uploaded_criteria": "API 5L / BOTAŞ şartname limitlerine uygun",
+      "standard_criteria": "İmalatçı & Müşteri Anlaşmasına Bağlı",
+      "audit_remarks": "🟡 Standart haricinde ek kalite kontrol testi taahhüt edilmiştir."
+    },
+    {
+      "test_name": "Kabul kriterleri Kontrol yöntemi",
+      "status": "MORE_STRINGENT",
+      "issue_type": "ADDITIONAL_TEST",
+      "uploaded_frequency": "— (Tablodan Okunamadı)",
+      "standard_frequency": "Standart Dışı / İmalatçı Özel Testi",
+      "uploaded_criteria": "API 5L / BOTAŞ şartname limitlerine uygun",
+      "standard_criteria": "İmalatçı & Müşteri Anlaşmasına Bağlı",
+      "audit_remarks": "🟡 Standart haricinde ek kalite kontrol testi taahhüt edilmiştir."
+    },
+    {
+      "test_name": "Giriş Kalite Kontrol Talimatı, Ş.4.M.7 Tablo 1- 2-3 - Malzeme kontrolleri",
+      "status": "MORE_STRINGENT",
+      "issue_type": "ADDITIONAL_TEST",
+      "uploaded_frequency": "— (Tablodan Okunamadı)",
+      "standard_frequency": "Standart Dışı / İmalatçı Özel Testi",
+      "uploaded_criteria": "API 5L / BOTAŞ şartname limitlerine uygun",
+      "standard_criteria": "İmalatçı & Müşteri Anlaşmasına Bağlı",
+      "audit_remarks": "🟡 Standart haricinde ek kalite kontrol testi taahhüt edilmiştir."
+    },
+    {
+      "test_name": "Ş.4 M.5.5.4 - Yüzey profilinin kontrolü",
+      "status": "MORE_STRINGENT",
+      "issue_type": "ADDITIONAL_TEST",
+      "uploaded_frequency": "— (Tablodan Okunamadı)",
+      "standard_frequency": "Standart Dışı / İmalatçı Özel Testi",
+      "uploaded_criteria": "API 5L / BOTAŞ şartname limitlerine uygun",
+      "standard_criteria": "İmalatçı & Müşteri Anlaşmasına Bağlı",
+      "audit_remarks": "🟡 Standart haricinde ek kalite kontrol testi taahhüt edilmiştir."
+    },
+    {
+      "test_name": "Ş.4 M.5.5.2 Ş.5 M. 5.5.9 - Yüzey kalitesinin derecesinin kontrolü",
+      "status": "MORE_STRINGENT",
+      "issue_type": "ADDITIONAL_TEST",
+      "uploaded_frequency": "— (Tablodan Okunamadı)",
+      "standard_frequency": "Standart Dışı / İmalatçı Özel Testi",
+      "uploaded_criteria": "API 5L / BOTAŞ şartname limitlerine uygun",
+      "standard_criteria": "İmalatçı & Müşteri Anlaşmasına Bağlı",
+      "audit_remarks": "🟡 Standart haricinde ek kalite kontrol testi taahhüt edilmiştir."
+    },
+    {
+      "test_name": "Ş.4. M.5.5.5 - Yüzey Toz Kontaminasyon Kontrolü",
+      "status": "MORE_STRINGENT",
+      "issue_type": "ADDITIONAL_TEST",
+      "uploaded_frequency": "— (Tablodan Okunamadı)",
+      "standard_frequency": "Standart Dışı / İmalatçı Özel Testi",
+      "uploaded_criteria": "API 5L / BOTAŞ şartname limitlerine uygun",
+      "standard_criteria": "İmalatçı & Müşteri Anlaşmasına Bağlı",
+      "audit_remarks": "🟡 Standart haricinde ek kalite kontrol testi taahhüt edilmiştir."
+    },
+    {
+      "test_name": "Ş.4. M.5.5.6 - Tuz Testi",
+      "status": "MORE_STRINGENT",
+      "issue_type": "ADDITIONAL_TEST",
+      "uploaded_frequency": "— (Tablodan Okunamadı)",
+      "standard_frequency": "Standart Dışı / İmalatçı Özel Testi",
+      "uploaded_criteria": "API 5L / BOTAŞ şartname limitlerine uygun",
+      "standard_criteria": "İmalatçı & Müşteri Anlaşmasına Bağlı",
+      "audit_remarks": "🟡 Standart haricinde ek kalite kontrol testi taahhüt edilmiştir."
+    },
+    {
+      "test_name": "Ş.4. M.5.6, M.5.7, M.5.8 - Genel taleplerin açıklaması",
+      "status": "MORE_STRINGENT",
+      "issue_type": "ADDITIONAL_TEST",
+      "uploaded_frequency": "— (Tablodan Okunamadı)",
+      "standard_frequency": "Standart Dışı / İmalatçı Özel Testi",
+      "uploaded_criteria": "API 5L / BOTAŞ şartname limitlerine uygun",
+      "standard_criteria": "İmalatçı & Müşteri Anlaşmasına Bağlı",
+      "audit_remarks": "🟡 Standart haricinde ek kalite kontrol testi taahhüt edilmiştir."
+    },
+    {
+      "test_name": "Üretici Parametresi - Hat Hızı",
+      "status": "MORE_STRINGENT",
+      "issue_type": "ADDITIONAL_TEST",
+      "uploaded_frequency": "— (Tablodan Okunamadı)",
+      "standard_frequency": "Standart Dışı / İmalatçı Özel Testi",
+      "uploaded_criteria": "API 5L / BOTAŞ şartname limitlerine uygun",
+      "standard_criteria": "İmalatçı & Müşteri Anlaşmasına Bağlı",
+      "audit_remarks": "🟡 Standart haricinde ek kalite kontrol testi taahhüt edilmiştir."
+    },
+    {
+      "test_name": "Ürün Uygulama Şartnamesi (TDS)/ Ş.4 M. 5.5.3 - Sıcaklıklar",
+      "status": "MORE_STRINGENT",
+      "issue_type": "ADDITIONAL_TEST",
+      "uploaded_frequency": "— (Tablodan Okunamadı)",
+      "standard_frequency": "Standart Dışı / İmalatçı Özel Testi",
+      "uploaded_criteria": "API 5L / BOTAŞ şartname limitlerine uygun",
+      "standard_criteria": "İmalatçı & Müşteri Anlaşmasına Bağlı",
+      "audit_remarks": "🟡 Standart haricinde ek kalite kontrol testi taahhüt edilmiştir."
+    },
+    {
+      "test_name": "Ş.5. M.5.6, M.5.7, M.5.8 - Hatve Bindirmesi",
+      "status": "MORE_STRINGENT",
+      "issue_type": "ADDITIONAL_TEST",
+      "uploaded_frequency": "— (Tablodan Okunamadı)",
+      "standard_frequency": "Standart Dışı / İmalatçı Özel Testi",
+      "uploaded_criteria": "API 5L / BOTAŞ şartname limitlerine uygun",
+      "standard_criteria": "İmalatçı & Müşteri Anlaşmasına Bağlı",
+      "audit_remarks": "🟡 Standart haricinde ek kalite kontrol testi taahhüt edilmiştir."
+    },
+    {
+      "test_name": "Ş.5 M.5.6.4 - FBE kalınlığı",
+      "status": "MORE_STRINGENT",
+      "issue_type": "ADDITIONAL_TEST",
+      "uploaded_frequency": "— (Tablodan Okunamadı)",
+      "standard_frequency": "Standart Dışı / İmalatçı Özel Testi",
+      "uploaded_criteria": "API 5L / BOTAŞ şartname limitlerine uygun",
+      "standard_criteria": "İmalatçı & Müşteri Anlaşmasına Bağlı",
+      "audit_remarks": "🟡 Standart haricinde ek kalite kontrol testi taahhüt edilmiştir."
+    },
+    {
+      "test_name": "Üretici Tavsiyesi - Kalınlık Ölçüm Cihazı",
+      "status": "MORE_STRINGENT",
+      "issue_type": "ADDITIONAL_TEST",
+      "uploaded_frequency": "— (Tablodan Okunamadı)",
+      "standard_frequency": "Standart Dışı / İmalatçı Özel Testi",
+      "uploaded_criteria": "API 5L / BOTAŞ şartname limitlerine uygun",
+      "standard_criteria": "İmalatçı & Müşteri Anlaşmasına Bağlı",
+      "audit_remarks": "🟡 Standart haricinde ek kalite kontrol testi taahhüt edilmiştir."
+    },
+    {
+      "test_name": "Ş.5 M 5.8.5.2 Ş.5 M.5.8.6. - Kaplama Kalınlığı",
+      "status": "MORE_STRINGENT",
+      "issue_type": "ADDITIONAL_TEST",
+      "uploaded_frequency": "— (Tablodan Okunamadı)",
+      "standard_frequency": "Standart Dışı / İmalatçı Özel Testi",
+      "uploaded_criteria": "API 5L / BOTAŞ şartname limitlerine uygun",
+      "standard_criteria": "İmalatçı & Müşteri Anlaşmasına Bağlı",
+      "audit_remarks": "🟡 Standart haricinde ek kalite kontrol testi taahhüt edilmiştir."
+    },
+    {
+      "test_name": "Ş.5 M.7.4.9 DIN 30670 - Akışkanlık Oranı Testi (MFR)",
+      "status": "MORE_STRINGENT",
+      "issue_type": "ADDITIONAL_TEST",
+      "uploaded_frequency": "— (Tablodan Okunamadı)",
+      "standard_frequency": "Standart Dışı / İmalatçı Özel Testi",
+      "uploaded_criteria": "API 5L / BOTAŞ şartname limitlerine uygun",
+      "standard_criteria": "İmalatçı & Müşteri Anlaşmasına Bağlı",
+      "audit_remarks": "🟡 Standart haricinde ek kalite kontrol testi taahhüt edilmiştir."
+    },
+    {
+      "test_name": "Ş.5 M.7.4.2 - Epoksi Reçine Kürlenme derecesi",
+      "status": "MORE_STRINGENT",
+      "issue_type": "ADDITIONAL_TEST",
+      "uploaded_frequency": "— (Tablodan Okunamadı)",
+      "standard_frequency": "Standart Dışı / İmalatçı Özel Testi",
+      "uploaded_criteria": "API 5L / BOTAŞ şartname limitlerine uygun",
+      "standard_criteria": "İmalatçı & Müşteri Anlaşmasına Bağlı",
+      "audit_remarks": "🟡 Standart haricinde ek kalite kontrol testi taahhüt edilmiştir."
+    },
+    {
+      "test_name": "Ş.5 M.7.4.10 DIN 30670 - Kopma uzaması",
+      "status": "MORE_STRINGENT",
+      "issue_type": "ADDITIONAL_TEST",
+      "uploaded_frequency": "— (Tablodan Okunamadı)",
+      "standard_frequency": "Standart Dışı / İmalatçı Özel Testi",
+      "uploaded_criteria": "API 5L / BOTAŞ şartname limitlerine uygun",
+      "standard_criteria": "İmalatçı & Müşteri Anlaşmasına Bağlı",
+      "audit_remarks": "🟡 Standart haricinde ek kalite kontrol testi taahhüt edilmiştir."
+    },
+    {
+      "test_name": "Ş.5 M.7.4.11 DIN 30670 - r UV yaşlandırma",
+      "status": "MORE_STRINGENT",
+      "issue_type": "ADDITIONAL_TEST",
+      "uploaded_frequency": "— (Tablodan Okunamadı)",
+      "standard_frequency": "Standart Dışı / İmalatçı Özel Testi",
+      "uploaded_criteria": "API 5L / BOTAŞ şartname limitlerine uygun",
+      "standard_criteria": "İmalatçı & Müşteri Anlaşmasına Bağlı",
+      "audit_remarks": "🟡 Standart haricinde ek kalite kontrol testi taahhüt edilmiştir."
+    },
+    {
+      "test_name": "Ş.5 M.7.4.7 DIN 30670 - Termal Yaşlandırma r Testi",
+      "status": "MORE_STRINGENT",
+      "issue_type": "ADDITIONAL_TEST",
+      "uploaded_frequency": "— (Tablodan Okunamadı)",
+      "standard_frequency": "Standart Dışı / İmalatçı Özel Testi",
+      "uploaded_criteria": "API 5L / BOTAŞ şartname limitlerine uygun",
+      "standard_criteria": "İmalatçı & Müşteri Anlaşmasına Bağlı",
+      "audit_remarks": "🟡 Standart haricinde ek kalite kontrol testi taahhüt edilmiştir."
+    },
+    {
+      "test_name": "Ş.5 M. 5.8.3 - r Görsel Muayene",
+      "status": "MORE_STRINGENT",
+      "issue_type": "ADDITIONAL_TEST",
+      "uploaded_frequency": "— (Tablodan Okunamadı)",
+      "standard_frequency": "Standart Dışı / İmalatçı Özel Testi",
+      "uploaded_criteria": "API 5L / BOTAŞ şartname limitlerine uygun",
+      "standard_criteria": "İmalatçı & Müşteri Anlaşmasına Bağlı",
+      "audit_remarks": "🟡 Standart haricinde ek kalite kontrol testi taahhüt edilmiştir."
+    },
+    {
+      "test_name": "Üretici Tavsiyesi - Uygunsuz Ürün Yönetimi",
+      "status": "MORE_STRINGENT",
+      "issue_type": "ADDITIONAL_TEST",
+      "uploaded_frequency": "— (Tablodan Okunamadı)",
+      "standard_frequency": "Standart Dışı / İmalatçı Özel Testi",
+      "uploaded_criteria": "API 5L / BOTAŞ şartname limitlerine uygun",
+      "standard_criteria": "İmalatçı & Müşteri Anlaşmasına Bağlı",
+      "audit_remarks": "🟡 Standart haricinde ek kalite kontrol testi taahhüt edilmiştir."
+    },
+    {
+      "test_name": "Üretici Tavsiyesi",
+      "status": "MORE_STRINGENT",
+      "issue_type": "ADDITIONAL_TEST",
+      "uploaded_frequency": "— (Tablodan Okunamadı)",
+      "standard_frequency": "Standart Dışı / İmalatçı Özel Testi",
+      "uploaded_criteria": "API 5L / BOTAŞ şartname limitlerine uygun",
+      "standard_criteria": "İmalatçı & Müşteri Anlaşmasına Bağlı",
+      "audit_remarks": "🟡 Standart haricinde ek kalite kontrol testi taahhüt edilmiştir."
+    },
+    {
+      "test_name": "Ş.5. M.3 - Üretim prosedürü kalifikasyon testi (MPQT)",
+      "status": "MORE_STRINGENT",
+      "issue_type": "ADDITIONAL_TEST",
+      "uploaded_frequency": "— (Tablodan Okunamadı)",
+      "standard_frequency": "Standart Dışı / İmalatçı Özel Testi",
+      "uploaded_criteria": "API 5L / BOTAŞ şartname limitlerine uygun",
+      "standard_criteria": "İmalatçı & Müşteri Anlaşmasına Bağlı",
+      "audit_remarks": "🟡 Standart haricinde ek kalite kontrol testi taahhüt edilmiştir."
+    },
+    {
+      "test_name": "Ş.5. M.3",
+      "status": "MORE_STRINGENT",
+      "issue_type": "ADDITIONAL_TEST",
+      "uploaded_frequency": "— (Tablodan Okunamadı)",
+      "standard_frequency": "Standart Dışı / İmalatçı Özel Testi",
+      "uploaded_criteria": "API 5L / BOTAŞ şartname limitlerine uygun",
+      "standard_criteria": "İmalatçı & Müşteri Anlaşmasına Bağlı",
+      "audit_remarks": "🟡 Standart haricinde ek kalite kontrol testi taahhüt edilmiştir."
+    },
+    {
+      "test_name": "Ş.5. M.3 - Tüm üretim, muayene, vardiya ve test kayıtları",
+      "status": "MORE_STRINGENT",
+      "issue_type": "ADDITIONAL_TEST",
+      "uploaded_frequency": "— (Tablodan Okunamadı)",
+      "standard_frequency": "Standart Dışı / İmalatçı Özel Testi",
+      "uploaded_criteria": "API 5L / BOTAŞ şartname limitlerine uygun",
+      "standard_criteria": "İmalatçı & Müşteri Anlaşmasına Bağlı",
+      "audit_remarks": "🟡 Standart haricinde ek kalite kontrol testi taahhüt edilmiştir."
+    }
+  ],
+  "findings": []
+}

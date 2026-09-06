@@ -45,6 +45,41 @@ class UnlimitedOCREngine:
     )
 
     @classmethod
+    def classify_document_type(cls, text: str, filename: str) -> Dict[str, Any]:
+        """
+        Pre-flight gatekeeper to classify uploaded document before auditing.
+        Distinguishes ITP Quality Plans from Delivery Schedules and Technical Specifications.
+        """
+        t = (text or "").lower().replace("ı", "i").replace("İ", "i")
+        f = (filename or "").lower().replace("ı", "i").replace("İ", "i")
+        comb = f"{t} {f}"
+
+        # 1. Delivery / Shipping schedule
+        if any(k in comb for k in ("termin programi", "teslim programi", "teslimat takvimi", "termin plani", "mal alim isi icin nihai teslim", "delivery schedule", "shipping schedule", "sevk takvimi")):
+            return {
+                "document_type": "DELIVERY_SCHEDULE",
+                "is_itp": False,
+                "warning_message": "⚠️ DİKKAT: Yüklenen doküman bir 'Teslimat / Termin Programı'dır; Kalite Kontrol ve Muayene Test Planı (ITP) içermemektedir."
+            }
+
+        # 2. Technical Specification / Standard document
+        is_spec_fn = any(k in f for k in ("5120", "sartname", "spesifikasyon", "specification"))
+        is_spec_text = "celik boru sartnamesi" in t or "teknik sartname" in t[:2000] or "sartname hazirlama komisyonu" in t[:2000]
+        has_itp_title = "muayene ve test plani" in t[:1000] or "inspection and test plan" in t[:1000] or "itp" in f
+        if (is_spec_fn or is_spec_text) and not has_itp_title:
+            return {
+                "document_type": "TECHNICAL_SPECIFICATION",
+                "is_itp": False,
+                "warning_message": "⚠️ DİKKAT: Yüklenen doküman bir 'Teknik Şartname' metnidir; imalatçı Muayene ve Test Planı (ITP) tablosu değildir."
+            }
+
+        return {
+            "document_type": "ITP_DOCUMENT",
+            "is_itp": True,
+            "warning_message": None
+        }
+
+    @classmethod
     def parse_pdf_or_image(
         cls,
         file_bytes: bytes,
@@ -81,6 +116,11 @@ class UnlimitedOCREngine:
             except Exception as e_img:
                 logger.debug(f"Direct image OCR failed: {e_img}")
 
+        # 1b. Document Type Pre-flight Classification
+        doc_class = cls.classify_document_type(extracted_text, filename)
+        if not doc_class["is_itp"]:
+            warning_msg = doc_class["warning_message"]
+
         # 2. If Unlimited-OCR remote/local worker endpoint is provided, query it
         if endpoint and not tables_found:
             try:
@@ -97,16 +137,24 @@ class UnlimitedOCREngine:
         # 4. If nothing could be extracted from a blank/scanned image file, provide reference fallback with explicit warning
         if not tables_found:
             is_fallback = True
-            warning_msg = "⚠️ DİKKAT: Yüklenen PDF taranmış/vektörsüz görsel formatında olduğu için doğrudan dijital tablo çıkarılamadı. Sistem referans ITP şablonunu görüntülemektedir."
+            if not extracted_text.strip():
+                warning_msg = "⚠️ DİKKAT: Yüklenen PDF taranmış/vektörsüz görsel formatında olduğu için doğrudan dijital tablo çıkarılamadı. Sistem otomatik denetim için taranmış dokümanı işaretlemiştir."
+            else:
+                warning_msg = warning_msg or "⚠️ DİKKAT: Dokümandan doğrudan tablo çıkarılamadı; referans ITP şablonu görüntülenmektedir."
             tables_found = cls._heuristic_extract_fallback(extracted_text or filename)
 
         # 5. Automatically detect Project, Standard, Scope and Pipe Geometry Metadata
         detected_metadata = cls.detect_itp_metadata(extracted_text, tables_found, filename)
+        detected_metadata["document_type"] = doc_class["document_type"]
+        detected_metadata["is_itp"] = doc_class["is_itp"]
+
+        status = "warning" if (is_fallback or not doc_class["is_itp"]) else "success"
 
         return {
-            "status": "warning" if is_fallback else "success",
+            "status": status,
             "is_fallback": is_fallback,
             "warning_message": warning_msg,
+            "document_type": doc_class["document_type"],
             "filename": filename,
             "engine": "Unlimited-OCR Table & Multi-Column Parser (PyMuPDF 1.23+)",
             "total_items_found": len(tables_found),
@@ -354,7 +402,7 @@ class UnlimitedOCREngine:
             client_val = str(row[idx_client] or "").strip().upper() if 0 <= idx_client < len(row) else "W"
 
             if not freq:
-                freq = cls._extract_frequency_from_text(f"{test_name} {crit}") or "Test ünitesi (lot) başına 1 set"
+                freq = cls._extract_frequency_from_text(f"{test_name} {crit}") or "— (Tablodan Okunamadı)"
             if not crit:
                 crit = cls._extract_criteria_from_text(f"{test_name} {freq}") or "API 5L / BOTAŞ şartname limitlerine uygun"
 
@@ -448,7 +496,7 @@ class UnlimitedOCREngine:
                     if not any(it["test_name"] == name for it in items):
                         items.append({
                             "test_name": name,
-                            "test_frequency": freq or "Test ünitesi (lot) başına 1 set",
+                            "test_frequency": freq or "— (Tablodan Okunamadı)",
                             "sampling_location": "Boru gövdesi / kaynak dikişi",
                             "specimen_type": "Standart numune",
                             "test_standard": "API Spec 5L 47. Baskı",
@@ -733,14 +781,14 @@ class UnlimitedOCREngine:
 
         # 4. Process Detection
         process = "SAWH"
-        if any(k in combined_text for k in ("erw", "hfw", "yüksek frekans", "high frequency")):
+        if any(k in combined_text for k in ("smls", "dikişsiz", "dikissiz", "seamless")):
+            process = "SMLS"
+        elif any(k in combined_text for k in ("erw", "hfw", "yüksek frekans", "high frequency")):
             process = "ERW"
-        elif any(k in combined_text for k in ("lsaw", "sawl", "boyuna tozaltı", "longitudinal")):
+        elif any(k in combined_text for k in ("lsaw", "sawl", "boyuna tozaltı", "boyuna kaynak", "longitudinal submerged", "longitudinal saw", "longitudinal weld")):
             process = "LSAW"
         elif any(k in combined_text for k in ("sawh", "hsaw", "spiral", "helical")):
             process = "SAWH"
-        elif any(k in combined_text for k in ("smls", "dikişsiz", "seamless")):
-            process = "SMLS"
 
         # 5. PSL Level
         if "psl1" in combined_text or "psl 1" in combined_text or "psl-1" in combined_text:
@@ -771,7 +819,7 @@ class UnlimitedOCREngine:
             if m_del:
                 delivery_condition = m_del.group(1).upper()
 
-        # 6. Grade Detection with Delivery Suffix (e.g., X65M, X70M, X52M, X65Q, X65N)
+        # 6. Grade Detection with Delivery Suffix (e.g., X65M, X70M, X52M, X65Q, X65N, X70MO, X65MS, Grade B)
         grade = "X65"
         delivery_condition_for_grade = delivery_condition
         grades = [
@@ -780,51 +828,49 @@ class UnlimitedOCREngine:
             ("GRADE B", "Grade B"), ("GR.B", "Grade B"), ("GRB", "Grade B"), ("L485", "X70"),
             ("L450", "X65"), ("L415", "X60"), ("L360", "X52"), ("L290", "X42"), ("L245", "Grade B")
         ]
-        # First try to find grade with delivery suffix (e.g., X65M, X70M, X52M, X65Q, X65N)
         grade_with_delivery = None
         for code, clean_name in grades:
-            # Try with delivery suffix first (X65M, X70M, X52M, X65Q, X65N, X65R)
-            for suffix in ["M", "N", "Q", "R"]:
-                if re.search(r"\b" + code.lower() + suffix + r"\b", text_lower):
-                    grade_with_delivery = clean_name
-                    delivery_condition_for_grade = suffix
-                    break
-            if grade_with_delivery:
+            # Check with delivery suffix (e.g. X70M, X70MO, X65MS, X52Q, X65N)
+            m_suf = re.search(r"\b" + code.lower() + r"([mnqr][osl]?)\b", combined_text)
+            if m_suf:
+                grade_with_delivery = clean_name
+                delivery_condition_for_grade = m_suf.group(1)[0].upper()
                 break
-            # Then try without suffix
-            if re.search(r"\b" + code.lower() + r"\b", text_lower) or re.search(r"\b" + code.lower() + r"m\b", text_lower):
+            if re.search(r"\b" + code.lower() + r"\b", combined_text):
                 grade_with_delivery = clean_name
                 break
         
         if grade_with_delivery:
             grade = grade_with_delivery
-            # If we found grade with delivery suffix, use that delivery condition
-            # But keep the one detected from text if more specific
             if delivery_condition == "M" and delivery_condition_for_grade != "M":
                 delivery_condition = delivery_condition_for_grade
 
-        # 4. Process Detection
+        # 7. Diameter & Geometry Detection
         d_mm = 1219.0
         d_inch = '48"'
         t_mm = 14.30
 
         known_diameters = [
-            (1219.0, '48"', [r"\b1219(?:[.,]0)?\b", r"\b48\s*(?:\"|inç|inch)\b"]),
-            (1016.0, '40"', [r"\b1016(?:[.,]0)?\b", r"\b40\s*(?:\"|inç|inch)\b"]),
-            (914.4, '36"', [r"\b914[.,]4\b", r"\b36\s*(?:\"|inç|inch)\b"]),
-            (762.0, '30"', [r"\b762(?:[.,]0)?\b", r"\b30\s*(?:\"|inç|inch)\b"]),
-            (610.0, '24"', [r"\b610(?:[.,]0)?\b", r"\b24\s*(?:\"|inç|inch)\b"]),
-            (508.0, '20"', [r"\b508(?:[.,]0)?\b", r"\b20\s*(?:\"|inç|inch)\b"]),
-            (406.4, '16"', [r"\b406[.,]4\b", r"\b16\s*(?:\"|inç|inch)\b"]),
-            (323.9, '12"', [r"\b323[.,]9\b", r"\b12\s*(?:\"|inç|inch)\b"]),
-            (273.0, '10"', [r"\b273(?:[.,]0)?\b", r"\b10\s*(?:\"|inç|inch)\b"]),
-            (219.1, '8"', [r"\b219[.,]1\b", r"\b8\s*(?:\"|inç|inch)\b"]),
-            (168.3, '6"', [r"\b168[.,]3\b", r"\b6\s*(?:\"|inç|inch)\b"]),
-            (114.3, '4"', [r"\b114[.,]3\b", r"\b4\s*(?:\"|inç|inch)\b"])
+            (1422.4, '56"', [r"(?<![a-zA-Z0-9])1422(?:[.,][0-4])?(?![a-zA-Z0-9])", r"(?<![a-zA-Z0-9])56\s*(?:\"|inç|inch|in)(?![a-zA-Z0-9])"]),
+            (1219.0, '48"', [r"(?<![a-zA-Z0-9])1219(?:[.,]0)?(?![a-zA-Z0-9])", r"(?<![a-zA-Z0-9])48\s*(?:\"|inç|inch|in)(?![a-zA-Z0-9])"]),
+            (1066.8, '42"', [r"(?<![a-zA-Z0-9])1066(?:[.,][0-8])?(?![a-zA-Z0-9])", r"(?<![a-zA-Z0-9])42\s*(?:\"|inç|inch|in)(?![a-zA-Z0-9])"]),
+            (1016.0, '40"', [r"(?<![a-zA-Z0-9])1016(?:[.,]0)?(?![a-zA-Z0-9])", r"(?<![a-zA-Z0-9])40\s*(?:\"|inç|inch|in)(?![a-zA-Z0-9])"]),
+            (914.4, '36"', [r"(?<![a-zA-Z0-9])914[.,]4(?![a-zA-Z0-9])", r"(?<![a-zA-Z0-9])36\s*(?:\"|inç|inch|in)(?![a-zA-Z0-9])"]),
+            (762.0, '30"', [r"(?<![a-zA-Z0-9])762(?:[.,]0)?(?![a-zA-Z0-9])", r"(?<![a-zA-Z0-9])30\s*(?:\"|inç|inch|in)(?![a-zA-Z0-9])"]),
+            (711.2, '28"', [r"(?<![a-zA-Z0-9])711(?:[.,][0-2])?(?![a-zA-Z0-9])", r"(?<![a-zA-Z0-9])28\s*(?:\"|inç|inch|in)(?![a-zA-Z0-9])"]),
+            (610.0, '24"', [r"(?<![a-zA-Z0-9])610(?:[.,]0)?(?![a-zA-Z0-9])", r"(?<![a-zA-Z0-9])24\s*(?:\"|inç|inch|in)(?![a-zA-Z0-9])"]),
+            (508.0, '20"', [r"(?<![a-zA-Z0-9])508(?:[.,]0)?(?![a-zA-Z0-9])", r"(?<![a-zA-Z0-9])20\s*(?:\"|inç|inch|in)(?![a-zA-Z0-9])"]),
+            (406.4, '16"', [r"(?<![a-zA-Z0-9])406[.,]4(?![a-zA-Z0-9])", r"(?<![a-zA-Z0-9])16\s*(?:\"|inç|inch|in)(?![a-zA-Z0-9])"]),
+            (355.6, '14"', [r"(?<![a-zA-Z0-9])355(?:[.,]6)?(?![a-zA-Z0-9])", r"(?<![a-zA-Z0-9])14\s*(?:\"|inç|inch|in)(?![a-zA-Z0-9])"]),
+            (323.9, '12"', [r"(?<![a-zA-Z0-9])323[.,]9(?![a-zA-Z0-9])", r"(?<![a-zA-Z0-9])12(?:\.75)?\s*(?:\"|inç|inch|in)(?![a-zA-Z0-9])"]),
+            (273.0, '10"', [r"(?<![a-zA-Z0-9])273(?:[.,]0)?(?![a-zA-Z0-9])", r"(?<![a-zA-Z0-9])10\s*(?:\"|inç|inch|in)(?![a-zA-Z0-9])"]),
+            (219.1, '8"', [r"(?<![a-zA-Z0-9])219[.,]1(?![a-zA-Z0-9])", r"(?<![a-zA-Z0-9])8\s*(?:\"|inç|inch|in)(?![a-zA-Z0-9])"]),
+            (168.3, '6"', [r"(?<![a-zA-Z0-9])168[.,]3(?![a-zA-Z0-9])", r"(?<![a-zA-Z0-9])6\s*(?:\"|inç|inch|in)(?![a-zA-Z0-9])"]),
+            (114.3, '4"', [r"(?<![a-zA-Z0-9])114[.,]3(?![a-zA-Z0-9])", r"(?<![a-zA-Z0-9])4\s*(?:\"|inç|inch|in)(?![a-zA-Z0-9])"])
         ]
 
         for mm_val, in_val, patterns in known_diameters:
-            if any(re.search(p, text_lower) for p in patterns):
+            if any(re.search(p, combined_text) for p in patterns):
                 d_mm = mm_val
                 d_inch = in_val
                 break

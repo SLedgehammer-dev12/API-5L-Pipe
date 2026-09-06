@@ -449,11 +449,30 @@ class ITPAuditEngine:
         matched_uploaded = set()
         master_to_uploaded: Dict[int, int] = {}
 
+        # Phase 1: Maximum Weight Greedy Bipartite Assignment
         for score, m_idx, u_idx in candidates:
             if m_idx not in matched_master and u_idx not in matched_uploaded:
                 matched_master.add(m_idx)
                 matched_uploaded.add(u_idx)
                 master_to_uploaded[m_idx] = u_idx
+
+        # Phase 2: Multi-Item / Composite Row Assignment
+        # Vendors routinely bundle multiple standard checks into a single row
+        # (e.g. "Dış Çap, Ovallik ve Geometrik Muayene", "Kaynak Dikiş Yüksekliği ve Radyal Kaçıklık",
+        # "Boy, Doğrusallık ve Alın Kaynak Ağzı", "Kimyasal Kompozisyon (Ladle & Product)")
+        for score, m_idx, u_idx in candidates:
+            if m_idx not in matched_master and score >= 45:
+                master_item = master_spec[m_idx]
+                test_key = master_item["test_key"]
+                keywords = cls.TEST_MATCHER_KEYWORDS.get(test_key, [])
+                up_item = uploaded_items[u_idx]
+                up_name = _norm_tr(up_item.get("test_name") or "")
+                up_crit = _norm_tr(up_item.get("acceptance_criteria") or "")
+                up_std = _norm_tr(up_item.get("test_standard") or "")
+                full_up = f"{up_name} {up_crit} {up_std}"
+                if any(_norm_tr(kw) in full_up for kw in keywords):
+                    matched_master.add(m_idx)
+                    master_to_uploaded[m_idx] = u_idx
 
         # --- 2. Evaluate Assigned Master Items ---
         for m_idx, master_item in enumerate(master_spec):
@@ -706,12 +725,14 @@ class ITPAuditEngine:
         # --- 2. Comprehensive Criteria & Numeric Evaluations (via ITPCriteriaParser) ---
 
         # 2a. CVN Body Impact
+        # 2a. CVN Body Impact
         if test_key == "cvn_body":
             parsed_cvn = ITPCriteriaParser.parse_cvn_criteria(f"{up_crit_lower} {up_name.lower()}")
             req_avg = float(calc_targets.get("avg_j", 48.0 if (is_botas and "X52" in str(pipe_config.get("material_grade", ""))) else (60.0 if is_botas else 41.0)))
+            req_min = float(calc_targets.get("min_j", req_avg * 0.75))
             if parsed_cvn["energy_avg_j"] is not None:
                 val = parsed_cvn["energy_avg_j"]
-                if val < req_avg:
+                if val < req_avg - 0.5:
                     status = "NON_COMPLIANT"
                     issue_type = "CRITERIA_VIOLATION"
                     remarks.append(f"🔴 YETERSİZ DARBE ENERJİSİ (GÖVDE): Asgari ortalama darbe enerjisi {req_avg:.0f} J olmalıdır; ITP'de {val:.0f} J yazılmıştır!")
@@ -719,6 +740,12 @@ class ITPAuditEngine:
                     status = "MORE_STRINGENT"
                     issue_type = "MORE_STRINGENT"
                     remarks.append(f"🟡 DAHA SIKI DARBE ENERJİSİ: İmalatçı {val:.0f} J taahhüt etmiştir (Hesaplanan: {req_avg:.0f} J).")
+            if parsed_cvn["energy_min_j"] is not None:
+                val_min = parsed_cvn["energy_min_j"]
+                if val_min < req_min - 0.5:
+                    status = "NON_COMPLIANT"
+                    issue_type = "CRITERIA_VIOLATION"
+                    remarks.append(f"🔴 YETERSİZ TEKİL DARBE ENERJİSİ (GÖVDE): Asgari münferit darbe enerjisi {req_min:.0f} J olmalıdır; ITP'de {val_min:.0f} J yazılmıştır!")
             if is_botas and (("0 °c" in full_up_text or "0°c" in full_up_text) and "-20" not in full_up_text):
                 status = "NON_COMPLIANT"
                 issue_type = "CRITERIA_VIOLATION"
@@ -728,12 +755,19 @@ class ITPAuditEngine:
         elif test_key == "cvn_weld_haz":
             parsed_cvn = ITPCriteriaParser.parse_cvn_criteria(f"{up_crit_lower} {up_name.lower()}")
             req_avg = float(calc_targets.get("avg_j", 36.0 if (is_botas and "X52" in str(pipe_config.get("material_grade", ""))) else (45.0 if is_botas else 27.0)))
+            req_min = float(calc_targets.get("min_j", req_avg * 0.75))
             if parsed_cvn["energy_avg_j"] is not None:
                 val = parsed_cvn["energy_avg_j"]
-                if val < req_avg:
+                if val < req_avg - 0.5:
                     status = "NON_COMPLIANT"
                     issue_type = "CRITERIA_VIOLATION"
                     remarks.append(f"🔴 YETERSİZ DARBE ENERJİSİ (KAYNAK/ITAB): Asgari ortalama {req_avg:.0f} J olmalıdır; ITP'de {val:.0f} J yazılmıştır!")
+            if parsed_cvn["energy_min_j"] is not None:
+                val_min = parsed_cvn["energy_min_j"]
+                if val_min < req_min - 0.5:
+                    status = "NON_COMPLIANT"
+                    issue_type = "CRITERIA_VIOLATION"
+                    remarks.append(f"🔴 YETERSİZ TEKİL DARBE ENERJİSİ (KAYNAK/ITAB): Asgari münferit {req_min:.0f} J olmalıdır; ITP'de {val_min:.0f} J yazılmıştır!")
             if is_botas and (("0 °c" in full_up_text or "0°c" in full_up_text) and "-20" not in full_up_text):
                 status = "NON_COMPLIANT"
                 issue_type = "CRITERIA_VIOLATION"
@@ -758,7 +792,7 @@ class ITPAuditEngine:
         # 2d. Tensile Body & Weld
         elif test_key == "tensile_body":
             parsed_tensile = ITPCriteriaParser.parse_tensile_criteria(f"{up_crit_lower} {up_name.lower()}")
-            # Yield Rt0.5
+            # Yield Rt0.5 min
             req_rt = float(calc_targets.get("yield_min_mpa", 450.0))
             if parsed_tensile["yield_min"] is not None:
                 val_rt = parsed_tensile["yield_min"]
@@ -766,6 +800,33 @@ class ITPAuditEngine:
                     status = "NON_COMPLIANT"
                     issue_type = "CRITERIA_VIOLATION"
                     remarks.append(f"🔴 DÜŞÜK AKMA MUKAVEMETİ: Asgari Rt0.5={req_rt:.1f} MPa olmalıdır; ITP'de {val_rt:.1f} MPa belirtilmiş!")
+
+            # Yield Rt0.5 max
+            req_rt_max = calc_targets.get("yield_max_mpa")
+            if req_rt_max and parsed_tensile["yield_max"] is not None:
+                val_rt_max = parsed_tensile["yield_max"]
+                if val_rt_max > float(req_rt_max) + 0.5:
+                    status = "NON_COMPLIANT"
+                    issue_type = "CRITERIA_VIOLATION"
+                    remarks.append(f"🔴 YÜKSEK AKMA MUKAVEMETİ: Azami Rt0.5={float(req_rt_max):.1f} MPa olmalıdır; ITP'de {val_rt_max:.1f} MPa belirtilmiş!")
+
+            # Tensile Rm min
+            req_rm = float(calc_targets.get("tensile_min_mpa", 535.0))
+            if parsed_tensile["tensile_min"] is not None:
+                val_rm = parsed_tensile["tensile_min"]
+                if val_rm < req_rm - 0.5:
+                    status = "NON_COMPLIANT"
+                    issue_type = "CRITERIA_VIOLATION"
+                    remarks.append(f"🔴 DÜŞÜK ÇEKME MUKAVEMETİ: Asgari Rm={req_rm:.1f} MPa olmalıdır; ITP'de {val_rm:.1f} MPa belirtilmiş!")
+
+            # Tensile Rm max
+            req_rm_max = calc_targets.get("tensile_max_mpa")
+            if req_rm_max and parsed_tensile["tensile_max"] is not None:
+                val_rm_max = parsed_tensile["tensile_max"]
+                if val_rm_max > float(req_rm_max) + 0.5:
+                    status = "NON_COMPLIANT"
+                    issue_type = "CRITERIA_VIOLATION"
+                    remarks.append(f"🔴 YÜKSEK ÇEKME MUKAVEMETİ: Azami Rm={float(req_rm_max):.1f} MPa olmalıdır; ITP'de {val_rm_max:.1f} MPa belirtilmiş!")
 
             # Elongation Af
             req_af = float(calc_targets.get("elongation_min_pct", 19.5))
@@ -794,35 +855,86 @@ class ITPAuditEngine:
                     status = "NON_COMPLIANT"
                     issue_type = "CRITERIA_VIOLATION"
                     remarks.append(f"🔴 YETERSİZ KAYNAK ÇEKME MUKAVEMETİ: Asgari Rm={req_rm:.1f} MPa olmalıdır; ITP'de {val_rm:.1f} MPa belirtilmiş!")
+            req_weld_af = calc_targets.get("weld_elongation_min_pct")
+            if req_weld_af and parsed_tensile["elongation_min"] is not None:
+                val_w_af = parsed_tensile["elongation_min"]
+                if val_w_af < float(req_weld_af) - 0.2:
+                    status = "NON_COMPLIANT"
+                    issue_type = "CRITERIA_VIOLATION"
+                    remarks.append(f"🔴 YETERSİZ KAYNAK KOPMA UZAMASI: BOTAŞ uyarınca kaynak numunesi kopma uzaması en az %{float(req_weld_af):.1f} olmalıdır; ITP'de %{val_w_af:.1f} belirtilmiş!")
 
         # 2e. Chemical Composition (C, P, S, N, CE)
         elif test_key in ("chemical_heat", "chemical_product"):
-            c_matches = re.findall(r"c\s*[≤<=:]*\s*0\.(\d+)", up_crit_lower)
-            max_c = float(calc_targets.get("C_max", 0.12 if is_botas else 0.16))
-            if c_matches:
-                val_c = float("0." + c_matches[0])
-                if val_c > (max_c + 0.005):
-                    status = "NON_COMPLIANT"
-                    issue_type = "CRITERIA_VIOLATION"
-                    remarks.append(f"🔴 YÜKSEK KARBON LİMİTİ: C max %{max_c:.2f} olmalıdır; ITP'de %{val_c:.2f} yazılmıştır!")
+            parsed_chem = ITPCriteriaParser.parse_chemical_criteria(full_up_text)
 
-            p_matches = re.findall(r"p\s*[≤<=:]*\s*0\.0(\d+)", up_crit_lower)
-            max_p = float(calc_targets.get("P_max", 0.025 if is_botas else 0.020))
-            if p_matches:
-                val_p = float("0.0" + p_matches[0])
-                if val_p > (max_p + 0.0001):
-                    status = "NON_COMPLIANT"
-                    issue_type = "CRITERIA_VIOLATION"
-                    remarks.append(f"🔴 YÜKSEK FOSFOR LİMİTİ: P max %{max_p:.3f} olmalıdır; ITP'de %{val_p:.3f} yazılmıştır!")
+            # Carbon C
+            max_c_raw = calc_targets.get("C_max")
+            max_c = float(max_c_raw) if max_c_raw is not None else (0.12 if is_botas else 0.16)
+            val_c = parsed_chem["C_max"]
+            if val_c is None:
+                c_matches = re.findall(r"c\s*[≤<=:]*\s*0\.(\d+)", up_crit_lower)
+                if c_matches:
+                    val_c = float("0." + c_matches[0])
+            if val_c is not None and val_c > (max_c + 0.005):
+                status = "NON_COMPLIANT"
+                issue_type = "CRITERIA_VIOLATION"
+                remarks.append(f"🔴 YÜKSEK KARBON LİMİTİ: C max %{max_c:.2f} olmalıdır; ITP'de %{val_c:.2f} yazılmıştır!")
 
-            s_matches = re.findall(r"s\s*[≤<=:]*\s*0\.0(\d+)", up_crit_lower)
-            max_s = float(calc_targets.get("S_max", 0.010))
-            if s_matches:
-                val_s = float("0.0" + s_matches[0])
-                if val_s > (max_s + 0.0001):
+            # Phosphorus P
+            max_p_raw = calc_targets.get("P_max")
+            max_p = float(max_p_raw) if max_p_raw is not None else (0.025 if is_botas else 0.020)
+            val_p = parsed_chem["P_max"]
+            if val_p is None:
+                p_matches = re.findall(r"p\s*[≤<=:]*\s*0\.0(\d+)", up_crit_lower)
+                if p_matches:
+                    val_p = float("0.0" + p_matches[0])
+            if val_p is not None and val_p > (max_p + 0.0001):
+                status = "NON_COMPLIANT"
+                issue_type = "CRITERIA_VIOLATION"
+                remarks.append(f"🔴 YÜKSEK FOSFOR LİMİTİ: P max %{max_p:.3f} olmalıdır; ITP'de %{val_p:.3f} yazılmıştır!")
+
+            # Sulfur S
+            max_s_raw = calc_targets.get("S_max")
+            max_s = float(max_s_raw) if max_s_raw is not None else (0.010 if is_botas else 0.015)
+            val_s = parsed_chem["S_max"]
+            if val_s is None:
+                s_matches = re.findall(r"s\s*[≤<=:]*\s*0\.0(\d+)", up_crit_lower)
+                if s_matches:
+                    val_s = float("0.0" + s_matches[0])
+            if val_s is not None and val_s > (max_s + 0.0001):
+                status = "NON_COMPLIANT"
+                issue_type = "CRITERIA_VIOLATION"
+                remarks.append(f"🔴 YÜKSEK KÜKÜRT LİMİTİ: S max %{max_s:.3f} olmalıdır; ITP'de %{val_s:.3f} yazılmıştır!")
+
+            # CE_IIW
+            max_ce_raw = calc_targets.get("CE_IIW_max")
+            if max_ce_raw is not None or is_botas:
+                max_ce = float(max_ce_raw) if max_ce_raw is not None else (0.40 if is_botas else 0.43)
+                val_ce = parsed_chem["CE_IIW_max"]
+                if val_ce is not None and val_ce > (max_ce + 0.005):
                     status = "NON_COMPLIANT"
                     issue_type = "CRITERIA_VIOLATION"
-                    remarks.append(f"🔴 YÜKSEK KÜKÜRT LİMİTİ: S max %{max_s:.3f} olmalıdır; ITP'de %{val_s:.3f} yazılmıştır!")
+                    remarks.append(f"🔴 YÜKSEK KARBON EŞDEĞERİ (CE_IIW): Azami CE(IIW) {max_ce:.2f} olmalıdır; ITP'de {val_ce:.2f} taahhüt edilmiş!")
+
+            # CE_Pcm
+            max_pcm_raw = calc_targets.get("CE_Pcm_max")
+            if max_pcm_raw is not None or is_botas:
+                max_pcm = float(max_pcm_raw) if max_pcm_raw is not None else (0.22 if is_botas else 0.25)
+                val_pcm = parsed_chem["CE_Pcm_max"]
+                if val_pcm is not None and val_pcm > (max_pcm + 0.005):
+                    status = "NON_COMPLIANT"
+                    issue_type = "CRITERIA_VIOLATION"
+                    remarks.append(f"🔴 YÜKSEK KARBON EŞDEĞERİ (CE_Pcm): Azami CE(Pcm) {max_pcm:.2f} olmalıdır; ITP'de {val_pcm:.2f} taahhüt edilmiş!")
+
+            # Nitrogen N
+            max_n_raw = calc_targets.get("N_max")
+            if max_n_raw is not None or is_botas:
+                max_n = float(max_n_raw) if max_n_raw is not None else 0.009
+                val_n = parsed_chem["N_max"]
+                if val_n is not None and val_n > (max_n + 0.0005):
+                    status = "NON_COMPLIANT"
+                    issue_type = "CRITERIA_VIOLATION"
+                    remarks.append(f"🔴 YÜKSEK AZOT LİMİTİ: N max %{max_n:.3f} olmalıdır; ITP'de %{val_n:.3f} belirtilmiş!")
 
         # 2f. Hydrostatic Pressure & Holding Time (via ITPCriteriaParser)
         elif test_key == "hydrostatic":
@@ -847,10 +959,10 @@ class ITPAuditEngine:
 
         # 2g. Guided Bend Mandrel & Jaw
         elif test_key == "guided_bend":
-            crack_matches = re.findall(r"(\d+(?:\.\d+)?)\s*mm", up_crit_lower)
-            if crack_matches:
-                val_crack = float(crack_matches[0])
-                if val_crack > 3.2:
+            parsed_bend = ITPCriteriaParser.parse_bend_criteria(f"{up_crit_lower} {up_name_lower}")
+            if parsed_bend.get("max_crack_mm") is not None:
+                val_crack = parsed_bend["max_crack_mm"]
+                if val_crack > 3.201:
                     status = "NON_COMPLIANT"
                     issue_type = "CRITERIA_VIOLATION"
                     remarks.append(f"🔴 BÜKME KUSUR LİMİTİ AŞILDI: Maksimum çatlak boyutu 3.2 mm olmalıdır; ITP'de {val_crack:.1f} mm belirtilmiş!")
@@ -899,25 +1011,49 @@ class ITPAuditEngine:
 
         # 2l. Weld Repair Rules
         elif test_key == "weld_repair_rules":
-            if any(k in full_up_text for k in ("gövde tamiri serbest", "body repair permitted", "ana metal kaynak")):
+            parsed_repair = ITPCriteriaParser.parse_weld_repair_criteria(full_up_text)
+            if parsed_repair.get("body_repair_allowed") is True:
                 status = "NON_COMPLIANT"
                 issue_type = "CRITERIA_VIOLATION"
                 remarks.append("🔴 GÖVDE TAMİRİ YASAKTIR: API 5L Madde C.1 ve BOTAŞ uyarınca boru ana metaline kaynakla tamir kesinlikle yasaktır!")
-            if any(k in full_up_text for k in ("200 mm tamir", "250 mm tamir", "300 mm tamir")):
+            if parsed_repair.get("re_repair_allowed") is True:
                 status = "NON_COMPLIANT"
                 issue_type = "CRITERIA_VIOLATION"
-                remarks.append("🔴 TAMİR BOY LİMİTİ AŞILDI: Tek bir kaynak tamirinin boyu en fazla 150 mm olabilir!")
-            if t_mm > 10.0 and any(k in full_up_text for k in ("ön ısıtmasız", "no preheat")):
+                remarks.append("🔴 RE-REPAIR YASAKTIR: API 5L Madde C.4 ve BOTAŞ uyarınca aynı bölgede ikinci tamir (re-repair) yasaktır!")
+            max_rep = parsed_repair.get("max_single_repair_length_mm")
+            if max_rep and max_rep > 150.1:
+                status = "NON_COMPLIANT"
+                issue_type = "CRITERIA_VIOLATION"
+                remarks.append(f"🔴 TAMİR BOY LİMİTİ AŞILDI: Tek bir kaynak tamirinin boyu en fazla 150 mm olabilir; ITP'de {max_rep:.0f} mm belirtilmiş!")
+            if t_mm > 10.0 and any(k in full_up_text for k in ("ön ısıtmasız", "on isitmasiz", "no preheat")):
                 status = "NON_COMPLIANT"
                 issue_type = "CRITERIA_VIOLATION"
                 remarks.append(f"🔴 ÖN ISITMA ZORUNLU: t={t_mm:.1f} mm > 10.0 mm borularda tamir öncesi en az 100 °C ön ısıtma şarttır!")
 
         # 2m. Dimensional Unit Weight
         elif test_key == "dimensional_weight":
-            if any(k in up_crit_lower for k in ("-%5", "-5%", "+%15", "+15%")):
+            parsed_w = ITPCriteriaParser.parse_weight_criteria(full_up_text)
+            req_w_nom = calc_targets.get("nominal_kg_m")
+            
+            if parsed_w.get("minus_pct") is not None and parsed_w["minus_pct"] > 3.51:
+                status = "NON_COMPLIANT"
+                issue_type = "CRITERIA_VIOLATION"
+                remarks.append(f"🔴 AĞIRLIK TOLERANSI AŞILDI: API 5L Madde 9.11.2 uyarınca münferit boru için azami eksi tolerans -%3.5'tir; ITP'de -%{parsed_w['minus_pct']:.1f} belirtilmiş!")
+            elif parsed_w.get("plus_pct") is not None and parsed_w["plus_pct"] > 10.01:
+                status = "NON_COMPLIANT"
+                issue_type = "CRITERIA_VIOLATION"
+                remarks.append(f"🔴 AĞIRLIK TOLERANSI AŞILDI: API 5L Madde 9.11.2 uyarınca münferit boru için azami artı tolerans +%10.0'dur; ITP'de +%{parsed_w['plus_pct']:.1f} belirtilmiş!")
+            elif any(k in up_crit_lower for k in ("-%5", "-5%", "+%15", "+15%")):
                 status = "NON_COMPLIANT"
                 issue_type = "CRITERIA_VIOLATION"
                 remarks.append("🔴 AĞIRLIK TOLERANSI AŞILDI: API 5L Madde 9.11.2 uyarınca münferit boru ağırlık toleransı -%3.5 / +%10.0'dur!")
+
+            if req_w_nom and parsed_w.get("nominal_kg_m") is not None:
+                val_nom = parsed_w["nominal_kg_m"]
+                if abs(val_nom - float(req_w_nom)) / float(req_w_nom) > 0.05:
+                    status = "NON_COMPLIANT"
+                    issue_type = "CRITERIA_VIOLATION"
+                    remarks.append(f"🔴 HATALI BİRİM AĞIRLIK: Boru teorik ağırlığı {float(req_w_nom):.1f} kg/m iken ITP'de {val_nom:.1f} kg/m belirtilmiş!")
 
         # 2n. Weld Geometry (Weld Height, Radial Offset, Peaking) - numeric comparison
         elif test_key == "weld_geometry_offset_height":
@@ -949,21 +1085,29 @@ class ITPAuditEngine:
                 remarks.append(f"🔴 TEPELEŞME (PEAKING) LİMİTİ AŞILDI: BOTAŞ Çizelge 4 uyarınca boru ucu tepeleşmesi azami {req_peak:.2f} mm olabilir!")
 
         # 2o. Diameter (Ends & Body)
-        elif test_key == "dimensional_diameter_ends":
-            req_d_min = float(calc_targets.get("d_end_min_mm", d_mm - 1.6))
-            req_d_max = float(calc_targets.get("d_end_max_mm", d_mm + 1.6))
-            if any(k in up_crit_lower for k in ("±3.2", "± 3.2", "±4.0", "± 4.0", "±5.0")):
-                status = "NON_COMPLIANT"
-                issue_type = "CRITERIA_VIOLATION"
-                remarks.append(f"🔴 BORU UCU ÇAP TOLERANSI AŞILDI: Boru ucu çap toleransı {req_d_min:.1f} - {req_d_max:.1f} mm aralığında olmalıdır!")
+        elif test_key in ("dimensional_diameter_ends", "dimensional_diameter_body"):
+            is_end = "ends" in test_key
+            req_d_min = float(calc_targets.get("d_end_min_mm" if is_end else "d_body_min_mm", d_mm - (1.6 if is_end else 4.0)))
+            req_d_max = float(calc_targets.get("d_end_max_mm" if is_end else "d_body_max_mm", d_mm + (1.6 if is_end else 4.0)))
+            allowed_plus = abs(req_d_max - d_mm)
+            allowed_minus = abs(d_mm - req_d_min)
+            parsed_dim = ITPCriteriaParser.parse_dimensional_criteria(up_crit_lower)
+            loc_label = "BORU UCU ÇAP TOLERANSI AŞILDI" if is_end else "GÖVDE ÇAP TOLERANSI AŞILDI"
+            loc_name = "Boru ucu" if is_end else "Gövde"
+            margin = 0.5 if is_end else 1.0
 
-        elif test_key == "dimensional_diameter_body":
-            req_d_min = float(calc_targets.get("d_body_min_mm", d_mm - 4.0))
-            req_d_max = float(calc_targets.get("d_body_max_mm", d_mm + 4.0))
-            if any(k in up_crit_lower for k in ("±8.0", "± 8.0", "±10.0", "± 10.0")):
+            if parsed_dim.get("plus_mm") is not None and parsed_dim["plus_mm"] > (allowed_plus + margin):
                 status = "NON_COMPLIANT"
                 issue_type = "CRITERIA_VIOLATION"
-                remarks.append(f"🔴 GÖVDE ÇAP TOLERANSI AŞILDI: Boru gövdesi çap toleransı {req_d_min:.1f} - {req_d_max:.1f} mm aralığında olmalıdır!")
+                remarks.append(f"🔴 {loc_label}: İzin verilen azami artı tolerans +{allowed_plus:.1f} mm'dir; ITP'de +{parsed_dim['plus_mm']:.1f} mm yazılmıştır!")
+            elif parsed_dim.get("minus_mm") is not None and parsed_dim["minus_mm"] > (allowed_minus + margin):
+                status = "NON_COMPLIANT"
+                issue_type = "CRITERIA_VIOLATION"
+                remarks.append(f"🔴 {loc_label}: İzin verilen azami eksi tolerans -{allowed_minus:.1f} mm'dir; ITP'de -{parsed_dim['minus_mm']:.1f} mm yazılmıştır!")
+            elif any(k in up_crit_lower for k in (("±3.2", "± 3.2", "±4.0", "± 4.0", "±5.0") if is_end else ("±8.0", "± 8.0", "±10.0", "± 10.0"))):
+                status = "NON_COMPLIANT"
+                issue_type = "CRITERIA_VIOLATION"
+                remarks.append(f"🔴 {loc_label}: {loc_name} çap toleransı {req_d_min:.1f} - {req_d_max:.1f} mm (±{allowed_plus:.1f} mm) aralığında olmalıdır!")
 
         # 2p. Circumference (Ends & Body)
         elif test_key in ("dimensional_circumference_ends", "dimensional_circumference_body"):
@@ -973,41 +1117,46 @@ class ITPAuditEngine:
                 remarks.append("🔴 ÇEVRE TOLERANSI AŞILDI: Pi-mezura çevre ölçüm toleransı aşılmıştır!")
 
         # 2q. Ovality (Ends & Body)
-        elif test_key == "dimensional_ovality_ends":
-            req_ov = float(calc_targets.get("ovality_end_max_mm", 3.05 if is_botas else 6.10))
-            ov_matches = re.findall(r"(\d+(?:\.\d+)?)\s*mm", up_crit_lower)
-            if ov_matches:
-                val_ov = float(ov_matches[0])
-                if val_ov > (req_ov + 0.05):
-                    status = "NON_COMPLIANT"
-                    issue_type = "CRITERIA_VIOLATION"
-                    remarks.append(f"🔴 BORU UCU OVALİTE LİMİTİ AŞILDI: BOTAŞ Şartnamesi Madde 5.1 uyarınca uç ovalitesi azami {req_ov:.2f} mm olmalıdır; ITP'de {val_ov:.2f} mm belirtilmiş!")
-            elif is_botas and any(k in up_crit_lower for k in ("10 mm", "12 mm", "15 mm", "8 mm", "15")):
+        elif test_key in ("dimensional_ovality_ends", "dimensional_ovality_body"):
+            is_end = "ends" in test_key
+            loc_name = "Boru ucu" if is_end else "Gövde"
+            req_ov = float(calc_targets.get("ovality_end_max_mm" if is_end else "ovality_body_max_mm", (3.05 if is_botas else 6.10) if is_end else (6.10 if is_botas else 18.30)))
+            parsed_ov = ITPCriteriaParser.parse_ovality_criteria(f"{up_crit_lower} {up_name_lower}")
+            val_ov = parsed_ov.get("ovality_end_max_mm" if is_end else "ovality_body_max_mm") or parsed_ov.get("ovality_max_mm")
+            
+            if val_ov is not None and val_ov > (req_ov + 0.05):
                 status = "NON_COMPLIANT"
                 issue_type = "CRITERIA_VIOLATION"
-                remarks.append(f"🔴 BORU UCU OVALİTE LİMİTİ AŞILDI: BOTAŞ Şartnamesi Madde 5.1 uyarınca uç ovalitesi azami {req_ov:.2f} mm olmalıdır!")
-
-        elif test_key == "dimensional_ovality_body":
-            req_ov = float(calc_targets.get("ovality_body_max_mm", 6.10 if is_botas else 18.30))
-            ov_matches = re.findall(r"(\d+(?:\.\d+)?)\s*mm", up_crit_lower)
-            if ov_matches:
-                val_ov = float(ov_matches[0])
-                if val_ov > (req_ov + 0.05):
-                    status = "NON_COMPLIANT"
-                    issue_type = "CRITERIA_VIOLATION"
-                    remarks.append(f"🔴 GÖVDE OVALİTE LİMİTİ AŞILDI: BOTAŞ Şartnamesi Madde 5.1 uyarınca gövde ovalitesi azami {req_ov:.2f} mm olmalıdır; ITP'de {val_ov:.2f} mm belirtilmiş!")
-            elif is_botas and any(k in up_crit_lower for k in ("15 mm", "18 mm", "20 mm", "25")):
+                remarks.append(f"🔴 {loc_name.upper()} OVALİTE LİMİTİ AŞILDI: BOTAŞ Şartnamesi Madde 5.1 / API 5L uyarınca {loc_name.lower()} ovalitesi azami {req_ov:.2f} mm olmalıdır; ITP'de {val_ov:.2f} mm belirtilmiş!")
+            elif is_botas and any(k in up_crit_lower for k in (("10 mm", "12 mm", "15 mm", "8 mm") if is_end else ("15 mm", "18 mm", "20 mm", "25 mm"))):
                 status = "NON_COMPLIANT"
                 issue_type = "CRITERIA_VIOLATION"
-                remarks.append(f"🔴 GÖVDE OVALİTE LİMİTİ AŞILDI: BOTAŞ Şartnamesi Madde 5.1 uyarınca gövde ovalitesi azami {req_ov:.2f} mm olmalıdır!")
+                remarks.append(f"🔴 {loc_name.upper()} OVALİTE LİMİTİ AŞILDI: BOTAŞ Şartnamesi Madde 5.1 uyarınca {loc_name.lower()} ovalitesi azami {req_ov:.2f} mm olmalıdır!")
 
         # 2r. Wall Thickness
         elif test_key == "dimensional_wall_thickness":
             req_min_t = float(calc_targets.get("min_mm", t_mm * 0.90))
-            if any(k in up_crit_lower for k in ("-%15", "-15%", "-%20", "-20%")):
+            allowed_minus_pct = float(calc_targets.get("neg_tol_pct", 8.0 if is_botas else (12.5 if t_mm <= 5.0 else 10.0)))
+            allowed_plus_pct = float(calc_targets.get("pos_tol_pct", 10.0 if is_botas else (15.0 if t_mm < 15.0 else 10.0)))
+            parsed_dim = ITPCriteriaParser.parse_dimensional_criteria(up_crit_lower)
+
+            if parsed_dim.get("minus_pct") is not None and parsed_dim["minus_pct"] > allowed_minus_pct + 0.1:
                 status = "NON_COMPLIANT"
                 issue_type = "CRITERIA_VIOLATION"
-                remarks.append(f"🔴 ET KALINLIĞI NEGATİF TOLERANSI AŞILDI: Asgari et kalınlığı {req_min_t:.2f} mm olmalıdır!")
+                remarks.append(f"🔴 ET KALINLIĞI EKSİ TOLERANSI AŞILDI: İzin verilen azami eksi tolerans -%{allowed_minus_pct:.1f}'dir; ITP'de -%{parsed_dim['minus_pct']:.1f} yazılmıştır!")
+            elif parsed_dim.get("plus_pct") is not None and parsed_dim["plus_pct"] > allowed_plus_pct + 0.1:
+                status = "NON_COMPLIANT"
+                issue_type = "CRITERIA_VIOLATION"
+                remarks.append(f"🔴 ET KALINLIĞI ARTI TOLERANSI AŞILDI: İzin verilen azami artı tolerans +%{allowed_plus_pct:.1f}'dir; ITP'de +%{parsed_dim['plus_pct']:.1f} yazılmıştır!")
+            elif parsed_dim.get("min_limit_mm") is not None and parsed_dim["min_limit_mm"] < req_min_t - 0.05:
+                status = "NON_COMPLIANT"
+                issue_type = "CRITERIA_VIOLATION"
+                remarks.append(f"🔴 YETERSİZ ASGARİ ET KALINLIĞI: Asgari et kalınlığı {req_min_t:.2f} mm olmalıdır; ITP'de {parsed_dim['min_limit_mm']:.2f} mm belirtilmiş!")
+            elif any(k in up_crit_lower for k in ("-%15", "-15%", "-%20", "-20%", "-12.5%", "-%12.5")):
+                if (is_botas and any(k in up_crit_lower for k in ("-10%", "-%10", "-12.5%", "-%12.5", "-%15", "-15%"))) or any(k in up_crit_lower for k in ("-%15", "-15%", "-%20", "-20%")):
+                    status = "NON_COMPLIANT"
+                    issue_type = "CRITERIA_VIOLATION"
+                    remarks.append(f"🔴 ET KALINLIĞI NEGATİF TOLERANSI AŞILDI: Asgari et kalınlığı {req_min_t:.2f} mm (-%{allowed_minus_pct:.1f}) olmalıdır!")
 
         # 2s. Straightness
         elif test_key == "dimensional_straightness":
@@ -1029,45 +1178,6 @@ class ITPAuditEngine:
                 status = "NON_COMPLIANT"
                 issue_type = "CRITERIA_VIOLATION"
                 remarks.append("🔴 DİKLİKTEN SAPMA LİMİTİ AŞILDI: API 5L Çizelge 11 uyarınca boru ucu diklikten sapma azami 1.6 mm olmalıdır!")
-
-        # 2v. Wall Thickness
-        elif test_key == "dimensional_wall_thickness":
-            parsed_dim = ITPCriteriaParser.parse_dimensional_criteria(up_crit_lower)
-            if parsed_dim.get("minus_pct") is not None:
-                minus_p = parsed_dim["minus_pct"]
-                allowed_minus = 10.0 if not is_botas else 8.0
-                if minus_p > allowed_minus:
-                    status = "NON_COMPLIANT"
-                    issue_type = "CRITERIA_VIOLATION"
-                    remarks.append(f"🔴 ET KALINLIĞI EKSİ TOLERANSI AŞILDI: İzin verilen azami eksi tolerans -%{allowed_minus:.1f}'dir; ITP'de -%{minus_p:.1f} yazılmıştır!")
-            elif any(k in up_crit_lower for k in ("-12.5%", "-15%", "-%12.5", "-%15")):
-                status = "NON_COMPLIANT"
-                issue_type = "CRITERIA_VIOLATION"
-                remarks.append("🔴 ET KALINLIĞI EKSİ TOLERANSI AŞILDI: API 5L Çizelge 11 / BOTAŞ uyarınca eksi tolerans aşılmıştır!")
-
-        # 2w. Dimensional Diameter (Body & Ends)
-        elif test_key in ("dimensional_diameter_ends", "dimensional_diameter_body"):
-            req_d_min = float(calc_targets.get("d_end_min_mm" if "ends" in test_key else "d_body_min_mm", d_mm - 3.2))
-            req_d_max = float(calc_targets.get("d_end_max_mm" if "ends" in test_key else "d_body_max_mm", d_mm + 3.2))
-            parsed_dim = ITPCriteriaParser.parse_dimensional_criteria(up_crit_lower)
-            
-            if parsed_dim.get("plus_mm") is not None and parsed_dim.get("plus_mm") > (abs(req_d_max - d_mm) + 1.0):
-                status = "NON_COMPLIANT"
-                issue_type = "CRITERIA_VIOLATION"
-                remarks.append(f"🔴 DIŞ ÇAP ARTI TOLERANSI AŞILDI: İzin verilen azami artı tolerans +{abs(req_d_max-d_mm):.2f} mm'dir!")
-            elif parsed_dim.get("minus_mm") is not None and parsed_dim.get("minus_mm") > (abs(d_mm - req_d_min) + 1.0):
-                status = "NON_COMPLIANT"
-                issue_type = "CRITERIA_VIOLATION"
-                remarks.append(f"🔴 DIŞ ÇAP EKSİ TOLERANSI AŞILDI: İzin verilen azami eksi tolerans -{abs(d_mm-req_d_min):.2f} mm'dir!")
-
-        # 2x. Ovality (Out of Roundness)
-        elif test_key in ("dimensional_ovality_ends", "dimensional_ovality_body"):
-            req_ov = float(calc_targets.get("ovality_end_max_mm" if "ends" in test_key else "ovality_body_max_mm", 4.0))
-            parsed_dim = ITPCriteriaParser.parse_dimensional_criteria(up_crit_lower)
-            if parsed_dim.get("max_limit_mm") is not None and parsed_dim["max_limit_mm"] > (req_ov + 0.5):
-                status = "NON_COMPLIANT"
-                issue_type = "CRITERIA_VIOLATION"
-                remarks.append(f"🔴 OVALİTE LİMİTİ AŞILDI: Azami izin verilen dairesellikten sapma {req_ov:.2f} mm'dir; ITP'de {parsed_dim['max_limit_mm']:.2f} mm belirtilmiştir!")
 
         # 2y. Residual Magnetism
         elif test_key == "residual_magnetism":

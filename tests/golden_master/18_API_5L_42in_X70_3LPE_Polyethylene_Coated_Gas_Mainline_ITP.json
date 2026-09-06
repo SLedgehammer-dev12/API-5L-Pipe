@@ -1,0 +1,297 @@
+{
+  "file": "18_API_5L_42in_X70_3LPE_Polyethylene_Coated_Gas_Mainline_ITP.pdf",
+  "metadata": {
+    "detected_diameter_mm": 1066.8,
+    "detected_diameter_inch": "42\"",
+    "detected_wall_thickness_mm": 14.3,
+    "detected_grade": "X70",
+    "detected_process": "LSAW",
+    "detected_standard": "API",
+    "detected_psl": "PSL2",
+    "detected_scope_mode": "COATING_ONLY",
+    "scope_variants_count": 0
+  },
+  "parse_result": {
+    "status": "success",
+    "is_fallback": false,
+    "items_count": 22
+  },
+  "pipe_config_used": {
+    "diameter_mm": 1066.8,
+    "diameter_inch": "42\"",
+    "wall_thickness_mm": 14.3,
+    "material_grade": "X70",
+    "manufacturing_process": "LSAW",
+    "standard_type": "API",
+    "psl_level": "PSL2",
+    "delivery_condition": "M",
+    "scope_mode": "COATING_ONLY"
+  },
+  "kpi": {
+    "total_tests_audited": 23,
+    "compliant_count": 6,
+    "more_stringent_count": 14,
+    "non_compliant_count": 3,
+    "bare_pipe_score_percent": 100.0,
+    "coating_score_percent": 72.7,
+    "overall_verdict": "REJECTED"
+  },
+  "audit_rows": [
+    {
+      "test_name": "Yüzey Hazırlığı, Kumlama ve Temizlik (Surface Preparation & Blasting)",
+      "status": "NON_COMPLIANT",
+      "issue_type": "INADEQUATE_FREQUENCY",
+      "uploaded_frequency": "Twice per 8-hour shift (3 pipes each)",
+      "standard_frequency": "Her boru (%100 Sa 2.5 görsel) | Pürüzlülük/Toz/Tuz: 4 saatte 1",
+      "uploaded_criteria": "Surface roughness profile: Rz 60 µm - 100 µm with sharp angular profile for optimal FBE mechanical interlock",
+      "standard_criteria": "Temizlik: Min Sa 2½ (ISO 8501-1); Pürüzlülük: Rz 60-100 µm; Çiğ noktası +3 °C üzerinde; Toz Sınıfı ≤ 2; Tuz ≤ 20 mg/m² (2 µg/cm²)",
+      "audit_remarks": "🔴 FREKANS YETERSİZ: Standart gereği bu test İSTİSNASIZ HER BORUDA (%100) yapılmalıdır; 'Twice per 8-hour shift (3 pipes each)' kabul edilemez."
+    },
+    {
+      "test_name": "3LPE / HDPE Kaplama Kalınlığı (Coating Thickness - FBE/Adhesive/PE)",
+      "status": "COMPLIANT",
+      "issue_type": "CONFORMING",
+      "uploaded_frequency": "100% of all pipes (4 points per length)",
+      "standard_frequency": "Her boruda (%100 boru boyunca en az 12 nokta + kaynak kepi üzeri 4 nokta)",
+      "uploaded_criteria": "Minimum total thickness: >= 3.0 mm on body, >= 2.5 mm on weld seam. No under-thickness permitted",
+      "standard_criteria": "FBE Astar ≥ 120 µm; Yapıştırıcı ≥ 120 µm; Toplam 3LPE/HDPE ≥ 3.0 mm (3000 µm) (Kaynak kepi üzeri min kalınlıktan max %10 düşük olabilir)",
+      "audit_remarks": "🟢 API Spec 5L 47. Baskı ve hesaplanan boru parametrelerine tam uyumludur."
+    },
+    {
+      "test_name": "Elektrik Porozite / Süreksizlik Testi (Holiday Detection 25 kV)",
+      "status": "NON_COMPLIANT",
+      "issue_type": "CRITERIA_VIOLATION",
+      "uploaded_frequency": "Every coated pipe (100% full surface)",
+      "standard_frequency": "Her boru (%100 tam yüzey taraması)",
+      "uploaded_criteria": "High-voltage spark testing: 25 kV (or 5 kV/mm). ZERO holidays / pinholes permitted per pipe length",
+      "standard_criteria": "Test Gerilimi: 25.000 Volt (25 kV); Sıfır Kıvılcım / Hatasız (%100 kusursuz yalıtım)",
+      "audit_remarks": "🔴 HOLIDAY TEST GERİLİMİ HATALI: BOTAŞ 5410 R1 uyarınca test gerilimi 25.000 Volt (25 kV) olmalı ve kesinlikle kıvılcım/delik oluşmamalıdır!"
+    },
+    {
+      "test_name": "Soyulma Mukavemeti / Yapışma Testi (Peel Adhesion Test)",
+      "status": "NON_COMPLIANT",
+      "issue_type": "CRITERIA_VIOLATION",
+      "uploaded_frequency": "1 test per 50 pipes (or 1 per 4 hours)",
+      "standard_frequency": "İlk boru ve her PE partisinde / her vardiya (3 adet numune)",
+      "uploaded_criteria": "At 23 °C: Minimum 35 N/cm; At 50 °C: Minimum 15 N/cm. Failure mode: Cohesive within adhesive/PE (no steel disbond)",
+      "standard_criteria": "(23 ± 2) °C'de ≥ 150 N/cm (veya ≥ 18 N/mm); (50 ± 2) °C'de ≥ 15 N/cm; Test hızı: 10 mm/dakika",
+      "audit_remarks": "🔴 SOYULMA MUKAVEMETİ YETERSİZ: BOTAŞ 5410 R1 uyarınca 23 °C'de yapışma direnci en az 150 N/cm (veya 15 N/mm) olmalıdır!"
+    },
+    {
+      "test_name": "Kaplama Darbe Direnci Testi (Impact Resistance Test)",
+      "status": "COMPLIANT",
+      "issue_type": "CONFORMING",
+      "uploaded_frequency": "1 test per lot / shift",
+      "standard_frequency": "Her vardiya ve et kalınlığı değişiminde (20 darbe)",
+      "uploaded_criteria": "Impact resistance: >= 7.0 J/mm (zero holiday at 25 kV after impact); Indentation depth: <= 0.2 mm at 23 °C",
+      "standard_criteria": "Darbe Direnci ≥ 5 J/mm (23 ± 2 °C); 2.5 kg ağırlık 1 m'den düşürülecek; darbe sonrası 25 kV holiday testinde delinme/kıvılcım olmayacak",
+      "audit_remarks": "🟢 API Spec 5L 47. Baskı ve hesaplanan boru parametrelerine tam uyumludur."
+    },
+    {
+      "test_name": "Delici Uca Batma / Girinti Direnci (Indentation Test)",
+      "status": "COMPLIANT",
+      "issue_type": "CONFORMING",
+      "uploaded_frequency": "1 test per lot / shift",
+      "standard_frequency": "Her PE partisinde (1 / Batch)",
+      "uploaded_criteria": "Impact resistance: >= 7.0 J/mm (zero holiday at 25 kV after impact); Indentation depth: <= 0.2 mm at 23 °C",
+      "standard_criteria": "Batma Derinliği: (23 ± 2) °C'de Azami 0.20 mm; (50 ± 2) °C'de Azami 0.30 mm",
+      "audit_remarks": "🟢 API Spec 5L 47. Baskı ve hesaplanan boru parametrelerine tam uyumludur."
+    },
+    {
+      "test_name": "Katodik Soyulma Testi (Cathodic Disbondment - CD Test)",
+      "status": "COMPLIANT",
+      "issue_type": "CONFORMING",
+      "uploaded_frequency": "1 test per lot / qualification batch",
+      "standard_frequency": "Sipariş başına / her ebatta 1 set",
+      "uploaded_criteria": "28 days at 23 °C: Disbondment radius <= 7.0 mm; 48 hours at 65 °C: Disbondment radius <= 7.0 mm",
+      "standard_criteria": "20 °C (28 Gün - 1.5 V): Max 7.0 mm soyulma yarıçapı | 65 °C (24 Saat - 3.5 V): Max 7.0 mm soyulma yarıçapı",
+      "audit_remarks": "🟢 API Spec 5L 47. Baskı ve hesaplanan boru parametrelerine tam uyumludur."
+    },
+    {
+      "test_name": "Kaplamasız Uç Bölgesi ve Pah Açısı (Cutback Distance & Bevel)",
+      "status": "COMPLIANT",
+      "issue_type": "CONFORMING",
+      "uploaded_frequency": "100% both ends of each pipe",
+      "standard_frequency": "Her borunun her iki ucunda (%100)",
+      "uploaded_criteria": "Cutback length: 150 mm +- 20 mm; Chamfer angle: <= 30°; bare steel free of coating residue, bevel protector installed",
+      "standard_criteria": "Cutback mesafesi: 80 - 100 mm; Kaplamasız boyasız bölüm: 45 - 55 mm; PE Pah Açısı: 20° - 30° (veya 30° - 50°); Korozyona karşı geçici şeffaf vernik koruması ve koruyucu uç tapası",
+      "audit_remarks": "🟢 API Spec 5L 47. Baskı ve hesaplanan boru parametrelerine tam uyumludur."
+    },
+    {
+      "test_name": "Kaplama Kusur Tamir Kuralları (Coating Repair Limitations)",
+      "status": "COMPLIANT",
+      "issue_type": "CONFORMING",
+      "uploaded_frequency": "All repaired areas (if applicable)",
+      "standard_frequency": "Uygulanan her kaplama tamirinde istisnasız uygulanır",
+      "uploaded_criteria": "Max defect size <= 100 cm2, max 2 repairs per pipe. Melt stick + PE patch; 100% holiday re-tested at 25 kV",
+      "standard_criteria": "Bir boruda azami 3 tamir; Tek tamir alanı max 25 cm²; Toplam tamir alanı max 200 cm²; Astar boyaya inen hasarlarda ısıyla büzüşen yama ile min 50 mm sağlam kaplama üzerine bindirme; Tamir sonrası %100 25 kV holiday kontrolü",
+      "audit_remarks": "🟢 API Spec 5L 47. Baskı ve hesaplanan boru parametrelerine tam uyumludur."
+    },
+    {
+      "test_name": "Raw Material Verification (HDPE, Adhesive, FBE) - Every batch/delivery lot of coating materials",
+      "status": "MORE_STRINGENT",
+      "issue_type": "ADDITIONAL_TEST",
+      "uploaded_frequency": "Every batch/delivery lot of coating materials",
+      "standard_frequency": "Standart Dışı / İmalatçı Özel Testi",
+      "uploaded_criteria": "FBE: Gel time, moisture <= 0.5%, DSC Tg; Adhesive: MFR, density; PE: Density >= 0.940 g/cm3, MFR 0.2-0.7 g/10min, carbon black 2.0-2.5%, EN 10204 3.1 certs",
+      "standard_criteria": "İmalatçı & Müşteri Anlaşmasına Bağlı",
+      "audit_remarks": "🟡 Standart haricinde ek kalite kontrol testi taahhüt edilmiştir."
+    },
+    {
+      "test_name": "Bare Pipe Receipt & Pre-Washing - 100% bare pipe joints before entry",
+      "status": "MORE_STRINGENT",
+      "issue_type": "ADDITIONAL_TEST",
+      "uploaded_frequency": "100% bare pipe joints before entry",
+      "standard_frequency": "Standart Dışı / İmalatçı Özel Testi",
+      "uploaded_criteria": "No oil, grease, salt, lacquers, slivers or surface gouges; high-pressure potable water wash to remove contaminants",
+      "standard_criteria": "İmalatçı & Müşteri Anlaşmasına Bağlı",
+      "audit_remarks": "🟡 Standart haricinde ek kalite kontrol testi taahhüt edilmiştir."
+    },
+    {
+      "test_name": "Pipe Pre-Heating Prior to Blasting - Continuous monitoring all pipes",
+      "status": "MORE_STRINGENT",
+      "issue_type": "ADDITIONAL_TEST",
+      "uploaded_frequency": "Continuous monitoring all pipes",
+      "standard_frequency": "Standart Dışı / İmalatçı Özel Testi",
+      "uploaded_criteria": "Steel temperature 40 °C - 60 °C and minimum 3 °C above ambient dew point to ensure completely dry surface",
+      "standard_criteria": "İmalatçı & Müşteri Anlaşmasına Bağlı",
+      "audit_remarks": "🟡 Standart haricinde ek kalite kontrol testi taahhüt edilmiştir."
+    },
+    {
+      "test_name": "Abrasive Blast Cleaning - 100% of all pipes (continuous run)",
+      "status": "MORE_STRINGENT",
+      "issue_type": "ADDITIONAL_TEST",
+      "uploaded_frequency": "100% of all pipes (continuous run)",
+      "standard_frequency": "Standart Dışı / İmalatçı Özel Testi",
+      "uploaded_criteria": "Cleanliness: Sa 2.5 (Near-White Metal). Steel grit/shot mix; free of mill scale, rust, and surface defects",
+      "standard_criteria": "İmalatçı & Müşteri Anlaşmasına Bağlı",
+      "audit_remarks": "🟡 Standart haricinde ek kalite kontrol testi taahhüt edilmiştir."
+    },
+    {
+      "test_name": "Residual Dust Level Inspection - At start of shift and every 2 hours",
+      "status": "MORE_STRINGENT",
+      "issue_type": "ADDITIONAL_TEST",
+      "uploaded_frequency": "At start of shift and every 2 hours",
+      "standard_frequency": "Standart Dışı / İmalatçı Özel Testi",
+      "uploaded_criteria": "Dust rating: Maximum Class 1 or Class 2; blown clean with dry oil-free compressed air",
+      "standard_criteria": "İmalatçı & Müşteri Anlaşmasına Bağlı",
+      "audit_remarks": "🟡 Standart haricinde ek kalite kontrol testi taahhüt edilmiştir."
+    },
+    {
+      "test_name": "Water-Soluble Salt Contamination Test - 3 tests per shift (at pipe ends & middle)",
+      "status": "MORE_STRINGENT",
+      "issue_type": "ADDITIONAL_TEST",
+      "uploaded_frequency": "3 tests per shift (at pipe ends & middle)",
+      "standard_frequency": "Standart Dışı / İmalatçı Özel Testi",
+      "uploaded_criteria": "Residual chloride/salt level: <= 20 mg/m² (2.0 µg/cm²). If exceeded, re-wash with DI water and re-blast",
+      "standard_criteria": "İmalatçı & Müşteri Anlaşmasına Bağlı",
+      "audit_remarks": "🟡 Standart haricinde ek kalite kontrol testi taahhüt edilmiştir."
+    },
+    {
+      "test_name": "Chemical Surface Pre-Treatment - Continuous monitoring of bath & pipe",
+      "status": "MORE_STRINGENT",
+      "issue_type": "ADDITIONAL_TEST",
+      "uploaded_frequency": "Continuous monitoring of bath & pipe",
+      "standard_frequency": "Standart Dışı / İmalatçı Özel Testi",
+      "uploaded_criteria": "Phosphoric acid or chromate pre-treatment followed by DI water rinse; surface conductivity < 50 µS/cm",
+      "standard_criteria": "İmalatçı & Müşteri Anlaşmasına Bağlı",
+      "audit_remarks": "🟡 Standart haricinde ek kalite kontrol testi taahhüt edilmiştir."
+    },
+    {
+      "test_name": "Induction Heating for FBE Coating - Continuous pyrometer & infrared logger",
+      "status": "MORE_STRINGENT",
+      "issue_type": "ADDITIONAL_TEST",
+      "uploaded_frequency": "Continuous pyrometer & infrared logger",
+      "standard_frequency": "Standart Dışı / İmalatçı Özel Testi",
+      "uploaded_criteria": "Steel temperature 190 °C - 220 °C (maximum allowable 230 °C). Overheating > 240 °C causes rejection",
+      "standard_criteria": "İmalatçı & Müşteri Anlaşmasına Bağlı",
+      "audit_remarks": "🟡 Standart haricinde ek kalite kontrol testi taahhüt edilmiştir."
+    },
+    {
+      "test_name": "Fusion Bonded Epoxy (FBE) Application - Continuous electrostatic powder spray",
+      "status": "MORE_STRINGENT",
+      "issue_type": "ADDITIONAL_TEST",
+      "uploaded_frequency": "Continuous electrostatic powder spray",
+      "standard_frequency": "Standart Dışı / İmalatçı Özel Testi",
+      "uploaded_criteria": "Dry film thickness (DFT): 150 µm - 250 µm (target 200 µm). Uniform cloud, partial cure verification",
+      "standard_criteria": "İmalatçı & Müşteri Anlaşmasına Bağlı",
+      "audit_remarks": "🟡 Standart haricinde ek kalite kontrol testi taahhüt edilmiştir."
+    },
+    {
+      "test_name": "Grafted Copolymer Adhesive Extrusion - Continuous side-wrap extrusion",
+      "status": "MORE_STRINGENT",
+      "issue_type": "ADDITIONAL_TEST",
+      "uploaded_frequency": "Continuous side-wrap extrusion",
+      "standard_frequency": "Standart Dışı / İmalatçı Özel Testi",
+      "uploaded_criteria": "Adhesive thickness: 150 µm - 250 µm (target 200 µm). Full fusion with FBE before epoxy full cure",
+      "standard_criteria": "İmalatçı & Müşteri Anlaşmasına Bağlı",
+      "audit_remarks": "🟡 Standart haricinde ek kalite kontrol testi taahhüt edilmiştir."
+    },
+    {
+      "test_name": "Polyethylene (HDPE) Topcoat Application - Continuous circumferential wrapping",
+      "status": "MORE_STRINGENT",
+      "issue_type": "ADDITIONAL_TEST",
+      "uploaded_frequency": "Continuous circumferential wrapping",
+      "standard_frequency": "Standart Dışı / İmalatçı Özel Testi",
+      "uploaded_criteria": "Total 3LPE thickness: Minimum 3.0 mm (Reinforced Class v / Class C); weld seam min 85% of nominal body",
+      "standard_criteria": "İmalatçı & Müşteri Anlaşmasına Bağlı",
+      "audit_remarks": "🟡 Standart haricinde ek kalite kontrol testi taahhüt edilmiştir."
+    },
+    {
+      "test_name": "Water Quench Cooling & Temperature - 100% coated pipes through quench trough",
+      "status": "MORE_STRINGENT",
+      "issue_type": "ADDITIONAL_TEST",
+      "uploaded_frequency": "100% coated pipes through quench trough",
+      "standard_frequency": "Standart Dışı / İmalatçı Özel Testi",
+      "uploaded_criteria": "Controlled water cooling; pipe surface temperature reduced to < 60 °C before conveyor handling and stenciling",
+      "standard_criteria": "İmalatçı & Müşteri Anlaşmasına Bağlı",
+      "audit_remarks": "🟡 Standart haricinde ek kalite kontrol testi taahhüt edilmiştir."
+    },
+    {
+      "test_name": "Elongation at Break (PE Layer) - 1 test per raw material lot",
+      "status": "MORE_STRINGENT",
+      "issue_type": "ADDITIONAL_TEST",
+      "uploaded_frequency": "1 test per raw material lot",
+      "standard_frequency": "Standart Dışı / İmalatçı Özel Testi",
+      "uploaded_criteria": "Tensile elongation at break: Minimum >= 400% at 23 °C (demonstrating cold-bending ductile flexibility)",
+      "standard_criteria": "İmalatçı & Müşteri Anlaşmasına Bağlı",
+      "audit_remarks": "🟡 Standart haricinde ek kalite kontrol testi taahhüt edilmiştir."
+    },
+    {
+      "test_name": "Final Visual, Stenciling & Release - 100% of all finished coated pipes",
+      "status": "MORE_STRINGENT",
+      "issue_type": "ADDITIONAL_TEST",
+      "uploaded_frequency": "100% of all finished coated pipes",
+      "standard_frequency": "Standart Dışı / İmalatçı Özel Testi",
+      "uploaded_criteria": "100% visual inspection; UV-resistant white paint stencil; heavy-duty end caps fitted; EN 10204 3.1 3LPE cert",
+      "standard_criteria": "İmalatçı & Müşteri Anlaşmasına Bağlı",
+      "audit_remarks": "🟡 Standart haricinde ek kalite kontrol testi taahhüt edilmiştir."
+    }
+  ],
+  "findings": [
+    {
+      "test_name": "Yüzey Hazırlığı, Kumlama ve Temizlik (Surface Preparation & Blasting)",
+      "severity": "CRITICAL",
+      "issue_type": "INADEQUATE_FREQUENCY",
+      "message": "🔴 FREKANS YETERSİZ: Standart gereği bu test İSTİSNASIZ HER BORUDA (%100) yapılmalıdır; 'Twice per 8-hour shift (3 pipes each)' kabul edilemez.",
+      "clause_ref": "BOTAŞ 4-NGTL-0-GN-P-002-5410 R1 Madde 5.5 / DIN 30670 / EN 21809-1",
+      "table_ref": "BOTAŞ 5410 R1 / DIN 30670"
+    },
+    {
+      "test_name": "Elektrik Porozite / Süreksizlik Testi (Holiday Detection 25 kV)",
+      "severity": "CRITICAL",
+      "issue_type": "CRITERIA_VIOLATION",
+      "message": "🔴 HOLIDAY TEST GERİLİMİ HATALI: BOTAŞ 5410 R1 uyarınca test gerilimi 25.000 Volt (25 kV) olmalı ve kesinlikle kıvılcım/delik oluşmamalıdır!",
+      "clause_ref": "BOTAŞ 5410 R1 Madde 7.4.3 / DIN 30670 / EN 21809-1",
+      "table_ref": "BOTAŞ 5410 R1 Madde 7.4.3"
+    },
+    {
+      "test_name": "Soyulma Mukavemeti / Yapışma Testi (Peel Adhesion Test)",
+      "severity": "CRITICAL",
+      "issue_type": "CRITERIA_VIOLATION",
+      "message": "🔴 SOYULMA MUKAVEMETİ YETERSİZ: BOTAŞ 5410 R1 uyarınca 23 °C'de yapışma direnci en az 150 N/cm (veya 15 N/mm) olmalıdır!",
+      "clause_ref": "BOTAŞ 5410 R1 Madde 7.4.4 & Ek D / DIN 30670 / EN 21809-1",
+      "table_ref": "BOTAŞ 5410 R1 Ek D"
+    }
+  ]
+}
