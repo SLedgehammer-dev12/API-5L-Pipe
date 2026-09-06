@@ -62,6 +62,7 @@ pyinstaller \
     --hidden-import "core.pdf_exporter" \
     --hidden-import "core.unlimited_ocr_engine" \
     --hidden-import "core.itp_audit_engine" \
+    --hidden-import "core.itp_criteria_parser" \
     --hidden-import "core.sawh_engine" \
     --collect-all reportlab \
     --collect-all fitz \
