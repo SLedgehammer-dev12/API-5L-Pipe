@@ -159,22 +159,22 @@
     {
       "test_name": "Boru Çevre Toleransı - Boru Ucu (Circumference Tolerance - Pipe Ends)",
       "status": "NON_COMPLIANT",
-      "issue_type": "MISSING_MANDATORY_TEST",
-      "uploaded_frequency": "— (ITP'de Bulunamadı / Eksik)",
+      "issue_type": "INADEQUATE_FREQUENCY",
+      "uploaded_frequency": "5 pipes per shift (recorded)",
       "standard_frequency": "Her borunun her iki ucunda (%100)",
-      "uploaded_criteria": "—",
+      "uploaded_criteria": "API 5L / BOTAŞ şartname limitlerine uygun",
       "standard_criteria": "Boru Ucu Çevre Kabul Aralığı: 4462.3 mm - 4472.4 mm (π·D_end)",
-      "audit_remarks": "🔴 ZORUNLU TEST EKSİK: BOTAŞ Şartnamesi Madde 5.1 / API 5L Madde 9.11.1 uyarınca zorunlu olan bu test imalatçı ITP'sinde bulunmamaktadır!"
+      "audit_remarks": "🔴 FREKANS YETERSİZ: Standart gereği bu test İSTİSNASIZ HER BORUDA (%100) yapılmalıdır; '5 pipes per shift (recorded)' kabul edilemez."
     },
     {
       "test_name": "Boru Çevre Toleransı - Gövde (Circumference Tolerance - Pipe Body)",
       "status": "NON_COMPLIANT",
-      "issue_type": "MISSING_MANDATORY_TEST",
-      "uploaded_frequency": "— (ITP'de Bulunamadı / Eksik)",
+      "issue_type": "INADEQUATE_FREQUENCY",
+      "uploaded_frequency": "5 pipes per shift (recorded)",
       "standard_frequency": "D ≥ 20\" borularda %100 tüm borular; D < 20\" borularda vardiya başı / periyodik",
-      "uploaded_criteria": "—",
+      "uploaded_criteria": "API 5L / BOTAŞ şartname limitlerine uygun",
       "standard_criteria": "Boru Gövdesi Çevre Kabul Aralığı: 4454.8 mm - 4479.9 mm (π·D_body)",
-      "audit_remarks": "🔴 ZORUNLU TEST EKSİK: BOTAŞ Şartnamesi Madde 5.1 / API 5L Madde 9.11.1 uyarınca zorunlu olan bu test imalatçı ITP'sinde bulunmamaktadır!"
+      "audit_remarks": "🔴 FREKANS YETERSİZ: Standart gereği bu test İSTİSNASIZ HER BORUDA (%100) yapılmalıdır; '5 pipes per shift (recorded)' kabul edilemez."
     },
     {
       "test_name": "Ovalite - Boru Ucu (Out-of-Roundness - Pipe Ends)",
@@ -3983,16 +3983,16 @@
     {
       "test_name": "Boru Çevre Toleransı - Boru Ucu (Circumference Tolerance - Pipe Ends)",
       "severity": "CRITICAL",
-      "issue_type": "MISSING_MANDATORY_TEST",
-      "message": "🔴 ZORUNLU TEST EKSİK: BOTAŞ Şartnamesi Madde 5.1 / API 5L Madde 9.11.1 uyarınca zorunlu olan bu test imalatçı ITP'sinde bulunmamaktadır!",
+      "issue_type": "INADEQUATE_FREQUENCY",
+      "message": "🔴 FREKANS YETERSİZ: Standart gereği bu test İSTİSNASIZ HER BORUDA (%100) yapılmalıdır; '5 pipes per shift (recorded)' kabul edilemez.",
       "clause_ref": "BOTAŞ Şartnamesi Madde 5.1 / API 5L Madde 9.11.1",
       "table_ref": "BOTAŞ Madde 5.1 / API 5L Çizelge 10"
     },
     {
       "test_name": "Boru Çevre Toleransı - Gövde (Circumference Tolerance - Pipe Body)",
       "severity": "CRITICAL",
-      "issue_type": "MISSING_MANDATORY_TEST",
-      "message": "🔴 ZORUNLU TEST EKSİK: BOTAŞ Şartnamesi Madde 5.1 / API 5L Madde 9.11.1 uyarınca zorunlu olan bu test imalatçı ITP'sinde bulunmamaktadır!",
+      "issue_type": "INADEQUATE_FREQUENCY",
+      "message": "🔴 FREKANS YETERSİZ: Standart gereği bu test İSTİSNASIZ HER BORUDA (%100) yapılmalıdır; '5 pipes per shift (recorded)' kabul edilemez.",
       "clause_ref": "BOTAŞ Şartnamesi Madde 5.1 / API 5L Madde 9.11.1",
       "table_ref": "BOTAŞ Madde 5.1 / API 5L Çizelge 10"
     },

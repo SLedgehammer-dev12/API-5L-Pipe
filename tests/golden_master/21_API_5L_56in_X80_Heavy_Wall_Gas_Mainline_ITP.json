@@ -28,10 +28,10 @@
   },
   "kpi": {
     "total_tests_audited": 41,
-    "compliant_count": 17,
+    "compliant_count": 19,
     "more_stringent_count": 2,
-    "non_compliant_count": 22,
-    "bare_pipe_score_percent": 59.4,
+    "non_compliant_count": 20,
+    "bare_pipe_score_percent": 65.6,
     "coating_score_percent": 0.0,
     "overall_verdict": "REJECTED"
   },
@@ -218,13 +218,13 @@
     },
     {
       "test_name": "Boru Gövdesi Dış Çap Toleransı (Diameter Tolerance - Pipe Body)",
-      "status": "NON_COMPLIANT",
-      "issue_type": "MISSING_MANDATORY_TEST",
-      "uploaded_frequency": "— (ITP'de Bulunamadı / Eksik)",
+      "status": "COMPLIANT",
+      "issue_type": "CONFORMING",
+      "uploaded_frequency": "100% of all pipes (continuous laser)",
       "standard_frequency": "Vardiya başına en az her 4 saatte bir ve her parti boruda",
-      "uploaded_criteria": "—",
+      "uploaded_criteria": "Body OD: +-0.35%; End Out-of-Roundness (Ovality) <= 2.5 mm; Straightness <= 0.10% L; Radial offset <= 1.5 mm",
       "standard_criteria": "Gövde Çapı Kabul Aralığı: 1418.00 mm - 1426.00 mm (+3.60 / -4.40 mm)",
-      "audit_remarks": "🔴 ZORUNLU TEST EKSİK: API 5L Madde 9.11.1 & Çizelge 10 uyarınca zorunlu olan bu test imalatçı ITP'sinde bulunmamaktadır!"
+      "audit_remarks": "🟢 API Spec 5L 47. Baskı ve hesaplanan boru parametrelerine tam uyumludur."
     },
     {
       "test_name": "Boru Çevre Toleransı - Boru Ucu (Circumference Tolerance - Pipe Ends)",
@@ -248,13 +248,13 @@
     },
     {
       "test_name": "Ovalite - Boru Ucu (Out-of-Roundness - Pipe Ends)",
-      "status": "NON_COMPLIANT",
-      "issue_type": "MISSING_MANDATORY_TEST",
-      "uploaded_frequency": "— (ITP'de Bulunamadı / Eksik)",
+      "status": "COMPLIANT",
+      "issue_type": "CONFORMING",
+      "uploaded_frequency": "100% of all pipes (continuous laser)",
       "standard_frequency": "Vardiyada en az her 4 saatte bir ve soğuk genişletilen her boruda",
-      "uploaded_criteria": "—",
+      "uploaded_criteria": "Body OD: +-0.35%; End Out-of-Roundness (Ovality) <= 2.5 mm; Straightness <= 0.10% L; Radial offset <= 1.5 mm",
       "standard_criteria": "Boru Ucu Azami Ovalite: ≤ 13.00 mm (D_max - D_min ≤ 13.00 mm)",
-      "audit_remarks": "🔴 ZORUNLU TEST EKSİK: API 5L Madde 9.11.1 & Çizelge 10 uyarınca zorunlu olan bu test imalatçı ITP'sinde bulunmamaktadır!"
+      "audit_remarks": "🟢 API Spec 5L 47. Baskı ve hesaplanan boru parametrelerine tam uyumludur."
     },
     {
       "test_name": "Ovalite - Boru Gövdesi (Out-of-Roundness - Pipe Body)",
@@ -489,14 +489,6 @@
       "table_ref": "BOTAŞ Çizelge 4 / API 5L Çizelge 16"
     },
     {
-      "test_name": "Boru Gövdesi Dış Çap Toleransı (Diameter Tolerance - Pipe Body)",
-      "severity": "CRITICAL",
-      "issue_type": "MISSING_MANDATORY_TEST",
-      "message": "🔴 ZORUNLU TEST EKSİK: API 5L Madde 9.11.1 & Çizelge 10 uyarınca zorunlu olan bu test imalatçı ITP'sinde bulunmamaktadır!",
-      "clause_ref": "API 5L Madde 9.11.1 & Çizelge 10",
-      "table_ref": "Çizelge 18 (Table 18) / Çizelge 10"
-    },
-    {
       "test_name": "Boru Çevre Toleransı - Boru Ucu (Circumference Tolerance - Pipe Ends)",
       "severity": "CRITICAL",
       "issue_type": "MISSING_MANDATORY_TEST",
@@ -511,14 +503,6 @@
       "message": "🔴 ZORUNLU TEST EKSİK: BOTAŞ Şartnamesi Madde 5.1 / API 5L Madde 9.11.1 uyarınca zorunlu olan bu test imalatçı ITP'sinde bulunmamaktadır!",
       "clause_ref": "BOTAŞ Şartnamesi Madde 5.1 / API 5L Madde 9.11.1",
       "table_ref": "BOTAŞ Madde 5.1 / API 5L Çizelge 10"
-    },
-    {
-      "test_name": "Ovalite - Boru Ucu (Out-of-Roundness - Pipe Ends)",
-      "severity": "CRITICAL",
-      "issue_type": "MISSING_MANDATORY_TEST",
-      "message": "🔴 ZORUNLU TEST EKSİK: API 5L Madde 9.11.1 & Çizelge 10 uyarınca zorunlu olan bu test imalatçı ITP'sinde bulunmamaktadır!",
-      "clause_ref": "API 5L Madde 9.11.1 & Çizelge 10",
-      "table_ref": "Çizelge 18 (Table 18) / Çizelge 10"
     },
     {
       "test_name": "Et Kalınlığı Ölçümü ve Toleransı (Wall Thickness Verification)",

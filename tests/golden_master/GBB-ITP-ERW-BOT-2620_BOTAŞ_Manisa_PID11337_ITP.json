@@ -27,10 +27,10 @@
   },
   "kpi": {
     "total_tests_audited": 58,
-    "compliant_count": 16,
+    "compliant_count": 19,
     "more_stringent_count": 19,
-    "non_compliant_count": 23,
-    "bare_pipe_score_percent": 55.3,
+    "non_compliant_count": 20,
+    "bare_pipe_score_percent": 61.7,
     "coating_score_percent": 81.8,
     "overall_verdict": "REJECTED"
   },
@@ -177,23 +177,23 @@
     },
     {
       "test_name": "Boru Ucu Dış Çap Toleransı (Diameter Tolerance - Pipe Ends)",
-      "status": "NON_COMPLIANT",
-      "issue_type": "MISSING_MANDATORY_TEST",
-      "uploaded_frequency": "— (ITP'de Bulunamadı / Eksik)",
+      "status": "COMPLIANT",
+      "issue_type": "CONFORMING",
+      "uploaded_frequency": "— (Tablodan Okunamadı)",
       "standard_frequency": "Her borunun her iki ucunda (%100)",
-      "uploaded_criteria": "—",
+      "uploaded_criteria": "219,1 mm Çap Min. Max. Boru Ucu 218,4 220 Boru Gövdesi 217,4 220,7 Ovalite Min. Max. Boru Ucu - 1,6 Boru Gövdesi - 4,4 Boru ucu ovalite toleransı API 5L in %50 si kadar. Gövde Boru Ucu 0.02*D 0.015*D 4,4 mm 1,6 mm (%50)",
       "standard_criteria": "Uç Çapı Kabul Aralığı: 218.00 mm - 220.20 mm (+1.10 / -1.10 mm)",
-      "audit_remarks": "🔴 ZORUNLU TEST EKSİK: BOTAŞ Şartnamesi Madde 5.1 & 8.1.2.4 uyarınca zorunlu olan bu test imalatçı ITP'sinde bulunmamaktadır!"
+      "audit_remarks": "🟢 BOTAŞ Çelik Boru Şartnamesi (4-NGTL-0-GN-P-002-5120 R7) ve hesaplanan boru parametrelerine tam uyumludur."
     },
     {
       "test_name": "Boru Gövdesi Dış Çap Toleransı (Diameter Tolerance - Pipe Body)",
-      "status": "NON_COMPLIANT",
-      "issue_type": "MISSING_MANDATORY_TEST",
-      "uploaded_frequency": "— (ITP'de Bulunamadı / Eksik)",
+      "status": "COMPLIANT",
+      "issue_type": "CONFORMING",
+      "uploaded_frequency": "— (Tablodan Okunamadı)",
       "standard_frequency": "D ≥ 20\" borularda istisnasız %100 tüm borular; D < 20\" borularda vardiya başı / periyodik",
-      "uploaded_criteria": "—",
+      "uploaded_criteria": "219,1 mm Çap Min. Max. Boru Ucu 218,4 220 Boru Gövdesi 217,4 220,7 Ovalite Min. Max. Boru Ucu - 1,6 Boru Gövdesi - 4,4 Boru ucu ovalite toleransı API 5L in %50 si kadar. Gövde Boru Ucu 0.02*D 0.015*D 4,4 mm 1,6 mm (%50)",
       "standard_criteria": "Gövde Çapı Kabul Aralığı: 217.46 mm - 220.74 mm (+1.64 / -1.64 mm)",
-      "audit_remarks": "🔴 ZORUNLU TEST EKSİK: BOTAŞ Şartnamesi Madde 5.1 & 8.1.2.4 uyarınca zorunlu olan bu test imalatçı ITP'sinde bulunmamaktadır!"
+      "audit_remarks": "🟢 BOTAŞ Çelik Boru Şartnamesi (4-NGTL-0-GN-P-002-5120 R7) ve hesaplanan boru parametrelerine tam uyumludur."
     },
     {
       "test_name": "Boru Çevre Toleransı - Boru Ucu (Circumference Tolerance - Pipe Ends)",
@@ -227,13 +227,13 @@
     },
     {
       "test_name": "Ovalite - Boru Gövdesi (Out-of-Roundness - Pipe Body)",
-      "status": "NON_COMPLIANT",
-      "issue_type": "MISSING_MANDATORY_TEST",
-      "uploaded_frequency": "— (ITP'de Bulunamadı / Eksik)",
+      "status": "COMPLIANT",
+      "issue_type": "CONFORMING",
+      "uploaded_frequency": "— (Tablodan Okunamadı)",
       "standard_frequency": "D ≥ 20\" borularda %100 tüm borular; D < 20\" borularda vardiya başı / periyodik",
-      "uploaded_criteria": "—",
+      "uploaded_criteria": "219,1 mm Çap Min. Max. Boru Ucu 218,4 220 Boru Gövdesi 217,4 220,7 Ovalite Min. Max. Boru Ucu - 1,6 Boru Gövdesi - 4,4 Boru ucu ovalite toleransı API 5L in %50 si kadar. Gövde Boru Ucu 0.02*D 0.015*D 4,4 mm 1,6 mm (%50)",
       "standard_criteria": "Boru Gövdesi Azami Ovalite: ≤ 6.10 mm (D_max - D_min ≤ 6.10 mm)",
-      "audit_remarks": "🔴 ZORUNLU TEST EKSİK: BOTAŞ Şartnamesi Madde 5.1 uyarınca zorunlu olan bu test imalatçı ITP'sinde bulunmamaktadır!"
+      "audit_remarks": "🟢 BOTAŞ Çelik Boru Şartnamesi (4-NGTL-0-GN-P-002-5120 R7) ve hesaplanan boru parametrelerine tam uyumludur."
     },
     {
       "test_name": "Et Kalınlığı Ölçümü ve Toleransı (Wall Thickness Verification)",
@@ -698,22 +698,6 @@
       "table_ref": "ISO 10893-5 / ASTM E709"
     },
     {
-      "test_name": "Boru Ucu Dış Çap Toleransı (Diameter Tolerance - Pipe Ends)",
-      "severity": "CRITICAL",
-      "issue_type": "MISSING_MANDATORY_TEST",
-      "message": "🔴 ZORUNLU TEST EKSİK: BOTAŞ Şartnamesi Madde 5.1 & 8.1.2.4 uyarınca zorunlu olan bu test imalatçı ITP'sinde bulunmamaktadır!",
-      "clause_ref": "BOTAŞ Şartnamesi Madde 5.1 & 8.1.2.4",
-      "table_ref": "BOTAŞ Madde 5.1"
-    },
-    {
-      "test_name": "Boru Gövdesi Dış Çap Toleransı (Diameter Tolerance - Pipe Body)",
-      "severity": "CRITICAL",
-      "issue_type": "MISSING_MANDATORY_TEST",
-      "message": "🔴 ZORUNLU TEST EKSİK: BOTAŞ Şartnamesi Madde 5.1 & 8.1.2.4 uyarınca zorunlu olan bu test imalatçı ITP'sinde bulunmamaktadır!",
-      "clause_ref": "BOTAŞ Şartnamesi Madde 5.1 & 8.1.2.4",
-      "table_ref": "BOTAŞ Madde 5.1"
-    },
-    {
       "test_name": "Boru Çevre Toleransı - Boru Ucu (Circumference Tolerance - Pipe Ends)",
       "severity": "CRITICAL",
       "issue_type": "MISSING_MANDATORY_TEST",
@@ -728,14 +712,6 @@
       "message": "🔴 ZORUNLU TEST EKSİK: BOTAŞ Şartnamesi Madde 5.1 / API 5L Madde 9.11.1 uyarınca zorunlu olan bu test imalatçı ITP'sinde bulunmamaktadır!",
       "clause_ref": "BOTAŞ Şartnamesi Madde 5.1 / API 5L Madde 9.11.1",
       "table_ref": "BOTAŞ Madde 5.1 / API 5L Çizelge 10"
-    },
-    {
-      "test_name": "Ovalite - Boru Gövdesi (Out-of-Roundness - Pipe Body)",
-      "severity": "CRITICAL",
-      "issue_type": "MISSING_MANDATORY_TEST",
-      "message": "🔴 ZORUNLU TEST EKSİK: BOTAŞ Şartnamesi Madde 5.1 uyarınca zorunlu olan bu test imalatçı ITP'sinde bulunmamaktadır!",
-      "clause_ref": "BOTAŞ Şartnamesi Madde 5.1",
-      "table_ref": "BOTAŞ Madde 5.1"
     },
     {
       "test_name": "Boru Birim Ağırlığı ve Toleransı (Weight per Meter & Tolerance)",

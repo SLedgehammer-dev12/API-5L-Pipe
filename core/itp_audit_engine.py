@@ -67,6 +67,44 @@ class ITPAuditEngine:
     and 40+ computed pipe column parameters.
     """
 
+    # Composite / Bundled test groups (1-N unbundling).
+    # Vendors routinely merge several standard checks into one ITP row:
+    #   "Dış Çap, Ovallik ve Geometrik Muayene"  -> diameter + ovality + circumference
+    #   "Kaynak Geometrisi, Radyal Kaçıklık ve Tepeleşme" -> weld geometry + radial + peaking
+    #   "Doğrusallık, Boy ve Alın Kaynak Ağzı"   -> straightness + bevel + squareness
+    # Each entry has its own "family".  A row is a *composite* only when it covers at
+    # least COMPOSITE_MIN_COVERED DISTINCT families, so a specific row such as
+    # "Boru Ucu Dış Çap Toleransı" (single family "diam") stays a clean single match.
+    COMPOSITE_GROUPS = {
+        "dimensional_bundle": {
+            "entries": [
+                {"family": "diam", "triggers": ["boru ucu", "uç çap", "pipe end", "ends", "uc cap", "uç çapı", "boru ucu çap", "end diameter"], "keys": ["dimensional_diameter_ends"]},
+                {"family": "diam", "triggers": ["gövde", "body", "govde", "gövde çap", "govde cap", "body diameter"], "keys": ["dimensional_diameter_body"]},
+                {"family": "diam", "triggers": ["dii çap", "dış çap", "dis cap", "çap toleransı", "çap tolerans", "çap"], "keys": ["dimensional_diameter_ends", "dimensional_diameter_body"]},
+                {"family": "oval", "triggers": ["boru ucu oval", "uç oval", "end ovality", "uç ovalite", "uc ovalite"], "keys": ["dimensional_ovality_ends"]},
+                {"family": "oval", "triggers": ["gövde oval", "body ovality", "gövde ovalite", "govde ovalite", "gövde ovalitesi"], "keys": ["dimensional_ovality_body"]},
+                {"family": "oval", "triggers": ["ovallik", "ovality", "roundness", "dairesellik", "yuvarlaklık", "ovalite"], "keys": ["dimensional_ovality_ends", "dimensional_ovality_body"]},
+                {"family": "circ", "triggers": ["çevre", "circumference", "cevre", "cevresi", "çevre tolerans"], "keys": ["dimensional_circumference_ends", "dimensional_circumference_body"]},
+                {"family": "circ", "triggers": ["geometrik muayene", "boyutsal muayene", "geometrik kontrol", "boyutsal kontrol", "dimensional"], "keys": ["dimensional_circumference_ends", "dimensional_circumference_body"]},
+            ],
+        },
+        "weld_geometry_bundle": {
+            "entries": [
+                {"family": "weldh", "triggers": ["kaynak yüksekliği", "weld height", "reinforcement", "iç paso", "dış paso", "kaynak yuksekligi"], "keys": ["weld_geometry_offset_height"]},
+                {"family": "radial", "triggers": ["radyal kaçıklık", "radial offset", "basamaklanma", "misalignment", "radyal kaçiklik", "radyal kaciklik"], "keys": ["weld_radial_offset"]},
+                {"family": "peaking", "triggers": ["tepeleşme", "peaking", "tepelesme", "tepeleime"], "keys": ["dimensional_peaking_offset"]},
+            ],
+        },
+        "straightness_length_bevel_bundle": {
+            "entries": [
+                {"family": "straight", "triggers": ["doğrusallık", "straightness", "dogrusallik", "doirusallik", "doğrusallıktan"], "keys": ["dimensional_straightness"]},
+                {"family": "bevel", "triggers": ["alın kaynak ağzı", "bevel", "kaynak ağzı", "ağız açısı", "pah", "alin kaynak aizi", "kaynak aizi", "alin kaynak agzi"], "keys": ["dimensional_bevel_ends"]},
+                {"family": "square", "triggers": ["diklik", "squareness", "gönye", "dikligi"], "keys": ["dimensional_squareness_ends"]},
+            ],
+        },
+    }
+    COMPOSITE_MIN_COVERED = 2
+
     # Comprehensive bilingual (TR & EN) keyword mappings to match uploaded ITP test names to standard test keys
     TEST_MATCHER_KEYWORDS = {
         "chemical_heat": [
@@ -474,6 +512,37 @@ class ITPAuditEngine:
                     matched_master.add(m_idx)
                     master_to_uploaded[m_idx] = u_idx
 
+        # Phase 3: Composite Test Unbundling (1-N)
+        # A single vendor row can legitimately satisfy several fine-grained masters,
+        # but only when it mentions several DISTINCT families.
+        #   "Dış Çap, Ovallik ve Geometrik Muayene" -> diam + oval families -> unbundle
+        #   "Boru Ucu Dış Çap Toleransı"            -> diam family only      -> single match
+        composite_assigned: set = set()
+        for u_idx, up_item in enumerate(uploaded_items):
+            up_name = _norm_tr(up_item.get("test_name") or "")
+            up_crit = _norm_tr(up_item.get("acceptance_criteria") or "")
+            up_std = _norm_tr(up_item.get("test_standard") or "")
+            full_up = f"{up_name} {up_crit} {up_std}"
+
+            for group_name, group in cls.COMPOSITE_GROUPS.items():
+                covered_keys = []
+                covered_families = set()
+                for entry in group["entries"]:
+                    if any(_norm_tr(t) in full_up for t in entry["triggers"]):
+                        covered_keys.extend(entry["keys"])
+                        covered_families.add(entry.get("family", group_name))
+                if len(covered_families) < cls.COMPOSITE_MIN_COVERED:
+                    continue
+                # Assign this row to all currently-unmatched masters it covers
+                for t_key in set(covered_keys):
+                    for m_idx, master_item in enumerate(master_spec):
+                        if m_idx in matched_master:
+                            continue
+                        if master_item["test_key"] == t_key:
+                            matched_master.add(m_idx)
+                            master_to_uploaded[m_idx] = u_idx
+                            composite_assigned.add((m_idx, u_idx))
+
         # --- 2. Evaluate Assigned Master Items ---
         for m_idx, master_item in enumerate(master_spec):
             test_key = master_item["test_key"]
@@ -481,7 +550,15 @@ class ITPAuditEngine:
             if m_idx in master_to_uploaded:
                 u_idx = master_to_uploaded[m_idx]
                 matched_uploaded_item = uploaded_items[u_idx]
+                is_composite_row = (m_idx, u_idx) in composite_assigned
+                if is_composite_row:
+                    # Tag the uploaded dict so _evaluate_matched_row can downgrade
+                    # ambiguous shared-criteria violations (composite context).
+                    matched_uploaded_item = dict(matched_uploaded_item)
+                    matched_uploaded_item["_composite_match"] = True
                 row_eval = cls._evaluate_matched_row(master_item, matched_uploaded_item, pipe_config)
+                row_eval["composite_match"] = is_composite_row
+                row_eval["matched_uploaded_idx"] = u_idx
                 audit_rows.append(row_eval)
                 if row_eval["status"] != "COMPLIANT":
                     findings.append({
@@ -1087,6 +1164,11 @@ class ITPAuditEngine:
         # 2o. Diameter (Ends & Body)
         elif test_key in ("dimensional_diameter_ends", "dimensional_diameter_body"):
             is_end = "ends" in test_key
+            # Composite rows carry shared criteria for multiple sub-checks
+            # (e.g. "Gövde Çap: 1215.0-1223.0 (±4.0); Uç Ovalitesi <= 3.05").
+            # For composite matches the tolerance cannot be unambiguously attributed,
+            # so a numeric mismatch is downgraded to a WARNING (INFO finding).
+            is_composite = bool(uploaded.get("_composite_match") or (master.get("_composite_match")))
             req_d_min = float(calc_targets.get("d_end_min_mm" if is_end else "d_body_min_mm", d_mm - (1.6 if is_end else 4.0)))
             req_d_max = float(calc_targets.get("d_end_max_mm" if is_end else "d_body_max_mm", d_mm + (1.6 if is_end else 4.0)))
             allowed_plus = abs(req_d_max - d_mm)
@@ -1096,18 +1178,25 @@ class ITPAuditEngine:
             loc_name = "Boru ucu" if is_end else "Gövde"
             margin = 0.5 if is_end else 1.0
 
+            tolerance_ok = True
             if parsed_dim.get("plus_mm") is not None and parsed_dim["plus_mm"] > (allowed_plus + margin):
-                status = "NON_COMPLIANT"
-                issue_type = "CRITERIA_VIOLATION"
+                tolerance_ok = False
                 remarks.append(f"🔴 {loc_label}: İzin verilen azami artı tolerans +{allowed_plus:.1f} mm'dir; ITP'de +{parsed_dim['plus_mm']:.1f} mm yazılmıştır!")
             elif parsed_dim.get("minus_mm") is not None and parsed_dim["minus_mm"] > (allowed_minus + margin):
-                status = "NON_COMPLIANT"
-                issue_type = "CRITERIA_VIOLATION"
+                tolerance_ok = False
                 remarks.append(f"🔴 {loc_label}: İzin verilen azami eksi tolerans -{allowed_minus:.1f} mm'dir; ITP'de -{parsed_dim['minus_mm']:.1f} mm yazılmıştır!")
             elif any(k in up_crit_lower for k in (("±3.2", "± 3.2", "±4.0", "± 4.0", "±5.0") if is_end else ("±8.0", "± 8.0", "±10.0", "± 10.0"))):
+                tolerance_ok = False
+                remarks.append(f"🔴 {loc_label}: {loc_name} çap toleransı {req_d_min:.1f} - {req_d_max:.1f} mm (±{allowed_plus:.1f} mm) aralığında olmalıdır!")
+
+            if is_composite and not tolerance_ok:
+                # Shared criteria in a bundled row - downgrade CRITICAL to WARNING
+                status = "COMPLIANT"
+                issue_type = "COMPOSITE_TOLERANCE_REVIEW"
+                remarks[:] = [f"⚠️ UYARI (Birleşik satır): {remarks[0]} Değer birden fazla kontrolü kapsayan ortak kriterden geliyor; manuel teyit önerilir."]
+            elif not tolerance_ok:
                 status = "NON_COMPLIANT"
                 issue_type = "CRITERIA_VIOLATION"
-                remarks.append(f"🔴 {loc_label}: {loc_name} çap toleransı {req_d_min:.1f} - {req_d_max:.1f} mm (±{allowed_plus:.1f} mm) aralığında olmalıdır!")
 
         # 2p. Circumference (Ends & Body)
         elif test_key in ("dimensional_circumference_ends", "dimensional_circumference_body"):

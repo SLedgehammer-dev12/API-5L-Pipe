@@ -1,65 +1,65 @@
 {
-  "generated_at": "2026-09-06 21:50:25.535721",
+  "generated_at": "2026-09-06 23:23:33.551225",
   "total_files": 26,
   "total_checks": 1456,
-  "total_compliant": 264,
+  "total_compliant": 321,
   "total_more": 512,
-  "total_non": 680,
+  "total_non": 623,
   "files": [
     {
       "file": "01_BOTAS_48in_X65_SAWH_Mainline_ITP.pdf",
       "total": 42,
-      "compliant": 28,
+      "compliant": 36,
       "more": 0,
-      "non": 14,
+      "non": 6,
       "verdict": "REJECTED"
     },
     {
       "file": "02_BOTAS_24in_X60_Station_Pipe_ITP.pdf",
       "total": 42,
-      "compliant": 11,
+      "compliant": 14,
       "more": 0,
-      "non": 31,
+      "non": 28,
       "verdict": "REJECTED"
     },
     {
       "file": "03_API_5L_48in_X70_PSL2_SAWH_Standard_ITP.pdf",
       "total": 40,
-      "compliant": 15,
+      "compliant": 18,
       "more": 0,
-      "non": 25,
+      "non": 22,
       "verdict": "REJECTED"
     },
     {
       "file": "04_API_5L_36in_X65_PSL2_LSAW_ITP.pdf",
       "total": 40,
-      "compliant": 12,
+      "compliant": 16,
       "more": 1,
-      "non": 27,
+      "non": 23,
       "verdict": "REJECTED"
     },
     {
       "file": "05_API_5L_20in_X52_PSL2_HFW_ERW_ITP.pdf",
       "total": 39,
-      "compliant": 10,
-      "more": 1,
-      "non": 28,
-      "verdict": "REJECTED"
-    },
-    {
-      "file": "06_API_5L_12in_X52_PSL2_SMLS_Seamless_ITP.pdf",
-      "total": 32,
-      "compliant": 7,
+      "compliant": 14,
       "more": 1,
       "non": 24,
       "verdict": "REJECTED"
     },
     {
+      "file": "06_API_5L_12in_X52_PSL2_SMLS_Seamless_ITP.pdf",
+      "total": 32,
+      "compliant": 10,
+      "more": 1,
+      "non": 21,
+      "verdict": "REJECTED"
+    },
+    {
       "file": "07_API_5L_16in_Grade_B_PSL1_SMLS_ITP.pdf",
       "total": 33,
-      "compliant": 7,
+      "compliant": 9,
       "more": 1,
-      "non": 25,
+      "non": 23,
       "verdict": "REJECTED"
     },
     {
@@ -81,25 +81,25 @@
     {
       "file": "10_Aramco_01_SAMSS_035_30in_X60_ITP.pdf",
       "total": 40,
-      "compliant": 11,
+      "compliant": 15,
       "more": 1,
-      "non": 28,
+      "non": 24,
       "verdict": "REJECTED"
     },
     {
       "file": "11_Shell_DEP_31_40_20_37_28in_X70_Offshore_ITP.pdf",
       "total": 41,
-      "compliant": 8,
+      "compliant": 12,
       "more": 2,
-      "non": 31,
+      "non": 27,
       "verdict": "REJECTED"
     },
     {
       "file": "12_TANAP_Style_56in_X70_Mainline_ITP.pdf",
       "total": 41,
-      "compliant": 15,
+      "compliant": 18,
       "more": 2,
-      "non": 24,
+      "non": 21,
       "verdict": "REJECTED"
     },
     {
@@ -129,9 +129,9 @@
     {
       "file": "16_Global_TPI_Pipe_Inspection_and_Test_Plan.pdf",
       "total": 44,
-      "compliant": 10,
+      "compliant": 14,
       "more": 4,
-      "non": 30,
+      "non": 26,
       "verdict": "REJECTED"
     },
     {
@@ -161,9 +161,9 @@
     {
       "file": "20260302 ITP-BOTAS-26-037-041 BOTAŞ Hizan İlçesi DGBH HFW TR.pdf",
       "total": 41,
-      "compliant": 8,
+      "compliant": 12,
       "more": 1,
-      "non": 32,
+      "non": 28,
       "verdict": "REJECTED"
     },
     {
@@ -177,33 +177,33 @@
     {
       "file": "21_API_5L_56in_X80_Heavy_Wall_Gas_Mainline_ITP.pdf",
       "total": 41,
-      "compliant": 17,
+      "compliant": 19,
       "more": 2,
-      "non": 22,
+      "non": 20,
       "verdict": "REJECTED"
     },
     {
       "file": "Ahmetli ve Sarıgöl İlçeleri Doğalgaz Boru Hattı Çelik Boru Mal Alım İşi için Nihai Teslim ve Termin Programı.pdf",
       "total": 39,
-      "compliant": 10,
+      "compliant": 14,
       "more": 1,
-      "non": 28,
+      "non": 24,
       "verdict": "REJECTED"
     },
     {
       "file": "GBB-ITP-ERW-BOT-2620 BOTAŞ Manisa PID11337 ITP.pdf",
       "total": 58,
-      "compliant": 16,
+      "compliant": 19,
       "more": 19,
-      "non": 23,
+      "non": 20,
       "verdict": "REJECTED"
     },
     {
       "file": "TOS-ITP-ŞRK-001 Siyah Boru Muayene ve Test Planı-ŞARKÖY Rev1.pdf",
       "total": 76,
-      "compliant": 25,
+      "compliant": 27,
       "more": 34,
-      "non": 17,
+      "non": 15,
       "verdict": "REJECTED"
     },
     {

@@ -28,10 +28,10 @@
   },
   "kpi": {
     "total_tests_audited": 40,
-    "compliant_count": 15,
+    "compliant_count": 18,
     "more_stringent_count": 0,
-    "non_compliant_count": 25,
-    "bare_pipe_score_percent": 48.4,
+    "non_compliant_count": 22,
+    "bare_pipe_score_percent": 58.1,
     "coating_score_percent": 0.0,
     "overall_verdict": "REJECTED"
   },
@@ -208,23 +208,23 @@
     },
     {
       "test_name": "Boru Ucu Dış Çap Toleransı (Diameter Tolerance - Pipe Ends)",
-      "status": "NON_COMPLIANT",
-      "issue_type": "MISSING_MANDATORY_TEST",
-      "uploaded_frequency": "— (ITP'de Bulunamadı / Eksik)",
+      "status": "COMPLIANT",
+      "issue_type": "COMPOSITE_TOLERANCE_REVIEW",
+      "uploaded_frequency": "Once per 4 hours and 100% pipe ends",
       "standard_frequency": "Vardiyada en az 4 saatte bir ve soğuk genişletilen her boruda",
-      "uploaded_criteria": "—",
+      "uploaded_criteria": "Body diameter: +- 0.50% (Max +-4.0 mm); End ovality: per Table 10",
       "standard_criteria": "Uç Çapı Kabul Aralığı: 1217.40 mm - 1220.60 mm (+1.60 / -1.60 mm)",
-      "audit_remarks": "🔴 ZORUNLU TEST EKSİK: API 5L Madde 9.11.1 & Çizelge 10 uyarınca zorunlu olan bu test imalatçı ITP'sinde bulunmamaktadır!"
+      "audit_remarks": "⚠️ UYARI (Birleşik satır): 🔴 BORU UCU ÇAP TOLERANSI AŞILDI: İzin verilen azami artı tolerans +1.6 mm'dir; ITP'de +4.0 mm yazılmıştır! Değer birden fazla kontrolü kapsayan ortak kriterden geliyor; manuel teyit önerilir."
     },
     {
       "test_name": "Boru Gövdesi Dış Çap Toleransı (Diameter Tolerance - Pipe Body)",
-      "status": "NON_COMPLIANT",
-      "issue_type": "MISSING_MANDATORY_TEST",
-      "uploaded_frequency": "— (ITP'de Bulunamadı / Eksik)",
+      "status": "COMPLIANT",
+      "issue_type": "CONFORMING",
+      "uploaded_frequency": "Once per 4 hours and 100% pipe ends",
       "standard_frequency": "Vardiya başına en az her 4 saatte bir ve her parti boruda",
-      "uploaded_criteria": "—",
+      "uploaded_criteria": "Body diameter: +- 0.50% (Max +-4.0 mm); End ovality: per Table 10",
       "standard_criteria": "Gövde Çapı Kabul Aralığı: 1215.00 mm - 1223.00 mm (+4.00 / -4.00 mm)",
-      "audit_remarks": "🔴 ZORUNLU TEST EKSİK: API 5L Madde 9.11.1 & Çizelge 10 uyarınca zorunlu olan bu test imalatçı ITP'sinde bulunmamaktadır!"
+      "audit_remarks": "🟢 API Spec 5L 47. Baskı ve hesaplanan boru parametrelerine tam uyumludur."
     },
     {
       "test_name": "Boru Çevre Toleransı - Boru Ucu (Circumference Tolerance - Pipe Ends)",
@@ -258,13 +258,13 @@
     },
     {
       "test_name": "Ovalite - Boru Gövdesi (Out-of-Roundness - Pipe Body)",
-      "status": "NON_COMPLIANT",
-      "issue_type": "MISSING_MANDATORY_TEST",
-      "uploaded_frequency": "— (ITP'de Bulunamadı / Eksik)",
+      "status": "COMPLIANT",
+      "issue_type": "CONFORMING",
+      "uploaded_frequency": "Once per 4 hours and 100% pipe ends",
       "standard_frequency": "D ≥ 20\" borularda %100 tüm borular; D < 20\" borularda vardiya başı / periyodik",
-      "uploaded_criteria": "—",
+      "uploaded_criteria": "Body diameter: +- 0.50% (Max +-4.0 mm); End ovality: per Table 10",
       "standard_criteria": "Boru Gövdesi Azami Ovalite: ≤ 18.30 mm (D_max - D_min ≤ 18.30 mm)",
-      "audit_remarks": "🔴 ZORUNLU TEST EKSİK: API 5L Madde 9.11.1 & Çizelge 10 uyarınca zorunlu olan bu test imalatçı ITP'sinde bulunmamaktadır!"
+      "audit_remarks": "🟢 API Spec 5L 47. Baskı ve hesaplanan boru parametrelerine tam uyumludur."
     },
     {
       "test_name": "Et Kalınlığı Ölçümü ve Toleransı (Wall Thickness Verification)",
@@ -479,22 +479,6 @@
       "table_ref": "BOTAŞ Çizelge 4 / API 5L Çizelge 16"
     },
     {
-      "test_name": "Boru Ucu Dış Çap Toleransı (Diameter Tolerance - Pipe Ends)",
-      "severity": "CRITICAL",
-      "issue_type": "MISSING_MANDATORY_TEST",
-      "message": "🔴 ZORUNLU TEST EKSİK: API 5L Madde 9.11.1 & Çizelge 10 uyarınca zorunlu olan bu test imalatçı ITP'sinde bulunmamaktadır!",
-      "clause_ref": "API 5L Madde 9.11.1 & Çizelge 10",
-      "table_ref": "Çizelge 18 (Table 18) / Çizelge 10"
-    },
-    {
-      "test_name": "Boru Gövdesi Dış Çap Toleransı (Diameter Tolerance - Pipe Body)",
-      "severity": "CRITICAL",
-      "issue_type": "MISSING_MANDATORY_TEST",
-      "message": "🔴 ZORUNLU TEST EKSİK: API 5L Madde 9.11.1 & Çizelge 10 uyarınca zorunlu olan bu test imalatçı ITP'sinde bulunmamaktadır!",
-      "clause_ref": "API 5L Madde 9.11.1 & Çizelge 10",
-      "table_ref": "Çizelge 18 (Table 18) / Çizelge 10"
-    },
-    {
       "test_name": "Boru Çevre Toleransı - Boru Ucu (Circumference Tolerance - Pipe Ends)",
       "severity": "CRITICAL",
       "issue_type": "MISSING_MANDATORY_TEST",
@@ -509,14 +493,6 @@
       "message": "🔴 ZORUNLU TEST EKSİK: BOTAŞ Şartnamesi Madde 5.1 / API 5L Madde 9.11.1 uyarınca zorunlu olan bu test imalatçı ITP'sinde bulunmamaktadır!",
       "clause_ref": "BOTAŞ Şartnamesi Madde 5.1 / API 5L Madde 9.11.1",
       "table_ref": "BOTAŞ Madde 5.1 / API 5L Çizelge 10"
-    },
-    {
-      "test_name": "Ovalite - Boru Gövdesi (Out-of-Roundness - Pipe Body)",
-      "severity": "CRITICAL",
-      "issue_type": "MISSING_MANDATORY_TEST",
-      "message": "🔴 ZORUNLU TEST EKSİK: API 5L Madde 9.11.1 & Çizelge 10 uyarınca zorunlu olan bu test imalatçı ITP'sinde bulunmamaktadır!",
-      "clause_ref": "API 5L Madde 9.11.1 & Çizelge 10",
-      "table_ref": "Çizelge 18 (Table 18) / Çizelge 10"
     },
     {
       "test_name": "Et Kalınlığı Ölçümü ve Toleransı (Wall Thickness Verification)",

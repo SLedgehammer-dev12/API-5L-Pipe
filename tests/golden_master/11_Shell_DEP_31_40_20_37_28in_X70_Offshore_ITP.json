@@ -28,10 +28,10 @@
   },
   "kpi": {
     "total_tests_audited": 41,
-    "compliant_count": 8,
+    "compliant_count": 12,
     "more_stringent_count": 2,
-    "non_compliant_count": 31,
-    "bare_pipe_score_percent": 31.2,
+    "non_compliant_count": 27,
+    "bare_pipe_score_percent": 43.8,
     "coating_score_percent": 0.0,
     "overall_verdict": "REJECTED"
   },
@@ -228,43 +228,43 @@
     },
     {
       "test_name": "Boru Çevre Toleransı - Boru Ucu (Circumference Tolerance - Pipe Ends)",
-      "status": "NON_COMPLIANT",
-      "issue_type": "MISSING_MANDATORY_TEST",
-      "uploaded_frequency": "— (Dokümanda Tespit Edilemedi)",
+      "status": "COMPLIANT",
+      "issue_type": "CONFORMING",
+      "uploaded_frequency": "100% of all pipes (D, t, Ovality, L)",
       "standard_frequency": "Her borunun her iki ucunda (%100)",
-      "uploaded_criteria": "—",
+      "uploaded_criteria": "Diameter: +-0.30%; Out-of-roundness <= 0.50% D; Wall thickness: -5.0% / +10.0%",
       "standard_criteria": "Boru Ucu Çevre Kabul Aralığı: 2229.3 mm - 2239.3 mm (π·D_end)",
-      "audit_remarks": "🔴 ZORUNLU TEST EKSİK VEYA DOKÜMANDA ALGILANAMADI: BOTAŞ Şartnamesi Madde 5.1 / API 5L Madde 9.11.1 kapsamındaki bu test imalatçı ITP'sinde yer almamakta veya otomatik tespit edilememiştir; lütfen manuel doğrulayınız."
+      "audit_remarks": "🟢 API Spec 5L 47. Baskı ve hesaplanan boru parametrelerine tam uyumludur."
     },
     {
       "test_name": "Boru Çevre Toleransı - Gövde (Circumference Tolerance - Pipe Body)",
-      "status": "NON_COMPLIANT",
-      "issue_type": "MISSING_MANDATORY_TEST",
-      "uploaded_frequency": "— (Dokümanda Tespit Edilemedi)",
+      "status": "COMPLIANT",
+      "issue_type": "CONFORMING",
+      "uploaded_frequency": "100% of all pipes (D, t, Ovality, L)",
       "standard_frequency": "D ≥ 20\" borularda %100 tüm borular; D < 20\" borularda vardiya başı / periyodik",
-      "uploaded_criteria": "—",
+      "uploaded_criteria": "Diameter: +-0.30%; Out-of-roundness <= 0.50% D; Wall thickness: -5.0% / +10.0%",
       "standard_criteria": "Boru Gövdesi Çevre Kabul Aralığı: 2223.1 mm - 2245.5 mm (π·D_body)",
-      "audit_remarks": "🔴 ZORUNLU TEST EKSİK VEYA DOKÜMANDA ALGILANAMADI: BOTAŞ Şartnamesi Madde 5.1 / API 5L Madde 9.11.1 kapsamındaki bu test imalatçı ITP'sinde yer almamakta veya otomatik tespit edilememiştir; lütfen manuel doğrulayınız."
+      "audit_remarks": "🟢 API Spec 5L 47. Baskı ve hesaplanan boru parametrelerine tam uyumludur."
     },
     {
       "test_name": "Ovalite - Boru Ucu (Out-of-Roundness - Pipe Ends)",
-      "status": "NON_COMPLIANT",
-      "issue_type": "MISSING_MANDATORY_TEST",
-      "uploaded_frequency": "— (Dokümanda Tespit Edilemedi)",
+      "status": "COMPLIANT",
+      "issue_type": "CONFORMING",
+      "uploaded_frequency": "100% of all pipes (D, t, Ovality, L)",
       "standard_frequency": "Vardiyada en az her 4 saatte bir ve soğuk genişletilen her boruda",
-      "uploaded_criteria": "—",
+      "uploaded_criteria": "Diameter: +-0.30%; Out-of-roundness <= 0.50% D; Wall thickness: -5.0% / +10.0%",
       "standard_criteria": "Boru Ucu Azami Ovalite: ≤ 7.11 mm (D_max - D_min ≤ 7.11 mm)",
-      "audit_remarks": "🔴 ZORUNLU TEST EKSİK VEYA DOKÜMANDA ALGILANAMADI: API 5L Madde 9.11.1 & Çizelge 10 kapsamındaki bu test imalatçı ITP'sinde yer almamakta veya otomatik tespit edilememiştir; lütfen manuel doğrulayınız."
+      "audit_remarks": "🟢 API Spec 5L 47. Baskı ve hesaplanan boru parametrelerine tam uyumludur."
     },
     {
       "test_name": "Ovalite - Boru Gövdesi (Out-of-Roundness - Pipe Body)",
-      "status": "NON_COMPLIANT",
-      "issue_type": "MISSING_MANDATORY_TEST",
-      "uploaded_frequency": "— (Dokümanda Tespit Edilemedi)",
+      "status": "COMPLIANT",
+      "issue_type": "CONFORMING",
+      "uploaded_frequency": "100% of all pipes (D, t, Ovality, L)",
       "standard_frequency": "D ≥ 20\" borularda %100 tüm borular; D < 20\" borularda vardiya başı / periyodik",
-      "uploaded_criteria": "—",
+      "uploaded_criteria": "Diameter: +-0.30%; Out-of-roundness <= 0.50% D; Wall thickness: -5.0% / +10.0%",
       "standard_criteria": "Boru Gövdesi Azami Ovalite: ≤ 10.67 mm (D_max - D_min ≤ 10.67 mm)",
-      "audit_remarks": "🔴 ZORUNLU TEST EKSİK VEYA DOKÜMANDA ALGILANAMADI: API 5L Madde 9.11.1 & Çizelge 10 kapsamındaki bu test imalatçı ITP'sinde yer almamakta veya otomatik tespit edilememiştir; lütfen manuel doğrulayınız."
+      "audit_remarks": "🟢 API Spec 5L 47. Baskı ve hesaplanan boru parametrelerine tam uyumludur."
     },
     {
       "test_name": "Et Kalınlığı Ölçümü ve Toleransı (Wall Thickness Verification)",
@@ -538,38 +538,6 @@
     },
     {
       "test_name": "Boru Gövdesi Dış Çap Toleransı (Diameter Tolerance - Pipe Body)",
-      "severity": "WARNING",
-      "issue_type": "MISSING_MANDATORY_TEST",
-      "message": "🔴 ZORUNLU TEST EKSİK VEYA DOKÜMANDA ALGILANAMADI: API 5L Madde 9.11.1 & Çizelge 10 kapsamındaki bu test imalatçı ITP'sinde yer almamakta veya otomatik tespit edilememiştir; lütfen manuel doğrulayınız.",
-      "clause_ref": "API 5L Madde 9.11.1 & Çizelge 10",
-      "table_ref": "Çizelge 18 (Table 18) / Çizelge 10"
-    },
-    {
-      "test_name": "Boru Çevre Toleransı - Boru Ucu (Circumference Tolerance - Pipe Ends)",
-      "severity": "WARNING",
-      "issue_type": "MISSING_MANDATORY_TEST",
-      "message": "🔴 ZORUNLU TEST EKSİK VEYA DOKÜMANDA ALGILANAMADI: BOTAŞ Şartnamesi Madde 5.1 / API 5L Madde 9.11.1 kapsamındaki bu test imalatçı ITP'sinde yer almamakta veya otomatik tespit edilememiştir; lütfen manuel doğrulayınız.",
-      "clause_ref": "BOTAŞ Şartnamesi Madde 5.1 / API 5L Madde 9.11.1",
-      "table_ref": "BOTAŞ Madde 5.1 / API 5L Çizelge 10"
-    },
-    {
-      "test_name": "Boru Çevre Toleransı - Gövde (Circumference Tolerance - Pipe Body)",
-      "severity": "WARNING",
-      "issue_type": "MISSING_MANDATORY_TEST",
-      "message": "🔴 ZORUNLU TEST EKSİK VEYA DOKÜMANDA ALGILANAMADI: BOTAŞ Şartnamesi Madde 5.1 / API 5L Madde 9.11.1 kapsamındaki bu test imalatçı ITP'sinde yer almamakta veya otomatik tespit edilememiştir; lütfen manuel doğrulayınız.",
-      "clause_ref": "BOTAŞ Şartnamesi Madde 5.1 / API 5L Madde 9.11.1",
-      "table_ref": "BOTAŞ Madde 5.1 / API 5L Çizelge 10"
-    },
-    {
-      "test_name": "Ovalite - Boru Ucu (Out-of-Roundness - Pipe Ends)",
-      "severity": "WARNING",
-      "issue_type": "MISSING_MANDATORY_TEST",
-      "message": "🔴 ZORUNLU TEST EKSİK VEYA DOKÜMANDA ALGILANAMADI: API 5L Madde 9.11.1 & Çizelge 10 kapsamındaki bu test imalatçı ITP'sinde yer almamakta veya otomatik tespit edilememiştir; lütfen manuel doğrulayınız.",
-      "clause_ref": "API 5L Madde 9.11.1 & Çizelge 10",
-      "table_ref": "Çizelge 18 (Table 18) / Çizelge 10"
-    },
-    {
-      "test_name": "Ovalite - Boru Gövdesi (Out-of-Roundness - Pipe Body)",
       "severity": "WARNING",
       "issue_type": "MISSING_MANDATORY_TEST",
       "message": "🔴 ZORUNLU TEST EKSİK VEYA DOKÜMANDA ALGILANAMADI: API 5L Madde 9.11.1 & Çizelge 10 kapsamındaki bu test imalatçı ITP'sinde yer almamakta veya otomatik tespit edilememiştir; lütfen manuel doğrulayınız.",
