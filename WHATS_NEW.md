@@ -1,7 +1,29 @@
-# What's New in API 5L Pipe QA/QC & Wall Thickness Suite (v2.7.0)
-## Yenilikler ve Sürüm Özeti - v2.7.0 (2026-09-06)
+# What's New in API 5L Pipe QA/QC & Wall Thickness Suite (v2.8.0)
+## Yenilikler ve Sürüm Özeti - v2.8.0 (2026-09-07)
 
 ---
+
+### 🇹🇷 Türkçe Özet (v2.8.0)
+
+API 5L Pipe QA/QC Suite **v2.8.0** sürümü ile birlikte **Telif Hassasiyeti Temizliği** ve **Artık Stres (Ring Kesme) Testi Canlı Animasyonu** entegre edilmiştir:
+
+#### 1. 🪚 Artık Stres (Ring Kesme) Testi Animasyonu
+- **2D/3D şematik sekmesi:** Spiral/düz dikişli ark kaynaklı (SAWH/SAWL/LSAW) borular için BOTAŞ Madde 3.3.9'a uygun canlı animasyon eklendi.
+- **Adımlar:** 150 mm halka kesimi → kaynak karşısından tek noktadan çentik → halkanın kendiliğinden açılıp Δ boşluğunun ölçülmesi.
+- **Dinamik ölçülendirme:** Animasyon seçili borunun gerçek değerlerini kullanır (D, t, Δ max); kabul kriteri $S = (E\cdot t\cdot\Delta)/(12.566\cdot D^2) \le \%10\ \text{SMYS}$.
+- **ITP düzeltmesi:** "Artık Stres Testi (Residual Stress)" satırının numune çizimi doğru `residual_stress_ring` figürüyle değiştirildi.
+
+#### 2. 🧹 Telif Hassasiyeti Temizliği
+- Program çalışması için gerekli olmayan ve telif hakkı riski taşıyan dokümanlar GitHub deposundan kaldırıldı: örnek ITP PDF kütüphanesi (`itp_sample_library/`), BOTAŞ `5120_R7.pdf` şartnamesi, `Pipe Fittings Flange Calc *.xlsx` çalışma kitapları ve örnek satıcı ITP'si.
+- Bu dosyaların yeniden commit edilmemesi için `.gitignore` güncellendi; JSON bazlı golden master testleri korundu.
+
+#### 3. 🧪 Test & Lint İyileştirmeleri
+- Örnek ITP kütüphanesi olmadan golden master PDF testleri zarifçe atlanır.
+- `test_regression_golden.py` mükerrer fonksiyon tanımlarından (F811) temizlendi; CI ruff lint kontrolü tamamen temiz.
+
+---
+
+### Yenilikler ve Sürüm Özeti - v2.7.0 (2026-09-06)
 
 ### 🇹🇷 Türkçe Özet (v2.7.0)
 

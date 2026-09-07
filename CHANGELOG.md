@@ -3,6 +3,20 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.8.0] - 2026-09-07 (Telif Hassasiyeti Temizliği, Artık Stres Ring Kesme Animasyonu & Sürüm İyileştirmeleri)
+
+### 🎉 Eklenen Özellikler (Added)
+- **Artık Stres (Ring Kesme) Testi Animasyonu:** 2D/3D şematik sekmesine spiral/düz dikişli ark kaynaklı (SAWH/SAWL/LSAW) borular için BOTAŞ Madde 3.3.9'a uygun canlı animasyon eklendi — 150 mm halka kesimi, kaynak karşısından çentik ve halka açılması (Δ) seçili borunun ölçüleriyle (D, t, Δ max) gösterilir.
+- **ITP Numune Çizimi Düzeltmesi:** "Artık Stres Testi (Residual Stress)" satırında yanlışlıkla kullanılan `flattening` şeması doğru `residual_stress_ring` figürüyle değiştirildi.
+- **Şematik Figürlere Dinamik Ölçülendirme:** `getSpecimenDrawing(key, pipeData)` imzası ile numune çizimleri artık seçili borunun hesaplanmış değerlerini (D, t, Δ max) kullanabiliyor.
+
+### 🛠️ Düzeltmeler (Fixed)
+- **Telif Hassasiyeti:** Programın çalışması için gerekli olmayan ve telif hakkı riski taşıyan örnek dokümanlar (itp_sample_library PDF'leri, BOTAŞ 5120 R7 şartnamesi, Pipe Fittings Flange Calc Excel çalışma kitapları ve örnek satıcı ITP'si) GitHub deposundan kaldırıldı.
+- **Regresyon Testleri:** Örnek ITP kütüphanesi olmadan golden master PDF testleri zarifçe atlanır; JSON bazlı golden master testleri çalışmaya devam eder.
+- **Lint Temizliği:** `test_regression_golden.py`'deki mükerrer fonksiyon tanımları (F811) ve `unlimited_ocr_engine.py`'deki kullanılmayan değişken (F841) giderildi; CI ruff kontrolü temiz.
+
+---
+
 ## [2.7.0] - 2026-09-06 (Doğal Gaz Boru Hatları 3LPE, İç Epoksi, FBE/ARO ITP Kütüphanesi & Ağır Et Kalınlığı Desteği)
 
 ### 🎉 Eklenen Özellikler (Added)

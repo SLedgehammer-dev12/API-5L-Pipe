@@ -1,4 +1,44 @@
-# Sürüm Notları / Release Notes - v2.7.0
+# Sürüm Notları / Release Notes - v2.8.0
+
+## 🚀 API 5L PSL1/PSL2 & BOTAŞ Boru Kalite Güvence, Et Kalınlığı Tasarım ve Akıllı ITP Denetim Süiti (v2.8.0)
+
+Bu sürüm (**v2.8.0**), **Telif Hassasiyeti Temizliği** (program çalışması için gerekli olmayan örnek ITP/şartname/Excel dokümanlarının depodan kaldırılması) ve **Artık Stres (Ring Kesme) Testi Canlı Animasyonu** ile birlikte önemli sürüm iyileştirmeleri sunmaktadır.
+
+---
+
+### 🌟 v2.8.0 ile Gelen Başlıca Yenilikler
+
+1. **🪚 Artık Stres (Ring Kesme) Testi Animasyonu:**
+   - 2D/3D şematik sekmesine spiral/düz dikişli ark kaynaklı (SAWH/SAWL/LSAW) borular için BOTAŞ Madde 3.3.9'a uygun canlı animasyon eklendi.
+   - **150 mm halka kesimi**, **kaynak karşısından çentik** ve **halka açılması (Δ boşluğu)** adımları seçili borunun gerçek ölçüleriyle (D, t, Δ max) gösterilir.
+   - ITP listesindeki "Artık Stres Testi (Residual Stress)" satırının numune çizimi doğru `residual_stress_ring` figürüyle düzeltildi (önceden yanlışlıkla `flattening` kullanılıyordu).
+
+2. **🧹 Telif Hassasiyeti Temizliği:**
+   - Programın çalışması için gerekli olmayan ve telif hakkı riski taşıyan dokümanlar GitHub deposundan kaldırıldı:
+     - `itp_sample_library/` örnek ITP PDF'leri (26 doküman)
+     - `5120_R7.pdf` (BOTAŞ şartname)
+     - `Pipe Fittings Flange Calc *.xlsx` çalışma kitapları
+     - `tests/sample_vendor_itp.pdf`
+   - Bu dosyaların yeniden commit edilmemesi için `.gitignore` güncellendi.
+
+3. **🧪 Test & Lint İyileştirmeleri:**
+   - Örnek ITP kütüphanesi olmadan golden master PDF testleri zarifçe atlanır; JSON bazlı golden master testleri çalışmaya devam eder.
+   - `test_regression_golden.py` mükerrer fonksiyon tanımlarından (F811) temizlendi.
+   - CI ruff lint kontrolü tamamen temiz.
+
+---
+
+### 💻 İndirme Bağlantıları (v2.8.0)
+
+- **🪟 Windows (x64):**  
+  [**`API-5L-Pipe-Windows-x64-v2.8.0.exe` İndir**](https://github.com/SLedgehammer-dev12/API-5L-Pipe/releases/download/v2.8.0/API-5L-Pipe-Windows-x64-v2.8.0.exe)  
+  *Tek dosyadır, kurulum gerektirmez. Doğrudan çift tıklayarak çalıştırabilirsiniz.*
+
+- **🍏 macOS (Apple Silicon M1/M2/M3/M4 & Intel):**  
+  [**`API-5L-Pipe-macOS-v2.8.0.dmg` İndir**](https://github.com/SLedgehammer-dev12/API-5L-Pipe/releases/download/v2.8.0/API-5L-Pipe-macOS-v2.8.0.dmg)  
+  *Disk kalıbını açıp `API-5L-Pipe.app` uygulamasını Applications klasörüne sürükleyin.*
+
+---
 
 ## 🚀 API 5L PSL1/PSL2 & BOTAŞ Boru Kalite Güvence, Et Kalınlığı Tasarım ve Akıllı ITP Denetim Süiti (v2.7.0)
 
