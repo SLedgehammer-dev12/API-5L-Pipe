@@ -464,6 +464,26 @@
             <div id="sawh-not-applicable" class="mt-6 bg-white p-5 rounded-xl border border-slate-200 shadow-sm text-sm text-slate-500 hidden">
                 ⚠️ <span data-i18n="sawh_na">SAWH borular için geçerlidir</span> (seçili boru: <span id="sawh-na-process" class="font-semibold"></span>).
             </div>
+
+            <!-- Residual Stress Ring-Cut Test Animation (spiral/SAW pipes) -->
+            <div id="residual-stress-card" class="mt-6 bg-white p-5 rounded-xl border border-slate-200 shadow-sm hidden">
+                <div class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-100 mb-4">
+                    <div class="flex items-center gap-2">
+                        <span class="p-1.5 bg-amber-50 text-amber-600 rounded-lg text-base">🪚</span>
+                        <div>
+                            <h3 class="text-sm font-bold text-slate-800">Artık Stres Testi — 150 mm Halka Kesme &amp; Açılma Animasyonu</h3>
+                            <p class="text-xs text-slate-500 mt-0.5">BOTAŞ Madde 3.3.9 • Ring kesme, kaynak karşısından çentik ve halka açılması Δ</p>
+                        </div>
+                    </div>
+                    <span id="residual-stress-badge" class="text-xs font-bold px-3 py-1 rounded-md bg-amber-50 text-amber-700 border border-amber-200"></span>
+                </div>
+                <div id="residual-stress-stage" class="bg-slate-50 border border-slate-200 rounded-xl p-2">
+                    <!-- Animated ring-cut SVG rendered here -->
+                </div>
+            </div>
+            <div id="residual-stress-na" class="mt-6 bg-white p-5 rounded-xl border border-slate-200 shadow-sm text-sm text-slate-500 hidden">
+                ⚠️ Artık Stres (Ring Kesme) Testi spiral/düz dikişli ark kaynaklı (SAWH/SAWL/LSAW) borular için geçerlidir (seçili boru: <span id="residual-stress-na-process" class="font-semibold"></span>).
+            </div>
         </div>
 
         <!-- TAB 3: VERIFICATION (PASS/FAIL ANALYSIS) -->

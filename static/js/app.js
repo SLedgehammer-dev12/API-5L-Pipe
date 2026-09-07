@@ -655,6 +655,7 @@ function updateVisualizers(pipeData) {
         visualizer3DInstance.renderPipe(pipeData);
     }
     renderSawhCard(pipeData);
+    renderResidualStressCard(pipeData);
 }
 
 // ============================================================================
@@ -1563,6 +1564,38 @@ function renderSawhCard(pipeData) {
     sawhSimulatorInstance.updateParameters(d, t, B55);
 }
 
+function renderResidualStressCard(pipeData) {
+    const card = document.getElementById("residual-stress-card");
+    const na = document.getElementById("residual-stress-na");
+    if (!card || !na) return;
+
+    const process = (pipeData.input_summary.manufacturing_process || "").toUpperCase();
+    const isSaw = process.includes("SAWH") || process.includes("SAWL") || process.includes("LSAW") || process.includes("SAW");
+    if (!isSaw) {
+        card.classList.add("hidden");
+        na.classList.remove("hidden");
+        const p = document.getElementById("residual-stress-na-process");
+        if (p) p.innerText = pipeData.input_summary.manufacturing_process || "—";
+        return;
+    }
+
+    na.classList.add("hidden");
+    card.classList.remove("hidden");
+
+    const badge = document.getElementById("residual-stress-badge");
+    if (badge) {
+        const delta = pipeData.toughness_and_tests && typeof pipeData.toughness_and_tests.residual_stress_max_mm === 'number'
+            ? pipeData.toughness_and_tests.residual_stress_max_mm.toFixed(2) + ' mm'
+            : '—';
+        badge.innerText = `Δ max: ${delta}`;
+    }
+
+    const stage = document.getElementById("residual-stress-stage");
+    if (stage) {
+        stage.innerHTML = getSpecimenDrawing("residual_stress_ring", pipeData);
+    }
+}
+
 function sawhRedraw() {
     if (sawhSimulatorInstance) {
         const range = document.getElementById("sawh-strip-range");
@@ -2169,7 +2202,7 @@ async function loadTestPlan() {
             <tr id="itp-detail-${i}" class="hidden bg-slate-50 border-b border-gray-200">
                 <td colspan="5" class="p-3">
                     <div class="text-[11px] text-slate-700 whitespace-pre-line mb-2 leading-relaxed">${esc(tp.clause_ref || '')}</div>
-                    ${hasFig ? `<div class="border border-slate-200 rounded bg-white p-2">${getSpecimenDrawing(tp.specimen_figure)}</div>` : ''}
+                    ${hasFig ? `<div class="border border-slate-200 rounded bg-white p-2">${getSpecimenDrawing(tp.specimen_figure, calculatedPipes[selectedPipeIndex])}</div>` : ''}
                 </td>
             </tr>`;
         });
@@ -2197,7 +2230,7 @@ function openItpInfoModal(type, idx) {
         body.innerHTML = `<div class="whitespace-pre-line text-sm text-slate-700 leading-relaxed">${esc(data.clause_ref || 'Standart metni bulunamadı.')}</div>`;
     } else {
         title.innerText = `${data.test} — Numune Çizimi`;
-        body.innerHTML = getSpecimenDrawing(data.specimen_figure) || '<p class="text-xs text-slate-400">Çizim bulunamadı.</p>';
+        body.innerHTML = getSpecimenDrawing(data.specimen_figure, calculatedPipes[selectedPipeIndex]) || '<p class="text-xs text-slate-400">Çizim bulunamadı.</p>';
     }
     modal.classList.remove("hidden");
 }

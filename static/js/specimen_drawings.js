@@ -293,6 +293,128 @@ const SPECIMEN_DRAWINGS = {
     </svg>`,
 
     // ------------------------------------------------------------------
+    // Residual Stress Ring Test (BOTAŞ Madde 3.3.9) — 150 mm ring cut +
+    // slit at the point opposite the weld + ring springing open (gap Δ).
+    // Animated SVG; dimensions driven by the selected pipe.
+    // ------------------------------------------------------------------
+    residual_stress_ring: (pd) => {
+        const d = (pd && pd.input_summary && pd.input_summary.diameter_mm) || 1219.0;
+        const dInch = (pd && pd.input_summary && pd.input_summary.diameter_inch) || '48"';
+        const t = (pd && pd.input_summary && pd.input_summary.wall_thickness_mm) || 14.30;
+        const delta = (pd && pd.toughness_and_tests && typeof pd.toughness_and_tests.residual_stress_max_mm === 'number')
+            ? pd.toughness_and_tests.residual_stress_max_mm : 3.5;
+        return `
+    <svg viewBox="0 0 640 360" xmlns="http://www.w3.org/2000/svg" class="w-full h-auto max-h-[360px]">
+      <style>
+        .sd-line{stroke:#334155;stroke-width:1.5;fill:none}
+        .sd-dim{stroke:#3b82f6;stroke-width:1;stroke-dasharray:3,3}
+        .sd-txt{font-family:'JetBrains Mono',monospace;font-size:11px;fill:#0f172a}
+        .sd-lbl{font-family:'Inter',sans-serif;font-size:10.5px;font-weight:600;fill:#1e3a8a}
+        .sd-dimtxt{font-family:'JetBrains Mono',monospace;font-size:10px;fill:#2563eb}
+        .rs-half-l{transform-origin:460px 265px;animation:rsOpenL 8s linear infinite}
+        .rs-half-r{transform-origin:460px 265px;animation:rsOpenR 8s linear infinite}
+        .rs-ring-piece{animation:rsSeparate 8s linear infinite}
+        .rs-torch{animation:rsTorch 8s linear infinite}
+        .rs-spark{animation:rsSpark 8s linear infinite}
+        .rs-slit{animation:rsFadeIn 8s linear infinite}
+        .rs-gapdim{animation:rsGapDim 8s linear infinite}
+        .rs-step{font-family:'Inter',sans-serif;font-size:10px;font-weight:600;fill:#475569}
+        @keyframes rsOpenL{0%,48%{transform:rotate(0deg)}72%,100%{transform:rotate(-11deg)}}
+        @keyframes rsOpenR{0%,48%{transform:rotate(0deg)}72%,100%{transform:rotate(11deg)}}
+        @keyframes rsSeparate{0%,32%{transform:translateX(0)}44%,100%{transform:translateX(32px)}}
+        @keyframes rsTorch{0%{transform:translateY(-26px);opacity:0}8%{opacity:1}30%{transform:translateY(20px);opacity:1}38%,100%{transform:translateY(20px);opacity:0}}
+        @keyframes rsSpark{0%,6%{opacity:0}12%,28%{opacity:1}32%,100%{opacity:0}}
+        @keyframes rsFadeIn{0%,52%{opacity:0}64%,100%{opacity:1}}
+        @keyframes rsGapDim{0%,58%{opacity:0}78%,100%{opacity:1}}
+      </style>
+      <defs>
+        <marker id="rs-arr" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+          <path d="M0,0 L7,3 L0,6 Z" fill="#3b82f6"/>
+        </marker>
+      </defs>
+
+      <!-- ============ A) Side view: 150 mm ring cut from pipe end ============ -->
+      <text x="20" y="26" class="sd-txt" font-weight="bold" font-size="12">A) Boru Ucu — 150 mm Halka Kesimi</text>
+      <!-- pipe body remaining after cut -->
+      <rect x="190" y="120" width="125" height="70" fill="#e2e8f0" stroke="#334155" stroke-width="2"/>
+      <line x1="190" y1="120" x2="315" y2="120" stroke="#cbd5e1" stroke-width="1"/>
+      <line x1="190" y1="190" x2="315" y2="190" stroke="#cbd5e1" stroke-width="1"/>
+      <!-- cut line -->
+      <line x1="183" y1="112" x2="183" y2="198" stroke="#ef4444" stroke-width="2" stroke-dasharray="5,3"/>
+      <!-- cutting torch moving along the cut -->
+      <g class="rs-torch">
+        <path d="M 183 138 L 176 130 L 190 130 Z" fill="#ef4444"/>
+        <rect x="178" y="120" width="10" height="10" fill="#94a3b8" stroke="#334155" stroke-width="1"/>
+        <line x1="183" y1="118" x2="183" y2="106" stroke="#475569" stroke-width="2"/>
+      </g>
+      <!-- sparks -->
+      <g class="rs-spark" fill="#f59e0b">
+        <circle cx="176" cy="132" r="2.4"/>
+        <circle cx="192" cy="128" r="2"/>
+        <circle cx="169" cy="140" r="1.8"/>
+      </g>
+      <g class="rs-spark" fill="#fbbf24" style="animation-delay:.15s">
+        <circle cx="200" cy="134" r="2.2"/>
+        <circle cx="172" cy="124" r="1.8"/>
+      </g>
+      <!-- ring piece cut off (150 mm wide) -->
+      <g class="rs-ring-piece">
+        <rect x="32" y="120" width="148" height="70" fill="#cbd5e1" stroke="#334155" stroke-width="2"/>
+        <line x1="70" y1="120" x2="70" y2="190" stroke="#94a3b8" stroke-width="1"/>
+        <line x1="110" y1="120" x2="110" y2="190" stroke="#94a3b8" stroke-width="1"/>
+        <line x1="150" y1="120" x2="150" y2="190" stroke="#94a3b8" stroke-width="1"/>
+      </g>
+      <!-- ring width dimension -->
+      <line x1="32" y1="208" x2="180" y2="208" class="sd-dim" marker-start="url(#rs-arr)" marker-end="url(#rs-arr)"/>
+      <line x1="32" y1="202" x2="32" y2="214" class="sd-dim"/>
+      <line x1="180" y1="202" x2="180" y2="214" class="sd-dim"/>
+      <text x="106" y="224" text-anchor="middle" class="sd-dimtxt">150 mm</text>
+      <!-- wall thickness callout -->
+      <line x1="240" y1="120" x2="240" y2="190" class="sd-dim"/>
+      <line x1="236" y1="120" x2="244" y2="120" class="sd-dim"/>
+      <line x1="236" y1="190" x2="244" y2="190" class="sd-dim"/>
+      <text x="246" y="158" class="sd-dimtxt">t = ${t.toFixed(2)} mm</text>
+      <text x="106" y="102" text-anchor="middle" class="sd-lbl" fill="#b91c1c">Kesme ocağı (plazma/oksijen)</text>
+
+      <!-- ============ B) Top view: slit + ring opening (Δ) ============ -->
+      <text x="330" y="26" class="sd-txt" font-weight="bold" font-size="12">B) Halka Üst Görünüşü — Çentik &amp; Açılma (Δ)</text>
+      <!-- right half (rotates clockwise) -->
+      <g class="rs-half-r">
+        <path d="M 460 95 A 85 85 0 1 1 460 265 L 460 235 A 55 55 0 1 1 460 125 Z" fill="#cbd5e1" stroke="#334155" stroke-width="1.5"/>
+        <!-- spiral weld seam symbol (SAWH) -->
+        <path d="M 514 150 A 70 70 0 0 1 484 130" fill="none" stroke="#d97706" stroke-width="7" opacity="0.85"/>
+      </g>
+      <!-- left half (rotates counter-clockwise) -->
+      <g class="rs-half-l">
+        <path d="M 460 95 A 85 85 0 1 0 460 265 L 460 235 A 55 55 0 1 0 460 125 Z" fill="#e2e8f0" stroke="#334155" stroke-width="1.5"/>
+      </g>
+      <!-- slit cut at the point opposite the weld (top) -->
+      <g class="rs-slit">
+        <line x1="460" y1="95" x2="460" y2="72" stroke="#ef4444" stroke-width="2.5" stroke-dasharray="4,3"/>
+        <text x="460" y="62" text-anchor="middle" class="sd-lbl" fill="#b91c1c">Çentik (kaynak karşısı)</text>
+      </g>
+      <!-- gap dimension (Δ) shown after the ring springs open -->
+      <g class="rs-gapdim">
+        <line x1="413" y1="96" x2="507" y2="96" class="sd-dim" marker-start="url(#rs-arr)" marker-end="url(#rs-arr)"/>
+        <line x1="413" y1="92" x2="413" y2="100" class="sd-dim"/>
+        <line x1="507" y1="92" x2="507" y2="100" class="sd-dim"/>
+        <text x="460" y="88" text-anchor="middle" class="sd-dimtxt">Δ ≤ ${delta.toFixed(2)} mm</text>
+      </g>
+      <!-- OD dimension -->
+      <line x1="375" y1="292" x2="545" y2="292" class="sd-dim" marker-start="url(#rs-arr)" marker-end="url(#rs-arr)"/>
+      <line x1="375" y1="285" x2="375" y2="299" class="sd-dim"/>
+      <line x1="545" y1="285" x2="545" y2="299" class="sd-dim"/>
+      <text x="460" y="310" text-anchor="middle" class="sd-dimtxt">OD (D) = ${d.toFixed(1)} mm (${dInch})</text>
+      <text x="398" y="150" class="sd-lbl" fill="#b45309">spiral kaynak dikişi</text>
+
+      <!-- ============ Steps & acceptance caption ============ -->
+      <line x1="20" y1="326" x2="620" y2="326" stroke="#cbd5e1" stroke-width="1"/>
+      <text x="20" y="344" class="rs-step">1) Boru ucundan 150 mm halka kesilir • 2) Kaynağın karşısından tek noktadan çentilir • 3) Halka kendiliğinden açılır, Δ ölçülür</text>
+      <text x="20" y="358" class="sd-dimtxt">Kabul: S = (E·t·Δ) / (12.566·D²) ≤ %10 SMYS (BOTAŞ Madde 3.3.9) • Δ ≤ ${delta.toFixed(2)} mm</text>
+    </svg>`;
+    },
+
+    // ------------------------------------------------------------------
     // DWTT specimen (full-thickness, press-notch)
     // ------------------------------------------------------------------
     dwtt: () => `
@@ -365,8 +487,9 @@ const SPECIMEN_DRAWINGS = {
 
 /**
  * Returns the SVG string for a specimen figure key, or empty string if unknown.
+ * Optional pipeData (calculated pipe result) drives dimension-specific figures.
  */
-function getSpecimenDrawing(key) {
+function getSpecimenDrawing(key, pipeData) {
     const fn = SPECIMEN_DRAWINGS[key];
-    return fn ? fn() : "";
+    return fn ? fn(pipeData) : "";
 }

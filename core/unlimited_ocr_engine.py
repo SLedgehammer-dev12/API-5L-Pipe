@@ -237,7 +237,6 @@ class UnlimitedOCREngine:
 
         # Check first 2 rows for header keywords (Kapsam table spans 2 rows)
         first_two_headers = " ".join(" ".join(str(c or "") for c in r) for r in table_data[:2]).lower()
-        raw_joined_header = " ".join(str(c or "") for c in table_data[0]).lower()
         # Skip document title blocks, Kapsam scope table, and signature/abbreviation footers + Kısaltma Listesi 2-col table
         if any(k in first_two_headers for k in ("kısaltmalar", "hazırlayan", "onaylayan", "temsilcisi", "sayfa no", "revizyon no", "sipariş bilgileri", "kısaltma listesi")):
             return [], last_state

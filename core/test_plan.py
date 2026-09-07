@@ -113,7 +113,7 @@ SPECIMEN_FIGURES: Dict[str, Optional[str]] = {
 
 VALID_FIGURES = {
     "sampling_location", "charpy", "tensile_strip", "tensile_round",
-    "guided_bend", "flattening", "dwtt", "hardness",
+    "guided_bend", "flattening", "residual_stress_ring", "dwtt", "hardness",
 }
 
 
@@ -286,7 +286,7 @@ def get_test_plan(pipe_config: Dict[str, Any], psl_level: str = "PSL2") -> List[
                 "test": "Artık Stres Testi (Residual Stress)",
                 "clause": "BOTAŞ Madde 3.3.9",
                 "clause_ref": "BOTAŞ Şartnamesi Madde 3.3.9: Spiral veya düz dikişli ark kaynaklı borularda boru gövdesi şekillendirilirken kalan artık stres kontrol edilir. Her çap ve et kalınlığı için ve ÇAP VE ET KALINLIĞI DEĞİŞMESE DAHİ HER DÖKÜM (HEAT) İÇİN tekrarlanır. Kabul: S ≤ %10 SMYS.",
-                "specimen_figure": "flattening",
+                "specimen_figure": "residual_stress_ring",
                 "frequency": "Her döküm (heat) başına 1 halka",
                 "location": "Boru ucu (150 mm halka)",
                 "specimen": "150 mm genişlikte halka, kaynak karşısından kesilir",
