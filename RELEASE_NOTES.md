@@ -21,10 +21,22 @@ Bu sürüm (**v2.8.0**), **Telif Hassasiyeti Temizliği** (program çalışması
      - `tests/sample_vendor_itp.pdf`
    - Bu dosyaların yeniden commit edilmemesi için `.gitignore` güncellendi.
 
-3. **🧪 Test & Lint İyileştirmeleri:**
+3. **🔧 Artık Stres Formül Düzeltmesi (BOTAŞ 3.3.9):**
+   - **Ortalama çap kullanımı:** Artık stres halka açılma formülü artık dış çap $D$ yerine halka ortalama çapı $D_m = D - t$ kullanıyor (BOTAŞ Şartnamesi Madde 3.3.9). Bu, Δ max hesaplamasında ~2.4% düzeltme sağlar.
+   - **Formül:** $\Delta_{\text{max}} = \frac{12.566 \cdot D_m^2 \cdot 0.10 \cdot \text{SMYS}}{E \cdot t}$ burada $D_m = D - t$.
+
+4. **🧪 Test & Lint İyileştirmeleri:**
    - Örnek ITP kütüphanesi olmadan golden master PDF testleri zarifçe atlanır; JSON bazlı golden master testleri çalışmaya devam eder.
    - `test_regression_golden.py` mükerrer fonksiyon tanımlarından (F811) temizlendi.
    - CI ruff lint kontrolü tamamen temiz.
+
+5. **🧹 Telif Hassasiyeti Temizliği:**
+   - Programın çalışması için gerekli olmayan ve telif hakkı riski taşıyan dokümanlar GitHub deposundan kaldırıldı:
+     - `itp_sample_library/` örnek ITP PDF'leri (26 doküman)
+     - `5120_R7.pdf` (BOTAŞ şartname)
+     - `Pipe Fittings Flange Calc *.xlsx` çalışma kitapları
+     - `tests/sample_vendor_itp.pdf`
+   - Bu dosyaların yeniden commit edilmemesi için `.gitignore` güncellendi.
 
 ---
 
@@ -36,7 +48,16 @@ Bu sürüm (**v2.8.0**), **Telif Hassasiyeti Temizliği** (program çalışması
 
 - **🍏 macOS (Apple Silicon M1/M2/M3/M4 & Intel):**  
   [**`API-5L-Pipe-macOS-v2.8.0.dmg` İndir**](https://github.com/SLedgehammer-dev12/API-5L-Pipe/releases/download/v2.8.0/API-5L-Pipe-macOS-v2.8.0.dmg)  
-  *Disk kalıbını açıp `API-5L-Pipe.app` uygulamasını Applications klasörüne sürükleyin.*
+  *Disk kalıbını açın `API-5L-Pipe.app` uygulamasını Applications klasörüne sürükleyin.*
+
+---
+
+### 🔧 v2.8.0 Hotfix Düzeltmeleri (Bu Sürümde Dahil)
+
+- **OCR Engine Fallback:** ITP yükleme sırasında et kalınlığı tablo okunamazsa, ASME B36.10 schedule değerleri yerine **BOTAŞ standart et kalınlıkları** (seçilen çapa göre `botas_thk` tablosundan) aranır.
+- **Artık Stres Formülü:** Dış çap $D$ yerine halka ortalama çapı $D_m = D - t$ kullanılıyor (BOTAŞ 3.3.9). Δ max değerleri ~2.4% azaldı (daha gerçekçi).
+- **Formül Belgelenmesi:** Tüm ITP notları, rapor şablonları ve animasyon şemalarında formül $S = \frac{E \cdot t \cdot \Delta}{12.566 \cdot D_m^2}$ ile $D_m = D - t$ olarak güncellendi.
+- **OCR Fallback:** Yüklenen ITP'den et kalınlığı okunamazsa, ASME B36.10 schedule listesi yerine o çap için **BOTAŞ standart et kalınlıkları** (`botas_thk` tablosu) aranır.
 
 ---
 

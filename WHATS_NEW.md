@@ -10,16 +10,32 @@ API 5L Pipe QA/QC Suite **v2.8.0** sürümü ile birlikte **Telif Hassasiyeti Te
 #### 1. 🪚 Artık Stres (Ring Kesme) Testi Animasyonu
 - **2D/3D şematik sekmesi:** Spiral/düz dikişli ark kaynaklı (SAWH/SAWL/LSAW) borular için BOTAŞ Madde 3.3.9'a uygun canlı animasyon eklendi.
 - **Adımlar:** 150 mm halka kesimi → kaynak karşısından tek noktadan çentik → halkanın kendiliğinden açılıp Δ boşluğunun ölçülmesi.
-- **Dinamik ölçülendirme:** Animasyon seçili borunun gerçek değerlerini kullanır (D, t, Δ max); kabul kriteri $S = (E\cdot t\cdot\Delta)/(12.566\cdot D^2) \le \%10\ \text{SMYS}$.
+- **Dinamik ölçülendirme:** Animasyon seçili borunun gerçek değerlerini kullanır (D, t, Δ max); kabul kriteri $S = (E\cdot t\cdot\Delta)/(12.566\cdot D_m^2) \le \%10\ \text{SMYS}$, $D_m = D - t$ (halka ortalama çapı).
 - **ITP düzeltmesi:** "Artık Stres Testi (Residual Stress)" satırının numune çizimi doğru `residual_stress_ring` figürüyle değiştirildi.
 
 #### 2. 🧹 Telif Hassasiyeti Temizliği
 - Program çalışması için gerekli olmayan ve telif hakkı riski taşıyan dokümanlar GitHub deposundan kaldırıldı: örnek ITP PDF kütüphanesi (`itp_sample_library/`), BOTAŞ `5120_R7.pdf` şartnamesi, `Pipe Fittings Flange Calc *.xlsx` çalışma kitapları ve örnek satıcı ITP'si.
 - Bu dosyaların yeniden commit edilmemesi için `.gitignore` güncellendi; JSON bazlı golden master testleri korundu.
 
-#### 3. 🧪 Test & Lint İyileştirmeleri
+#### 3. 🔧 Artık Stres Formül Düzeltmesi (BOTAŞ 3.3.9)
+- **Ortalama çap kullanımı:** Artık stres halka açılma formülü artık dış çap $D$ yerine halka ortalama çapı $D_m = D - t$ kullanıyor (BOTAŞ Şartnamesi Madde 3.3.9). Bu, Δ max hesaplamasında ~2.4% düzeltme sağlar.
+- **Formül:** $\Delta_{\text{max}} = \frac{12.566 \cdot D_m^2 \cdot 0.10 \cdot \text{SMYS}}{E \cdot t}$ burada $D_m = D - t$.
+
+#### 4. 🧹 Telif Hassasiyeti Temizliği
+- Program çalışması için gerekli olmayan ve telif hakkı riski taşıyan dokümanlar GitHub deposundan kaldırıldı: örnek ITP PDF kütüphanesi (`itp_sample_library/`), BOTAŞ `5120_R7.pdf` şartnamesi, `Pipe Fittings Flange Calc *.xlsx` çalışma kitapları ve örnek satıcı ITP'si.
+- Bu dosyaların yeniden commit edilmemesi için `.gitignore` güncellendi; JSON bazlı golden master testleri korundu.
+
+#### 5. 🧪 Test & Lint İyileştirmeleri
 - Örnek ITP kütüphanesi olmadan golden master PDF testleri zarifçe atlanır.
 - `test_regression_golden.py` mükerrer fonksiyon tanımlarından (F811) temizlendi; CI ruff lint kontrolü tamamen temiz.
+
+---
+
+### 🔧 v2.8.0 Hotfix Düzeltmeleri (Bu Sürümde Dahil)
+- **OCR Engine Fallback:** ITP yükleme sırasında et kalınlığı tablo okunamazsa, ASME B36.10 schedule değerleri yerine **BOTAŞ standart et kalınlıkları** (seçilen çapa göre `botas_thk` tablosundan) aranır.
+- **Artık Stres Formülü:** Dış çap $D$ yerine halka ortalama çapı $D_m = D - t$ kullanılıyor (BOTAŞ 3.3.9). Δ max değerleri ~2.4% azaldı (daha gerçekçi).
+- **Formül Belgelenmesi:** Tüm ITP notları, rapor şablonları ve animasyon şemalarında formül $S = \frac{E \cdot t \cdot \Delta}{12.566 \cdot D_m^2}$ ile $D_m = D - t$ olarak güncellendi.
+- **OCR Fallback:** Yüklenen ITP'den et kalınlığı okunamazsa, ASME B36.10 schedule listesi yerine o çap için **BOTAŞ standart et kalınlıkları** (`botas_thk` tablosu) aranır.
 
 ---
 
