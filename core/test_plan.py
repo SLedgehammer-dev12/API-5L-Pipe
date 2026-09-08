@@ -290,7 +290,7 @@ def get_test_plan(pipe_config: Dict[str, Any], psl_level: str = "PSL2") -> List[
                 "frequency": "Her döküm (heat) başına 1 halka",
                 "location": "Boru ucu (150 mm halka)",
                 "specimen": "150 mm genişlikte halka, kaynak karşısından kesilir",
-                "note": "S = (E·t·C) / (12.566·D²) ≤ %10 SMYS",
+                "note": "S = (E·t·C) / (12.566·Dₘ²) ≤ %10 SMYS, Dₘ = D - t (Ortalama Çap)",
             })
             if d_mm >= 508.0:
                 plan.append({
@@ -815,6 +815,7 @@ def get_comprehensive_itp_specification(pipe_config: Optional[Dict[str, Any]] = 
     })
 
     # 10. Residual Stress Test (BOTAŞ Mandatory for welded SAWH / LSAW only - Not applicable to ERW/HFW)
+    # Formula: S = (E·t·C) / (12.566·Dₘ²) ≤ 0.10·SMYS, Dₘ = D - t (halka ortalama çapı)
     if is_botas and (is_saw or "SAW" in process or "SAWH" in process or "LSAW" in process or "COW" in process):
         master_list.append({
             "test_key": "residual_stress",
@@ -825,7 +826,7 @@ def get_comprehensive_itp_specification(pipe_config: Optional[Dict[str, Any]] = 
             "standard_acceptance_criteria": f"Artık stres S ≤ {residual_stress_max_mpa:.1f} MPa (0.10 × SMYS), Halka açılma Δ ≤ {delta_max:.2f} mm (BOTAŞ Madde 3.3.9)",
             "clause_ref": "BOTAŞ Şartnamesi Madde 3.3.9",
             "table_ref": "BOTAŞ 4-NGTL-0-GN-P-002-5120 R7",
-            "ndt_method_standard": "BOTAŞ Şartnamesi Madde 3.3.9 (150 mm Halka Kesme Metodu)",
+            "ndt_method_standard": "BOTAŞ Şartnamesi Madde 3.3.9 (150 mm Halka Kesme Metodu, Dₘ = D - t)",
             "ndt_acceptance_level": f"S ≤ {residual_stress_max_mpa:.1f} MPa (0.10 x SMYS)",
             "calculated_target_str": f"Azami Artık Gerilme S ≤ {residual_stress_max_mpa:.1f} MPa | Halka Açılması Δ ≤ {delta_max:.2f} mm",
             "calculated_targets": {"max_stress_mpa": residual_stress_max_mpa, "max_delta_mm": delta_max},

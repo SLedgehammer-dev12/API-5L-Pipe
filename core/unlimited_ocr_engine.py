@@ -18,6 +18,8 @@ import logging
 import re
 from typing import Any, Dict, List, Optional
 
+from core.database import get_pipe_size_by_mm
+
 logger = logging.getLogger(__name__)
 
 
@@ -917,7 +919,10 @@ class UnlimitedOCREngine:
 
         # Final fallback: known wall thicknesses
         if not scope_variants:
-            known_wts = [25.4, 22.2, 19.1, 17.5, 15.9, 14.3, 12.7, 11.1, 9.5, 8.2, 7.9, 7.1, 6.4, 5.6, 4.8]
+            # Use BOTAŞ standard thicknesses for the detected diameter instead of ASME B36.10 schedules
+            pipe_size = get_pipe_size_by_mm(d_mm) if d_mm else None
+            known_wts = list(pipe_size['botas_thk'].values()) if pipe_size and pipe_size.get('botas_thk') else [14.3, 12.7, 9.53, 8.0, 6.4]
+            known_wts = sorted(set(round(w, 2) for w in known_wts if w > 0), reverse=True)
             for w in known_wts:
                 w_str = str(w).replace(".", "[.,]")
                 if re.search(r"(?:et kalınlığı|kalınlık|wt|t)[\s:=]*" + w_str, text_lower) or re.search(r"\b" + w_str + r"\s*mm\b", text_lower):

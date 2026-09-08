@@ -466,10 +466,14 @@ class PipeQAQCEngine:
 
         pipe_end_squareness = 1.6
 
-        # 10. Residual Stress Test Max (mm) (BOTAŞ Cl. 4.2)
+        # 10. Residual Stress Test Max (mm) (BOTAŞ Cl. 3.3.9 / Cl. 4.2)
+        # Formula: S = (E * t * C) / (12.566 * D_mean^2) <= 0.10 * SMYS
+        # where D_mean = D_outer - t (ring mean diameter), C = ring opening gap (delta)
+        # Solving for max gap C_max: C_max = 12.566 * D_mean^2 * 0.10 * SMYS / (E * t)
         if "SAWH" in proc_upper:
             stress_coeff = yield_min_mpa if yield_min_mpa > 0 else 450.0
-            residual_stress_max = (12.566 * math.pow(d_mm, 2) * stress_coeff * 0.1) / (200000.0 * t)
+            d_mean = d_mm - t  # Ring mean diameter (D_outer - wall_thickness)
+            residual_stress_max = (12.566 * math.pow(d_mean, 2) * stress_coeff * 0.1) / (200000.0 * t)
         else:
             residual_stress_max = "TEST YOK"
 

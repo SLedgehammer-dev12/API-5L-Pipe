@@ -410,7 +410,7 @@ const SPECIMEN_DRAWINGS = {
       <!-- ============ Steps & acceptance caption ============ -->
       <line x1="20" y1="326" x2="620" y2="326" stroke="#cbd5e1" stroke-width="1"/>
       <text x="20" y="344" class="rs-step">1) Boru ucundan 150 mm halka kesilir • 2) Kaynağın karşısından tek noktadan çentilir • 3) Halka kendiliğinden açılır, Δ ölçülür</text>
-      <text x="20" y="358" class="sd-dimtxt">Kabul: S = (E·t·Δ) / (12.566·D²) ≤ %10 SMYS (BOTAŞ Madde 3.3.9) • Δ ≤ ${delta.toFixed(2)} mm</text>
+      <text x="20" y="358" class="sd-dimtxt">Kabul: S = (E·t·Δ) / (12.566·Dₘ²) ≤ %10 SMYS, Dₘ = D - t (BOTAŞ Madde 3.3.9) • Δ ≤ ${delta.toFixed(2)} mm</text>
     </svg>`;
     },
 
