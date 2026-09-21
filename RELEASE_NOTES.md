@@ -1,4 +1,46 @@
-# Sürüm Notları / Release Notes - v2.8.0
+# Sürüm Notları / Release Notes - v2.8.2
+
+## 🚀 API 5L PSL1/PSL2 & BOTAŞ Boru Kalite Güvence, Et Kalınlığı Tasarım ve Akıllı ITP Denetim Süiti (v2.8.2)
+
+Bu sürüm (**v2.8.2**), **Standarta Göre Özelleşen Mühendislik Açıklamaları**, **Artık Stres Formülünde Ortalama Çap (Dₘ = D − t) Düzeltmesi** ve **OCR Et Kalınlığı Fallback Düzeltmesi** ile matrisin seçilen Değerlendirme Kriteri / Şartname'ye tam uyumlu açıklama üretmesini sağlar.
+
+---
+
+### 🌟 v2.8.2 ile Gelen Başlıca Yenilikler
+
+1. **🧭 Standarta Göre Özelleşen Mühendislik Açıklamaları:**
+   - Matristeki "Standart & Mühendislik Açıklamaları" sütunu artık **her borunun kendi seçimine** göre üretilir (BOTAŞ / API 5L PSL1 / API 5L PSL2).
+   - **CVN/Çentik Darbe:** BOTAŞ → **Tablo 3, -20°C**; API 5L PSL2 → **Çizelge 8, 0°C**; PSL1 → zorunlu değil.
+   - **Boyutsal & kaynak toleransları:** Çap toleransı, çevre toleransı, ovalite, radial offset, kaynak yüksekliği, misalignment, tepeleşme ve diklik açıklamaları; değerlerin farklılaştığı her hücrede standarta özel referans/limit metni gösterir (örn. BOTAŞ 0.75 katsayılı radial offset 1.125 mm / API 1.5 mm).
+   - **Mekanik & test referansları:** Kimyasal, sertlik, DWTT, Y/T oranı, hidrostatik alt sınır, akma-çekme, tamir kaynağı, tasarım faktörü, et kalınlığı ve SMYS açıklamaları standarta göre ayrıştırıldı.
+   - **Karışık standartlı projeler:** Tek açıklama sütununda `BOTAŞ: … | API 5L PSL2: …` biçiminde etiketli birleşik metin gösterilir.
+
+2. **📐 Artık Stres Formülü — Ortalama Çap (Dₘ = D − t):**
+   - BOTAŞ Madde 3.3.9 halka açılma formülü, dış çap $D$ yerine halka ortalama çapı $D_m = D - t$ ile hesaplanır.
+   - $\Delta_{\text{max}} = \frac{12.566 \cdot D_m^2 \cdot 0.10 \cdot \text{SMYS}}{E \cdot t}$; 48" X65 SAWH t=14.30 mm için Δ max **286.95 mm** (önceki 293.80 mm yerine).
+
+3. **🧪 OCR Et Kalınlığı Fallback Düzeltmesi:**
+   - Yüklenen ITP'den et kalınlığı okunamadığında ASME B36.10 schedule değerleri yerine, tespit edilen çapa ait **BOTAŞ standart et kalınlıkları** aranır.
+
+4. **🧾 Tepeleşme Açıklaması Düzeltmesi:**
+   - BOTAŞ için hatalı "1.50 mm sabit" ifadesi kaldırıldı; motorun ürettiği **3.2 mm** değeriyle uyumlu hale getirildi.
+
+5. **🧪 Testler:**
+   - Yeni `test_58_standard_conditional_explanations` regresyon testi (standart bazlı açıklama + değer tutarlılığı). Toplam **65/65 test** geçer, ruff temiz.
+
+---
+
+### 💻 İndirme Bağlantıları (v2.8.2)
+
+- **🪟 Windows (x64):**  
+  [**`API-5L-Pipe-Windows-x64-v2.8.2.exe` İndir**](https://github.com/SLedgehammer-dev12/API-5L-Pipe/releases/download/v2.8.2/API-5L-Pipe-Windows-x64-v2.8.2.exe)  
+  *Tek dosyadır, kurulum gerektirmez. Doğrudan çift tıklayarak çalıştırabilirsiniz.*
+
+- **🍏 macOS (Apple Silicon M1/M2/M3/M4 & Intel):**  
+  [**`API-5L-Pipe-macOS-v2.8.2.dmg` İndir**](https://github.com/SLedgehammer-dev12/API-5L-Pipe/releases/download/v2.8.2/API-5L-Pipe-macOS-v2.8.2.dmg)  
+  *Disk kalıbını açıp `API-5L-Pipe.app` uygulamasını Applications klasörüne sürükleyin.*
+
+---
 
 ## 🚀 API 5L PSL1/PSL2 & BOTAŞ Boru Kalite Güvence, Et Kalınlığı Tasarım ve Akıllı ITP Denetim Süiti (v2.8.0)
 

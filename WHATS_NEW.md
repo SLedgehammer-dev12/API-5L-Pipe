@@ -1,5 +1,35 @@
-# What's New in API 5L Pipe QA/QC & Wall Thickness Suite (v2.8.0)
-## Yenilikler ve Sürüm Özeti - v2.8.0 (2026-09-07)
+# What's New in API 5L Pipe QA/QC & Wall Thickness Suite (v2.8.2)
+## Yenilikler ve Sürüm Özeti - v2.8.2 (2026-09-21)
+
+---
+
+### 🇹🇷 Türkçe Özet (v2.8.2)
+
+API 5L Pipe QA/QC Suite **v2.8.2** sürümü ile **Standarta Göre Özelleşen Mühendislik Açıklamaları**, **Artık Stres Formülünde Ortalama Çap (Dₘ = D − t) Düzeltmesi** ve **OCR Et Kalınlığı Fallback Düzeltmesi** gelmiştir:
+
+#### 1. 🧭 Standarta Göre Özelleşen Mühendislik Açıklamaları
+- "Standart & Mühendislik Açıklamaları" sütunu artık **seçilen Değerlendirme Kriteri / Şartname'ye** göre üretilir (BOTAŞ / API 5L PSL1 / API 5L PSL2).
+- **CVN/Çentik Darbe:** BOTAŞ → Tablo 3 (-20°C); API → Çizelge 8 (0°C); PSL1 → zorunlu değil. (Önceki sürümde BOTAŞ seçilse dahi "CVN 0°C" yazıyordu.)
+- **Boyutsal & kaynak toleransları:** Çap toleransı, çevre toleransı, ovalite, radial offset, kaynak yüksekliği, misalignment, tepeleşme, diklik — değerlerin farklılaştığı her hücrede standarta özel metin.
+- **Mekanik & test referansları:** Kimyasal, sertlik, DWTT, Y/T oranı, hidrostatik alt sınır, akma-çekme, tamir kaynağı, tasarım faktörü, et kalınlığı, SMYS.
+- **Karışık standartlı projeler:** `BOTAŞ: … | API 5L PSL2: …` biçiminde etiketli birleşik açıklama.
+
+#### 2. 📐 Artık Stres Formülü — Ortalama Çap (Dₘ = D − t)
+- BOTAŞ Madde 3.3.9 halka açılma formülü artık halka ortalama çapı $D_m = D - t$ kullanır.
+- $\Delta_{\text{max}} = \frac{12.566 \cdot D_m^2 \cdot 0.10 \cdot \text{SMYS}}{E \cdot t}$ → 48" X65 SAWH t=14.30 mm için **286.95 mm** (önceki 293.80 mm).
+
+#### 3. 🧪 OCR Et Kalınlığı Fallback Düzeltmesi
+- ITP'den et kalınlığı okunamazsa ASME B36.10 schedule değerleri yerine tespit edilen çapa ait **BOTAŞ standart et kalınlıkları** aranır.
+
+#### 4. 🧾 Tepeleşme Açıklaması Düzeltmesi
+- BOTAŞ için hatalı "1.50 mm sabit" ifadesi kaldırıldı; 3.2 mm değeriyle uyumlu hale getirildi.
+
+#### 5. 🧪 Testler
+- `test_58_standard_conditional_explanations` eklendi; **65/65 test** geçer, ruff temiz.
+
+---
+
+### Yenilikler ve Sürüm Özeti - v2.8.0 (2026-09-07)
 
 ---
 

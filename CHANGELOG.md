@@ -3,6 +3,25 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.8.2] - 2026-09-21 (Standarta Göre Özelleşen Mühendislik Açıklamaları, Artık Stres Dₘ Düzeltmesi & OCR Et Kalınlığı Düzeltmesi)
+
+### 🎉 Eklenen Özellikler (Added)
+- **Standarta Göre Özelleşen Mühendislik Açıklamaları:** `build_standard_explanations(is_botas, is_psl1)` ile her boru kendi açıklama setini taşır; BOTAŞ / API 5L PSL1 / API 5L PSL2 seçimine göre matristeki "Standart & Mühendislik Açıklamaları" sütunu doğru referansı gösterir.
+  - **CVN/Çentik Darbe:** BOTAŞ → Tablo 3 (-20°C); API 5L PSL2 → Çizelge 8 (0°C); PSL1 → zorunlu değil.
+  - **Boyutsal & Kaynak Toleransları:** Çap toleransı (BOTAŞ Çizelge 4 / API Çizelge 10), çevre toleransı, ovalite (BOTAŞ sabit / API 9.11.3.3), radial offset & kaynak yüksekliği & misalignment (BOTAŞ 0.75 katsayılı / API Çizelge 14-16-Ek E), tepeleşme, diklik.
+  - **Mekanik & Test Referansları:** Kimyasal (BOTAŞ Tablo 1 / API Çizelge 4-5), sertlik (BOTAŞ 3.3.7 / API 10.2.4.8-9.10.6), DWTT (BOTAŞ 3.3.6 / API 9.9), Y/T oranı, hidrostatik alt sınır (BOTAŞ P_max-2 bar / API Çizelge 26), akma-çekme, tamir kaynağı, tasarım faktörü, et kalınlığı, SMYS.
+- **Karışık Standartlı Projeler:** Frontend ve Excel, tek bir açıklama sütununda farklı standartların metinlerini `BOTAŞ: … | API 5L PSL2: …` biçiminde etiketli olarak birleştirir.
+
+### 🛠️ Düzeltmeler (Fixed)
+- **Artık Stres Formülü (BOTAŞ 3.3.9):** Halka açılma formülü dış çap $D$ yerine halka ortalama çapı $D_m = D - t$ kullanır; Δ max değerleri ~%2.4 daha gerçekçidir. Formül belgeleri (ITP notları, animasyon şeması, rapor) güncellendi.
+- **OCR Et Kalınlığı Fallback:** Yüklenen ITP'den et kalınlığı okunamadığında ASME B36.10 schedule değerleri yerine, tespit edilen çapa ait **BOTAŞ standart et kalınlıkları** (`botas_thk` tablosu) aranır.
+- **Tepeleşme Açıklaması:** BOTAŞ için hatalı "1.50 mm sabit" ifadesi kaldırıldı; motorun ürettiği 3.2 mm değeriyle uyumlu hale getirildi.
+
+### 🧪 Testler
+- Yeni `test_58_standard_conditional_explanations`: BOTAŞ / API PSL2 / API PSL1 açıklama farklarını ve değer-açıklama tutarlılığını (0.75 katsayı, hidrostatik alt sınır) doğrular. Toplam 65/65 test geçer.
+
+---
+
 ## [2.8.0] - 2026-09-07 (Telif Hassasiyeti Temizliği, Artık Stres Ring Kesme Animasyonu & Sürüm İyileştirmeleri)
 
 ### 🎉 Eklenen Özellikler (Added)
