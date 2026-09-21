@@ -1,4 +1,4 @@
-__version__ = "2.8.2"
+__version__ = "2.8.3"
 __app_name__ = "API 5L PSL1/PSL2 & BOTAŞ Pipe QA/QC, Wall Thickness & ITP Smart Auditor Suite"
 __author__ = "BOTAŞ & API 5L Pipeline Engineering"
 __license__ = "MIT"

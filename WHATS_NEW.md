@@ -1,3 +1,38 @@
+# What's New in API 5L Pipe QA/QC & Wall Thickness Suite (v2.8.3)
+## Yenilikler ve Sürüm Özeti - v2.8.3 (2026-09-21)
+
+---
+
+### 🇹🇷 Türkçe Özet (v2.8.3)
+
+API 5L Pipe QA/QC Suite **v2.8.3** sürümü ile **API 5L Tablo 2/3 Uyumlu Proses Seçenekleri**, **Gerçekçi Numune Çizimleri** ve **İçi Boş (Cidarlı) Artık Stres Ring Animasyonu** gelmiştir:
+
+#### 1. 🧭 Proses Seçenekleri (API 5L Tablo 2/3)
+- **PSL 1:** SMLS, ERW/HFW, **SAWH, SAWL, COW** — Tablo 2'ye göre kaynaklı prosesler de seçilebilir.
+- **PSL 2 – M:** ERW/HFW, SAWH, SAWL, **COW** (SMLS yok — Tablo 3).
+- **PSL 2 – N/Q/R:** SMLS + tüm kaynaklı prosesler.
+- Modal `<select>`'ine **SAWL** ve **COW** eklendi (önceden DOM'da bulunmadıkları için filtre açsa bile görünemiyorlardı).
+
+#### 2. 📐 Gerçekçi Numune Çizimleri
+- **Charpy:** gerçek V-çentik geometrisi (45°, 2 mm, r 0,25 mm, 8 mm ligaman), büyütülmüş detay, **40 mm örs** düzeni, **Çizelge 22** alt boyutları (seçili vurgulu; PSL1 "zorunlu değil").
+- **Çekme şerit:** 38,1 mm × t, tutmalar, 50 mm mastar, kaynaklı boruda **enine kaynak + ITAB**, dinamik t, numune alım inset'i.
+- **Yuvarlak çubuk:** **Tablo 21'e göre dinamik çap** (6,4/8,9/12,7), omuz yarıçapı, enine kaynak, **d ≤ t** inset'i.
+
+#### 3. 🪚 İçi Boş Ring Animasyonu
+- Ring deliği artık **geçirgen**; **iç cidar yüzeyi** görünür.
+- Kesme/açılma **cidardan ve 150 mm boyunca**; açılan kenarlarda amber **cidar kesit yüzeyleri**.
+- Ayrılan halka parçası her iki ucunda **içi boş ring kesiti** gösterir.
+
+#### 4. 🛠️ Düzeltmeler
+- **Tablo 21 tutarlılığı:** ITP satır metni motorla aynı çapı yazar (24" t=19,0 → 6,4 mm).
+- **BOTAŞ 3.3.9 kapsamı:** artık stres yalnız SAW (SAWH/SAWL/LSAW) + COW; ERW/HFW ve SMLS hariç; API'de "TEST YOK".
+- Ring figüründeki mükerrer yorum ve iç cidar yayı geometrisi düzeltildi.
+
+#### 5. 🧪 Testler
+- `test_59` ve `test_60` eklendi; **67/67 test** geçer, ruff temiz.
+
+---
+
 # What's New in API 5L Pipe QA/QC & Wall Thickness Suite (v2.8.2)
 ## Yenilikler ve Sürüm Özeti - v2.8.2 (2026-09-21)
 

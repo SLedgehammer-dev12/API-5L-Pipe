@@ -3,6 +3,33 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.8.3] - 2026-09-21 (API 5L Tablo 2/3 Proses Kapsamı, Gerçekçi Numune Çizimleri & İçi Boş Ring Animasyonu)
+
+### 🎉 Eklenen Özellikler (Added)
+- **API 5L Tablo 2/3 Uyumlu Proses Seçenekleri:** "Yeni Boru Sütunu Ekle" menüsündeki imalat yöntemi listesi standarta göre düzeltildi:
+  - **PSL 1:** SMLS, ERW/HFW, **SAWH, SAWL, COW** (Tablo 2 PSL 1'de kaynaklı proseslere izin verir).
+  - **PSL 2 – Teslim M:** ERW/HFW, SAWH, SAWL, **COW** (SMLS yok — Tablo 3).
+  - **PSL 2 – N/Q/R:** SMLS + tüm kaynaklı prosesler.
+  - Modal `<select>`'ine **SAWL** ve **COW** seçenekleri eklendi; wall-thickness sekmesine COW eklendi.
+- **Gerçekçi Numune Çizimleri (ortoğrafik):**
+  - **Charpy V-çentik:** ölçekli yan görünüş, gerçek V-çentik (45°, 2 mm, r = 0,25 mm, 8 mm ligaman), kesit + büyütülmüş detay, **40 mm örs açıklıklı darbe düzeni** ve **Çizelge 22 alt boyutları** (seçili boyut `notch_specimen_size`'a göre vurgulanır; PSL1'de "zorunlu değil").
+  - **Çekme şerit:** taralı tutmalar, 50 mm mastar çizgileri, kaynaklı boruda **enine kaynak + ITAB** (SMLS'te boyuna notu), dinamik **t**, boru kesitinde numune alım inset'i.
+  - **Yuvarlak çubuk:** dişli uçlar, omuz yarıçapı, **Tablo 21'e göre dinamik mastar çapı** (6,4 / 8,9 / 12,7 mm), gauge ortasında **enine kaynak + ITAB**, cidardan alım inset'i (**d ≤ t**) ve omuz/mastar detayı.
+- **İçi Boş (Cidarlı) Ring Animasyonu:** Artık stres halka animasyonunda ring artık katı disk değil; delik **geçirgen** (içi boş), **iç cidar yüzeyi** görünür ve açılma **cidardan + 150 mm boyunca** kesit yüzeyleriyle gösterilir.
+
+### 🛠️ Düzeltmeler (Fixed)
+- **Yuvarlak Çubuk Çapı Tutarlılığı (Tablo 21):** `get_round_bar_dia_mm()` tek kaynak olarak eklendi; ITP satır metni artık sabit t eşikleri yerine Tablo 21'i kullanır (örn. 24" t=19,0 mm → doğru değer **6,4 mm**, önceki 8,9 mm).
+- **Artık Stres Testi Kapsamı (BOTAŞ 3.3.9):** Değer yalnız **ark kaynaklı** SAW (SAWH/SAWL/LSAW) ve **COW** için hesaplanır; ERW/HFW ve SMLS kapsam dışıdır. ITP test planındaki artık stres satırı da yalnız SAW/COW için üretilir. API 5L'de halka-açılma testi olmadığından değer "TEST YOK"tur.
+- **PSL 1 Proses Docstring'i:** "PSL 1 has no SAW/COW" ifadesi Tablo 2'ye göre düzeltildi.
+- **Ring Figürü:** `residual_stress_ring` üzerindeki mükerrer yorum bloğu temizlendi; iç cidar yayı geometrisi (delik geçirgenliği) düzeltildi.
+
+### 🧪 Testler
+- Yeni `test_59_process_availability_and_residual_stress_scope`: Tablo 2/3 proses listeleri ve BOTAŞ 3.3.9 artık stres kapsamı.
+- Yeni `test_60_round_bar_dia_table21_consistency`: motor ve ITP satırının Tablo 21 çapında birebir uyumu.
+- Toplam **67/67 test** geçer; ruff temiz.
+
+---
+
 ## [2.8.2] - 2026-09-21 (Standarta Göre Özelleşen Mühendislik Açıklamaları, Artık Stres Dₘ Düzeltmesi & OCR Et Kalınlığı Düzeltmesi)
 
 ### 🎉 Eklenen Özellikler (Added)

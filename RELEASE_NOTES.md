@@ -1,3 +1,51 @@
+# Sürüm Notları / Release Notes - v2.8.3
+
+## 🚀 API 5L PSL1/PSL2 & BOTAŞ Boru Kalite Güvence, Et Kalınlığı Tasarım ve Akıllı ITP Denetim Süiti (v2.8.3)
+
+Bu sürüm (**v2.8.3**), **API 5L Tablo 2/3 Uyumlu Proses Seçenekleri**, **Gerçekçi Numune Çizimleri** (Charpy V-çentik, çekme şerit, yuvarlak çubuk) ve **İçi Boş (Cidarlı) Artık Stres Ring Animasyonu** ile ITP görsellerini ve proses seçimini standarda tam uyumlu hale getirir.
+
+---
+
+### 🌟 v2.8.3 ile Gelen Başlıca Yenilikler
+
+1. **🧭 API 5L Tablo 2/3 Uyumlu Proses Seçenekleri:**
+   - **PSL 1:** SMLS, ERW/HFW, **SAWH, SAWL, COW** (Tablo 2, PSL 1'de kaynaklı proseslere izin verir).
+   - **PSL 2 – Teslim M:** ERW/HFW, SAWH, SAWL, **COW** (SMLS geçerli değil — Tablo 3).
+   - **PSL 2 – N/Q/R:** SMLS + tüm kaynaklı prosesler.
+   - Modal proses listesine **SAWL** ve **COW** eklendi (önceden DOM'da hiç yoktu, bu yüzden görünemiyordu); wall-thickness sekmesine COW eklendi.
+
+2. **📐 Gerçekçi Numune Çizimleri (ortoğrafik mühendislik çizimi):**
+   - **Charpy V-çentik:** gerçek V-çentik (45°, 2 mm, **r = 0,25 mm**, 8 mm ligaman), büyütülmüş kesit detayı, **40 mm örs açıklıklı darbe düzeni** ve **Çizelge 22 alt boyutları** — seçili boyut vurgulu, PSL1'de "zorunlu değil" rozeti.
+   - **Çekme şerit (38,1 mm × t):** tutma bölgeleri, 50 mm mastar çizgileri, kaynaklı boruda **enine kaynak + ITAB**, dinamik **t**, boru kesitinde numune alım inset'i.
+   - **Yuvarlak çubuk:** dişli uçlar + omuz yarıçapı, **Tablo 21'e göre dinamik mastar çapı** (6,4 / 8,9 / 12,7 mm), gauge ortasında enine kaynak, cidardan alım inset'i (**d ≤ t**).
+
+3. **🪚 İçi Boş (Cidarlı) Artık Stres Ring Animasyonu:**
+   - Ring artık katı disk değil: delik **geçirgen (içi boş)**, **iç cidar yüzeyi** görünür.
+   - Kesme/açılma **cidardan ve 150 mm boyunca**; açılan kenarlarda **amber cidar kesit yüzeyleri** ayrılır.
+   - Faz A'daki ayrılan halka parçası her iki ucunda **içi boş ring kesiti** gösterir.
+
+4. **🛠️ Düzeltmeler:**
+   - **Tablo 21 tutarlılığı:** ITP satır metni artık motorla aynı kaynağı kullanır (örn. 24" t=19,0 mm → **6,4 mm**; önceki metin 8,9 mm diyordu).
+   - **BOTAŞ 3.3.9 kapsamı:** artık stres yalnız ark kaynaklı SAW (SAWH/SAWL/LSAW) ve COW için hesaplanır; ERW/HFW ve SMLS hariç. API 5L'de "TEST YOK".
+   - Ring figüründeki mükerrer yorum ve iç cidar yayı geometrisi düzeltildi.
+
+5. **🧪 Testler:**
+   - `test_59_process_availability_and_residual_stress_scope` ve `test_60_round_bar_dia_table21_consistency` eklendi. **67/67 test** geçer, ruff temiz.
+
+---
+
+### 💻 İndirme Bağlantıları (v2.8.3)
+
+- **🪟 Windows (x64):**  
+  [**`API-5L-Pipe-Windows-x64-v2.8.3.exe` İndir**](https://github.com/SLedgehammer-dev12/API-5L-Pipe/releases/download/v2.8.3/API-5L-Pipe-Windows-x64-v2.8.3.exe)  
+  *Tek dosyadır, kurulum gerektirmez. Doğrudan çift tıklayarak çalıştırabilirsiniz.*
+
+- **🍏 macOS (Apple Silicon M1/M2/M3/M4 & Intel):**  
+  [**`API-5L-Pipe-macOS-v2.8.3.dmg` İndir**](https://github.com/SLedgehammer-dev12/API-5L-Pipe/releases/download/v2.8.3/API-5L-Pipe-macOS-v2.8.3.dmg)  
+  *Disk kalıbını açıp `API-5L-Pipe.app` uygulamasını Applications klasörüne sürükleyin.*
+
+---
+
 # Sürüm Notları / Release Notes - v2.8.2
 
 ## 🚀 API 5L PSL1/PSL2 & BOTAŞ Boru Kalite Güvence, Et Kalınlığı Tasarım ve Akıllı ITP Denetim Süiti (v2.8.2)
