@@ -256,12 +256,31 @@ function renderMatrixTable() {
     if (!tableBody || calculatedPipes.length === 0) return;
 
     let html = "";
-    const explanations = calculatedPipes[0].explanations || {};
 
+    const stdTag = (p) => {
+        const s = ((p.input_summary && p.input_summary.standard_type) || "").toUpperCase();
+        const psl = ((p.input_summary && p.input_summary.psl_level) || "").toUpperCase();
+        if (s.includes("BOTAŞ") || s.includes("BOTAS")) return "BOTAŞ";
+        if (psl.includes("PSL1")) return "API 5L PSL1";
+        return "API 5L PSL2";
+    };
+
+    // Per-pipe explanations: collect distinct texts across columns; prefix with
+    // the standard tag when pipes disagree (mixed-standard projects).
     const getExp = (key) => {
-        const expObj = explanations[key];
-        if (!expObj) return "";
-        return currentLang === "en" ? expObj.en : expObj.tr;
+        const seen = new Set();
+        const parts = [];
+        (calculatedPipes || []).forEach((p) => {
+            const expObj = p.explanations && p.explanations[key];
+            if (!expObj) return;
+            const t = currentLang === "en" ? expObj.en : expObj.tr;
+            if (!t || seen.has(t)) return;
+            seen.add(t);
+            parts.push({ tag: stdTag(p), text: t });
+        });
+        if (parts.length === 0) return "";
+        if (parts.length === 1) return parts[0].text;
+        return parts.map(x => `<strong>${x.tag}:</strong> ${x.text}`).join("<br>");
     };
 
     const isColActive = (idx) => idx === selectedPipeIndex;

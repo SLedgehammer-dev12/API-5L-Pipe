@@ -72,13 +72,30 @@ class ExcelExporter:
 
         start_row = 5
         num_pipes = len(pipes_data)
-        exp_dict = pipes_data[0].get('explanations', {}) if pipes_data else {}
+
+        def _std_tag(pipe: dict) -> str:
+            s = str(((pipe.get('input_summary') or {}).get('standard_type', ''))).upper()
+            psl = str(((pipe.get('input_summary') or {}).get('psl_level', ''))).upper()
+            if 'BOTAŞ' in s or 'BOTAS' in s:
+                return 'BOTAŞ'
+            if 'PSL1' in psl:
+                return 'API 5L PSL1'
+            return 'API 5L PSL2'
 
         def get_exp(key: str, fallback: str = "") -> str:
-            val = exp_dict.get(key, {})
-            if isinstance(val, dict):
-                return val.get(lang, val.get('tr', fallback))
-            return fallback
+            # Per-pipe explanations: combine distinct texts across columns so the
+            # shared remarks column stays correct for mixed-standard projects.
+            seen = []
+            for pipe in pipes_data:
+                val = (pipe.get('explanations', {}) or {}).get(key, {})
+                t = val.get(lang, val.get('tr', '')) if isinstance(val, dict) else ''
+                if t and t not in [x[1] for x in seen]:
+                    seen.append((_std_tag(pipe), t))
+            if not seen:
+                return fallback
+            if len(seen) == 1:
+                return seen[0][1]
+            return " | ".join(f"{tag}: {t}" for tag, t in seen)
 
         # Matrix Row Definitions
         # Top Header Rows

@@ -1857,6 +1857,67 @@ class TestPipeQAQCSuite(unittest.TestCase):
         # Coating score is penalized by substandard thickness, but bare pipe score remains unaffected by coating rules
         self.assertGreater(kpi["bare_pipe_score_percent"], kpi["coating_score_percent"])
 
+    def test_58_standard_conditional_explanations(self):
+        """Explanations must follow the selected evaluation standard (BOTAŞ vs API 5L PSL1/PSL2)."""
+        from core.pipe_qaqc_engine import PipeQAQCEngine
+
+        botas = PipeQAQCEngine.calculate_pipe_qc(
+            diameter_inch='48"', diameter_mm=1219.0, wall_thickness_mm=14.30,
+            material_grade='X65', manufacturing_process='SAWH', standard_type='BOTAŞ', psl_level='PSL2')
+        api2 = PipeQAQCEngine.calculate_pipe_qc(
+            diameter_inch='48"', diameter_mm=1219.0, wall_thickness_mm=14.30,
+            material_grade='X65', manufacturing_process='SAWH', standard_type='API 5L', psl_level='PSL2')
+        api1 = PipeQAQCEngine.calculate_pipe_qc(
+            diameter_inch='48"', diameter_mm=1219.0, wall_thickness_mm=14.30,
+            material_grade='X65', manufacturing_process='SAWH', standard_type='API 5L', psl_level='PSL1')
+
+        # Each pipe carries its own independent explanations object
+        self.assertIsNot(botas['explanations'], api2['explanations'])
+        self.assertIsNot(api2['explanations'], api1['explanations'])
+
+        # CVN: BOTAŞ -> -20°C + Tablo 3 ; API PSL2 -> 0°C + Çizelge 8 ; PSL1 -> not mandatory
+        self.assertIn('CVN -20°C', botas['explanations']['cvn']['tr'])
+        self.assertIn('Tablo 3', botas['explanations']['cvn']['tr'])
+        self.assertNotIn('CVN 0°C', botas['explanations']['cvn']['tr'])
+        self.assertIn('CVN 0°C', api2['explanations']['cvn']['tr'])
+        self.assertIn('Çizelge 8', api2['explanations']['cvn']['tr'])
+        self.assertIn('zorunlu değil', api1['explanations']['cvn']['tr'].lower())
+
+        # Chemical table: PSL1 -> Çizelge 4, PSL2 -> Çizelge 5
+        self.assertIn('Çizelge 4', api1['explanations']['chemical']['tr'])
+        self.assertIn('Çizelge 5', api2['explanations']['chemical']['tr'])
+
+        # Hardness / DWTT reflect PSL1 rules
+        self.assertIn('9.10.6', api1['explanations']['hardness']['tr'])
+        self.assertIn('zorunlu değil', api1['explanations']['dwtt']['tr'].lower())
+
+        # Residual stress uses mean-diameter formula and BOTAŞ clause
+        self.assertIn('Dₘ', botas['explanations']['residual_stress']['tr'])
+        self.assertIn('3.3.9', botas['explanations']['residual_stress']['tr'])
+
+        # Dimensional / weld tolerance explanations must differ between standards
+        for key in ('diameter_tol', 'circumference_tol', 'ovality', 'radial_offset',
+                    'weld_height', 'misalignment', 'peaking', 'hydro_test',
+                    'api_std_test', 'smys', 'yield_tensile', 'weld_repair',
+                    'mandrel_jaw', 'squareness', 'design_factor', 'wall_thickness'):
+            self.assertNotEqual(botas['explanations'][key]['tr'], api2['explanations'][key]['tr'],
+                                f"explanation '{key}' should differ between BOTAŞ and API 5L")
+
+        # Explanation text must match the computed value rule (weld_k = 0.75 for BOTAŞ)
+        self.assertIn('1.125', botas['explanations']['radial_offset']['tr'])
+        self.assertIn('2.625', botas['explanations']['weld_height']['tr'])
+        self.assertEqual(botas['weld_and_geometry']['radial_offset_max_mm'], 1.12)
+        self.assertAlmostEqual(botas['weld_and_geometry']['weld_height_inside_mm'], 2.62, delta=0.01)
+        self.assertAlmostEqual(api2['weld_and_geometry']['radial_offset_max_mm'], 1.5, delta=0.01)
+
+        # BOTAŞ min hydro test pressure = P_max - 2.0 bar ; API = standard test pressure
+        self.assertAlmostEqual(
+            botas['hydrostatic_test']['hydro_test_min_bar'],
+            botas['hydrostatic_test']['hydro_test_max_bar'] - 2.0, delta=0.01)
+        self.assertAlmostEqual(
+            api2['hydrostatic_test']['hydro_test_min_bar'],
+            api2['hydrostatic_test']['api_5l_std_test_bar'], delta=0.01)
+
 
 if __name__ == '__main__':
     unittest.main()

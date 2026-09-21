@@ -64,120 +64,274 @@ def _elongation_axc(d_mm: float, t_mm: float, manufacturing_process: str) -> flo
     area = 38.1 * t
     return min(485.0, round(area, -1))
 
-# Standard references and engineering explanations for every matrix row
-STANDARD_EXPLANATIONS = {
+# Standard references and engineering explanations for every matrix row.
+# Built per pipe via build_standard_explanations() so the text always matches
+# the selected evaluation standard (BOTAŞ vs API 5L) and PSL level.
+def build_standard_explanations(is_botas: bool = False, is_psl1: bool = False) -> dict:
+    """Returns the {key: {tr, en}} explanation map for the given standard selection."""
+    if is_psl1:
+        grade_text = {
+            'tr': 'API 5L PSL1 / ISO 3183 Çelik Kalitesi',
+            'en': 'API 5L PSL1 / ISO 3183 Steel Grade'
+        }
+        chemical_text = {
+            'tr': 'API 5L Çizelge 4 (PSL1 Kimyasal Bileşim Limitleri)',
+            'en': 'API 5L Table 4 (PSL1 Chemical Composition Limits)'
+        }
+        yt_ratio_text = {
+            'tr': 'API 5L PSL1 borularda Y/T oranı limiti yoktur',
+            'en': 'No Y/T ratio limit for API 5L PSL1 pipe'
+        }
+        hardness_text = {
+            'tr': 'API 5L Madde 9.10.6 (PSL1: Yalnız 50 mm üzeri sert nokta kontrolü; 35 HRC / 345 HV10 / 327 HBW üzeri defekttir)',
+            'en': 'API 5L Cl. 9.10.6 (PSL1: hard-spot testing only for spots > 50 mm; above 35 HRC / 345 HV10 / 327 HBW is a defect)'
+        }
+        dwtt_text = {
+            'tr': 'API 5L PSL1 borularda DWTT zorunlu değildir (Çizelge 19)',
+            'en': 'DWTT not mandatory for API 5L PSL1 pipe (Table 19)'
+        }
+        cvn_text = {
+            'tr': 'API 5L PSL1 borularda Çentik Darbe (CVN) zorunlu değildir (Çizelge 17)',
+            'en': 'Charpy V-Notch Impact (CVN) not mandatory for API 5L PSL1 pipe (Table 17)'
+        }
+    else:
+        if is_botas:
+            grade_text = {
+                'tr': 'BOTAŞ Şartnamesi / API 5L PSL2 Çelik Mukavemet Sınıfı',
+                'en': 'BOTAŞ Spec / API 5L PSL2 Steel Strength Grade'
+            }
+            chemical_text = {
+                'tr': 'BOTAŞ Şartnamesi Tablo 1 (Kimyasal Bileşim Limitleri)',
+                'en': 'BOTAŞ Spec Table 1 (Chemical Composition Limits)'
+            }
+            yt_ratio_text = {
+                'tr': 'BOTAŞ Şartnamesi (Y/T oranı: X65 ve üzeri ≤ 0.90 soğuk genişletilmemiş / ≤ 0.93 genişletilmiş)',
+                'en': 'BOTAŞ Spec (Y/T ratio: X65 and above ≤ 0.90 unexpanded / ≤ 0.93 cold-expanded)'
+            }
+            hardness_text = {
+                'tr': 'BOTAŞ Şartnamesi Madde 3.3.7 (Maksimum 300 HV10; aşılırsa dökümdeki boruların %100\'ü test edilir)',
+                'en': 'BOTAŞ Spec Cl. 3.3.7 (Maximum 300 HV10; if exceeded, 100% of the heat is tested)'
+            }
+            dwtt_text = {
+                'tr': 'BOTAŞ Şartnamesi Madde 3.3.6 (D ≥ 508 mm\'de 0 °C\'de zorunlu; ortalama ≥ %85, tekil ≥ %60)',
+                'en': 'BOTAŞ Spec Cl. 3.3.6 (mandatory at 0 °C for D ≥ 508 mm; average ≥ 85%, single ≥ 60%)'
+            }
+            cvn_text = {
+                'tr': 'BOTAŞ Tablo 3 (Gövde ve Kaynak Çentik Darbe Tokluğu - CVN -20°C)',
+                'en': 'BOTAŞ Table 3 (Body & Weld Charpy V-Notch Toughness - CVN -20°C)'
+            }
+        else:
+            grade_text = {
+                'tr': 'API 5L PSL2 / ISO 3183 Çelik Mukavemet Sınıfı',
+                'en': 'API 5L PSL2 / ISO 3183 Steel Strength Grade'
+            }
+            chemical_text = {
+                'tr': 'API 5L Çizelge 5 (PSL2 Kimyasal Bileşim Ürün Analizi Limitleri)',
+                'en': 'API 5L Table 5 (PSL2 Chemical Composition Product Analysis Limits)'
+            }
+            yt_ratio_text = {
+                'tr': 'API 5L Çizelge 7 (Maksimum Akma/Çekme Oranı Sınırı)',
+                'en': 'API 5L Table 7 (Maximum Yield-to-Tensile Ratio Limit)'
+            }
+            hardness_text = {
+                'tr': 'API 5L Madde 10.2.4.8 (Maksimum Sertlik Sınırı: 300 HV10 / 250 HV)',
+                'en': 'API 5L Cl. 10.2.4.8 (Maximum Hardness Limit: 300 HV10 / 250 HV)'
+            }
+            dwtt_text = {
+                'tr': 'API 5L Madde 9.9 & Çizelge 20 (D ≥ 508 mm kaynaklı hat borusunda zorunlu; ortalama ≥ %85, tekil ≥ %60)',
+                'en': 'API 5L Cl. 9.9 & Table 20 (mandatory for welded line pipe D ≥ 508 mm; average ≥ 85%, single ≥ 60%)'
+            }
+            cvn_text = {
+                'tr': 'API 5L Çizelge 8 (Gövde ve Kaynak Çentik Darbe Tokluğu - CVN 0°C)',
+                'en': 'API 5L Table 8 (Body & Weld Charpy V-Notch Toughness - CVN 0°C)'
+            }
+    if is_botas:
+        wall_thickness_tol_text = {
+            'tr': 'BOTAŞ Şartnamesi (İmalat Et Kalınlığı Sabit Düşümleri: t<8.71 → -0.04 / t<12.71 → -0.10 / diğer → -0.15 mm)',
+            'en': 'BOTAŞ Spec (Manufacturing Wall Thickness Fixed Deductions: t<8.71 → -0.04 / t<12.71 → -0.10 / else → -0.15 mm)'
+        }
+        residual_stress_text = {
+            'tr': 'BOTAŞ Şartnamesi Madde 3.3.9: Delta = 12.566*Dₘ²*Yield*0.1 / (E*t), Dₘ = D-t (Artık Gerilme Halka Açılması)',
+            'en': 'BOTAŞ Spec Cl. 3.3.9: Delta = 12.566*Dm²*Yield*0.1 / (E*t), Dm = D-t (Residual Stress Ring Test)'
+        }
+        peaking_text = {
+            'tr': 'BOTAŞ Şartnamesi & API 5L Madde 9.10.5.1 (Boru Ucu Tepeleşme Azami Geometrik Sapma: 3.2 mm)',
+            'en': 'BOTAŞ Spec & API 5L Cl. 9.10.5.1 (Pipe End Peaking Max Geometric Deviation: 3.2 mm)'
+        }
+        diameter_tol_text = {
+            'tr': 'BOTAŞ Şartnamesi Çizelge 4 (Boru Ucu ve Gövde Dış Çap Toleransları - sabit limitler)',
+            'en': 'BOTAŞ Spec Table 4 (Pipe End & Body Diameter Tolerances - fixed limits)'
+        }
+        circumference_tol_text = {
+            'tr': 'BOTAŞ Şartnamesi Çizelge 4 (Çap Toleransı x Pi / Çevre Ölçüm Bandı)',
+            'en': 'BOTAŞ Spec Table 4 (Diameter Tolerance x Pi / Circumferential Tape)'
+        }
+        ovality_text = {
+            'tr': 'BOTAŞ Şartnamesi Çizelge 4 (Boru Ucu ve Gövde Ovalite Sabit Sınırları; büyük çaplarda anlaşmaya bağlı)',
+            'en': 'BOTAŞ Spec Table 4 (Pipe End & Body Out-of-Roundness Fixed Limits; by agreement for large diameters)'
+        }
+        radial_offset_text = {
+            'tr': 'BOTAŞ Şartnamesi (API 5L Çizelge 14/Ek E değerlerinin 0.75 katsayılı hali: t<15 → 1.125 / t<25 → 0.075*t / t≥25 → 1.875 mm)',
+            'en': 'BOTAŞ Spec (0.75 factor on API 5L Table 14/Annex E: t<15 → 1.125 / t<25 → 0.075*t / t≥25 → 1.875 mm)'
+        }
+        weld_height_text = {
+            'tr': 'BOTAŞ Şartnamesi (İç/Dış Kaynak Takviyesi 0.75 katsayılı: iç 2.625 mm; dış 3.375 mm (t>13) / 2.625 mm)',
+            'en': 'BOTAŞ Spec (I/O weld reinforcement with 0.75 factor: inside 2.625 mm; outside 3.375 mm (t>13) / 2.625 mm)'
+        }
+        misalignment_text = {
+            'tr': 'BOTAŞ Şartnamesi (Kaynak Hiza Kaçıklığı 0.75 katsayılı: t>20 → 3.0 / t≤20 → 2.25 mm)',
+            'en': 'BOTAŞ Spec (Weld misalignment with 0.75 factor: t>20 → 3.0 / t≤20 → 2.25 mm)'
+        }
+        hydro_text = {
+            'tr': 'ASME B31.8 & BOTAŞ Madde 8.4 (Barlow: P = 2*S*t / D; min test basıncı = P_max - 2.0 Bar, SMYS %100)',
+            'en': 'ASME B31.8 & BOTAŞ Cl. 8.4 (Barlow: P = 2*S*t / D; min test pressure = P_max - 2.0 bar, 100% SMYS)'
+        }
+        api_std_test_text = {
+            'tr': 'API 5L Madde 9.3.1 / Çizelge 26 (karşılaştırma amaçlı; BOTAŞ\'ta alt sınır P_max - 2.0 Bar)',
+            'en': 'API 5L Cl. 9.3.1 / Table 26 (for reference; BOTAŞ minimum is P_max - 2.0 bar)'
+        }
+        smys_text = {
+            'tr': 'BOTAŞ Şartnamesi Tablo 2 / API 5L Çizelge 7 (Belirtilmiş Minimum Akma Mukavemeti - SMYS)',
+            'en': 'BOTAŞ Spec Table 2 / API 5L Table 7 (Specified Minimum Yield Strength - SMYS)'
+        }
+        yield_tensile_text = {
+            'tr': 'BOTAŞ Şartnamesi Tablo 2 (Akma ve Çekme Dayanım Aralıkları)',
+            'en': 'BOTAŞ Spec Table 2 (Yield & Tensile Strength Ranges)'
+        }
+        weld_repair_text = {
+            'tr': 'BOTAŞ Şartnamesi Madde 9.1 & Ek C (Tek Tamir Max 150 mm; uçta 300 mm yasak; >X52 & t>10mm 100°C ön ısıtma)',
+            'en': 'BOTAŞ Spec Cl. 9.1 & Annex C (single repair max 150 mm; 300 mm end ban; 100°C preheat for >X52 & t>10mm)'
+        }
+        mandrel_jaw_text = {
+            'tr': 'BOTAŞ Şartnamesi / API 5L Madde 9.10.2 (Kılavuzlu Bükme Mandrel Çapı ve Çene Açıklığı)',
+            'en': 'BOTAŞ Spec / API 5L Cl. 9.10.2 (Guided-Bend Mandrel Diameter & Jaw Opening)'
+        }
+        squareness_text = {
+            'tr': 'BOTAŞ Şartnamesi Çizelge 4 (Boru Ucu Diklikten Sapma: Max 1.6 mm)',
+            'en': 'BOTAŞ Spec Table 4 (Pipe End Out-of-Squareness: Max 1.6 mm)'
+        }
+        design_factor_text = {
+            'tr': 'BOTAŞ Şartnamesi (Tasarım Faktörü F: 0.72 Hat / 0.60 Hat / 0.50 Hat-İstasyon)',
+            'en': 'BOTAŞ Spec (Design Factor F: 0.72 Line / 0.60 Line / 0.50 Line-Station)'
+        }
+        wall_thickness_text = {
+            'tr': 'BOTAŞ Standart Et Kalınlığı Matrisi (Şartname çizelgesi)',
+            'en': 'BOTAŞ Standard Thickness Matrix (Spec table)'
+        }
+    else:
+        wall_thickness_tol_text = {
+            'tr': 'API 5L Çizelge 11 (İmalat Et Kalınlığı Toleransı: SMLS ve kaynaklı proses kırılımlı)',
+            'en': 'API 5L Table 11 (Manufacturing Wall Thickness Tolerances: SMLS vs welded process bands)'
+        }
+        residual_stress_text = {
+            'tr': 'API 5L şartnamesinde halka-açılma artık stres testi yoktur; bu satır yalnız BOTAŞ boruları içindir',
+            'en': 'No ring-opening residual stress test in API 5L; this row applies to BOTAŞ pipe only'
+        }
+        peaking_text = {
+            'tr': 'API 5L Madde 9.11.3.4 & 9.10.5.1 (Tepeleşme ölçümü 0.25D/200 mm şablon; azami geometrik sapma 3.2 mm)',
+            'en': 'API 5L Cl. 9.11.3.4 & 9.10.5.1 (peaking measured with 0.25D/200 mm template; max geometric deviation 3.2 mm)'
+        }
+        diameter_tol_text = {
+            'tr': 'API 5L Çizelge 10 (Boru Ucu ve Gövde Dış Çap Toleransları - D\'ye ve SMLS/kaynaklı prosesine bağlı)',
+            'en': 'API 5L Table 10 (Pipe End & Body Diameter Tolerances - depend on D and SMLS/welded process)'
+        }
+        circumference_tol_text = {
+            'tr': 'API 5L Çizelge 10 (Çap Toleransı x Pi / Çevre Ölçüm Bandı)',
+            'en': 'API 5L Table 10 (Diameter Tolerance x Pi / Circumferential Tape)'
+        }
+        ovality_text = {
+            'tr': 'API 5L Madde 9.11.3.3 / Çizelge 10 (Ovalite: D≤610 → uç %1.5D / gövde %2.0D; D>610 → uç 0.010D / gövde 0.015D; D/t>75 anlaşmaya bağlı)',
+            'en': 'API 5L Cl. 9.11.3.3 / Table 10 (Out-of-roundness: D≤610 → end 1.5%D / body 2.0%D; D>610 → end 0.010D / body 0.015D; D/t>75 by agreement)'
+        }
+        radial_offset_text = {
+            'tr': 'API 5L Çizelge 14 & Ek E (Radyal Kaçıklık: t<15 → 1.5 / t<25 → 0.1*t / t≥25 → 2.5 mm)',
+            'en': 'API 5L Table 14 & Annex E (Radial Offset: t<15 → 1.5 / t<25 → 0.1*t / t≥25 → 2.5 mm)'
+        }
+        weld_height_text = {
+            'tr': 'API 5L Çizelge 16 & Madde 9.13.3 (İç Kaynak Takviyesi 3.5 mm; dış 4.5 mm (t>13) / 3.5 mm)',
+            'en': 'API 5L Table 16 & Cl. 9.13.3 (Inside weld reinforcement 3.5 mm; outside 4.5 mm (t>13) / 3.5 mm)'
+        }
+        misalignment_text = {
+            'tr': 'API 5L Ek E & Madde 9.13.3 (Kaynak Hiza Kaçıklığı: t>20 → 4.0 / t≤20 → 3.0 mm)',
+            'en': 'API 5L Annex E & Cl. 9.13.3 (Weld Misalignment: t>20 → 4.0 / t≤20 → 3.0 mm)'
+        }
+        hydro_text = {
+            'tr': 'ASME B31.8 & API 5L Madde 9.3 (Barlow: P = 2*S*t / D)',
+            'en': 'ASME B31.8 & API 5L Cl. 9.3 (Barlow: P = 2*S*t / D)'
+        }
+        api_std_test_text = {
+            'tr': 'API 5L Madde 9.3.1 / Çizelge 26 (Standart Fabrika Hidrostatik Deney Basıncı Katsayıları)',
+            'en': 'API 5L Cl. 9.3.1 / Table 26 (Standard Mill Hydrostatic Test Pressure Factors)'
+        }
+        smys_text = {
+            'tr': 'API 5L Çizelge 7 (Belirtilmiş Minimum Akma Mukavemeti - SMYS)',
+            'en': 'API 5L Table 7 (Specified Minimum Yield Strength - SMYS)'
+        }
+        yield_tensile_text = {
+            'tr': 'API 5L Çizelge 7 (Mekanik Çekme ve Akma Dayanım Aralıkları)',
+            'en': 'API 5L Table 7 (Mechanical Tensile & Yield Strength Limits)'
+        }
+        weld_repair_text = {
+            'tr': 'API 5L Ek C (Tek Tamir Kaynağı Max 150 mm ve >X52 & t>10mm için 100°C Ön Isıtma)',
+            'en': 'API 5L Annex C (Single Repair Weld Max 150 mm & 100°C Preheat for >X52 & t>10mm)'
+        }
+        mandrel_jaw_text = {
+            'tr': 'API 5L Madde 9.10.2 (Kılavuzlu Bükme Mandrel Çapı ve Çene Açıklığı)',
+            'en': 'API 5L Cl. 9.10.2 (Guided-Bend Mandrel Diameter & Jaw Opening)'
+        }
+        squareness_text = {
+            'tr': 'API 5L Madde 9.11.3.5 (Boru Ucu Diklikten Sapma Toleransı: Max 1.6 mm)',
+            'en': 'API 5L Cl. 9.11.3.5 (Pipe End Out-of-Squareness Tolerance: Max 1.6 mm)'
+        }
+        design_factor_text = {
+            'tr': 'ASME B31.8 Çizelge 841.1.6-1 (Tasarım Faktörü F)',
+            'en': 'ASME B31.8 Table 841.1.6-1 (Design Factor F)'
+        }
+        wall_thickness_text = {
+            'tr': 'ASME B31.8 Madde 841.1.1 & Kullanıcı Seçimi (Et Kalınlığı)',
+            'en': 'ASME B31.8 Cl. 841.1.1 & User Selection (Wall Thickness)'
+        }
+    return {
     'diameter': {
         'tr': 'API 5L Madde 9.11.3 / BOTAŞ Çizelge 4 (Boru Anma Çapı ve Dış Çap OD)',
         'en': 'API 5L Cl. 9.11.3 / BOTAŞ Table 4 (Nominal Pipe Size & Outside Diameter OD)'
     },
-    'design_factor': {
-        'tr': 'ASME B31.8 Çizelge 841.1.6-1 / BOTAŞ Şartnamesi (Tasarım Faktörü F)',
-        'en': 'ASME B31.8 Table 841.1.6-1 / BOTAŞ Spec (Design Factor F)'
-    },
-    'wall_thickness': {
-        'tr': 'ASME B31.8 Madde 841.1.1 / BOTAŞ Standart Et Kalınlığı Matrisi',
-        'en': 'ASME B31.8 Cl. 841.1.1 / BOTAŞ Standard Thickness Matrix'
-    },
+    'design_factor': design_factor_text,
+    'wall_thickness': wall_thickness_text,
     'process': {
         'tr': 'API 5L Madde 6.1 (SAWH: Helisel Tozaltı, ERW: Yüksek Frekans Direnç, SMLS: Dikişsiz)',
         'en': 'API 5L Cl. 6.1 (SAWH: Spiral Submerged Arc, ERW: Electric Resistance, SMLS: Seamless)'
     },
-    'grade': {
-        'tr': 'API 5L PSL2 / ISO 3183 Çelik Mukavemet Sınıfı',
-        'en': 'API 5L PSL2 / ISO 3183 Steel Strength Grade'
-    },
-    'smys': {
-        'tr': 'API 5L Çizelge 7 (Belirtilmiş Minimum Akma Mukavemeti - SMYS)',
-        'en': 'API 5L Table 7 (Specified Minimum Yield Strength - SMYS)'
-    },
-    'chemical': {
-        'tr': 'API 5L Çizelge 5 (PSL2 Kimyasal Bileşim Ürün Analizi Limitleri)',
-        'en': 'API 5L Table 5 (PSL2 Chemical Composition Product Analysis Limits)'
-    },
-    'wall_thickness_tol': {
-        'tr': 'API 5L Çizelge 9 / BOTAŞ Şartnamesi (İmalat Et Kalınlığı Toleransı)',
-        'en': 'API 5L Table 9 / BOTAŞ Spec (Manufacturing Wall Thickness Tolerances)'
-    },
-    'yield_tensile': {
-        'tr': 'API 5L Çizelge 7 (Mekanik Çekme ve Akma Dayanım Aralıkları)',
-        'en': 'API 5L Table 7 (Mechanical Tensile & Yield Strength Limits)'
-    },
-    'hydro_test': {
-        'tr': 'ASME B31.8 & API 5L Madde 9.3 (Barlow Formülü: P = 2*S*t / D)',
-        'en': 'ASME B31.8 & API 5L Cl. 9.3 (Barlow Formula: P = 2*S*t / D)'
-    },
-    'api_std_test': {
-        'tr': 'API 5L Madde 9.3.1 (Standart Fabrika Hidrostatik Deney Basıncı Katsayıları)',
-        'en': 'API 5L Cl. 9.3.1 (Standard Mill Hydrostatic Test Pressure Factors)'
-    },
-    'diameter_tol': {
-        'tr': 'API 5L Çizelge 10 / BOTAŞ Çizelge 4 (Boru Ucu ve Gövde Çap Toleransları)',
-        'en': 'API 5L Table 10 / BOTAŞ Table 4 (Pipe End & Body Diameter Tolerances)'
-    },
-    'circumference_tol': {
-        'tr': 'BOTAŞ Şartnamesi (Çap Toleransı x Pi / Çevre Ölçüm Bandı)',
-        'en': 'BOTAŞ Spec (Diameter Tolerance x Pi / Circumferential Tape Measurement)'
-    },
-    'ovality': {
-        'tr': 'API 5L Madde 9.11.3.3 / BOTAŞ Şartnamesi (Boru Ucu ve Gövde Ovalite Sınırları)',
-        'en': 'API 5L Cl. 9.11.3.3 / BOTAŞ Spec (Pipe End & Body Out-of-Roundness Limits)'
-    },
+    'grade': grade_text,
+    'smys': smys_text,
+    'chemical': chemical_text,
+    'wall_thickness_tol': wall_thickness_tol_text,
+    'yield_tensile': yield_tensile_text,
+    'hydro_test': hydro_text,
+    'api_std_test': api_std_test_text,
+    'diameter_tol': diameter_tol_text,
+    'circumference_tol': circumference_tol_text,
+    'ovality': ovality_text,
     'elongation': {
         'tr': 'API 5L Madde 9.3.2 Formülü: e = 1940 * A^0.2 / U^0.9 (Minimum Uzama %)',
         'en': 'API 5L Cl. 9.3.2 Formula: e = 1940 * A^0.2 / U^0.9 (Min. Elongation %)'
     },
-    'radial_offset': {
-        'tr': 'API 5L Çizelge E.1 / BOTAŞ Şartnamesi (Kaynak Radyal Kaçıklık Sınırı)',
-        'en': 'API 5L Table E.1 / BOTAŞ Spec (Weld Radial Offset Limits)'
-    },
-    'weld_height': {
-        'tr': 'API 5L Çizelge 16 / BOTAŞ (İç ve Dış Kaynak Dikiş Fazlalığı/Takviyesi)',
-        'en': 'API 5L Table 16 / BOTAŞ (Inside & Outside Weld Reinforcement Height)'
-    },
-    'misalignment': {
-        'tr': 'API 5L Ek E / BOTAŞ Şartnamesi (Kaynak Hiza Kaçıklığı Max. mm)',
-        'en': 'API 5L Annex E / BOTAŞ Spec (Weld Seam Misalignment Max. mm)'
-    },
-    'cvn': {
-        'tr': 'API 5L Çizelge 8 / BOTAŞ (Gövde ve Kaynak Çentik Darbe Tokluğu - CVN 0°C)',
-        'en': 'API 5L Table 8 / BOTAŞ (Body & Weld Charpy V-Notch Toughness - CVN 0°C)'
-    },
-    'yt_ratio': {
-        'tr': 'API 5L Çizelge 7 (Maksimum Akma/Çekme Oranı Sınırı)',
-        'en': 'API 5L Table 7 (Maximum Yield-to-Tensile Ratio Limit)'
-    },
-    'residual_stress': {
-        'tr': 'BOTAŞ Şartnamesi Madde 4.2: Delta = 12.566*D^2*Yield*0.1 / (E*t) (Artık Gerilme Halka Açılması)',
-        'en': 'BOTAŞ Spec Cl. 4.2: Delta = 12.566*D^2*Yield*0.1 / (E*t) (Residual Stress Ring Test)'
-    },
-    'dwtt': {
-        'tr': 'API 5L Madde 9.8.5 (D >= 508 mm / 20" gaz hatlarında DWTT Yırtılma Testi zorunludur)',
-        'en': 'API 5L Cl. 9.8.5 (DWTT Drop Weight Tear Test mandatory for gas lines D >= 508 mm / 20")'
-    },
-    'hardness': {
-        'tr': 'API 5L Çizelge 8 (Maksimum Sertlik Sınırı: 300 HV10 / 250 HV)',
-        'en': 'API 5L Table 8 (Maximum Hardness Limit: 300 HV10 / 250 HV)'
-    },
-    'mandrel_jaw': {
-        'tr': 'API 5L Madde 9.10.2 / BOTAŞ (Kılavuzlu Bükme Testi Mandrel Çapı ve Çene Açıklığı)',
-        'en': 'API 5L Cl. 9.10.2 / BOTAŞ (Guided-Bend Test Mandrel Diameter & Jaw Opening)'
-    },
+    'radial_offset': radial_offset_text,
+    'weld_height': weld_height_text,
+    'misalignment': misalignment_text,
+    'cvn': cvn_text,
+    'yt_ratio': yt_ratio_text,
+    'residual_stress': residual_stress_text,
+    'dwtt': dwtt_text,
+    'hardness': hardness_text,
+    'mandrel_jaw': mandrel_jaw_text,
     'flattening': {
         'tr': 'API 5L Madde 9.10.1 (ERW Borularda Düzleştirme/Yassıltma Testi Kriterleri)',
         'en': 'API 5L Cl. 9.10.1 (Flattening Test Criteria for ERW Line Pipe)'
     },
-    'peaking': {
-        'tr': 'API 5L Madde 9.11.3.4 (Boru Ucu Kaynak Çatılaşma / Tepeleşme Toleransı: D * 0.0015 mm)',
-        'en': 'API 5L Cl. 9.11.3.4 (Pipe End Weld Peaking Tolerance: D * 0.0015 mm)'
-    },
-    'squareness': {
-        'tr': 'API 5L Madde 9.11.3.5 (Boru Ucu Diklikten Sapma Toleransı: Max 1.6 mm)',
-        'en': 'API 5L Cl. 9.11.3.5 (Pipe End Out-of-Squareness Tolerance: Max 1.6 mm)'
-    },
-    'weld_repair': {
-        'tr': 'API 5L Ek C / BOTAŞ (Tek Tamir Kaynağı Max 150 mm ve >X52 & t>10mm için 100°C Ön Isıtma)',
-        'en': 'API 5L Annex C / BOTAŞ (Single Repair Weld Max 150 mm & 100°C Preheat for >X52 & t>10mm)'
-    },
+    'peaking': peaking_text,
+    'squareness': squareness_text,
+    'weld_repair': weld_repair_text,
     'weight': {
         'tr': 'API 5L Madde 9.11.2 (W = 0.02466 * t * (D - t) kg/m; Min -%3.5, Max +%10)',
         'en': 'API 5L Cl. 9.11.2 (W = 0.02466 * t * (D - t) kg/m; Min -3.5%, Max +10%)'
@@ -190,7 +344,11 @@ STANDARD_EXPLANATIONS = {
         'tr': 'ASME B31.8 Madde 841.1.1 (D/t < 30 Kalın Etli Boru Alternatif Basınç Tasarım Formülü)',
         'en': 'ASME B31.8 Cl. 841.1.1 (D/t < 30 Thick Wall Pipe Alternative Design Pressure Formula)'
     }
-}
+    }
+
+
+# Legacy alias: default (API 5L PSL2) explanation map for backward compatibility.
+STANDARD_EXPLANATIONS = build_standard_explanations()
 
 class PipeQAQCEngine:
     @staticmethod
@@ -668,7 +826,7 @@ class PipeQAQCEngine:
                 'design_formula_asme_841_1_1': design_formula_alt,
                 'alternative_design_pressure_bar': round(alt_design_press, 2) if isinstance(alt_design_press, (int, float)) else alt_design_press
             },
-            'explanations': STANDARD_EXPLANATIONS,
+            'explanations': build_standard_explanations(is_botas_mode, is_psl1),
             'edition_notes': build_edition_notes({
                 'material_grade': material_grade,
                 'diameter_mm': d_mm,
