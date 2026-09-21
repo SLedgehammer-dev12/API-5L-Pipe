@@ -112,7 +112,8 @@ class ProjectManager:
     def get_10_api_5l_psl1_pipes_preset() -> Dict[str, Any]:
         """
         Preset containing 10 distinct API 5L PSL1 pipes (Table 4 / 6, 47th Ed.).
-        PSL 1 has no SAW/COW: processes are SMLS or ERW/HFW.
+        API 5L Table 2 permits PSL 1 seamless and welded processes (ERW/HFW, SAW, COW);
+        this preset keeps the traditional SMLS / ERW-HFW selection.
         """
         return {
             'project_info': {

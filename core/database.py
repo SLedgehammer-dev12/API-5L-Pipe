@@ -650,10 +650,15 @@ PSL2_DELIVERY_GRADES = {
     "M": ["GRADE B", "X42", "X46", "X52", "X56", "X60", "X65", "X70", "X80", "X90", "X100", "X120"],
 }
 
-# PSL 1 has no SAW/COW (API 5L 47th Ed. Table 2).
-PSL1_PROCESSES = ["SMLS", "ERW HFW"]
+# API 5L 47th Ed. Table 2 (Process of manufacture): PSL 1 permits seamless and all
+# welded processes modelled by this app (SMLS, ERW/HFW, SAWH, SAWL, COW). PSL 2
+# excludes only CW/LW, so SAW and COW remain permitted for PSL 2 as well.
+# (CW / LW are not modelled by the UI.)
+PSL1_PROCESSES = ["SMLS", "ERW HFW", "SAWH", "SAWL", "COW"]
 # PSL 2 delivery M is welded-only (API 5L 47th Ed. Table 3: SMLS has no M route).
-PSL2_M_PROCESSES = ["ERW HFW", "SAWH", "SAWL"]
+PSL2_M_PROCESSES = ["ERW HFW", "SAWH", "SAWL", "COW"]
+# PSL 2 deliveries N / Q / R: seamless and welded both permitted.
+PSL2_OTHER_PROCESSES = ["SMLS", "ERW HFW", "SAWH", "SAWL", "COW"]
 
 # =====================================================================
 # API 5L 46th Ed. Table 8 (PSL2) minimum absorbed energy (J), full-size specimen, average of 3, 0 °C.
@@ -3039,7 +3044,7 @@ def get_psl1_processes() -> list:
 def get_psl2_processes_for_delivery(delivery: str) -> list:
     if (delivery or "").upper() == "M":
         return list(PSL2_M_PROCESSES)
-    return ["SMLS", "ERW HFW", "SAWH", "SAWL"]
+    return list(PSL2_OTHER_PROCESSES)
 
 def normalize_design_factor(factor_str) -> str:
     """Normalize a design factor label (tolerates comma/dot decimal separators and Turkish words)."""

@@ -51,6 +51,23 @@ def _round_bar_axc(d_mm: float, t_mm: float) -> float:
     return 65.0
 
 
+def get_round_bar_dia_mm(d_mm: float, t_mm: float) -> float:
+    """Transverse round-bar test piece diameter per API 5L Table 21 (47th Ed.).
+
+    Returns 12.7 / 8.9 / 6.4 mm depending on pipe OD and wall thickness.
+    Single source of truth shared by the QA/QC engine and the ITP test plan.
+    """
+    d, t = float(d_mm), float(t_mm)
+    for d_max, t12, t89 in _TABLE21_ROUNDBAR:
+        if d <= d_max:
+            if t12 is not None and t >= t12:
+                return 12.7
+            if t89 is not None and t >= t89:
+                return 8.9
+            return 6.4
+    return 6.4
+
+
 def _elongation_axc(d_mm: float, t_mm: float, manufacturing_process: str) -> float:
     """Applicable tensile test piece cross-sectional area (Axc, mm²) for the elongation formula."""
     d, t = float(d_mm), float(t_mm)
@@ -624,11 +641,14 @@ class PipeQAQCEngine:
 
         pipe_end_squareness = 1.6
 
-        # 10. Residual Stress Test Max (mm) (BOTAŞ Cl. 3.3.9 / Cl. 4.2)
+        # 10. Residual Stress Ring Test (BOTAŞ Cl. 3.3.9)
+        # Applies to spiral or straight-seam ARC welded pipe (SAWH / SAWL / LSAW) and COW.
+        # API 5L has no ring-slit residual stress test in its product specification.
         # Formula: S = (E * t * C) / (12.566 * D_mean^2) <= 0.10 * SMYS
         # where D_mean = D_outer - t (ring mean diameter), C = ring opening gap (delta)
         # Solving for max gap C_max: C_max = 12.566 * D_mean^2 * 0.10 * SMYS / (E * t)
-        if "SAWH" in proc_upper:
+        is_arc_welded = any(k in proc_upper for k in ("SAW", "COW"))
+        if is_botas_mode and is_arc_welded:
             stress_coeff = yield_min_mpa if yield_min_mpa > 0 else 450.0
             d_mean = d_mm - t  # Ring mean diameter (D_outer - wall_thickness)
             residual_stress_max = (12.566 * math.pow(d_mean, 2) * stress_coeff * 0.1) / (200000.0 * t)

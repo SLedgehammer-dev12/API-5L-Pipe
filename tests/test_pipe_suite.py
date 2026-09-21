@@ -1918,6 +1918,88 @@ class TestPipeQAQCSuite(unittest.TestCase):
             api2['hydrostatic_test']['hydro_test_min_bar'],
             api2['hydrostatic_test']['api_5l_std_test_bar'], delta=0.01)
 
+    def test_59_process_availability_and_residual_stress_scope(self):
+        """API 5L Table 2/3 process availability and BOTAŞ 3.3.9 residual stress scope."""
+        from core.database import (
+            get_psl1_processes, get_psl2_processes_for_delivery, PSL1_PROCESSES,
+        )
+        from core.pipe_qaqc_engine import PipeQAQCEngine
+        from core.test_plan import get_test_plan
+
+        # --- API 5L Table 2: PSL 1 permits welded processes (SAW/COW) too ---
+        psl1 = get_psl1_processes()
+        for p in ("SMLS", "ERW HFW", "SAWH", "SAWL", "COW"):
+            self.assertIn(p, psl1, f"PSL1 must permit {p} per API 5L Table 2")
+        self.assertIn("SAWH", PSL1_PROCESSES)
+        self.assertIn("COW", PSL1_PROCESSES)
+
+        # --- API 5L Table 3: PSL 2 delivery M is welded-only; COW/SAWL permitted ---
+        m = get_psl2_processes_for_delivery("M")
+        self.assertNotIn("SMLS", m, "PSL2-M has no seamless route (Table 3)")
+        for p in ("ERW HFW", "SAWH", "SAWL", "COW"):
+            self.assertIn(p, m)
+        n = get_psl2_processes_for_delivery("N")
+        self.assertIn("SMLS", n)
+        self.assertIn("COW", n)
+
+        def qc(proc, std):
+            return PipeQAQCEngine.calculate_pipe_qc(
+                diameter_inch='48"', diameter_mm=1219.0, wall_thickness_mm=14.30,
+                material_grade='X65', manufacturing_process=proc, standard_type=std,
+                psl_level='PSL2')
+
+        def plan_has_residual(proc):
+            plan = get_test_plan({
+                'diameter_mm': 1219.0, 'wall_thickness_mm': 14.3, 'material_grade': 'X65',
+                'manufacturing_process': proc, 'standard_type': 'BOTAŞ', 'psl_level': 'PSL2'})
+            return any('Artık Stres' in t['test'] for t in plan)
+
+        # --- BOTAŞ 3.3.9: arc-welded SAW (SAWH/SAWL) and COW require the ring test ---
+        for proc in ("SAWH", "SAWL", "COW"):
+            val = qc(proc, 'BOTAŞ')['toughness_and_tests']['residual_stress_max_mm']
+            self.assertIsInstance(val, float, f"{proc} must compute residual stress delta")
+            self.assertAlmostEqual(val, 286.95, delta=0.1)
+            self.assertTrue(plan_has_residual(proc), f"{proc} must have an ITP residual row")
+
+        # --- ERW/HFW (electric resistance) and SMLS are outside BOTAŞ 3.3.9 scope ---
+        for proc in ("ERW HFW", "SMLS"):
+            self.assertEqual(
+                qc(proc, 'BOTAŞ')['toughness_and_tests']['residual_stress_max_mm'], "TEST YOK")
+            self.assertFalse(plan_has_residual(proc), f"{proc} must NOT have an ITP residual row")
+
+        # --- API 5L has no ring-slit residual stress test ---
+        for proc in ("SAWH", "SAWL", "COW", "ERW HFW"):
+            self.assertEqual(
+                qc(proc, 'API 5L')['toughness_and_tests']['residual_stress_max_mm'], "TEST YOK")
+
+    def test_60_round_bar_dia_table21_consistency(self):
+        """Round-bar diameter follows API 5L Table 21 in both the engine and the ITP plan."""
+        from core.pipe_qaqc_engine import get_round_bar_dia_mm
+        from core.test_plan import get_test_plan
+
+        # Table 21 (D, t) -> round-bar diameter
+        for d, t, dia in ((1219.0, 14.30, 6.4), (610.0, 20.50, 8.9),
+                          (610.0, 19.00, 6.4), (1422.0, 25.40, 12.7),
+                          (457.0, 21.50, 8.9), (219.1, 28.10, 8.9),
+                          (168.3, 9.00, 6.4)):
+            self.assertAlmostEqual(get_round_bar_dia_mm(d, t), dia, delta=0.001,
+                                   msg=f"D={d} t={t}")
+
+        # The ITP plan text must quote the same diameter (Turkish decimal)
+        plan = get_test_plan({'diameter_mm': 610.0, 'wall_thickness_mm': 20.5,
+                              'material_grade': 'X60', 'manufacturing_process': 'SAWH',
+                              'standard_type': 'API 5L', 'psl_level': 'PSL2'})
+        row = next(r for r in plan if r['test'] == 'Çekme Testi (Yuvarlak Çubuk)')
+        self.assertIn('8,9 mm', row['specimen'])
+        self.assertIn('Tablo 21', row['specimen'])
+
+        # SMLS longitudinal with t >= 19.0 mm -> mandatory 12.7 mm bar (10.2.3.2.5)
+        plan2 = get_test_plan({'diameter_mm': 610.0, 'wall_thickness_mm': 22.0,
+                               'material_grade': 'X60', 'manufacturing_process': 'SMLS',
+                               'standard_type': 'API 5L', 'psl_level': 'PSL2'})
+        row2 = next(r for r in plan2 if 'Yuvarlak Çubuk' in r['test'])
+        self.assertIn('12,7 mm', row2['specimen'])
+
 
 if __name__ == '__main__':
     unittest.main()

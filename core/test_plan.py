@@ -123,13 +123,20 @@ def _cvn_specimen_size(diameter_mm: float, wall_thickness_mm: float) -> str:
     return get_cvn_specimen_size(diameter_mm, wall_thickness_mm)["label"]
 
 
+def _round_bar_dia_label(diameter_mm: float, wall_thickness_mm: float) -> str:
+    """Round-bar test piece diameter (Table 21) as a Turkish decimal label."""
+    from core.pipe_qaqc_engine import get_round_bar_dia_mm
+    dia = get_round_bar_dia_mm(diameter_mm, wall_thickness_mm)
+    return f"{dia:.1f}".replace(".", ",")
+
+
 def _tensile_specimen(diameter_mm: float, wall_thickness_mm: float, manufacturing_process: str = "SAWH") -> str:
     """Tensile test piece per Table 20/21 (round bar for welded pipe D >= 219.1 mm)."""
     proc = (manufacturing_process or "").upper()
     is_smls = "SMLS" in proc or "SEAMLESS" in proc
     if not is_smls and diameter_mm >= 219.1:
-        dia = "12.7 mm" if wall_thickness_mm >= 24.0 else ("8.9 mm" if wall_thickness_mm >= 17.5 else "6.4 mm")
-        return f"Yuvarlak çubuk (çap {dia}, Table 21)"
+        dia = _round_bar_dia_label(diameter_mm, wall_thickness_mm)
+        return f"Yuvarlak çubuk (çap {dia} mm, Tablo 21)"
     if is_smls:
         return "Tam kesit / şerit (boyuna)"
     return "Şerit 38.1 mm genişlik x tam cidar"
@@ -174,7 +181,7 @@ def _tensile_rows(d_mm: float, t_mm: float, process: str, is_smls: bool, tbl: st
                 "specimen_figure": "tensile_round",
                 "frequency": "Test ünitesi (lot) başına 1 set",
                 "location": "Gövde - enine (düzleştirilmemiş numune)",
-                "specimen": "Yuvarlak çubuk, çap Tablo 21'e göre (6,4/8,9/12,7 mm)",
+                "specimen": f"Yuvarlak çubuk, çap {_round_bar_dia_label(d_mm, t_mm)} mm (Tablo 21)",
                 "note": "10.2.3.2.3 / Tablo 21 — üretici seçimine bağlı",
             },
         ]
@@ -222,6 +229,9 @@ def get_test_plan(pipe_config: Dict[str, Any], psl_level: str = "PSL2") -> List[
     t_mm = float(pipe_config.get("wall_thickness_mm") or 14.30)
     process = (pipe_config.get("manufacturing_process") or "SAWH").upper()
     is_welded = any(k in process for k in ("SAW", "ERW", "HFW", "LSAW", "COW"))
+    # Arc-welded processes covered by BOTAŞ Cl. 3.3.9 residual stress ring test
+    # (SAWH / SAWL / LSAW / COW). ERW/HFW (electric resistance) are excluded.
+    is_saw_arc = any(k in process for k in ("SAW", "COW"))
     is_smls = "SMLS" in process
     is_psl1 = psl_level and "PSL1" in str(psl_level).upper()
     tbl = "Table 17" if is_psl1 else "Table 18"
@@ -282,6 +292,7 @@ def get_test_plan(pipe_config: Dict[str, Any], psl_level: str = "PSL2") -> List[
                 "specimen": "Tam cidar şerit (kök & kapak bükme)",
                 "note": "ISO 5173 / ASTM A370 uyarınca",
             })
+        if is_saw_arc:
             plan.append({
                 "test": "Artık Stres Testi (Residual Stress)",
                 "clause": "BOTAŞ Madde 3.3.9",
@@ -292,6 +303,7 @@ def get_test_plan(pipe_config: Dict[str, Any], psl_level: str = "PSL2") -> List[
                 "specimen": "150 mm genişlikte halka, kaynak karşısından kesilir",
                 "note": "S = (E·t·C) / (12.566·Dₘ²) ≤ %10 SMYS, Dₘ = D - t (Ortalama Çap)",
             })
+        if is_welded:
             if d_mm >= 508.0:
                 plan.append({
                     "test": "DWTT (Drop Weight Tear Test)",

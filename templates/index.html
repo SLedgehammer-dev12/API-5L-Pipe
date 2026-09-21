@@ -788,6 +788,7 @@
                                 <option value="ERW HFW">ERW / HFW (Elektrik Direnç / Boyuna Kaynaklı - -%10.0 Tol.)</option>
                                 <option value="SMLS">SMLS (Dikişsiz - -%12.5 Tol.)</option>
                                 <option value="SAWL">SAWL (Boyuna Tozaltı Kaynaklı - -%8.0 / -%10.0 Tol.)</option>
+                                <option value="COW">COW (Kombine Kaynaklı - Ark Kaynaklı)</option>
                             </select>
                         </div>
 
@@ -1521,8 +1522,10 @@
                             <label class="font-bold text-slate-700 block mb-1">İmalat Yöntemi</label>
                             <select id="new-pipe-process" class="w-full border border-slate-300 rounded-lg p-2">
                                 <option value="SAWH">SAWH (Spiral Kaynak)</option>
+                                <option value="SAWL">SAWL (Boyuna Tozaltı Kaynak)</option>
                                 <option value="ERW HFW">ERW / HFW (Boyuna Kaynak)</option>
                                 <option value="SMLS">SMLS (Dikişsiz)</option>
+                                <option value="COW">COW (Kombine Kaynak)</option>
                             </select>
                         </div>
                     </div>
@@ -1615,8 +1618,9 @@
             Q: ["GRADE B", "X42", "X46", "X52", "X56", "X60", "X65", "X70", "X80", "X90", "X100"],
             M: ["GRADE B", "X42", "X46", "X52", "X56", "X60", "X65", "X70", "X80", "X90", "X100", "X120"]
         };
-        const PSL1_PROCESSES = ["SMLS", "ERW HFW"];
-        const PSL2_M_PROCESSES = ["ERW HFW", "SAWH", "SAWL"];
+        const PSL1_PROCESSES = ["SMLS", "ERW HFW", "SAWH", "SAWL", "COW"];
+        const PSL2_M_PROCESSES = ["ERW HFW", "SAWH", "SAWL", "COW"];
+        const PSL2_OTHER_PROCESSES = ["SMLS", "ERW HFW", "SAWH", "SAWL", "COW"];
 
         function setupAddPipeDynamicUI() {
             const stdSel = document.getElementById("new-pipe-standard");
@@ -1656,7 +1660,7 @@
                 } else if (isPsl2) {
                     const dlv = deliverySel ? deliverySel.value : "M";
                     setOptions(gradeSel, PSL2_DELIVERY_GRADES[dlv] || PSL2_DELIVERY_GRADES.M, gradeSel.value);
-                    setOptions(procSel, dlv === "M" ? PSL2_M_PROCESSES : ["SMLS", "ERW HFW", "SAWH", "SAWL"], procSel.value);
+                    setOptions(procSel, dlv === "M" ? PSL2_M_PROCESSES : PSL2_OTHER_PROCESSES, procSel.value);
                 } else {
                     // BOTAŞ: restore full list
                     [...gradeSel.options].forEach(o => { o.hidden = false; o.disabled = false; });
@@ -1670,7 +1674,7 @@
                 if (std === "API 5L PSL2") {
                     const dlv = deliverySel.value;
                     setOptions(gradeSel, PSL2_DELIVERY_GRADES[dlv] || PSL2_DELIVERY_GRADES.M, gradeSel.value);
-                    setOptions(procSel, dlv === "M" ? PSL2_M_PROCESSES : ["SMLS", "ERW HFW", "SAWH", "SAWL"], procSel.value);
+                    setOptions(procSel, dlv === "M" ? PSL2_M_PROCESSES : PSL2_OTHER_PROCESSES, procSel.value);
                 }
             });
             gradeSel.addEventListener("change", () => {
