@@ -26,6 +26,8 @@ dist/
 # Copyright-sensitive sample/reference documents (not needed at runtime)
 /itp_sample_library/
 /5120_R7.pdf
+/5120_R7*.pdf
+/API Spec 5L*.pdf
 /Pipe Fittings Flange Calc  2025.07.23.xlsx
 /Pipe Fittings Flange Calc 2026.08.24.xlsx
 /tests/sample_vendor_itp.pdf

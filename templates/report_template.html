@@ -96,6 +96,8 @@
                 </tr>
 
                 <!-- Chemical Block -->
+                {% set nb_ns = namespace(has_min=false) %}
+                {% for p in pipes %}{% if (p.chemical_analysis.Nb_min or 0) > 0 %}{% set nb_ns.has_min = true %}{% endif %}{% endfor %}
                 <tr>
                     <td rowspan="10" colspan="2" class="th-side font-bold text-center">Kimyasal Analiz</td>
                     <td class="font-bold text-center">C</td>
@@ -119,7 +121,7 @@
                 </tr>
                 <tr>
                     <td class="font-bold text-center">Nb</td>
-                    <td class="text-center text-xs">{{ pipes[0].chemical_analysis.Nb_label }}</td>
+                    <td class="text-center text-xs">{{ "Min%-Max%" if nb_ns.has_min else "Max %" }}</td>
                     {% for p in pipes %}<td>{{ p.chemical_analysis.Nb_min_max if p.chemical_analysis.Nb_min_max else "—" }}</td>{% endfor %}
                 </tr>
                 <tr>

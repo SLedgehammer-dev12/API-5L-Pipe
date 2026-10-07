@@ -51,6 +51,16 @@ def _round_bar_axc(d_mm: float, t_mm: float) -> float:
     return 65.0
 
 
+def _round_oval_mm(value):
+    """Ovalite değerini (sayı veya sayısal metin) yüzdelik basamağa (2 hane) yuvarlar."""
+    if isinstance(value, (int, float)):
+        return round(value, 2)
+    try:
+        return round(float(str(value).replace(",", ".").strip()), 2)
+    except (TypeError, ValueError):
+        return value
+
+
 def get_round_bar_dia_mm(d_mm: float, t_mm: float) -> float:
     """Transverse round-bar test piece diameter per API 5L Table 21 (47th Ed.).
 
@@ -118,8 +128,8 @@ def build_standard_explanations(is_botas: bool = False, is_psl1: bool = False) -
                 'en': 'BOTAŞ Spec / API 5L PSL2 Steel Strength Grade'
             }
             chemical_text = {
-                'tr': 'BOTAŞ Şartnamesi Tablo 1 (Kimyasal Bileşim Limitleri)',
-                'en': 'BOTAŞ Spec Table 1 (Chemical Composition Limits)'
+                'tr': 'BOTAŞ Şartnamesi Tablo 1 (Kimyasal Bileşim Limitleri); Tablo-1 dışı kaliteler API 5L\'e göre. Not a/b: X42 ve üzeri Nb+V+Ti ≤ 0.15%, Gr.B ≤ 0.06%. Not c: C\'deki her 0.01% azalma için Mn üst sınırı +0.05% (kalite tavanına kadar).',
+                'en': 'BOTAŞ Spec Table 1 (Chemical Composition Limits); grades outside Table-1 follow API 5L. Notes a/b: X42 and above Nb+V+Ti ≤ 0.15%, Gr.B ≤ 0.06%. Note c: each 0.01% C reduction allows +0.05% Mn (up to grade cap).'
             }
             yt_ratio_text = {
                 'tr': 'BOTAŞ Şartnamesi (Y/T oranı: X65 ve üzeri ≤ 0.90 soğuk genişletilmemiş / ≤ 0.93 genişletilmiş)',
@@ -756,6 +766,8 @@ class PipeQAQCEngine:
                 'P_min': chem_rules.get('P_min', 0.0),
                 'P_max': chem_rules.get('P_max'),
                 'S_max': chem_rules.get('S_max'),
+                'Nb_min': chem_rules.get('Nb_min', 0.0),
+                'Nb_max': chem_rules.get('Nb_max'),
                 'Nb_min_max': (f"{chem_rules['Nb_min']:.3f}-{chem_rules['Nb_max']:.3f}"
                                if chem_rules.get('Nb_min', 0) > 0 and chem_rules.get('Nb_max')
                                else (f"{chem_rules['Nb_max']:.2f}" if chem_rules.get('Nb_max') is not None else None)),
@@ -801,8 +813,8 @@ class PipeQAQCEngine:
                 'circ_end_min_mm': round(circ_end_min, 2) if isinstance(circ_end_min, (int, float)) else circ_end_min,
                 'circ_body_max_mm': round(circ_body_max, 2) if isinstance(circ_body_max, (int, float)) else circ_body_max,
                 'circ_body_min_mm': round(circ_body_min, 2) if isinstance(circ_body_min, (int, float)) else circ_body_min,
-                'ovality_end_mm': round(ovality_end, 2) if isinstance(ovality_end, (int, float)) else ovality_end,
-                'ovality_body_mm': round(ovality_body, 2) if isinstance(ovality_body, (int, float)) else ovality_body,
+                'ovality_end_mm': _round_oval_mm(ovality_end),
+                'ovality_body_mm': _round_oval_mm(ovality_body),
                 'pipe_end_peaking_max_mm': round(weld_peaking, 2) if isinstance(weld_peaking, (int, float)) else weld_peaking,
                 'pipe_end_squareness_max_mm': round(pipe_end_squareness, 2) if isinstance(pipe_end_squareness, (int, float)) else pipe_end_squareness
             },

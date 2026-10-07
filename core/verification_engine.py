@@ -5,7 +5,7 @@ Compares actual inspection / lab test data against all 40+ API 5L PSL2 and BOTA�
 
 from typing import Any, Dict, List
 
-from core.database import compute_ce_iww, compute_ce_pcm, get_cvn_specimen_size
+from core.database import compute_ce_iww, compute_ce_pcm, get_cvn_specimen_size, get_mn_max_compensated
 from core.pipe_qaqc_engine import PipeQAQCEngine
 
 
@@ -161,11 +161,47 @@ class PipeVerificationEngine:
                     if isinstance(lim, (int, float)):
                         add_check(label, "Kimyasal Analiz", f"{val:.{dec}f}%", f"Max {lim:.{dec}f}%", val <= lim)
 
+            def _nb_range_check(act_key, lim_min_key, lim_max_key, dec=3):
+                if act_key in actual_data and actual_data[act_key] is not None:
+                    val = float(actual_data[act_key])
+                    nb_min = chem_lim.get(lim_min_key)
+                    nb_max = chem_lim.get(lim_max_key)
+                    parts = []
+                    passed = True
+                    if isinstance(nb_min, (int, float)) and nb_min > 0:
+                        parts.append(f"Min {nb_min:.{dec}f}%")
+                        passed = passed and val >= nb_min
+                    if isinstance(nb_max, (int, float)):
+                        parts.append(f"Max {nb_max:.{dec}f}%")
+                        passed = passed and val <= nb_max
+                    if parts:
+                        add_check("Niyobyum (Nb %)", "Kimyasal Analiz",
+                                  f"{val:.{dec}f}%", " - ".join(parts), passed)
+
             _max_check("C", "Karbon (C %)", "C", "C_max")
-            _max_check("Mn", "Mangan (Mn %)", "Mn", "Mn_max")
+            # Mn with C-reduction allowance (API 5L Table 4/5 note b;
+            # BOTAŞ 5120 R7 Tablo-1 note c).
+            if 'Mn' in actual_data and actual_data['Mn'] is not None:
+                mn_act = float(actual_data['Mn'])
+                mn_base = chem_lim.get('Mn_max')
+                c_act = actual_data.get('C')
+                c_act = float(c_act) if c_act is not None else None
+                mn_allowed = get_mn_max_compensated(
+                    limits.get('input_summary', {}).get('material_grade', ''),
+                    chem_lim.get('C_max'), c_act, mn_base,
+                    standard_type=standard_type, psl_level=psl_level,
+                )
+                if isinstance(mn_allowed, (int, float)):
+                    note = ""
+                    if (c_act is not None and isinstance(mn_base, (int, float))
+                            and mn_allowed > mn_base):
+                        note = (f"C {c_act:.2f}% (max {chem_lim.get('C_max'):.2f}%) olduğundan "
+                                f"Mn üst sınırı {mn_allowed:.2f}% uygulanır (not c).")
+                    add_check("Mangan (Mn %)", "Kimyasal Analiz", f"{mn_act:.2f}%",
+                              f"Max {mn_allowed:.2f}%", mn_act <= mn_allowed, notes=note)
             _max_check("P", "Fosfor (P %)", "P", "P_max", 3)
             _max_check("S", "Kükürt (S %)", "S", "S_max", 3)
-            _max_check("Nb", "Niyobyum (Nb %)", "Nb", "Nb_max", 3)
+            _nb_range_check("Nb", "Nb_min", "Nb_max", 3)
             _max_check("V", "Vanadyum (V %)", "V", "V_max", 2)
             _max_check("Ti", "Titanyum (Ti %)", "Ti", "Ti_max", 2)
             _max_check("N", "Azot (N %)", "N", "N_max", 3)

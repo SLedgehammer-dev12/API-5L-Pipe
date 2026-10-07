@@ -143,12 +143,16 @@ class ExcelExporter:
             return str(v)
 
         chem_start_r = current_r
+        nb_has_min = any(
+            (p['chemical_analysis'].get('Nb_min') or 0) > 0 for p in pipes_data
+        )
+        nb_label = "Min%-Max%" if nb_has_min else "Max %"
         chem_items = [
             ("C", "Max %", lambda p: _fmt(p['chemical_analysis'].get('C_max'), 2)),
             ("Mn", "Max %", lambda p: _fmt(p['chemical_analysis'].get('Mn_max'), 2)),
             ("P", "Max %", lambda p: _fmt(p['chemical_analysis'].get('P_max'), 3)),
             ("S", "Max %", lambda p: _fmt(p['chemical_analysis'].get('S_max'), 3)),
-            ("Nb", "Min%-Max%", lambda p: str(p['chemical_analysis'].get('Nb_min_max')) if p['chemical_analysis'].get('Nb_min_max') else "—"),
+            ("Nb", nb_label, lambda p: str(p['chemical_analysis'].get('Nb_min_max')) if p['chemical_analysis'].get('Nb_min_max') else "—"),
             ("V", "Max %", lambda p: _fmt(p['chemical_analysis'].get('V_max'), 2)),
             ("Ti", "Max %", lambda p: _fmt(p['chemical_analysis'].get('Ti_max'), 2)),
             ("N", "Max %", lambda p: _fmt(p['chemical_analysis'].get('N_max'), 3)),

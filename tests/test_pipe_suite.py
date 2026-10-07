@@ -2001,6 +2001,158 @@ class TestPipeQAQCSuite(unittest.TestCase):
         self.assertIn('12,7 mm', row2['specimen'])
 
 
+    def test_61_botas_nb_minimum_x52_and_above(self):
+        """BOTAŞ 5120 R7 Tablo-1: X52 ve üzeri Nb 0.015-0.050; alt kalitelerde Nb max 0.050."""
+        # X52 and above -> Nb 0.015-0.050 (min shown)
+        for grade in ('X52', 'X56', 'X60', 'X65', 'X70', 'X80'):
+            res = PipeQAQCEngine.calculate_pipe_qc(
+                diameter_inch='48"', material_grade=grade, standard_type='BOTAŞ'
+            )
+            chem = res['chemical_analysis']
+            self.assertEqual(chem['Nb_min'], 0.015, msg=grade)
+            self.assertEqual(chem['Nb_max'], 0.05, msg=grade)
+            self.assertEqual(chem['Nb_min_max'], '0.015-0.050', msg=grade)
+            self.assertEqual(chem['Nb_label'], 'Min%-Max%', msg=grade)
+
+        # Below X52 -> no minimum, Nb max 0.050 only
+        for grade in ('GRADE B', 'X42', 'X46'):
+            res = PipeQAQCEngine.calculate_pipe_qc(
+                diameter_inch='48"', material_grade=grade, standard_type='BOTAŞ'
+            )
+            chem = res['chemical_analysis']
+            self.assertEqual(chem['Nb_min'], 0.0, msg=grade)
+            self.assertEqual(chem['Nb_max'], 0.05, msg=grade)
+            self.assertEqual(chem['Nb_min_max'], '0.05', msg=grade)
+            self.assertEqual(chem['Nb_label'], 'Max %', msg=grade)
+
+        # API 5L PSL2 must remain without a Nb minimum (Table 5 uses max/combined)
+        api_res = PipeQAQCEngine.calculate_pipe_qc(
+            diameter_inch='12"', material_grade='X52', standard_type='API 5L',
+            psl_level='PSL2', delivery_condition='M'
+        )
+        self.assertEqual(api_res['chemical_analysis']['Nb_min'], 0.0)
+
+    def test_61b_botas_5120_table1_values(self):
+        """BOTAŞ 5120 R7 Tablo-1: V 0.050, Ti 0.040, CE_IIW 0.40, CE_Pcm 0.22 tüm kalitelerde."""
+        expected_c = {'GRADE B': 0.18, 'X42': 0.18, 'X46': 0.18, 'X52': 0.18, 'X56': 0.18,
+                      'X60': 0.12, 'X65': 0.12, 'X70': 0.12, 'X80': 0.12}
+        expected_mn = {'GRADE B': 1.20, 'X42': 1.30, 'X46': 1.30, 'X52': 1.40, 'X56': 1.40,
+                       'X60': 1.60, 'X65': 1.60, 'X70': 1.70, 'X80': 1.85}
+        for grade in expected_c:
+            chem = PipeQAQCEngine.calculate_pipe_qc(
+                diameter_inch='48"', material_grade=grade, standard_type='BOTAŞ'
+            )['chemical_analysis']
+            self.assertAlmostEqual(chem['C_max'], expected_c[grade], delta=0.001, msg=grade)
+            self.assertAlmostEqual(chem['Mn_max'], expected_mn[grade], delta=0.001, msg=grade)
+            self.assertAlmostEqual(chem['P_max'], 0.025, delta=0.0001, msg=grade)
+            self.assertAlmostEqual(chem['S_max'], 0.010, delta=0.0001, msg=grade)
+            self.assertAlmostEqual(chem['V_max'], 0.05, delta=0.0001, msg=grade)
+            self.assertAlmostEqual(chem['Ti_max'], 0.04, delta=0.0001, msg=grade)
+            self.assertAlmostEqual(chem['N_max'], 0.009, delta=0.0001, msg=grade)
+            self.assertAlmostEqual(chem['CE_IIW_max'], 0.40, delta=0.0001, msg=grade)
+            self.assertAlmostEqual(chem['CE_Pcm_max'], 0.22, delta=0.0001, msg=grade)
+
+    def test_62_botas_nb_minimum_verification(self):
+        """Verification engine enforces the new BOTAŞ Nb minimum for X52+."""
+        pipe_cfg = {
+            'diameter_inch': '48"', 'diameter_mm': 1219.0,
+            'wall_thickness_mm': 14.30, 'material_grade': 'X52',
+            'manufacturing_process': 'SAWH', 'standard_type': 'BOTAŞ',
+        }
+        # Below minimum -> FAIL
+        low = PipeVerificationEngine.verify_pipe_test_results(pipe_cfg, {'Nb': 0.010})
+        nb_checks = [c for c in low['checks'] if c['parameter'] == 'Niyobyum (Nb %)']
+        self.assertEqual(len(nb_checks), 1)
+        self.assertIn('Min', nb_checks[0]['required_limit'])
+        self.assertEqual(nb_checks[0]['status'], 'FAIL')
+
+        # At/above minimum -> PASS
+        ok = PipeVerificationEngine.verify_pipe_test_results(pipe_cfg, {'Nb': 0.035})
+        nb_checks_ok = [c for c in ok['checks'] if c['parameter'] == 'Niyobyum (Nb %)']
+        self.assertEqual(len(nb_checks_ok), 1)
+        self.assertIn('Min', nb_checks_ok[0]['required_limit'])
+        self.assertEqual(nb_checks_ok[0]['status'], 'PASS')
+
+    def test_63_botas_table1_note_c_mn_compensation(self):
+        """BOTAŞ 5120 Tablo-1 not c: C azalması başına Mn üst sınırı artar, kalite üst sınırına kadar."""
+        from core.database import get_mn_max_compensated
+        # X65: base 1.60, cap 1.75
+        self.assertAlmostEqual(get_mn_max_compensated('X65', 0.12, 0.12, 1.60, 'BOTAŞ'), 1.60)
+        self.assertAlmostEqual(get_mn_max_compensated('X65', 0.12, 0.11, 1.60, 'BOTAŞ'), 1.65)
+        self.assertAlmostEqual(get_mn_max_compensated('X65', 0.12, 0.10, 1.60, 'BOTAŞ'), 1.70)
+        self.assertAlmostEqual(get_mn_max_compensated('X65', 0.12, 0.08, 1.60, 'BOTAŞ'), 1.75)  # cap
+        # X52: base 1.40, cap 1.65
+        self.assertAlmostEqual(get_mn_max_compensated('X52', 0.18, 0.10, 1.40, 'BOTAŞ'), 1.65)  # cap
+        # X70: base 1.70, cap 2.00
+        self.assertAlmostEqual(get_mn_max_compensated('X70', 0.12, 0.00, 1.70, 'BOTAŞ'), 2.00)  # cap
+
+        # Verification: without C reduction 1.70% Mn FAILs; with C=0.08 it PASSes (cap 1.75)
+        cfg = {'diameter_inch': '48"', 'diameter_mm': 1219.0, 'wall_thickness_mm': 14.30,
+               'material_grade': 'X65', 'manufacturing_process': 'SAWH', 'standard_type': 'BOTAŞ'}
+        no_comp = [c for c in PipeVerificationEngine.verify_pipe_test_results(
+            cfg, {'C': 0.12, 'Mn': 1.70})['checks'] if c['parameter'] == 'Mangan (Mn %)']
+        self.assertEqual(no_comp[0]['status'], 'FAIL')
+        comp = [c for c in PipeVerificationEngine.verify_pipe_test_results(
+            cfg, {'C': 0.08, 'Mn': 1.70})['checks'] if c['parameter'] == 'Mangan (Mn %)']
+        self.assertEqual(comp[0]['status'], 'PASS')
+        self.assertIn('not c', comp[0]['notes'])
+
+    def test_64_botas_table1_notes_a_b_nb_v_ti(self):
+        """BOTAŞ 5120 Tablo-1 not a/b: X42+ Nb+V+Ti <= 0.15; Gr.B <= 0.06."""
+        for grade, limit in (('X42', 0.15), ('X65', 0.15), ('X80', 0.15), ('GRADE B', 0.06)):
+            chem = PipeQAQCEngine.calculate_pipe_qc(
+                diameter_inch='48"', material_grade=grade, standard_type='BOTAŞ'
+            )['chemical_analysis']
+            self.assertAlmostEqual(chem['nb_v_ti_combined_max'], limit, delta=0.0001, msg=grade)
+
+        cfg = {'diameter_inch': '48"', 'diameter_mm': 1219.0, 'wall_thickness_mm': 14.30,
+               'material_grade': 'X65', 'manufacturing_process': 'SAWH', 'standard_type': 'BOTAŞ'}
+        over = [c for c in PipeVerificationEngine.verify_pipe_test_results(
+            cfg, {'Nb': 0.06, 'V': 0.06, 'Ti': 0.05})['checks']
+            if 'kombine' in c['parameter'].lower()]
+        self.assertEqual(over[0]['status'], 'FAIL')
+        under = [c for c in PipeVerificationEngine.verify_pipe_test_results(
+            cfg, {'Nb': 0.04, 'V': 0.04, 'Ti': 0.04})['checks']
+            if 'kombine' in c['parameter'].lower()]
+        self.assertEqual(under[0]['status'], 'PASS')
+
+    def test_65_botas_grades_not_in_table1_follow_api5l(self):
+        """Tablo-1 dışı kaliteler API 5L'e göre: X90/X100/X120 (PSL2 M) ve GRADE A (PSL1)."""
+        # X90/X100/X120 -> API 5L PSL2 Table 5 (M)
+        for grade in ('X90', 'X100', 'X120'):
+            chem = PipeQAQCEngine.calculate_pipe_qc(
+                diameter_inch='48"', material_grade=grade, standard_type='BOTAŞ'
+            )['chemical_analysis']
+            self.assertAlmostEqual(chem['C_max'], 0.10, delta=0.001, msg=grade)
+            self.assertAlmostEqual(chem['Mn_max'], 2.10, delta=0.001, msg=grade)
+            self.assertAlmostEqual(chem['P_max'], 0.020, delta=0.001, msg=grade)
+            self.assertAlmostEqual(chem['S_max'], 0.010, delta=0.001, msg=grade)
+            self.assertIsNone(chem['Nb_max'], msg=grade)
+            self.assertIsNone(chem['V_max'], msg=grade)
+            self.assertAlmostEqual(chem['Ti_max'], 0.06, delta=0.001, msg=grade)
+            self.assertAlmostEqual(chem['N_max'], 0.015, delta=0.001, msg=grade)
+            self.assertAlmostEqual(chem['nb_v_ti_combined_max'], 0.15, delta=0.001, msg=grade)
+            self.assertIsNone(chem['CE_IIW_max'], msg=grade)
+            self.assertAlmostEqual(chem['CE_Pcm_max'], 0.25, delta=0.001, msg=grade)
+
+        # Mn compensation cap for X90+ under BOTAŞ = 2.20 (API 5L note b)
+        from core.database import get_mn_max_compensated
+        self.assertAlmostEqual(
+            get_mn_max_compensated('X100', 0.10, 0.00, 2.10, 'BOTAŞ'), 2.20)
+
+        # GRADE A -> API 5L PSL1 Table 4 (no microalloy / CE)
+        ga = PipeQAQCEngine.calculate_pipe_qc(
+            diameter_inch='48"', material_grade='GRADE A', standard_type='BOTAŞ'
+        )['chemical_analysis']
+        self.assertAlmostEqual(ga['C_max'], 0.22, delta=0.001)
+        self.assertAlmostEqual(ga['Mn_max'], 0.90, delta=0.001)
+        self.assertAlmostEqual(ga['P_max'], 0.030, delta=0.001)
+        self.assertAlmostEqual(ga['S_max'], 0.030, delta=0.001)
+        self.assertIsNone(ga['Nb_max'])
+        self.assertIsNone(ga['CE_IIW_max'])
+        self.assertIsNone(ga['CE_Pcm_max'])
+
+
 if __name__ == '__main__':
     unittest.main()
 

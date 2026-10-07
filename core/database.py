@@ -312,19 +312,19 @@ API_5L_SMYS_TABLE = {
 
 # Chemical Composition Limits (API 5L PSL2 & BOTAŞ & Stainless)
 CHEMICAL_COMPOSITION_RULES = {
-    'GRADE A': {'C_max': 0.22, 'Mn_max': 0.90, 'P_max': 0.025, 'S_max': 0.015, 'Nb_min': 0.0, 'Nb_max': 0.05, 'V_max': 0.05, 'Ti_max': 0.04, 'N_max': 0.012, 'CE_IIW_max': 0.42, 'CE_Pcm_max': 0.24},
-    'GRADE B': {'C_max': 0.18, 'Mn_max': 1.20, 'P_max': 0.025, 'S_max': 0.010, 'Nb_min': 0.0, 'Nb_max': 0.05, 'V_max': 0.05, 'Ti_max': 0.04, 'N_max': 0.009, 'CE_IIW_max': 0.42, 'CE_Pcm_max': 0.24},
-    'X42':     {'C_max': 0.18, 'Mn_max': 1.30, 'P_max': 0.025, 'S_max': 0.010, 'Nb_min': 0.0, 'Nb_max': 0.05, 'V_max': 0.05, 'Ti_max': 0.04, 'N_max': 0.009, 'CE_IIW_max': 0.42, 'CE_Pcm_max': 0.24},
-    'X46':     {'C_max': 0.18, 'Mn_max': 1.30, 'P_max': 0.025, 'S_max': 0.010, 'Nb_min': 0.0, 'Nb_max': 0.05, 'V_max': 0.05, 'Ti_max': 0.04, 'N_max': 0.009, 'CE_IIW_max': 0.42, 'CE_Pcm_max': 0.24},
-    'X52':     {'C_max': 0.18, 'Mn_max': 1.40, 'P_max': 0.025, 'S_max': 0.010, 'Nb_min': 0.0, 'Nb_max': 0.05, 'V_max': 0.05, 'Ti_max': 0.04, 'N_max': 0.009, 'CE_IIW_max': 0.43, 'CE_Pcm_max': 0.25},
-    'X56':     {'C_max': 0.18, 'Mn_max': 1.40, 'P_max': 0.025, 'S_max': 0.010, 'Nb_min': 0.015, 'Nb_max': 0.05, 'V_max': 0.05, 'Ti_max': 0.04, 'N_max': 0.009, 'CE_IIW_max': 0.43, 'CE_Pcm_max': 0.25},
-    'X60':     {'C_max': 0.12, 'Mn_max': 1.60, 'P_max': 0.025, 'S_max': 0.010, 'Nb_min': 0.015, 'Nb_max': 0.05, 'V_max': 0.05, 'Ti_max': 0.04, 'N_max': 0.009, 'CE_IIW_max': 0.43, 'CE_Pcm_max': 0.25},
-    'X65':     {'C_max': 0.12, 'Mn_max': 1.60, 'P_max': 0.025, 'S_max': 0.010, 'Nb_min': 0.015, 'Nb_max': 0.05, 'V_max': 0.05, 'Ti_max': 0.04, 'N_max': 0.009, 'CE_IIW_max': 0.43, 'CE_Pcm_max': 0.25},
-    'X70':     {'C_max': 0.12, 'Mn_max': 1.70, 'P_max': 0.025, 'S_max': 0.010, 'Nb_min': 0.015, 'Nb_max': 0.05, 'V_max': 0.05, 'Ti_max': 0.04, 'N_max': 0.009, 'CE_IIW_max': 0.43, 'CE_Pcm_max': 0.25},
-    'X80':     {'C_max': 0.12, 'Mn_max': 1.85, 'P_max': 0.025, 'S_max': 0.010, 'Nb_min': 0.015, 'Nb_max': 0.06, 'V_max': 0.06, 'Ti_max': 0.05, 'N_max': 0.009, 'CE_IIW_max': 0.43, 'CE_Pcm_max': 0.25},
-    'X90':     {'C_max': 0.10, 'Mn_max': 1.90, 'P_max': 0.020, 'S_max': 0.008, 'Nb_min': 0.015, 'Nb_max': 0.06, 'V_max': 0.06, 'Ti_max': 0.05, 'N_max': 0.009, 'CE_IIW_max': 0.44, 'CE_Pcm_max': 0.25},
-    'X100':    {'C_max': 0.10, 'Mn_max': 1.95, 'P_max': 0.020, 'S_max': 0.008, 'Nb_min': 0.015, 'Nb_max': 0.06, 'V_max': 0.06, 'Ti_max': 0.05, 'N_max': 0.009, 'CE_IIW_max': 0.44, 'CE_Pcm_max': 0.25},
-    'X120':    {'C_max': 0.10, 'Mn_max': 2.00, 'P_max': 0.015, 'S_max': 0.006, 'Nb_min': 0.015, 'Nb_max': 0.06, 'V_max': 0.06, 'Ti_max': 0.05, 'N_max': 0.009, 'CE_IIW_max': 0.45, 'CE_Pcm_max': 0.26},
+    'GRADE A': {'C_max': 0.22, 'Mn_max': 0.90, 'P_max': 0.030, 'S_max': 0.030, 'Nb_min': 0.0, 'Nb_max': None, 'V_max': None, 'Ti_max': None, 'N_max': None, 'CE_IIW_max': None, 'CE_Pcm_max': None},
+    'GRADE B': {'C_max': 0.18, 'Mn_max': 1.20, 'P_max': 0.025, 'S_max': 0.010, 'Nb_min': 0.0, 'Nb_max': 0.05, 'V_max': 0.05, 'Ti_max': 0.04, 'N_max': 0.009, 'nb_v_ti_combined_max': 0.06, 'CE_IIW_max': 0.40, 'CE_Pcm_max': 0.22},
+    'X42':     {'C_max': 0.18, 'Mn_max': 1.30, 'P_max': 0.025, 'S_max': 0.010, 'Nb_min': 0.0, 'Nb_max': 0.05, 'V_max': 0.05, 'Ti_max': 0.04, 'N_max': 0.009, 'nb_v_ti_combined_max': 0.15, 'CE_IIW_max': 0.40, 'CE_Pcm_max': 0.22},
+    'X46':     {'C_max': 0.18, 'Mn_max': 1.30, 'P_max': 0.025, 'S_max': 0.010, 'Nb_min': 0.0, 'Nb_max': 0.05, 'V_max': 0.05, 'Ti_max': 0.04, 'N_max': 0.009, 'nb_v_ti_combined_max': 0.15, 'CE_IIW_max': 0.40, 'CE_Pcm_max': 0.22},
+    'X52':     {'C_max': 0.18, 'Mn_max': 1.40, 'P_max': 0.025, 'S_max': 0.010, 'Nb_min': 0.015, 'Nb_max': 0.05, 'V_max': 0.05, 'Ti_max': 0.04, 'N_max': 0.009, 'nb_v_ti_combined_max': 0.15, 'CE_IIW_max': 0.40, 'CE_Pcm_max': 0.22},
+    'X56':     {'C_max': 0.18, 'Mn_max': 1.40, 'P_max': 0.025, 'S_max': 0.010, 'Nb_min': 0.015, 'Nb_max': 0.05, 'V_max': 0.05, 'Ti_max': 0.04, 'N_max': 0.009, 'nb_v_ti_combined_max': 0.15, 'CE_IIW_max': 0.40, 'CE_Pcm_max': 0.22},
+    'X60':     {'C_max': 0.12, 'Mn_max': 1.60, 'P_max': 0.025, 'S_max': 0.010, 'Nb_min': 0.015, 'Nb_max': 0.05, 'V_max': 0.05, 'Ti_max': 0.04, 'N_max': 0.009, 'nb_v_ti_combined_max': 0.15, 'CE_IIW_max': 0.40, 'CE_Pcm_max': 0.22},
+    'X65':     {'C_max': 0.12, 'Mn_max': 1.60, 'P_max': 0.025, 'S_max': 0.010, 'Nb_min': 0.015, 'Nb_max': 0.05, 'V_max': 0.05, 'Ti_max': 0.04, 'N_max': 0.009, 'nb_v_ti_combined_max': 0.15, 'CE_IIW_max': 0.40, 'CE_Pcm_max': 0.22},
+    'X70':     {'C_max': 0.12, 'Mn_max': 1.70, 'P_max': 0.025, 'S_max': 0.010, 'Nb_min': 0.015, 'Nb_max': 0.05, 'V_max': 0.05, 'Ti_max': 0.04, 'N_max': 0.009, 'nb_v_ti_combined_max': 0.15, 'CE_IIW_max': 0.40, 'CE_Pcm_max': 0.22},
+    'X80':     {'C_max': 0.12, 'Mn_max': 1.85, 'P_max': 0.025, 'S_max': 0.010, 'Nb_min': 0.015, 'Nb_max': 0.05, 'V_max': 0.05, 'Ti_max': 0.04, 'N_max': 0.009, 'nb_v_ti_combined_max': 0.15, 'CE_IIW_max': 0.40, 'CE_Pcm_max': 0.22},
+    'X90':     {'C_max': 0.10, 'Mn_max': 2.10, 'P_max': 0.020, 'S_max': 0.010, 'Nb_min': 0.0, 'Nb_max': None, 'V_max': None, 'Ti_max': 0.06, 'N_max': 0.015, 'nb_v_ti_combined_max': 0.15, 'CE_IIW_max': None, 'CE_Pcm_max': 0.25},
+    'X100':    {'C_max': 0.10, 'Mn_max': 2.10, 'P_max': 0.020, 'S_max': 0.010, 'Nb_min': 0.0, 'Nb_max': None, 'V_max': None, 'Ti_max': 0.06, 'N_max': 0.015, 'nb_v_ti_combined_max': 0.15, 'CE_IIW_max': None, 'CE_Pcm_max': 0.25},
+    'X120':    {'C_max': 0.10, 'Mn_max': 2.10, 'P_max': 0.020, 'S_max': 0.010, 'Nb_min': 0.0, 'Nb_max': None, 'V_max': None, 'Ti_max': 0.06, 'N_max': 0.015, 'nb_v_ti_combined_max': 0.15, 'CE_IIW_max': None, 'CE_Pcm_max': 0.25},
     'SS 304 / 304L': {'C_max': 0.030, 'Mn_max': 2.00, 'P_max': 0.045, 'S_max': 0.030, 'Nb_min': 0.0, 'Nb_max': 0.0, 'V_max': 0.0, 'Ti_max': 0.0, 'N_max': 0.10, 'CE_IIW_max': 0.0, 'CE_Pcm_max': 0.0},
     'SS 316 / 316L': {'C_max': 0.030, 'Mn_max': 2.00, 'P_max': 0.045, 'S_max': 0.030, 'Nb_min': 0.0, 'Nb_max': 0.0, 'V_max': 0.0, 'Ti_max': 0.0, 'N_max': 0.10, 'CE_IIW_max': 0.0, 'CE_Pcm_max': 0.0},
     'SS 321':        {'C_max': 0.080, 'Mn_max': 2.00, 'P_max': 0.045, 'S_max': 0.030, 'Nb_min': 0.0, 'Nb_max': 0.0, 'V_max': 0.0, 'Ti_max': 0.70, 'N_max': 0.10, 'CE_IIW_max': 0.0, 'CE_Pcm_max': 0.0},
@@ -3019,6 +3019,65 @@ def compute_ce_pcm(analysis: dict) -> float:
             + _num(analysis, "Mo") / 15.0
             + _num(analysis, "V") / 10.0
             + 5.0 * _num(analysis, "B"))
+
+
+# ---------------------------------------------------------------------
+# Carbon-reduction manganese compensation
+#   API 5L Table 4 (PSL1) / Table 5 (PSL2) footnote b, and
+#   BOTAŞ 5120 R7 Tablo-1 note c:
+#   For each 0.01 % reduction of C below its specified maximum, the Mn
+#   maximum may be raised by 0.05 %, capped per grade range.
+# ---------------------------------------------------------------------
+_MN_COMP_CAP_PSL1 = {
+    "GRADE B": 1.65, "X42": 1.65, "X46": 1.65, "X52": 1.65,
+    "X56": 1.75, "X60": 1.75, "X65": 1.75,
+    "X70": 2.00,
+}
+_MN_COMP_CAP_PSL2 = {
+    "GRADE B": 1.65, "X42": 1.65, "X46": 1.65, "X52": 1.65,
+    "X56": 1.75, "X60": 1.75, "X65": 1.75,
+    "X70": 2.00, "X80": 2.00,
+    "X90": 2.20, "X100": 2.20, "X120": 2.20,
+}
+# BOTAŞ 5120 R7 note c: X70 and above -> 2.00 % (şartname API'den ayrıdır).
+# Tablo-1'de olmayan X90/X100/X120 ise API 5L Table 5 note b'ye göre 2.20 %.
+_MN_COMP_CAP_BOTAS = {
+    "GRADE B": 1.65, "X42": 1.65, "X46": 1.65, "X52": 1.65,
+    "X56": 1.75, "X60": 1.75, "X65": 1.75,
+    "X70": 2.00, "X80": 2.00, "X90": 2.20, "X100": 2.20, "X120": 2.20,
+}
+
+
+def get_mn_max_compensated(
+    grade: str,
+    c_max: float,
+    c_actual: float,
+    mn_max_base: float,
+    standard_type: str = "BOTAŞ",
+    psl_level: str = "PSL2",
+):
+    """
+    Returns the effective Mn maximum after the C-reduction allowance.
+    Falls back to ``mn_max_base`` when the needed data is missing.
+    """
+    if c_max is None or c_actual is None or mn_max_base is None:
+        return mn_max_base
+    g = (grade or "").upper().strip()
+    is_api = "API" in str(standard_type).upper()
+    if is_api:
+        is_psl1 = psl_level and "PSL1" in str(psl_level).upper()
+        caps = _MN_COMP_CAP_PSL1 if is_psl1 else _MN_COMP_CAP_PSL2
+    else:
+        caps = _MN_COMP_CAP_BOTAS
+    cap = caps.get(g)
+    if cap is None:
+        return mn_max_base
+    reduction = float(c_max) - float(c_actual)
+    if reduction <= 0:
+        return mn_max_base
+    # Only whole 0.01 % steps count.
+    steps = int((reduction + 1e-9) / 0.01)
+    return min(float(mn_max_base) + 0.05 * steps, cap)
 
 
 # ---------------------------------------------------------------------

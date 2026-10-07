@@ -360,12 +360,13 @@ function renderMatrixTable() {
         ? "🧪 KİMYASAL BİLEŞİM ANALİZİ (PSL1 LİMİTLERİ — Tablo 4)"
         : "🧪 KİMYASAL BİLEŞİM ANALİZİ (PSL2 LİMİTLERİ — Tablo 5)";
     html += renderAccordionSectionHeader("sec-chem", chemTitle, "9");
+    const nbHasMin = calculatedPipes.some(p => ((p.chemical_analysis || {}).Nb_min || 0) > 0);
     const chemRows = [
         { elem: "C", limitType: "Max %", ext: p => fmtNum(p.chemical_analysis.C_max, 2) },
         { elem: "Mn", limitType: "Max %", ext: p => fmtNum(p.chemical_analysis.Mn_max, 2) },
         { elem: "P", limitType: "Max %", ext: p => fmtNum(p.chemical_analysis.P_max, 3) },
         { elem: "S", limitType: "Max %", ext: p => fmtNum(p.chemical_analysis.S_max, 3) },
-        { elem: "Nb", limitType: "Min%-Max%", ext: p => p.chemical_analysis.Nb_min_max === null || p.chemical_analysis.Nb_min_max === undefined ? "—" : esc(p.chemical_analysis.Nb_min_max) },
+        { elem: "Nb", limitType: nbHasMin ? "Min%-Max%" : "Max %", ext: p => p.chemical_analysis.Nb_min_max === null || p.chemical_analysis.Nb_min_max === undefined ? "—" : esc(p.chemical_analysis.Nb_min_max) },
         { elem: "V", limitType: "Max %", ext: p => fmtNum(p.chemical_analysis.V_max, 2) },
         { elem: "Ti", limitType: "Max %", ext: p => fmtNum(p.chemical_analysis.Ti_max, 2) },
         { elem: "N", limitType: "Max %", ext: p => fmtNum(p.chemical_analysis.N_max, 3) },
