@@ -3,6 +3,29 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.9.0] - 2026-10-07 (BOTAŞ 5120 R7 Tablo-1 Kimyasal Uyumu, Nb Min, Mn Telafisi & Ovalite Yuvarlama)
+
+### 🎉 Eklenen Özellikler (Added)
+- **BOTAŞ 5120 R7 Tablo-1 Birebir Uyum:** `CHEMICAL_COMPOSITION_RULES` şartname Tablo-1'e göre güncellendi.
+  - **Nb:** Gr.B / X42 / X46 → yalnız max **0.050**; **X52 ve üzeri → 0.015–0.050** (minimum artık sütunda görünür). X80'de hatalı `0.06` Nb max kaldırıldı.
+  - **X80:** V max `0.06 → 0.05`, Ti max `0.05 → 0.04`.
+  - **CE (Madde 3.2.1):** tüm Tablo-1 kalitelerinde CE_IIW **0.40**, CE_Pcm **0.22**.
+- **Tablo-1 Not a/b (Nb+V+Ti):** Gr.B ≤ **0.06%**, X42 ve üzeri ≤ **0.15%** — doğrulama motorunda denetlenir.
+- **Tablo-1 Not c (Mn telafisi):** C max'tan her tam **0.01%** azalma için Mn üst sınırına **+0.05%** eklenir; tavan Gr.B–X52 **1.65%**, X56–X65 **1.75%**, X70+ **2.00%** (`get_mn_max_compensated()`).
+- **Tablo-1 Dışı Kaliteler → API 5L:** X90/X100/X120 (API 5L PSL2 Tablo 5, M) ve GRADE A (API 5L PSL1 Tablo 4) değerleri uygulandı; Mn telafi tavanı X90+ için API'ye göre **2.20%**.
+- **Dinamik Nb Etiketi:** Seçili borularda minimum yoksa matris/Excel/rapor satır başlığı **"Max %"**, varsa **"Min%-Max%"** gösterir.
+- **Ovalite Yuvarlama:** Ovalite uç ve gövde değerleri **yüzdelik basamağa (2 hane)** yuvarlanır (`0.45225 → 0.45`).
+
+### 🛠️ Düzeltmeler (Fixed)
+- `chemical_analysis` çıktısına sayısal `Nb_min` / `Nb_max` alanları eklendi; doğrulama motorundaki ölü Nb max kontrolü ve yeni Nb min kontrolü tek aralık denetimiyle çalışır.
+- BOTAŞ Tablo-1 açıklamasına not a/b/c ve API 5L geri dönüş ibaresi eklendi.
+
+### 🧪 Testler
+- Yeni `test_61`, `test_61b`, `test_62`, `test_63`, `test_64`, `test_65`: Tablo-1 kimyasal değerleri, Nb min, not a/b/c ve API 5L geri dönüşü.
+- Toplam **73/73** birim testi geçer (75 test toplamı, 2 golden skip); ruff temiz.
+
+---
+
 ## [2.8.3] - 2026-09-21 (API 5L Tablo 2/3 Proses Kapsamı, Gerçekçi Numune Çizimleri & İçi Boş Ring Animasyonu)
 
 ### 🎉 Eklenen Özellikler (Added)

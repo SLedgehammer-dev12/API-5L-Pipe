@@ -1,3 +1,46 @@
+# Sürüm Notları / Release Notes - v2.9.0
+
+## 🚀 API 5L PSL1/PSL2 & BOTAŞ Boru Kalite Güvence, Et Kalınlığı Tasarım ve Akıllı ITP Denetim Süiti (v2.9.0)
+
+Bu sürüm (**v2.9.0**), kimyasal bileşim modülünü **BOTAŞ 5120 R7 Tablo-1** ile birebir uyumlu hale getirir: **X52 ve üzeri Nb minimumu**, **CE_IIW 0.40 / CE_Pcm 0.22**, **not a/b (Nb+V+Ti)** ve **not c (C azalmasına bağlı Mn telafisi)** artık uygulanır; Tablo-1 dışı kaliteler API 5L'e göre değerlendirilir.
+
+---
+
+### 🌟 v2.9.0 ile Gelen Başlıca Yenilikler
+
+1. **🧪 BOTAŞ 5120 R7 Tablo-1 Kimyasal Uyumu:**
+   - **Nb:** Gr.B / X42 / X46 → yalnız max **0.050**; **X52 ve üzeri → 0.015–0.050** (minimum sütunda görünür).
+   - **X80:** hatalı Nb max `0.06` kaldırıldı → **0.050**; V max **0.050**, Ti max **0.040**.
+   - **CE (Madde 3.2.1):** tüm Tablo-1 kalitelerinde **CE_IIW ≤ 0.40**, **CE_Pcm ≤ 0.22**.
+
+2. **📏 Tablo-1 Dipnotları:**
+   - **Not a/b:** Gr.B için **Nb+V+Ti ≤ 0.06%**, X42 ve üzeri için **≤ 0.15%** denetlenir.
+   - **Not c:** C max'tan her tam **0.01%** azalma için Mn üst sınırına **+0.05%** eklenir; tavan Gr.B–X52 **1.65%**, X56–X65 **1.75%**, X70+ **2.00%**.
+
+3. **🔄 Tablo-1 Dışı Kaliteler → API 5L:**
+   - **X90/X100/X120:** API 5L PSL2 Tablo 5 (M) — C 0.10, Mn 2.10, Ti 0.06, N 0.015, Nb+V+Ti ≤ 0.15, CE_Pcm 0.25.
+   - **GRADE A:** API 5L PSL1 Tablo 4 — C 0.22, Mn 0.90, P/S 0.030, mikroalaşım ve CE yok.
+
+4. **🏷️ Dinamik Nb Etiketi:** Seçili borularda minimum yoksa başlık **"Max %"**, varsa **"Min%-Max%"** (matris, Excel ve rapor).
+
+5. **📐 Ovalite Yuvarlama:** Ovalite uç/gövde değerleri **yüzdelik basamağa (2 hane)** yuvarlanır (örn. `0.45225 → 0.45`).
+
+6. **🧪 Testler:** `test_61`–`test_65` eklendi. **73/73** birim testi geçer, ruff temiz.
+
+---
+
+### 💻 İndirme Bağlantıları (v2.9.0)
+
+- **🪟 Windows (x64):**  
+  [**`API-5L-Pipe-Windows-x64-v2.9.0.exe` İndir**](https://github.com/SLedgehammer-dev12/API-5L-Pipe/releases/download/v2.9.0/API-5L-Pipe-Windows-x64-v2.9.0.exe)  
+  *Tek dosyadır, kurulum gerektirmez. Doğrudan çift tıklayarak çalıştırabilirsiniz.*
+
+- **🍏 macOS (Apple Silicon M1/M2/M3/M4 & Intel):**  
+  [**`API-5L-Pipe-macOS-v2.9.0.dmg` İndir**](https://github.com/SLedgehammer-dev12/API-5L-Pipe/releases/download/v2.9.0/API-5L-Pipe-macOS-v2.9.0.dmg)  
+  *Disk kalıbını açıp `API-5L-Pipe.app` uygulamasını Applications klasörüne sürükleyin.*
+
+---
+
 # Sürüm Notları / Release Notes - v2.8.3
 
 ## 🚀 API 5L PSL1/PSL2 & BOTAŞ Boru Kalite Güvence, Et Kalınlığı Tasarım ve Akıllı ITP Denetim Süiti (v2.8.3)

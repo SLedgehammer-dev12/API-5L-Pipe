@@ -1,3 +1,36 @@
+# What's New in API 5L Pipe QA/QC & Wall Thickness Suite (v2.9.0)
+## Yenilikler ve Sürüm Özeti - v2.9.0 (2026-10-07)
+
+---
+
+### 🇹🇷 Türkçe Özet (v2.9.0)
+
+API 5L Pipe QA/QC Suite **v2.9.0** ile kimyasal bileşim modülü **BOTAŞ 5120 R7 Tablo-1** ile birebir uyumlu hale gelmiştir:
+
+#### 1. 🧪 BOTAŞ 5120 R7 Tablo-1 Uyumu
+- **Nb:** Gr.B / X42 / X46 → yalnız max **0.050**; **X52 ve üzeri → 0.015–0.050** (minimum artık görünür).
+- **X80:** hatalı Nb max `0.06` kaldırıldı → **0.050**; **V 0.050**, **Ti 0.040**.
+- **CE (Madde 3.2.1):** tüm Tablo-1 kalitelerinde **CE_IIW 0.40**, **CE_Pcm 0.22**.
+
+#### 2. 📏 Tablo-1 Dipnotları
+- **Not a/b:** Gr.B **Nb+V+Ti ≤ 0.06%**, X42+ **≤ 0.15%**.
+- **Not c:** C max'tan her tam **0.01%** azalma için Mn üst sınırına **+0.05%**; tavan Gr.B–X52 **1.65%**, X56–X65 **1.75%**, X70+ **2.00%**.
+
+#### 3. 🔄 Tablo-1 Dışı Kaliteler → API 5L
+- **X90/X100/X120:** API 5L PSL2 Tablo 5 (M) — C 0.10, Mn 2.10, Ti 0.06, N 0.015, Nb+V+Ti ≤ 0.15, CE_Pcm 0.25.
+- **GRADE A:** API 5L PSL1 Tablo 4 — C 0.22, Mn 0.90, P/S 0.030, mikroalaşım/CE yok.
+
+#### 4. 🏷️ Dinamik Nb Etiketi
+- Minimum yoksa **"Max %"**, varsa **"Min%-Max%"** (matris, Excel, rapor).
+
+#### 5. 📐 Ovalite Yuvarlama
+- Ovalite uç/gövde değerleri **yüzdelik basamağa (2 hane)** yuvarlanır (`0.45225 → 0.45`).
+
+#### 6. 🧪 Testler
+- `test_61`–`test_65` eklendi; **73/73 test** geçer, ruff temiz.
+
+---
+
 # What's New in API 5L Pipe QA/QC & Wall Thickness Suite (v2.8.3)
 ## Yenilikler ve Sürüm Özeti - v2.8.3 (2026-09-21)
 
