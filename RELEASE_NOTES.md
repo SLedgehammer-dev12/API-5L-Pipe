@@ -1,3 +1,43 @@
+# Sürüm Notları / Release Notes - v2.10.0
+
+## 🚀 API 5L PSL1/PSL2 & BOTAŞ Boru Kalite Güvence, Et Kalınlığı Tasarım ve Akıllı ITP Denetim Süiti (v2.10.0)
+
+Bu sürüm (**v2.10.0**), **satır bazlı Test Frekansı sütunu**, **SAWL boyuna dikiş 3D imalat simülasyonu** ve **API 5L serbest seçimde Operating Pressure girişi**ni getirir.
+
+---
+
+### 🌟 v2.10.0 ile Gelen Başlıca Yenilikler
+
+1. **🧪 Test Frekansı Sütunu (Matris + Excel + Rapor):**
+   - "Standart & Mühendislik Açıklamaları" sütununun sağında, en sağda sabit yeni sütun.
+   - Her satırın testine karşılık gelen frekans; boru standartları farklıysa `BOTAŞ: … | API 5L PSL2: …` biçiminde birleşir. Eşleşmeyenlerde "—".
+   - Ayrı "🧪 TEST FREKANSI" bölümü de korunur.
+
+2. **📏 SAWL Boyuna Dikiş Kartı (3D Canlı Simülasyon):**
+   - SAWL/LSAW seçildiğinde artık spiral kart değil, **boyuna dikiş kartı** açılır.
+   - Plakanın rulolarla silindire bükülmesi, tek boyuna dikiş, iç/dış SAW torçları, kıvılcımlar, ölçü okları ve 2D açınım (plaka genişliği = π·D_mid).
+   - **Düzeltme:** SAWH spiral kartı artık yalnız SAWH için açılır.
+
+3. **⚙️ API 5L Serbest Seçimde Operating Pressure:**
+   - Yeni "Çalışma Basıncı / Operating Pressure (bar)" alanı (yalnız API PSL1/PSL2 serbest seçimde).
+   - Girilen basınçla **Operating pressure / SMYS** oranı hesaplanır ve hücre dolar.
+
+4. **🧪 Deneme Koşusu:** **115/115 senaryo başarılı**; birim testleri **78/78** geçer, ruff temiz.
+
+---
+
+### 💻 İndirme Bağlantıları (v2.10.0)
+
+- **🪟 Windows (x64):**  
+  [**`API-5L-Pipe-Windows-x64-v2.10.0.exe` İndir**](https://github.com/SLedgehammer-dev12/API-5L-Pipe/releases/download/v2.10.0/API-5L-Pipe-Windows-x64-v2.10.0.exe)  
+  *Tek dosyadır, kurulum gerektirmez. Doğrudan çift tıklayarak çalıştırabilirsiniz.*
+
+- **🍏 macOS (Apple Silicon M1/M2/M3/M4 & Intel):**  
+  [**`API-5L-Pipe-macOS-v2.10.0.dmg` İndir**](https://github.com/SLedgehammer-dev12/API-5L-Pipe/releases/download/v2.10.0/API-5L-Pipe-macOS-v2.10.0.dmg)  
+  *Disk kalıbını açıp `API-5L-Pipe.app` uygulamasını Applications klasörüne sürükleyin.*
+
+---
+
 # Sürüm Notları / Release Notes - v2.9.5
 
 ## 🚀 API 5L PSL1/PSL2 & BOTAŞ Boru Kalite Güvence, Et Kalınlığı Tasarım ve Akıllı ITP Denetim Süiti (v2.9.5)

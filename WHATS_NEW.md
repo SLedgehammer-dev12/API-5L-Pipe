@@ -1,3 +1,32 @@
+# What's New in API 5L Pipe QA/QC & Wall Thickness Suite (v2.10.0)
+## Yenilikler ve Sürüm Özeti - v2.10.0 (2026-10-07)
+
+---
+
+### 🇹🇷 Türkçe Özet (v2.10.0)
+
+API 5L Pipe QA/QC Suite **v2.10.0** ile **satır bazlı Test Frekansı sütunu**, **SAWL boyuna dikiş 3D simülasyonu** ve **Operating Pressure** girişi geldi:
+
+#### 1. 🧪 Test Frekansı Sütunu
+- Açıklama sütununun sağında, en sağda sabit yeni sütun.
+- Her satırın testine karşılık gelen frekans; standartlar farklıysa `BOTAŞ: … | API 5L PSL2: …`.
+- Eşleşmeyen satırlar "—". Ayrı TEST FREKANSI bölümü de korunur.
+- Matris + Excel + resmi rapora işlendi.
+
+#### 2. 📏 SAWL Boyuna Dikiş Kartı (3D)
+- SAWL/LSAW seçilince artık spiral değil, **boyuna dikiş kartı** açılır.
+- Canlı 3D: plaka bükme ruloları, tek boyuna dikiş, iç/dış SAW torçları, kıvılcım, ölçü okları; 2D açınım (genişlik = π·D_mid).
+- **Düzeltme:** spiral kart yalnız SAWH için açılır.
+
+#### 3. ⚙️ Operating Pressure (API 5L serbest seçim)
+- Yeni "Çalışma Basıncı (bar)" alanı yalnız API PSL1/PSL2 serbest seçimde.
+- Operating pressure / SMYS oranı hesaplanır.
+
+#### 4. 🧪 Deneme Koşusu
+- **115/115 senaryo başarılı**; birim testleri **78/78** geçer, ruff temiz.
+
+---
+
 # What's New in API 5L Pipe QA/QC & Wall Thickness Suite (v2.9.5)
 ## Yenilikler ve Sürüm Özeti - v2.9.5 (2026-10-07)
 

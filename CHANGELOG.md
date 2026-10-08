@@ -3,6 +3,25 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.10.0] - 2026-10-07 (Test Frekansı Sütunu, SAWL Boyuna Dikiş 3D Simülasyonu & Operating Pressure)
+
+### 🎉 Eklenen Özellikler (Added)
+- **Matris "Test Frekansı" Sütunu:** Açıklama sütununun sağına, en sağda sabit (pinned) yeni sütun. Her satırın testine karşılık gelen frekans, boru standartları farklıysa `BOTAŞ: … | API 5L PSL2: …` biçiminde birleştirilir. Eşleşmeyen satırlarda "—". Ayrı "🧪 TEST FREKANSI" bölümü de korunur.
+  - Backend `calculate_pipe_qc` çıktısına `row_frequency` eklendi (chemical, tensile, hydro, dimensional, cvn, residual_stress, dwtt, hardness, bend, flattening).
+  - UI (`app.js` + `style.css`), Excel (`excel_exporter.py`) ve resmi rapor (`report_template.html` + Jinja makro) çıktılarının tümüne işlendi.
+- **SAWL Boyuna Dikiş Kartı:** SAWL/LSAW seçildiğinde artık **spiral (SAWH) kartı yerine** yeni **SAWL boyuna dikiş kartı** açılıyor. Tam canlı 3D animasyon: plakanın rulolarla silindire bükülmesi, tek boyuna dikiş, iç/dış tozaltı ark kaynağı torçları, kıvılcımlar, ölçü okları ve **2D açınım** (plaka genişliği = π·D_mid).
+  - **Hata düzeltmesi:** `renderSawhCard` artık yalnız `SAWH` için spiral kartı açar; SAWL/ERW/COW/SMLS için uygun uyarı gösterilir.
+- **API 5L Serbest Seçimde Operating Pressure:** "Matrise Yeni Boru Ekle" modalında yalnız API 5L PSL1/PSL2 serbest seçimde görünen **Çalışma Basıncı / Operating Pressure (bar)** alanı eklendi.
+  - Yeni `operating_pressure_bar` alanı (`PipeInput` şeması + `calculate_pipe_qc` parametresi); motor önceliği: `operating_pressure_bar` → `design_pressure_bar` → faktör varsayılanı.
+  - **Operating pressure / SMYS** hücresi girilen çalışma basıncına göre hesaplanır.
+
+### 🧪 Testler
+- `test_67_row_frequency_mapping`, `test_68_operating_pressure_ratio` eklendi.
+- **115 senaryolu deneme koşusu** (row_frequency, operating pressure, Mn telafisi, Nb/CE, BOTAŞ/API PSL1/PSL2, presets, uçtan uca API): **115/115 başarılı**.
+- Birim testleri **78/78** geçer (2 golden skip); ruff + `node --check` temiz.
+
+---
+
 ## [2.9.5] - 2026-10-07 (Çap / Kalite / PSL Bazlı Test Frekansı Kontrolü — Matris, Doğrulama, Rapor & Excel)
 
 ### 🎉 Eklenen Özellikler (Added)
