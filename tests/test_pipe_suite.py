@@ -2234,6 +2234,68 @@ class TestPipeQAQCSuite(unittest.TestCase):
             standard_type='BOTAŞ')
         self.assertIsNone(botas['input_summary']['operating_pressure_bar'])
 
+    def test_69_table17_18_inspection_items(self):
+        """Tablo 17/18 tüm muayene kalemleri test planında mevcut (eksik yok)."""
+        from core.test_plan import get_test_plan
+        cfg = dict(diameter_mm=1219.0, wall_thickness_mm=14.30, diameter_inch='48"',
+                   material_grade='X65', manufacturing_process='SAWH',
+                   standard_type='BOTAŞ', psl_level='PSL2')
+        names = {r['test'] for r in get_test_plan(cfg, psl_level='PSL2')}
+        required = {
+            'Kaynak Çekme Testi (Weld Tensile)', 'Bobin/Plaka Uç Kaynağı Çekme Testi',
+            'Bobin/Plaka Uç Kaynağı CVN', 'Bobin/Plaka Uç Kaynağı Kılavuzlu Bükme',
+            'Makrografik Muayene', 'Görsel Muayene',
+            'Çap ve Ovalite (Diameter & Out-of-Roundness)', 'Et Kalınlığı Ölçümü',
+            'Diğer Boyutsal Testler', 'Tartım (Ağırlık)', 'Uzunluk Ölçümü',
+            'Tahribatsız Muayene (NDT)',
+        }
+        missing = required - names
+        self.assertFalse(missing, f"Eksik kalemler: {missing}")
+
+        # PSL1: bükme/kılavuzlu bükme kalemleri + ortak kalemler
+        psl1 = dict(diameter_mm=610.0, wall_thickness_mm=9.53, diameter_inch='24"',
+                    material_grade='X52', manufacturing_process='SAWH',
+                    standard_type='API 5L', psl_level='PSL1')
+        psl1_names = {r['test'] for r in get_test_plan(psl1, psl_level='PSL1')}
+        self.assertIn('Kılavuzlu Bükme (Guided Bend)', psl1_names)
+        self.assertIn('Görsel Muayene', psl1_names)
+        self.assertIn('Tahribatsız Muayene (NDT)', psl1_names)
+
+    def test_70_botas_frequency_fallback_reasons(self):
+        """BOTAŞ: şartname frekansları korunur, belirtilmeyenler API PSL2 Tablo 18'e düşer (gerekçeli)."""
+        from core.test_plan import get_test_plan
+        cfg = dict(diameter_mm=1219.0, wall_thickness_mm=14.30, diameter_inch='48"',
+                   material_grade='X65', manufacturing_process='SAWH',
+                   standard_type='BOTAŞ', psl_level='PSL2')
+        plan = {r['test']: r for r in get_test_plan(cfg, psl_level='PSL2')}
+
+        # BOTAŞ şartname override'ları
+        self.assertIn('Her döküm', plan['Artık Stres Testi (Residual Stress)']['frequency'])
+        self.assertIn('%40', plan['Boru Gövdesi UT Laminasyon Muayenesi']['frequency'])
+        self.assertIn('%100', plan['Hidrostatik Test']['frequency'])
+        self.assertIn('D ≥ 20', plan['Görsel Muayene']['note'])
+
+        # Şartname belirtmeyen kalemler -> API Tablo 18 gerekçesi
+        self.assertIn('belirtilmemiştir', plan['Kaynak Çekme Testi (Weld Tensile)']['note'])
+        self.assertIn('Table 18', plan['Kaynak Çekme Testi (Weld Tensile)']['note'])
+        self.assertIn('belirtilmemiştir', plan['Makrografik Muayene']['note'])
+
+        # D < 20" -> Madde 8.1.3 gereği API'ye düşülür (gerekçe note'ta)
+        small = dict(diameter_mm=323.9, wall_thickness_mm=6.4, diameter_inch='12"',
+                     material_grade='X52', manufacturing_process='ERW HFW',
+                     standard_type='BOTAŞ', psl_level='PSL2')
+        small_plan = {r['test']: r for r in get_test_plan(small, psl_level='PSL2')}
+        self.assertIn('8.1.3', small_plan['Görsel Muayene']['note'])
+        self.assertIn('8.1.3', small_plan['Çap ve Ovalite (Diameter & Out-of-Roundness)']['note'])
+
+        # row_frequency yeni anahtarları dolu
+        rf = PipeQAQCEngine.calculate_pipe_qc(
+            diameter_inch='48"', wall_thickness_mm=14.30, material_grade='X65',
+            manufacturing_process='SAWH', standard_type='BOTAŞ')['row_frequency']
+        for k in ('weld_tensile', 'macro', 'visual', 'diameter_oor',
+                  'wall_thickness', 'weight', 'length', 'ndt'):
+            self.assertTrue(rf.get(k), msg=f"row_frequency['{k}'] boş")
+
 
 if __name__ == '__main__':
     unittest.main()

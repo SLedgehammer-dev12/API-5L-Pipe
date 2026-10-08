@@ -214,6 +214,282 @@ def _tensile_rows(d_mm: float, t_mm: float, process: str, is_smls: bool, tbl: st
     ]
 
 
+def _table_frequency_rows(
+    d_mm: float,
+    t_mm: float,
+    process: str,
+    is_welded: bool,
+    is_smls: bool,
+    is_saw_arc: bool,
+    is_botas: bool,
+    is_psl1: bool,
+) -> List[Dict[str, Any]]:
+    """
+    Common inspection-frequency rows per API 5L Table 17 (PSL 1) / Table 18 (PSL 2).
+
+    BOTAŞ kuralı: BOTAŞ 5120 R7 şartnamesinde frekansı belirtilen kalemlerde şartname
+    frekansı kullanılır; belirtilmeyen kalemlerde API 5L PSL 2 Table 18 (PSL 1 ise
+    Table 17) frekansına düşülür. Gerekçe her satırın ``note`` alanına yazılır.
+    """
+    rows: List[Dict[str, Any]] = []
+    table = "Çizelge 17 (Table 17)" if is_psl1 else "Çizelge 18 (Table 18)"
+    is_helical = ("SAWH" in process) or ("COWH" in process)
+    is_hfw = ("ERW" in process) or ("HFW" in process)
+
+    def reason(specified: str | None = None) -> str:
+        """Gerekçe metni: şartname belirtmişse onu, yoksa API'ye düşme sebebini yazar."""
+        if is_botas:
+            if specified:
+                return specified
+            return (f"BOTAŞ şartnamesinde bu muayenenin frekansı belirtilmemiştir → "
+                    f"API 5L PSL 2 {table} uygulanır.")
+        return f"API 5L {table} uygulanır."
+
+    # --- 1. Kaynak çekme testi (Tablo 18 #6/7 | Tablo 17 #9) ---
+    if is_welded and d_mm >= 219.1:
+        if is_psl1:
+            freq = "Test ünitesi (aynı soğuk genişletme oranı) başına 1 set (D ≥ 219,1 mm dikiş)"
+        elif d_mm <= 323.9:
+            freq = "Test ünitesi başına 1 set (aynı soğuk genişletme oranı, max 200 boru)"
+        else:
+            freq = "Test ünitesi başına 1 set (aynı soğuk genişletme oranı, max 100 boru)"
+        rows.append({
+            "test": "Kaynak Çekme Testi (Weld Tensile)",
+            "clause": f"API 5L 9.3.2 & 10.2.3.3 / {table}",
+            "clause_ref": ("API 5L Table 18 #6/#7: kaynak dikişi çekme testi; D 219,1–323,9 mm arası "
+                           "test ünitesi max 200 boru, D > 323,9 mm max 100 boru (aynı soğuk genişletme oranı)."
+                           if not is_psl1 else
+                           "API 5L Table 17 #9: D ≥ 219,1 mm kaynak dikişi çekme testi; test ünitesi."),
+            "specimen_figure": "tensile_strip",
+            "frequency": freq,
+            "location": "Kaynak dikişi (enine numune)",
+            "specimen": "Kaynak dikişi enine çekme numunesi",
+            "note": reason(),
+        })
+
+    # --- 2. Bobin/plaka uç kaynağı çekme (Tablo 18 #8 | Tablo 17 #10) ---
+    if is_welded and is_helical:
+        rows.append({
+            "test": "Bobin/Plaka Uç Kaynağı Çekme Testi",
+            "clause": f"API 5L 10.2.3.4 / {table}",
+            "clause_ref": ("API 5L Table 18 #8: spiralkaynaklı boruda bobin/plaka uç kaynağı çekme testi, "
+                           "aynı soğuk genişletme oranında en az 50 uç kaynağında 1."),
+            "specimen_figure": "tensile_strip",
+            "frequency": "En az 50 bobin/plaka uç kaynağında 1 set",
+            "location": "Bobin/plaka uç kaynağı (helisel dikiş)",
+            "specimen": "Enine çekme numunesi",
+            "note": reason(),
+        })
+
+    # --- 3. Bobin/plaka uç kaynağı CVN (Tablo 18 #12) ---
+    if is_welded and is_helical and not is_psl1:
+        rows.append({
+            "test": "Bobin/Plaka Uç Kaynağı CVN",
+            "clause": f"API 5L 9.8.4 / {table}",
+            "clause_ref": ("API 5L Table 18 #12: bobin/plaka uç kaynağı çentik darbe testi, "
+                           "en az 50 uç kaynağında 1 set."),
+            "specimen_figure": "charpy",
+            "frequency": "En az 50 bobin/plaka uç kaynağında 1 set (3 numune)",
+            "location": "Bobin/plaka uç kaynağı - ITAB",
+            "specimen": _cvn_specimen_size(d_mm, t_mm),
+            "note": reason(),
+        })
+
+    # --- 4. Bobin/plaka uç kaynağı kılavuzlu bükme (Tablo 18 #15 | Tablo 17 #14) ---
+    if is_welded and is_helical:
+        rows.append({
+            "test": "Bobin/Plaka Uç Kaynağı Kılavuzlu Bükme",
+            "clause": f"API 5L 9.7 / {table}",
+            "clause_ref": ("API 5L Table 18 #15: bobin/plaka uç kaynağı kılavuzlu bükme, "
+                           "en az 50 uç kaynağında 1 set."),
+            "specimen_figure": "guided_bend",
+            "frequency": "En az 50 bobin/plaka uç kaynağında 1 set",
+            "location": "Bobin/plaka uç kaynağı",
+            "specimen": "Tam cidar bükme numunesi",
+            "note": reason(),
+        })
+
+    # --- 4b. Kılavuzlu bükme - dikiş (Tablo 17 #13; PSL 2 zaten kendi bloğunda eklenir) ---
+    if is_psl1 and is_welded and is_saw_arc:
+        rows.append({
+            "test": "Kılavuzlu Bükme (Guided Bend)",
+            "clause": "API 5L 9.7 / Table 17",
+            "clause_ref": ("API 5L Table 17 #13: uzunlamasına/helisel dikiş kılavuzlu bükme; "
+                           "test ünitesi max 50 boy."),
+            "specimen_figure": "guided_bend",
+            "frequency": "Test ünitesi başına 1 set (max 50 boy, aynı kalite)",
+            "location": "Kaynak dikişi",
+            "specimen": "Tam cidar bükme numunesi",
+            "note": reason(),
+        })
+
+    # --- 5. Makrografik muayene (Tablo 18 #19 | Tablo 17 #19) ---
+    if is_welded and is_saw_arc:
+        rows.append({
+            "test": "Makrografik Muayene",
+            "clause": f"API 5L 10.2.5.2 / {table}",
+            "clause_ref": ("API 5L Table 18 #19: uzunlamasına/helisel dikiş makrografik muayenesi; "
+                           "vardiyada en az 1 kez + ebat değişiminde."),
+            "specimen_figure": None,
+            "frequency": "Vardiyada en az 1 kez + ebat değişiminde",
+            "location": "Kaynak dikişi enine makro kesit",
+            "specimen": "Makro dağlama kesiti",
+            "note": reason(),
+        })
+
+    # --- 6. Metalografik muayene (Tablo 18 #20 | Tablo 17 #20) ---
+    if is_welded and is_hfw and not is_psl1:
+        rows.append({
+            "test": "Metalografik Muayene",
+            "clause": f"API 5L 10.2.5.3 / {table}",
+            "clause_ref": ("API 5L Table 18 #20: HFW dikiş metalografik muayenesi (ısıl işlem sonrası); "
+                           "vardiyada en az 2 kez + değişimler."),
+            "specimen_figure": None,
+            "frequency": "Vardiyada en az 2 kez + ebat/kalite değişiminde",
+            "location": "Kaynak dikişi (ıslaklık/füzyon hattı)",
+            "specimen": "Mikroyapı kesiti",
+            "note": reason(),
+        })
+
+    # --- 7. Görsel muayene (Tablo 18/17 #21) ---
+    if is_botas and d_mm >= 508.0:
+        vis_freq = "Her boru (%100) iç ve dış yüzey"
+        vis_note = "BOTAŞ Madde 8.1.2.1 & 8.1.2.2: D ≥ 20\" kaynak ve gövdenin tamamı iç/dış gözle muayene edilir."
+    elif is_botas:
+        vis_freq = "Her boru (10.2.7.2 izinleri hariç)"
+        vis_note = ("BOTAŞ Madde 8.1.3: D < 20\" için API 5L gerekleri geçerlidir → "
+                    "API 5L PSL 2 Tablo 18 #21.")
+    else:
+        vis_freq = "Her boru (10.2.7.2 izinleri hariç)"
+        vis_note = reason()
+    rows.append({
+        "test": "Görsel Muayene",
+        "clause": f"API 5L 10.2.7 & {table}",
+        "clause_ref": "API 5L Table 18 #21: görsel muayene; her boru (10.2.7.2 izinleri hariç).",
+        "specimen_figure": None,
+        "frequency": vis_freq,
+        "location": "Boru iç/dış yüzeyi ve kaynak dikişi",
+        "specimen": "—",
+        "note": vis_note,
+    })
+
+    # --- 8. Çap ve ovalite (Tablo 18/17 #22) ---
+    if is_botas and d_mm >= 508.0:
+        dia_freq = "D ≥ 20\" istisnasız %100 tüm borular (uç + gövde)"
+        dia_note = "BOTAŞ Madde 8.1.2.4: D ≥ 20\" borularda gövde/uç çapı ve dairesellikten sapma %100 kontrol edilir."
+    elif is_botas:
+        dia_freq = "Vardiyada en az her 4 saatte bir + ebat değişiminde"
+        dia_note = ("BOTAŞ Madde 8.1.3: D < 20\" için API 5L gerekleri geçerlidir → "
+                    "API 5L PSL 2 Tablo 18 #22.")
+    else:
+        dia_freq = "Vardiyada en az her 4 saatte bir + ebat değişiminde"
+        dia_note = reason()
+    rows.append({
+        "test": "Çap ve Ovalite (Diameter & Out-of-Roundness)",
+        "clause": f"API 5L 9.11.1 & 10.2.8 / {table}",
+        "clause_ref": "API 5L Table 18 #22: boru çapı ve dairesellikten sapma; vardiyada en az her 4 saatte bir + ebat değişiminde.",
+        "specimen_figure": None,
+        "frequency": dia_freq,
+        "location": "Boru ucu ve gövdesi",
+        "specimen": "Pi-mezura / kumpas / lazer çapölçer",
+        "note": dia_note,
+    })
+
+    # --- 9. Et kalınlığı ölçümü (Tablo 18/17 #23) ---
+    if is_botas and d_mm >= 508.0:
+        wt_note = "BOTAŞ Madde 8.1.2.4: D ≥ 20\" borularda et kalınlığı %100 kontrol edilir."
+    elif is_botas:
+        wt_note = ("BOTAŞ Madde 8.1.3: D < 20\" için API 5L gerekleri geçerlidir → "
+                   "API 5L PSL 2 Tablo 18 #23 (her boru).")
+    else:
+        wt_note = reason()
+    rows.append({
+        "test": "Et Kalınlığı Ölçümü",
+        "clause": f"API 5L 9.11.2 & 10.2.8.2 / {table}",
+        "clause_ref": "API 5L Table 18 #23: et kalınlığı ölçümü; her boru (10.2.8.5).",
+        "specimen_figure": None,
+        "frequency": "Her boru (%100) uçlardan ve gövdeden",
+        "location": "Boru ucu ve gövdesi",
+        "specimen": "Ultrasonik et kalınlığı ölçer / mikrometre",
+        "note": wt_note,
+    })
+
+    # --- 10. Diğer boyutsal testler (Tablo 18/17 #24) ---
+    rows.append({
+        "test": "Diğer Boyutsal Testler",
+        "clause": f"API 5L 10.2.8 / {table}",
+        "clause_ref": "API 5L Table 18 #24: diğer boyutsal testler; rastgele (üretici takdiri).",
+        "specimen_figure": None,
+        "frequency": "Rastgele (üretici takdiri)",
+        "location": "Boru geometrisi",
+        "specimen": "Mastar / şablon ölçümleri",
+        "note": reason("BOTAŞ Madde 8.5: boyutsal kontrolde belirtilmeyen hususlar için API 5L geçerlidir." if is_botas else None),
+    })
+
+    # --- 11. Tartım / ağırlık (Tablo 18/17 #25/26) ---
+    if d_mm < 141.3:
+        w_freq = "Her boru veya uygun grup (üretici takdiri)"
+        w_ref = "API 5L Table 18 #25: D < 141,3 mm tartım; her boru veya uygun grup."
+    else:
+        w_freq = "Her boru (%100 tartım)"
+        w_ref = "API 5L Table 18 #26: D ≥ 141,3 mm tartım; her boru."
+    rows.append({
+        "test": "Tartım (Ağırlık)",
+        "clause": f"API 5L 9.11.2 & 10.2.8.7 / {table}",
+        "clause_ref": w_ref,
+        "specimen_figure": None,
+        "frequency": w_freq,
+        "location": "Tam boru",
+        "specimen": "Kalibreli yük hücresi / kantar",
+        "note": reason("BOTAŞ Madde 5.3: ağırlık toleransı için API 5L geçerlidir." if is_botas else None),
+    })
+
+    # --- 12. Uzunluk ölçümü (Tablo 18/17 #27) ---
+    if is_botas:
+        len_freq = "Her boy (8–14,5 m, ortalama ≥ 12 m)"
+        len_note = "BOTAŞ Madde 5.4: teslimat boyları 8–14,5 m, ortalama ≥ 12 m; frekans API 5L Tablo 18 #27."
+    else:
+        len_freq = "Her boy (±30 mm uniform gruplar ölçümsüz olabilir)"
+        len_note = reason()
+    rows.append({
+        "test": "Uzunluk Ölçümü",
+        "clause": f"API 5L 9.11.3.1 & 10.2.8 / {table}",
+        "clause_ref": "API 5L Table 18 #27: uzunluk; her boy (30 mm içinde uniform gruplar ölçülmeyebilir).",
+        "specimen_figure": None,
+        "frequency": len_freq,
+        "location": "Tam boru boyu",
+        "specimen": "Mezura / lazer boy ölçer",
+        "note": len_note,
+    })
+
+    # --- 13. Tahribatsız muayene (Tablo 18/17 #28 / Ek E) ---
+    if is_botas:
+        if is_welded:
+            ndt_freq = "Kaynak dikişi %100 (on-line UT + off-line RT); gövde laminasyon ≥ %40; uçlar (≥50 mm bant) %100"
+            ndt_note = "BOTAŞ Madde 8.8.4.2/8.8.4.3/8.8.4.4: kaynak NDT %100, gövde laminasyon ≥%40, uçlar %100."
+        elif is_smls:
+            ndt_freq = "Her boru (%100) tam boy (API 5L Ek E / BOTAŞ 8.1.3)"
+            ndt_note = "BOTAŞ şartnamesinde dikişsiz boru NDT frekansı belirtilmemiş → API 5L PSL 2 Tablo 18 #28 & Ek E."
+        else:
+            ndt_freq = "Ek E (Annex E) uyarınca"
+            ndt_note = "BOTAŞ şartnamesinde frekans belirtilmemiş → API 5L PSL 2 Tablo 18 #28 & Ek E."
+    else:
+        ndt_freq = "Ek E (Annex E) uyarınca (kaynak dikişi; gövde ve uçlar için ilgili seviyeler)"
+        ndt_note = reason()
+    rows.append({
+        "test": "Tahribatsız Muayene (NDT)",
+        "clause": f"API 5L 9.13 & Ek E / {table}",
+        "clause_ref": "API 5L Table 18 #28: tahribatsız muayene; Ek E (Annex E) uyarınca.",
+        "specimen_figure": None,
+        "frequency": ndt_freq,
+        "location": "Kaynak dikişi, gövde ve boru uçları",
+        "specimen": "UT / RT / MT referans göstergeleri",
+        "note": ndt_note,
+    })
+
+    return rows
+
+
 def get_test_plan(pipe_config: Dict[str, Any], psl_level: str = "PSL2") -> List[Dict[str, Any]]:
     """
     Returns the API 5L inspection & test plan for the given pipe configuration.
@@ -473,6 +749,13 @@ def get_test_plan(pipe_config: Dict[str, Any], psl_level: str = "PSL2") -> List[
             "specimen": "HV10 / HV5 izi",
             "note": "ISO 6507-1 / ASTM A370 uyarınca",
         })
+
+    # ---- Common Table 17/18 inspection-frequency rows ----
+    # (visual, diameter/ovality, wall thickness, other dimensional, weighing,
+    #  length, NDT, weld tensile, coil/plate end weld, macro, metallographic)
+    plan += _table_frequency_rows(
+        d_mm, t_mm, process, is_welded, is_smls, is_saw_arc, is_botas, is_psl1
+    )
 
     # Attach a sampling-location figure for the first entry that has any specimen.
     for entry in plan:

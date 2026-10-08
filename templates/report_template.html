@@ -191,12 +191,12 @@
                     <td rowspan="2" class="th-side font-bold text-center text-xs">Et Kalınlığı Toleransı</td>
                     <td colspan="3" class="label-cell">Et Kalınlığı: Min. (mm)</td>
                     {% for p in pipes %}<td class="font-bold text-red-700">{{ "%.2f"|format(p.wall_thickness_tolerance.min_mm) }}</td>{% endfor %}
-                <td class="text-center text-indigo-800 freq-col">{{ freqcell('dimensional') }}</td>
+                <td class="text-center text-indigo-800 freq-col">{{ freqcell('wall_thickness') }}</td>
                 </tr>
                 <tr>
                     <td colspan="3" class="label-cell">Et Kalınlığı: Max. (mm)</td>
                     {% for p in pipes %}<td class="font-bold text-emerald-700">{{ "%.2f"|format(p.wall_thickness_tolerance.max_mm) }}</td>{% endfor %}
-                <td class="text-center text-indigo-800 freq-col">{{ freqcell('dimensional') }}</td>
+                <td class="text-center text-indigo-800 freq-col">{{ freqcell('wall_thickness') }}</td>
                 </tr>
 
                 <!-- Mechanical Properties -->
@@ -268,7 +268,7 @@
                 <tr>
                     <td colspan="4" class="label-cell">Ağırlık Nominal (Kg/m)</td>
                     {% for p in pipes %}<td><strong>{{ "%.2f"|format(p.weights_and_safety.weight_nominal_kg_m) }}</strong></td>{% endfor %}
-                <td class="text-center text-indigo-800 freq-col">{{ freqcell(none) }}</td>
+                <td class="text-center text-indigo-800 freq-col">{{ freqcell('weight') }}</td>
                 </tr>
                 <tr>
                     <td colspan="4" class="label-cell">Operating pressure/ SMYS</td>

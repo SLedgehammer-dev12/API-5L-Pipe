@@ -438,13 +438,13 @@ function renderMatrixTable() {
     // SECTION 4: DIMENSIONAL & WELD TOLERANCES
     html += renderAccordionSectionHeader("sec-dim", "📐 BOYUTSAL & KAYNAK TOLERANSLARI", "11");
     const dimRows = [
-        { label: `Et Kalınlığı: Min. (mm)${noteBtn("smls_wall_tol")}`, freqKey: "dimensional", exp: getExp('wall_thickness_tol'), ext: p => `<span class="font-bold text-red-700">${p.wall_thickness_tolerance.min_mm.toFixed(2)} mm</span>` },
-        { label: `Et Kalınlığı: Max. (mm)${noteBtn("smls_wall_tol")}`, freqKey: "dimensional", exp: getExp('wall_thickness_tol'), ext: p => `<span class="font-bold text-emerald-700">${p.wall_thickness_tolerance.max_mm.toFixed(2)} mm</span>` },
-        { label: `Boru Çap Toleransı - Boru Ucu Max/Min${noteBtn("diameter_tol")}`, freqKey: "dimensional", exp: getExp('diameter_tol'), ext: p => `[${fmtNum(p.dimensional_tolerances.diameter_end_min_mm, 2)} - ${fmtNum(p.dimensional_tolerances.diameter_end_max_mm, 2)}] mm` },
-        { label: `Boru Çap Toleransı - Gövde Max/Min${noteBtn("diameter_tol")}`, freqKey: "dimensional", exp: getExp('diameter_tol'), ext: p => `[${fmtNum(p.dimensional_tolerances.diameter_body_min_mm, 2)} - ${fmtNum(p.dimensional_tolerances.diameter_body_max_mm, 2)}] mm` },
-        { label: "Boru Çevre Toleransı - Boru Ucu (mm)", freqKey: "dimensional", exp: getExp('circumference_tol'), ext: p => `[${typeof p.dimensional_tolerances.circ_end_min_mm === 'number' ? p.dimensional_tolerances.circ_end_min_mm.toFixed(2) : p.dimensional_tolerances.circ_end_min_mm} - ${typeof p.dimensional_tolerances.circ_end_max_mm === 'number' ? p.dimensional_tolerances.circ_end_max_mm.toFixed(2) : p.dimensional_tolerances.circ_end_max_mm}] mm` },
-        { label: "Boru Çevre Toleransı - Gövde (mm)", freqKey: "dimensional", exp: getExp('circumference_tol'), ext: p => `[${typeof p.dimensional_tolerances.circ_body_min_mm === 'number' ? p.dimensional_tolerances.circ_body_min_mm.toFixed(2) : p.dimensional_tolerances.circ_body_min_mm} - ${typeof p.dimensional_tolerances.circ_body_max_mm === 'number' ? p.dimensional_tolerances.circ_body_max_mm.toFixed(2) : p.dimensional_tolerances.circ_body_max_mm}] mm` },
-        { label: "Ovalite - Boru Ucu / Gövde (mm)", freqKey: "dimensional", exp: getExp('ovality'), ext: p => `Uç: ${p.dimensional_tolerances.ovality_end_mm} mm | Gövde: ${p.dimensional_tolerances.ovality_body_mm} mm` },
+        { label: `Et Kalınlığı: Min. (mm)${noteBtn("smls_wall_tol")}`, freqKey: "wall_thickness", exp: getExp('wall_thickness_tol'), ext: p => `<span class="font-bold text-red-700">${p.wall_thickness_tolerance.min_mm.toFixed(2)} mm</span>` },
+        { label: `Et Kalınlığı: Max. (mm)${noteBtn("smls_wall_tol")}`, freqKey: "wall_thickness", exp: getExp('wall_thickness_tol'), ext: p => `<span class="font-bold text-emerald-700">${p.wall_thickness_tolerance.max_mm.toFixed(2)} mm</span>` },
+        { label: `Boru Çap Toleransı - Boru Ucu Max/Min${noteBtn("diameter_tol")}`, freqKey: "diameter_oor", exp: getExp('diameter_tol'), ext: p => `[${fmtNum(p.dimensional_tolerances.diameter_end_min_mm, 2)} - ${fmtNum(p.dimensional_tolerances.diameter_end_max_mm, 2)}] mm` },
+        { label: `Boru Çap Toleransı - Gövde Max/Min${noteBtn("diameter_tol")}`, freqKey: "diameter_oor", exp: getExp('diameter_tol'), ext: p => `[${fmtNum(p.dimensional_tolerances.diameter_body_min_mm, 2)} - ${fmtNum(p.dimensional_tolerances.diameter_body_max_mm, 2)}] mm` },
+        { label: "Boru Çevre Toleransı - Boru Ucu (mm)", freqKey: "diameter_oor", exp: getExp('circumference_tol'), ext: p => `[${typeof p.dimensional_tolerances.circ_end_min_mm === 'number' ? p.dimensional_tolerances.circ_end_min_mm.toFixed(2) : p.dimensional_tolerances.circ_end_min_mm} - ${typeof p.dimensional_tolerances.circ_end_max_mm === 'number' ? p.dimensional_tolerances.circ_end_max_mm.toFixed(2) : p.dimensional_tolerances.circ_end_max_mm}] mm` },
+        { label: "Boru Çevre Toleransı - Gövde (mm)", freqKey: "diameter_oor", exp: getExp('circumference_tol'), ext: p => `[${typeof p.dimensional_tolerances.circ_body_min_mm === 'number' ? p.dimensional_tolerances.circ_body_min_mm.toFixed(2) : p.dimensional_tolerances.circ_body_min_mm} - ${typeof p.dimensional_tolerances.circ_body_max_mm === 'number' ? p.dimensional_tolerances.circ_body_max_mm.toFixed(2) : p.dimensional_tolerances.circ_body_max_mm}] mm` },
+        { label: "Ovalite - Boru Ucu / Gövde (mm)", freqKey: "diameter_oor", exp: getExp('ovality'), ext: p => `Uç: ${p.dimensional_tolerances.ovality_end_mm} mm | Gövde: ${p.dimensional_tolerances.ovality_body_mm} mm` },
         { label: "Radial Offset Max. (mm)", exp: getExp('radial_offset'), ext: p => `${p.weld_and_geometry.radial_offset_max_mm} mm` },
         { label: "Kaynak Yüksekliği - İç / Dış (mm)", exp: getExp('weld_height'), ext: p => `İç: ${p.weld_and_geometry.weld_height_inside_mm} mm | Dış: ${p.weld_and_geometry.weld_height_outside_mm} mm` },
         { label: "Misalignment (mm)", exp: getExp('misalignment'), ext: p => `${p.weld_and_geometry.misalignment_max_mm} mm` },
@@ -490,7 +490,7 @@ function renderMatrixTable() {
     // SECTION 6: WEIGHT & ASME FRACTURE CONTROL
     html += renderAccordionSectionHeader("sec-weight", "⚖️ BORU AĞIRLIĞI & ASME KIRILMA EMNİYETİ", "4");
     const weightRows = [
-        { label: "Ağırlık Nominal (Min / Max) Kg/m", exp: getExp('weight'), ext: p => `<strong>${p.weights_and_safety.weight_nominal_kg_m.toFixed(2)}</strong> (${p.weights_and_safety.weight_min_kg_m.toFixed(2)} - ${p.weights_and_safety.weight_max_kg_m.toFixed(2)}) kg/m` },
+        { label: "Ağırlık Nominal (Min / Max) Kg/m", freqKey: "weight", exp: getExp('weight'), ext: p => `<strong>${p.weights_and_safety.weight_nominal_kg_m.toFixed(2)}</strong> (${p.weights_and_safety.weight_min_kg_m.toFixed(2)} - ${p.weights_and_safety.weight_max_kg_m.toFixed(2)}) kg/m` },
         { label: "Operating pressure / SMYS", exp: "İşletme Gerilmesi / SMYS Oranı", ext: p => `<span class="font-semibold text-blue-800">${p.weights_and_safety.operating_press_over_smys_percent}</span>` },
         { label: "841.1.2 Fracture Control and Arrest", exp: getExp('fracture_control'), ext: p => p.weights_and_safety.fracture_control_asme_841_1_2.includes("Annex G") ? `<span class="badge-pass font-bold">${p.weights_and_safety.fracture_control_asme_841_1_2}</span>` : `<span class="text-slate-600">${p.weights_and_safety.fracture_control_asme_841_1_2}</span>` },
         { label: "D/t Oranı & Tasarım Formülü", exp: getExp('thick_wall_alt'), ext: p => `<strong>D/t = ${p.weights_and_safety.d_over_t.toFixed(2)}</strong> (${p.weights_and_safety.design_formula_asme_841_1_1})` },
@@ -503,7 +503,7 @@ function renderMatrixTable() {
             html += `<td onclick="selectPipe(${cIdx})" class="text-center text-xs px-2 py-1.5 cursor-pointer ${activeColClass}">${wr.ext(p)}</td>`;
         });
         html += `<td class="sticky-right bg-slate-50 text-slate-600 text-[11px] px-3 py-1 italic text-left border-l-2 border-slate-300">${wr.exp}</td>
-            <td class="sticky-right-freq bg-slate-50 text-slate-300 text-[11px] px-3 py-1 italic text-left border-l-2 border-slate-300">—</td></tr>`;
+            <td class="sticky-right-freq bg-slate-50 text-indigo-700 text-[11px] px-3 py-1 italic text-left border-l-2 border-slate-300">${getFreq(wr.freqKey)}</td></tr>`;
     });
 
     // SECTION 7: TEST FREQUENCY (sampling) - driven by diameter + grade + PSL + process

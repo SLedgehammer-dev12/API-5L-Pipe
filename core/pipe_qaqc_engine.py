@@ -787,6 +787,15 @@ class PipeQAQCEngine:
             'hardness': _pick_freq('sertlik'),
             'bend': _pick_freq('bükme', 'guıded', 'guided', 'bend'),
             'flattening': _pick_freq('düzleştirme', 'flattening'),
+            'weld_tensile': _pick_freq('kaynak çekme'),
+            'macro': _pick_freq('makrografik'),
+            'metallo': _pick_freq('metalografik'),
+            'visual': _pick_freq('görsel'),
+            'diameter_oor': _pick_freq('çap ve ovalite'),
+            'wall_thickness': _pick_freq('et kalınlığı'),
+            'weight': _pick_freq('tartım', 'ağırlık'),
+            'length': _pick_freq('uzunluk'),
+            'ndt': _pick_freq('tahribatsız'),
         }
 
         return {
