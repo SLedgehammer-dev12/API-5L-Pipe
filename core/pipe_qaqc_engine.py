@@ -20,6 +20,7 @@ from core.database import (
     parse_design_factor,
 )
 from core.edition_notes import build_edition_notes
+from core.test_plan import get_test_plan
 
 # Table 21 (47th Ed.): (D_max_mm, t_min for 12.7 mm round bar, t_min for 8.9 mm round bar).
 # A round bar is used for transverse tensile tests of welded pipe; Axc = 130 mm² (12.7/8.9 mm bar)
@@ -742,6 +743,25 @@ class PipeQAQCEngine:
             design_formula_alt = "Normal Basınç Dizayn Hesabı"
             alt_design_press = "Hesaplamaya Gerek Yok"
 
+        # 18. Test / Inspection Frequencies (diameter + material grade + PSL driven)
+        try:
+            _freq_plan = get_test_plan({
+                'diameter_inch': d_inch,
+                'diameter_mm': round(d_mm, 2),
+                'wall_thickness_mm': round(t, 2),
+                'material_grade': grade_clean,
+                'manufacturing_process': manufacturing_process,
+                'standard_type': standard_type,
+                'psl_level': psl_level,
+            }, psl_level=psl_level)
+            test_frequency = [
+                {'test': row.get('test', ''), 'frequency': row.get('frequency', '—'),
+                 'clause': row.get('clause', '')}
+                for row in _freq_plan
+            ]
+        except Exception:
+            test_frequency = []
+
         return {
             'input_summary': {
                 'diameter_inch': d_inch,
@@ -858,6 +878,7 @@ class PipeQAQCEngine:
                 'design_formula_asme_841_1_1': design_formula_alt,
                 'alternative_design_pressure_bar': round(alt_design_press, 2) if isinstance(alt_design_press, (int, float)) else alt_design_press
             },
+            'test_frequency': test_frequency,
             'explanations': build_standard_explanations(is_botas_mode, is_psl1),
             'edition_notes': build_edition_notes({
                 'material_grade': material_grade,

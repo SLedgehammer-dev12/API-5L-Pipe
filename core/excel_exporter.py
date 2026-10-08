@@ -303,6 +303,41 @@ class ExcelExporter:
             row_remarks_map[current_r] = remark
             current_r += 1
 
+        # 5. Test / Inspection Frequency Block (diameter + grade + PSL + process driven)
+        freq_test_names = []
+        for pipe in pipes_data:
+            for f in (pipe.get('test_frequency') or []):
+                if f.get('test') and f['test'] not in freq_test_names:
+                    freq_test_names.append(f['test'])
+        if freq_test_names:
+            current_r += 1
+            ws.merge_cells(start_row=current_r, start_column=1, end_row=current_r, end_column=5 + num_pipes)
+            c_sec = ws.cell(current_r, 1, "TEST FREKANSI (Sıklık / Numune Sayısı)")
+            c_sec.font = font_header_dark
+            c_sec.fill = fill_header_main
+            c_sec.alignment = align_left
+            current_r += 1
+            for test_name in freq_test_names:
+                ws.merge_cells(start_row=current_r, start_column=1, end_row=current_r, end_column=4)
+                c_lbl = ws.cell(current_r, 1, test_name)
+                c_lbl.font = font_header_dark
+                c_lbl.alignment = align_left
+                for c in range(1, 5):
+                    ws.cell(current_r, c).border = border_all
+                    if current_r % 2 == 0:
+                        ws.cell(current_r, c).fill = fill_zebra
+                for idx, pipe in enumerate(pipes_data):
+                    entry = next((f for f in (pipe.get('test_frequency') or [])
+                                  if f.get('test') == test_name), None)
+                    val = entry.get('frequency') if entry else "—"
+                    c_val = ws.cell(current_r, 5 + idx, val)
+                    c_val.font = font_regular
+                    c_val.alignment = align_center
+                    c_val.border = border_all
+                    if current_r % 2 == 0:
+                        c_val.fill = fill_zebra
+                current_r += 1
+
         # Set column widths
         ws.column_dimensions['A'].width = 6
         ws.column_dimensions['B'].width = 8

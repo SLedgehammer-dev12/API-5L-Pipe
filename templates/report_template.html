@@ -309,6 +309,27 @@
                 {% endfor %}
             </tbody>
         </table>
+        {% if verification.frequency_references %}
+        <h4 class="text-xs font-black text-slate-900 uppercase mt-4 mb-2">Şartname Test Frekansları (Çap / Malzeme Kalitesi / PSL'e Göre)</h4>
+        <table class="matrix-table text-xs border-2 border-slate-900">
+            <thead>
+                <tr class="th-main">
+                    <th class="px-2 py-1 text-left">Test</th>
+                    <th class="px-2 py-1 text-left">Madde</th>
+                    <th class="px-2 py-1 text-left">Gerekli Frekans / Sıklık</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for f in verification.frequency_references %}
+                <tr class="border-b border-slate-300">
+                    <td class="px-2 py-1 font-bold">{{ f.test }}</td>
+                    <td class="px-2 py-1 text-slate-600">{{ f.clause }}</td>
+                    <td class="px-2 py-1 font-semibold">{{ f.frequency }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
     </div>
     {% endif %}
 

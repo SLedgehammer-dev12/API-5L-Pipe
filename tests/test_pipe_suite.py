@@ -2152,6 +2152,39 @@ class TestPipeQAQCSuite(unittest.TestCase):
         self.assertIsNone(ga['CE_IIW_max'])
         self.assertIsNone(ga['CE_Pcm_max'])
 
+    def test_66_test_frequency_section_and_verification_references(self):
+        """Test frekansı çap/kalite/PSL'e göre türetilir; matris ve doğrulamada görünür."""
+        # 48" X65 SAWH BOTAŞ -> artık stres + DWTT satırları
+        big = PipeQAQCEngine.calculate_pipe_qc(
+            diameter_inch='48"', material_grade='X65', manufacturing_process='SAWH',
+            standard_type='BOTAŞ')
+        names_big = {f['test'] for f in big['test_frequency']}
+        self.assertIn('Artık Stres Testi (Residual Stress)', names_big)
+        self.assertIn('DWTT (Drop Weight Tear Test)', names_big)
+        self.assertTrue(all(f['frequency'] for f in big['test_frequency']))
+
+        # 12" X52 ERW BOTAŞ -> DWTT ve artık stres yok (D < 508 mm / ERW)
+        small = PipeQAQCEngine.calculate_pipe_qc(
+            diameter_inch='12"', material_grade='X52', manufacturing_process='ERW HFW',
+            standard_type='BOTAŞ')
+        names_small = {f['test'] for f in small['test_frequency']}
+        self.assertNotIn('DWTT (Drop Weight Tear Test)', names_small)
+        self.assertNotIn('Artık Stres Testi (Residual Stress)', names_small)
+
+        # PSL1 -> CVN ve DWTT yok
+        psl1 = PipeQAQCEngine.calculate_pipe_qc(
+            diameter_inch='24"', material_grade='X65', manufacturing_process='SAWH',
+            standard_type='API 5L', psl_level='PSL1')
+        names_psl1 = {f['test'] for f in psl1['test_frequency']}
+        self.assertNotIn('Çentik Darbe (CVN)', names_psl1)
+
+        # Doğrulama: frekans referansları dolu; checks listesi/durumu etkilenmez
+        cfg = {'diameter_inch': '48"', 'diameter_mm': 1219.0, 'wall_thickness_mm': 14.30,
+               'material_grade': 'X65', 'manufacturing_process': 'SAWH', 'standard_type': 'BOTAŞ'}
+        ver = PipeVerificationEngine.verify_pipe_test_results(cfg, {'C': 0.10, 'Mn': 1.45})
+        self.assertGreater(len(ver['frequency_references']), 0)
+        self.assertNotIn('Test Frekansı', {chk['category'] for chk in ver['checks']})
+
 
 if __name__ == '__main__':
     unittest.main()

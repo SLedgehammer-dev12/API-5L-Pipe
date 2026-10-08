@@ -481,6 +481,26 @@ function renderMatrixTable() {
         html += `<td class="sticky-right bg-slate-50 text-slate-600 text-[11px] px-3 py-1 italic text-left border-l-2 border-slate-300">${wr.exp}</td></tr>`;
     });
 
+    // SECTION 7: TEST FREQUENCY (sampling) - driven by diameter + grade + PSL + process
+    const freqTestNames = [];
+    calculatedPipes.forEach(p => {
+        (p.test_frequency || []).forEach(f => {
+            if (!freqTestNames.includes(f.test)) freqTestNames.push(f.test);
+        });
+    });
+    html += renderAccordionSectionHeader("sec-freq", "🧪 TEST FREKANSI (Sıklık / Numune Sayısı)", String(freqTestNames.length));
+    freqTestNames.forEach(testName => {
+        html += `<tr class="row-sec-freq border-b border-gray-300 searchable-row">
+            <td class="label-cell sticky-left text-left px-3 py-1.5 font-semibold">${esc(testName)}</td>`;
+        calculatedPipes.forEach((p, cIdx) => {
+            const activeColClass = isColActive(cIdx) ? 'active-pipe-col font-bold' : '';
+            const entry = (p.test_frequency || []).find(f => f.test === testName);
+            const cell = entry ? esc(entry.frequency) : '<span class="text-slate-400">—</span>';
+            html += `<td onclick="selectPipe(${cIdx})" class="text-center text-xs px-2 py-1.5 cursor-pointer ${activeColClass}">${cell}</td>`;
+        });
+        html += `<td class="sticky-right bg-slate-50 text-slate-600 text-[11px] px-3 py-1 italic text-left border-l-2 border-slate-300">Çap, malzeme kalitesi, PSL seviyesi ve imalat yöntemine göre şartname gereği test/numune sıklığı.</td></tr>`;
+    });
+
     tableBody.innerHTML = html;
 }
 
@@ -499,7 +519,7 @@ function toggleAccordion(secId) {
 }
 
 function toggleAllAccordions(expand) {
-    const sections = ["sec-chem", "sec-mech", "sec-dim", "sec-tests", "sec-weight"];
+    const sections = ["sec-chem", "sec-mech", "sec-dim", "sec-tests", "sec-weight", "sec-freq"];
     sections.forEach(secId => {
         const rows = document.querySelectorAll(`.row-${secId}`);
         const icon = document.getElementById(`icon-${secId}`);
@@ -2104,7 +2124,30 @@ function renderVerificationResult(data) {
         `;
     });
 
-    html += `</tbody></table></div></div>`;
+    html += `</tbody></table></div>`;
+
+    if (data.frequency_references && data.frequency_references.length > 0) {
+        html += `
+            <div class="mt-3">
+                <h4 class="text-sm font-bold text-slate-800 mb-2">📋 Şartname Test Frekansları (Çap / Malzeme Kalitesi / PSL'e Göre)</h4>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-xs text-left border-collapse bg-white rounded border border-gray-300">
+                        <thead class="bg-gray-100 text-gray-700 font-bold border-b border-gray-300">
+                            <tr><th class="p-2">Test</th><th class="p-2">Madde</th><th class="p-2">Gerekli Frekans / Sıklık</th></tr>
+                        </thead>
+                        <tbody>
+        `;
+        data.frequency_references.forEach(f => {
+            html += `<tr class="border-b border-gray-200 hover:bg-gray-50">
+                <td class="p-2 font-bold text-gray-800">${esc(f.test)}</td>
+                <td class="p-2 text-slate-600">${esc(f.clause || '—')}</td>
+                <td class="p-2 font-semibold text-indigo-800">${esc(f.frequency || '—')}</td>
+            </tr>`;
+        });
+        html += `</tbody></table></div></div>`;
+    }
+
+    html += `</div>`;
     resDiv.innerHTML = html;
 }
 

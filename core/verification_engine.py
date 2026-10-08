@@ -473,5 +473,6 @@ class PipeVerificationEngine:
             'total_applicable': total_applicable,
             'unchecked_count': unchecked_count,
             'checks': checks,
+            'frequency_references': limits.get('test_frequency', []),
             'pipe_summary': limits['input_summary']
         }
