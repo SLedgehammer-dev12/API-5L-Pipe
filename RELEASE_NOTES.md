@@ -1,3 +1,39 @@
+# Sürüm Notları / Release Notes - v2.9.5
+
+## 🚀 API 5L PSL1/PSL2 & BOTAŞ Boru Kalite Güvence, Et Kalınlığı Tasarım ve Akıllı ITP Denetim Süiti (v2.9.5)
+
+Bu sürüm (**v2.9.5**), **test ve ölçüm frekansı (sıklık/numune) kontrolünü** QA/QC matrisi, Fabrika Test Doğrulama motoru, resmi rapor ve Excel çıktısına ekler. Frekanslar **çap, malzeme kalitesi, PSL seviyesi, imalat yöntemi ve standarda** göre otomatik belirlenir.
+
+---
+
+### 🌟 v2.9.5 ile Gelen Başlıca Yenilikler
+
+1. **🧪 QA/QC Matrisi "Test Frekansı" Bölümü:**
+   - Her test için gerekli sıklık/numune sayısı matriste ayrı bölüm olarak gösterilir.
+   - Çapa/prosese göre değişir: 48" X65 SAWH BOTAŞ → **Artık Stres (her döküm)** + **DWTT**; 12" X52 ERW → düzleştirme (DWTT/artık stres yok); PSL1 → CVN/DWTT yok.
+
+2. **📋 Doğrulama Motorunda Frekans Referansları:**
+   - Fabrika Test Doğrulama sekmesinde ve resmi raporda "Şartname Test Frekansları" tablosu.
+   - PASS/FAIL sayıları ve parametre toplamı etkilenmez (yanlış RED üretmez).
+
+3. **📄 Rapor & Excel:** Resmi rapor ve matris Excel çıktısına "Test Frekansı" blokları eklendi.
+
+4. **🧪 Deneme (Trial) Koşusu:** 16 çap × kalite × proses × BOTAŞ/API PSL1/PSL2 + 10'luk presetler + kural senaryoları → **107/107 başarılı**.
+
+---
+
+### 💻 İndirme Bağlantıları (v2.9.5)
+
+- **🪟 Windows (x64):**  
+  [**`API-5L-Pipe-Windows-x64-v2.9.5.exe` İndir**](https://github.com/SLedgehammer-dev12/API-5L-Pipe/releases/download/v2.9.5/API-5L-Pipe-Windows-x64-v2.9.5.exe)  
+  *Tek dosyadır, kurulum gerektirmez. Doğrudan çift tıklayarak çalıştırabilirsiniz.*
+
+- **🍏 macOS (Apple Silicon M1/M2/M3/M4 & Intel):**  
+  [**`API-5L-Pipe-macOS-v2.9.5.dmg` İndir**](https://github.com/SLedgehammer-dev12/API-5L-Pipe/releases/download/v2.9.5/API-5L-Pipe-macOS-v2.9.5.dmg)  
+  *Disk kalıbını açıp `API-5L-Pipe.app` uygulamasını Applications klasörüne sürükleyin.*
+
+---
+
 # Sürüm Notları / Release Notes - v2.9.0
 
 ## 🚀 API 5L PSL1/PSL2 & BOTAŞ Boru Kalite Güvence, Et Kalınlığı Tasarım ve Akıllı ITP Denetim Süiti (v2.9.0)

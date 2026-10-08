@@ -3,6 +3,24 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.9.5] - 2026-10-07 (Çap / Kalite / PSL Bazlı Test Frekansı Kontrolü — Matris, Doğrulama, Rapor & Excel)
+
+### 🎉 Eklenen Özellikler (Added)
+- **QA/QC Matrisi "Test Frekansı" Bölümü:** Her boru için gerekli test/muayene frekansları (sıklık / numune sayısı) artık matriste ayrı bir akordeon bölümü olarak gösterilir. Frekanslar **çap + malzeme kalitesi + PSL seviyesi + imalat yöntemi + standarda** göre otomatik türetilir (mevcut `get_test_plan()` tek kaynak).
+  - Örn. 48" X65 SAWH BOTAŞ → **Artık Stres (her döküm)** + **DWTT**; 12" X52 ERW → düzleştirme (DWTT/artık stres yok); PSL1 → CVN/DWTT yok.
+- **Doğrulama Motorunda Frekans Referansları:** `verify_pipe_test_results` çıktısına `frequency_references` eklendi; Fabrika Test Doğrulama sekmesinde ve resmi raporda "Şartname Test Frekansları" tablosu olarak gösterilir. **PASS/FAIL sayılarını etkilemez** (yanlış RED üretmez).
+- **Rapor & Excel:** `report_template.html` ve matris Excel çıktısına "Test Frekansı" blokları eklendi.
+
+### 🛠️ Değişenler (Changed)
+- `calculate_pipe_qc` çıktısına `test_frequency` (`test`, `frequency`, `clause`) listesi eklendi.
+
+### 🧪 Testler
+- `test_66_test_frequency_section_and_verification_references` eklendi.
+- **107 senaryolu deneme (trial) koşusu**: 16 çap × kaliteler × prosesler × BOTAŞ/API PSL1/PSL2 + 10'luk presetler + kural senaryoları → **107/107 başarılı**.
+- Birim testleri **76/76** geçer (2 golden skip); ruff temiz.
+
+---
+
 ## [2.9.0] - 2026-10-07 (BOTAŞ 5120 R7 Tablo-1 Kimyasal Uyumu, Nb Min, Mn Telafisi & Ovalite Yuvarlama)
 
 ### 🎉 Eklenen Özellikler (Added)

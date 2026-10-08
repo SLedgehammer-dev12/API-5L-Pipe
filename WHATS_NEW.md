@@ -1,3 +1,31 @@
+# What's New in API 5L Pipe QA/QC & Wall Thickness Suite (v2.9.5)
+## Yenilikler ve Sürüm Özeti - v2.9.5 (2026-10-07)
+
+---
+
+### 🇹🇷 Türkçe Özet (v2.9.5)
+
+API 5L Pipe QA/QC Suite **v2.9.5** ile **test/ölçüm frekansı (sıklık/numune) kontrolü** matris, doğrulama motoru, rapor ve Excel'e eklenmiştir:
+
+#### 1. 🧪 QA/QC Matrisi "Test Frekansı" Bölümü
+- Her test için gerekli frekans/sıklık satır olarak gösterilir.
+- **Çap + malzeme kalitesi + PSL + imalat yöntemi + standarda** göre otomatik:
+  - 48" X65 SAWH BOTAŞ → Artık Stres (her döküm) + DWTT
+  - 12" X52 ERW → düzleştirme; DWTT/artık stres yok
+  - PSL1 → CVN/DWTT yok
+
+#### 2. 📋 Doğrulama Motoru Frekans Referansları
+- Fabrika Test Doğrulama ve resmi raporda "Şartname Test Frekansları" tablosu.
+- PASS/FAIL sayılarını etkilemez (yanlış RED yok).
+
+#### 3. 📄 Rapor & Excel
+- `report_template.html` ve matris Excel çıktısına "Test Frekansı" blokları.
+
+#### 4. 🧪 Deneme Koşusu
+- **107/107 senaryo başarılı**; birim testleri **76/76** geçer, ruff temiz.
+
+---
+
 # What's New in API 5L Pipe QA/QC & Wall Thickness Suite (v2.9.0)
 ## Yenilikler ve Sürüm Özeti - v2.9.0 (2026-10-07)
 
