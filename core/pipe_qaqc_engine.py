@@ -776,6 +776,45 @@ class PipeQAQCEngine:
                     return _f.get('frequency')
             return None
 
+        # Dimensional & weld geometry recommended frequencies
+        is_welded_pipe = not ("SMLS" in (manufacturing_process or "").upper())
+        if is_welded_pipe:
+            freq_radial_offset = (
+                "D ≥ 20\" için %100 dikiş boyunca; D < 20\" vardiyada en az 4 saatte bir + her bobin/plaka ekinde"
+                if is_botas_mode and d_mm >= 508.0 else
+                "Her vardiyada / rulo değişiminde en az 4 saatte bir ve her boru ucunda (%100)"
+            )
+            freq_weld_height = (
+                "D ≥ 20\" borularda her iki uçta %100 ve dikiş boyunca sürekli lazer profilometre ile %100"
+                if is_botas_mode and d_mm >= 508.0 else
+                "Her borunun her iki ucunda (%100, uçtan 100 mm içinde) ve gövde boyunca vardiyada en az 4 saatte bir"
+            )
+            freq_misalignment = (
+                "Vardiyada en az 2-3 kez makrografik kesit incelemesinde + her bobin ekinde (ve on-line UT prob takibinde sürekli)"
+            )
+            freq_peaking = (
+                "D ≥ 20\" için her iki uçta %100 (200 mm kavisli mastar); D < 20\" vardiyada en az 4 saatte bir"
+                if is_botas_mode and d_mm >= 508.0 else
+                "Vardiyada en az her 4 saatte bir ve her ebat/kalıp değişiminde (boru uçlarında)"
+            )
+            freq_squareness = (
+                "D ≥ 20\" için her iki uçta %100 (gönye / lazer); D < 20\" vardiyada en az 4 saatte bir"
+                if is_botas_mode and d_mm >= 508.0 else
+                "Her boru ucunda veya vardiyada en az her 4 saatte bir + ebat değişiminde"
+            )
+            freq_peaking_sq = f"Çatı: {freq_peaking} | Diklik: {freq_squareness}"
+        else:
+            freq_radial_offset = "— (Dikişsiz boruda kaynak bulunmaz)"
+            freq_weld_height = "— (Dikişsiz boruda kaynak bulunmaz)"
+            freq_misalignment = "— (Dikişsiz boruda kaynak bulunmaz)"
+            freq_peaking = "— (Dikişsiz boruda kaynak bulunmaz)"
+            freq_squareness = (
+                "D ≥ 20\" için her iki uçta %100; D < 20\" vardiyada en az 4 saatte bir"
+                if is_botas_mode and d_mm >= 508.0 else
+                "Her boru ucunda veya vardiyada en az her 4 saatte bir + ebat değişiminde"
+            )
+            freq_peaking_sq = f"Diklik: {freq_squareness}"
+
         row_frequency = {
             'chemical': _pick_freq('kimyasal'),
             'tensile': _pick_freq('çekme'),
@@ -796,6 +835,12 @@ class PipeQAQCEngine:
             'weight': _pick_freq('tartım', 'ağırlık'),
             'length': _pick_freq('uzunluk'),
             'ndt': _pick_freq('tahribatsız'),
+            'radial_offset': _pick_freq('radyal kaçıklık', 'radial offset') or freq_radial_offset,
+            'weld_height': _pick_freq('kaynak dikiş yüksekliği', 'kaynak yüksekliği') or freq_weld_height,
+            'misalignment': _pick_freq('kaynak hiza', 'misalignment') or freq_misalignment,
+            'peaking': _pick_freq('çatılaşma', 'peaking') or freq_peaking,
+            'squareness': _pick_freq('diklik', 'squareness') or freq_squareness,
+            'peaking_squareness': freq_peaking_sq,
         }
 
         return {

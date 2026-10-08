@@ -445,10 +445,10 @@ function renderMatrixTable() {
         { label: "Boru Çevre Toleransı - Boru Ucu (mm)", freqKey: "diameter_oor", exp: getExp('circumference_tol'), ext: p => `[${typeof p.dimensional_tolerances.circ_end_min_mm === 'number' ? p.dimensional_tolerances.circ_end_min_mm.toFixed(2) : p.dimensional_tolerances.circ_end_min_mm} - ${typeof p.dimensional_tolerances.circ_end_max_mm === 'number' ? p.dimensional_tolerances.circ_end_max_mm.toFixed(2) : p.dimensional_tolerances.circ_end_max_mm}] mm` },
         { label: "Boru Çevre Toleransı - Gövde (mm)", freqKey: "diameter_oor", exp: getExp('circumference_tol'), ext: p => `[${typeof p.dimensional_tolerances.circ_body_min_mm === 'number' ? p.dimensional_tolerances.circ_body_min_mm.toFixed(2) : p.dimensional_tolerances.circ_body_min_mm} - ${typeof p.dimensional_tolerances.circ_body_max_mm === 'number' ? p.dimensional_tolerances.circ_body_max_mm.toFixed(2) : p.dimensional_tolerances.circ_body_max_mm}] mm` },
         { label: "Ovalite - Boru Ucu / Gövde (mm)", freqKey: "diameter_oor", exp: getExp('ovality'), ext: p => `Uç: ${p.dimensional_tolerances.ovality_end_mm} mm | Gövde: ${p.dimensional_tolerances.ovality_body_mm} mm` },
-        { label: "Radial Offset Max. (mm)", exp: getExp('radial_offset'), ext: p => `${p.weld_and_geometry.radial_offset_max_mm} mm` },
-        { label: "Kaynak Yüksekliği - İç / Dış (mm)", exp: getExp('weld_height'), ext: p => `İç: ${p.weld_and_geometry.weld_height_inside_mm} mm | Dış: ${p.weld_and_geometry.weld_height_outside_mm} mm` },
-        { label: "Misalignment (mm)", exp: getExp('misalignment'), ext: p => `${p.weld_and_geometry.misalignment_max_mm} mm` },
-        { label: `Boru Ucu Kaynak Çatılaşma / Diklik${noteBtn("peaking")}`, exp: `${getExp('peaking')} / ${getExp('squareness')}`, ext: p => `Çatı: ${fmtNum(p.dimensional_tolerances.pipe_end_peaking_max_mm, 2)} mm | Diklik: ${fmtNum(p.dimensional_tolerances.pipe_end_squareness_max_mm, 2)} mm` },
+        { label: `Radial Offset Max. (mm)${noteBtn("radial_offset")}`, freqKey: "radial_offset", exp: getExp('radial_offset'), ext: p => (p.input_summary.manufacturing_process || '').includes('SMLS') ? '—' : `${p.weld_and_geometry.radial_offset_max_mm} mm` },
+        { label: `Kaynak Yüksekliği - İç / Dış (mm)${noteBtn("weld_height")}`, freqKey: "weld_height", exp: getExp('weld_height'), ext: p => (p.input_summary.manufacturing_process || '').includes('SMLS') ? '—' : `İç: ${p.weld_and_geometry.weld_height_inside_mm} mm | Dış: ${p.weld_and_geometry.weld_height_outside_mm} mm` },
+        { label: `Misalignment (mm)${noteBtn("misalignment")}`, freqKey: "misalignment", exp: getExp('misalignment'), ext: p => (p.input_summary.manufacturing_process || '').includes('SMLS') ? '—' : `${p.weld_and_geometry.misalignment_max_mm} mm` },
+        { label: `Boru Ucu Kaynak Çatılaşma / Diklik${noteBtn("peaking")}`, freqKey: "peaking_squareness", exp: `${getExp('peaking')} / ${getExp('squareness')}`, ext: p => (p.input_summary.manufacturing_process || '').includes('SMLS') ? `Diklik: ${fmtNum(p.dimensional_tolerances.pipe_end_squareness_max_mm, 2)} mm` : `Çatı: ${fmtNum(p.dimensional_tolerances.pipe_end_peaking_max_mm, 2)} mm | Diklik: ${fmtNum(p.dimensional_tolerances.pipe_end_squareness_max_mm, 2)} mm` },
     ];
     dimRows.forEach(dr => {
         html += `<tr class="row-sec-dim border-b border-gray-300 searchable-row">
@@ -2664,13 +2664,28 @@ async function loadTestPlan() {
                 <td class="p-2">${esc(tp.location)}</td>
                 <td class="p-2">
                     ${esc(tp.specimen)}
-                    ${hasFig ? `<button onclick="event.stopPropagation(); openItpInfoModal('figure', ${i})" class="itp-info-btn" title="Numune çizimini göster (ℹ)">ℹ️</button>` : ''}
+                    ${hasFig ? `
+                    <span class="inline-flex items-center gap-1 ml-1.5">
+                        <button onclick="event.stopPropagation(); openItpInfoModal('figure', ${i}, '2d')" class="itp-info-btn text-blue-600 hover:text-blue-800" title="2D Çizimi göster">📐</button>
+                        ${['tensile_strip', 'tensile_round', 'tensile_weld', 'charpy', 'dwtt'].includes(tp.specimen_figure) ? `
+                        <button onclick="event.stopPropagation(); openItpInfoModal('figure', ${i}, '3d')" class="itp-info-btn text-indigo-600 hover:text-indigo-800" title="3D Etkileşimli Modeli göster">🧊</button>` : ''}
+                    </span>` : ''}
                 </td>
             </tr>
             <tr id="itp-detail-${i}" class="hidden bg-slate-50 border-b border-gray-200">
                 <td colspan="5" class="p-3">
                     <div class="text-[11px] text-slate-700 whitespace-pre-line mb-2 leading-relaxed">${esc(tp.clause_ref || '')}</div>
-                    ${hasFig ? `<div class="border border-slate-200 rounded bg-white p-2">${getSpecimenDrawing(tp.specimen_figure, calculatedPipes[selectedPipeIndex])}</div>` : ''}
+                    ${hasFig ? `
+                    <div class="border border-slate-200 rounded-xl bg-white p-3 shadow-sm">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="font-bold text-xs text-slate-800">Numune Çizimi (API 5L Standart Referansı)</span>
+                            ${['tensile_strip', 'tensile_round', 'tensile_weld', 'charpy', 'dwtt'].includes(tp.specimen_figure) ? `
+                            <button onclick="event.stopPropagation(); openItpInfoModal('figure', ${i}, '3d')" class="inline-flex items-center gap-1 px-2.5 py-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg text-xs font-semibold shadow hover:from-blue-700 hover:to-indigo-700 transition">
+                                <span>🧊</span> 3D Etkileşimli İncele
+                            </button>` : ''}
+                        </div>
+                        ${getSpecimenDrawing(tp.specimen_figure, calculatedPipes[selectedPipeIndex])}
+                    </div>` : ''}
                 </td>
             </tr>`;
         });
@@ -2686,24 +2701,96 @@ function toggleItpRow(id) {
     if (row) row.classList.toggle("hidden");
 }
 
-function openItpInfoModal(type, idx) {
+let currentItpModalState = {
+    type: 'figure',
+    idx: null,
+    viewMode: '2d'
+};
+
+function switchItpSpecimenView(mode) {
+    currentItpModalState.viewMode = mode;
+    const btn2d = document.getElementById("itp-btn-view-2d");
+    const btn3d = document.getElementById("itp-btn-view-3d");
+    const body = document.getElementById("itp-info-body");
+    const data = (window._itpData || [])[currentItpModalState.idx];
+    const pipeData = calculatedPipes[selectedPipeIndex];
+
+    if (btn2d && btn3d) {
+        if (mode === '2d') {
+            btn2d.className = "px-3 py-1 rounded-md transition bg-white text-blue-700 shadow-sm font-semibold";
+            btn3d.className = "px-3 py-1 rounded-md transition text-slate-600 hover:text-slate-900";
+        } else {
+            btn3d.className = "px-3 py-1 rounded-md transition bg-white text-indigo-700 shadow-sm font-semibold";
+            btn2d.className = "px-3 py-1 rounded-md transition text-slate-600 hover:text-slate-900";
+        }
+    }
+
+    if (!body || !data) return;
+
+    if (mode === '2d') {
+        if (window._specimenVisualizer3D) {
+            window._specimenVisualizer3D.dispose();
+            window._specimenVisualizer3D = null;
+        }
+        body.innerHTML = getSpecimenDrawing(data.specimen_figure, pipeData) || '<p class="text-xs text-slate-400">Çizim bulunamadı.</p>';
+    } else {
+        body.innerHTML = `
+            <div id="specimen-3d-viewport" class="w-full h-[440px] rounded-xl overflow-hidden shadow-inner border border-slate-700/80 bg-slate-950 relative"></div>
+        `;
+        setTimeout(() => {
+            const vp = document.getElementById("specimen-3d-viewport");
+            if (vp && typeof SpecimenVisualizer3D !== 'undefined') {
+                if (window._specimenVisualizer3D) {
+                    window._specimenVisualizer3D.dispose();
+                }
+                window._specimenVisualizer3D = new SpecimenVisualizer3D(vp);
+                window._specimenVisualizer3D.loadSpecimen(data.specimen_figure, pipeData);
+            }
+        }, 40);
+    }
+}
+
+function openItpInfoModal(type, idx, preferredView) {
     const data = (window._itpData || [])[idx];
     if (!data) return;
     const modal = document.getElementById("itp-info-modal");
     const title = document.getElementById("itp-info-title");
-    const body = document.getElementById("itp-info-body");
-    if (!modal || !title || !body) return;
+    const toggle = document.getElementById("itp-modal-view-toggle");
+    if (!modal || !title) return;
+
+    currentItpModalState.type = type;
+    currentItpModalState.idx = idx;
+
+    const has3D = ['tensile_strip', 'tensile_round', 'tensile_weld', 'charpy', 'dwtt'].includes(data.specimen_figure);
+
     if (type === "clause") {
+        if (toggle) toggle.classList.add("hidden");
         title.innerText = data.clause;
-        body.innerHTML = `<div class="whitespace-pre-line text-sm text-slate-700 leading-relaxed">${esc(data.clause_ref || 'Standart metni bulunamadı.')}</div>`;
+        const body = document.getElementById("itp-info-body");
+        if (body) {
+            body.innerHTML = `<div class="whitespace-pre-line text-sm text-slate-700 leading-relaxed">${esc(data.clause_ref || 'Standart metni bulunamadı.')}</div>`;
+        }
     } else {
-        title.innerText = `${data.test} — Numune Çizimi`;
-        body.innerHTML = getSpecimenDrawing(data.specimen_figure, calculatedPipes[selectedPipeIndex]) || '<p class="text-xs text-slate-400">Çizim bulunamadı.</p>';
+        title.innerText = `${data.test} — Numune Görseli`;
+        if (toggle) {
+            if (has3D) {
+                toggle.classList.remove("hidden");
+                toggle.classList.add("flex");
+            } else {
+                toggle.classList.add("hidden");
+            }
+        }
+        const viewMode = (has3D && preferredView === '3d') ? '3d' : '2d';
+        switchItpSpecimenView(viewMode);
     }
     modal.classList.remove("hidden");
 }
 
 function closeItpInfoModal() {
+    if (window._specimenVisualizer3D) {
+        window._specimenVisualizer3D.dispose();
+        window._specimenVisualizer3D = null;
+    }
     const modal = document.getElementById("itp-info-modal");
     if (modal) modal.classList.add("hidden");
 }

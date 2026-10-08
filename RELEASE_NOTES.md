@@ -1,3 +1,44 @@
+# Sürüm Notları / Release Notes - v2.10.1 (Hotfix)
+
+## 🚀 API 5L PSL1/PSL2 & BOTAŞ Boru Kalite Güvence, Et Kalınlığı Tasarım ve Akıllı ITP Denetim Süiti (v2.10.1)
+
+Bu hotfix sürümü (**v2.10.1**), **ASTM A370 & API 5L numune 2D/3D modellerinin standart uyumu**, **üç boyutlu etkileşimli WebGL numune görselleştiricisi** ve **kaynak/geometri ölçüm frekansı önerileri**ni getirir.
+
+---
+
+### 🌟 v2.10.1 ile Gelen Başlıca Yenilikler ve Düzeltmeler
+
+1. **🔬 ASTM A370 Gövde Çekme Numuneleri (Dikişsiz Saf Ana Metal):**
+   - **Çekme Şerit (`tensile_strip`):** ASTM A370 Şekil 3 dog-bone omuzlu geometri ($W=38.1\text{ mm}$, $G=50.0\text{ mm}$, $R \ge 25\text{ mm}$). Boru gövdesinden alındığı için kaynak dikişi ve ITAB kaldırıldı.
+   - **Yuvarlak Çubuk (`tensile_round`):** ASTM A370 Şekil 4/5 ve Tablo 21 torna finişli silindirik mastar ($d=12.7 / 8.9 / 6.4\text{ mm}$). Gövde cidar ortasından alındığı için kaynak dikişi kaldırıldı.
+
+2. **⚡ Kaynak Çekme Testi Numunesi (`tensile_weld`):**
+   - ASTM A370 Şekil A2.3 ve API 5L 10.2.3.3 enine kaynak numunesi oluşturuldu. Çekme kuvveti eksenelken kaynak dikişi tam ortada **enine ($Z$ ekseni)** konumlandırıldı; taç pasosu, kök paso ve dalgalanmalar eklendi.
+
+3. **🔨 Çentik Darbe (CVN) & DWTT Fiziksel Test Doğrulaması:**
+   - **Charpy V-Çentik (`charpy`):** 45° V-çentik alttaki $40\text{ mm}$ örs mesnetleri tarafına (çekme gerilmesi yüzeyine) yerleştirildi; sarkaç çekici ters düz basma yüzeyine vuracak şekilde düzeltildi.
+   - **DWTT (`dwtt`):** 45° pres-çentik altta $254\text{ mm}$ örs mesnetleri tarafına, düşen ağırlık çekici üst düz kenara vuracak şekilde hizalandı.
+
+4. **🧊 3D Etkileşimli Numune Görselleştiricisi (WebGL / Three.js):**
+   - ITP modalında 2D Teknik Çizim ve 3D Etkileşimli Model arasında dinamik geçiş düğmeleri, OrbitControls ile 360° döndürme, yakınlaştırma, tel kafes modu eklendi.
+
+5. **📏 Kaynak & Geometri Ölçüm Frekansı Önerileri:**
+   - `Radial Offset`, `Kaynak Yüksekliği`, `Misalignment`, `Boru Ucu Çatılaşma / Diklik` parametreleri için API 5L Çizelge 14/16/Ek E ve BOTAŞ Çizelge 4 frekans önerileri matrise, Excel'e, Master ITP'ye ve `ⓘ` bilgi pencerelerine eklendi.
+
+---
+
+### 💻 İndirme Bağlantıları (v2.10.1)
+
+- **🪟 Windows (x64):**  
+  [**`API-5L-Pipe-Windows-x64-v2.10.1.exe` İndir**](https://github.com/SLedgehammer-dev12/API-5L-Pipe/releases/download/v2.10.1/API-5L-Pipe-Windows-x64-v2.10.1.exe)  
+  *Tek dosyadır, kurulum gerektirmez. Doğrudan çift tıklayarak çalıştırabilirsiniz.*
+
+- **🍏 macOS (Apple Silicon M1/M2/M3/M4 & Intel):**  
+  [**`API-5L-Pipe-macOS-v2.10.1.dmg` İndir**](https://github.com/SLedgehammer-dev12/API-5L-Pipe/releases/download/v2.10.1/API-5L-Pipe-macOS-v2.10.1.dmg)  
+  *Disk kalıbını açıp `API-5L-Pipe.app` uygulamasını Applications klasörüne sürükleyin.*
+
+---
+
 # Sürüm Notları / Release Notes - v2.10.0
 
 ## 🚀 API 5L PSL1/PSL2 & BOTAŞ Boru Kalite Güvence, Et Kalınlığı Tasarım ve Akıllı ITP Denetim Süiti (v2.10.0)

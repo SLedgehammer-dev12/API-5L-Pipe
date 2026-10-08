@@ -3,6 +3,30 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.10.1] - 2026-10-09 (ASTM A370 & API 5L Numune Çizimleri, 3D WebGL ve Geometrik Muayene Frekansları Hotfix)
+
+### 🛠️ Düzeltmeler ve İyileştirmeler (Fixed & Improved)
+- **ASTM A370 & API 5L Gövde Çekme Numuneleri (Kaynak Dikişi Kaldırıldı):**
+  - **Çekme Şerit (`tensile_strip`):** ASTM A370 Şekil 3 & Şekil A2.1 standart omuzlu köpek kemiği (*dog-bone*) geometriye dönüştürüldü ($W=38.1\text{ mm}$, $G=50.0\text{ mm}$, $R \ge 25\text{ mm}$, $C \approx 50\text{ mm}$). Gövdeden alındığı için **kaynak dikişi ve ITAB kaldırıldı**.
+  - **Çekme Yuvarlak Çubuk (`tensile_round`):** ASTM A370 Şekil 4/5 ve API 5L Tablo 21 torna finişli silindirik mastar ($d=12.7 / 8.9 / 6.4\text{ mm}$, $G=50.0\text{ mm}$, $R \ge 10\text{ mm}$). Boru gövdesi cidar ortasından alındığı için **kaynak dikişi ve ITAB kaldırıldı**.
+- **Kaynak Çekme Testi (`tensile_weld`):**
+  - ASTM A370 Şekil A2.3 & API 5L 10.2.3.3 enine kaynak numunesi oluşturuldu. 2D ve 3D modellerde çekme kuvveti eksenel ($X$) yönündeyken kaynak dikişi ve ITAB bantları **tam merkezde numune enine ($Z$ ekseni boyunca)** konumlandırıldı. Taç paso, kök paso ve dikiş pulları eklendi.
+- **Çentik Darbe (CVN - `charpy`) Fiziksel Test Düzeneği:**
+  - 3D modelde 45° V-çentik **alttaki 40 mm örs mesnetleri tarafına (çekme yüzeyine)** yerleştirildi; sarkaç çekici üstteki düz basma yüzeyine vuracak şekilde düzeltildi ve vuruş kuvveti oku ($\downarrow F_{\text{darbe}}$) eklendi.
+- **DWTT (Drop Weight Tear Test - `dwtt`):**
+  - 45° pres-çentik altta 254 mm örs mesnetleri tarafına, düşen ağırlık çekici ise üst düz kenara vuracak şekilde yerleştirildi. 2D çizimde ASTM E436 değerlendirme alanları eklendi.
+- **Etkileşimli 3D WebGL Numune Görselleştiricisi:**
+  - ITP bilgi modalına "📐 2D Teknik Çizim" ve "🧊 3D Etkileşimli Model" seçicisi eklendi; Three.js OrbitControls, döndürme, yakınlaştırma, tel kafes modu ve kamera sıfırlama işlevleri entegre edildi.
+- **Kaynak & Geometrik Muayene Frekansları Önerileri:**
+  - `Radial Offset`, `Kaynak Yüksekliği`, `Misalignment`, `Boru Ucu Çatılaşma / Diklik` için API 5L Çizelge 14/16/Ek E ve BOTAŞ 5120 R7 Çizelge 4 standart kurallarına dayalı dinamik frekans önerileri eklendi.
+  - Matris tablosu, Excel ihracı ("Test Frekansı" sütunu), Master ITP ve `ⓘ` bilgi pencerelerine yansıtıldı.
+
+### 🧪 Testler
+- Tüm birim testleri (82 test) başarıyla geçti (`80 passed, 2 skipped`).
+- JavaScript sözdizimi doğrulandı (`node -c`).
+
+---
+
 ## [2.10.0] - 2026-10-07 (Test Frekansı Sütunu, SAWL Boyuna Dikiş 3D Simülasyonu & Operating Pressure)
 
 ### 🎉 Eklenen Özellikler (Added)

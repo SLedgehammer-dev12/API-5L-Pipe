@@ -112,13 +112,37 @@ EDITION_NOTES: Dict[str, Dict[str, Any]] = {
         "changed_46_47": True,
         "program_note": None,
     },
-    "peaking": {
-        "title": "Boru Ucu Peaking",
-        "source": "API 5L 9.10.5.1 / 10.2.8.4",
-        "edition_46": "Geometrik sapma ≤ 3.2 mm (9.10.5.1); ölçüm şablonla (0.25D veya 200 mm).",
-        "edition_47": "46. baskı ile aynı; D×0.0015 formülü standardda yoktur.",
+    "radial_offset": {
+        "title": "Radyal Kaçıklık / Basamaklanma (Radial Offset)",
+        "source": "API 5L 9.13.1, 10.2.8.4 & Çizelge 14 / BOTAŞ Çizelge 4",
+        "edition_46": "Çizelge 14 sınırları: t < 15 mm için 1.5 mm; t < 25 mm için 0.1×t; t ≥ 25 mm için 2.5 mm.",
+        "edition_47": "46. baskı ile aynı. BOTAŞ şartnamesinde katsayı 0.75'tir (t<15 için 1.125 mm).",
         "changed_46_47": False,
-        "program_note": "Program daha önce D×0.0015 formülünü kullanıyordu; standard limiti 3.2 mm'dir.",
+        "program_note": "Ölçüm Frekansı Önerisi: İmalat hattında dikiş boyunca sürekli lazer profilometre ile (%100) veya vardiyada en az her 4 saatte bir ve her rulo/bobin ekinde; boru uçlarında istisnasız %100 kontrol edilir (BOTAŞ D≥20\" için %100 zorunlu).",
+    },
+    "weld_height": {
+        "title": "Kaynak Dikiş Yüksekliği (Weld Reinforcement Height)",
+        "source": "API 5L 9.13.2, 10.2.8.6 & Çizelge 16 / BOTAŞ Çizelge 4",
+        "edition_46": "Çizelge 16: İç takviye max 3.5 mm; dış takviye max 4.5 mm (t>13 mm) / 3.5 mm (t≤13 mm).",
+        "edition_47": "46. baskı ile aynı. BOTAŞ şartnamesinde katsayı 0.75'tir (iç max 2.625 mm; dış max 3.375 mm).",
+        "changed_46_47": False,
+        "program_note": "Ölçüm Frekansı Önerisi: Boru uçlarında (uçtan 100 mm içinde) istisnasız her boruda (%100); gövde boyunca vardiyada en az her 4 saatte bir ve elektrot/toz değişiminde (sürekli on-line profilometre önerilir).",
+    },
+    "misalignment": {
+        "title": "İç/Dış Kaynak Hiza Kaçıklığı (Weld Misalignment)",
+        "source": "API 5L 9.13.3 & Ek E / BOTAŞ Çizelge 4",
+        "edition_46": "Ek E: İç ve dış kaynak merkez eksenleri arası kaçıklık max 3.0 mm (t≤20 mm) / 4.0 mm (t>20 mm).",
+        "edition_47": "46. baskı ile aynı. BOTAŞ şartnamesinde katsayı 0.75'tir (max 2.25 mm / 3.0 mm).",
+        "changed_46_47": False,
+        "program_note": "Ölçüm Frekansı Önerisi: Doğrudan dış yüzeyden kumpasla ölçülemez. Makrografik kesit incelemesinde (vardiyada en az 2-3 kez veya rulo başında) ve otomatik UT prob takibinde (sürekli %100) belirlenir.",
+    },
+    "peaking": {
+        "title": "Boru Ucu Kaynak Çatılaşması & Diklik (Peaking & Squareness)",
+        "source": "API 5L 9.11.3.4, 9.11.3.5, 10.2.8.3, 10.2.8.5 & Çizelge 16 / BOTAŞ Çizelge 4",
+        "edition_46": "Geometrik sapma (Peaking) ≤ 3.2 mm (200 mm kavisli mastar); Diklikten sapma ≤ 1.6 mm.",
+        "edition_47": "46. baskı ile aynı. BOTAŞ şartnamesinde boru ucu çatılaşması max 1.5 mm, gövdede max 2.0 mm; diklik max 1.6 mm.",
+        "changed_46_47": False,
+        "program_note": "Ölçüm Frekansı Önerisi: BOTAŞ D≥20\" borularda her borunun her iki ucunda %100 kontrol edilir. Standart API 5L için vardiyada en az her 4 saatte bir ve her ebat/takım değişiminde ölçülür.",
     },
     "dwtt": {
         "title": "DWTT — Madde 9.9 / Tablo 20",
@@ -137,6 +161,7 @@ def build_edition_notes(pipe_result: Dict[str, Any]) -> Dict[str, Any]:
         "yt_ratio", "cvn_body", "cvn_weld", "hydro_factor", "diameter_tol",
         "smls_wall_tol", "elongation", "strain_a", "flattening",
         "hydro_calibration", "chem_m_grade", "peaking", "dwtt",
+        "radial_offset", "weld_height", "misalignment",
     }
     notes: Dict[str, Any] = {}
     for k in keys:

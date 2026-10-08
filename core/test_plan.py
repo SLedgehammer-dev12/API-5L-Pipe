@@ -103,6 +103,8 @@ CLAUSE_REFERENCES: Dict[str, str] = {
 SPECIMEN_FIGURES: Dict[str, Optional[str]] = {
     "Kimyasal Analiz (Heat & Product)": None,
     "Çekme Testi (Tensile)": None,          # set dynamically below (strip vs round)
+    "Kaynak Çekme Testi (Weld Tensile)": "tensile_weld",
+    "Bobin/Plaka Uç Kaynağı Çekme Testi": "tensile_weld",
     "Çentik Darbe (CVN)": "charpy",
     "Hidrostatik Test": None,
     "Kılavuzlu Bükme (Guided Bend)": "guided_bend",
@@ -112,7 +114,7 @@ SPECIMEN_FIGURES: Dict[str, Optional[str]] = {
 }
 
 VALID_FIGURES = {
-    "sampling_location", "charpy", "tensile_strip", "tensile_round",
+    "sampling_location", "charpy", "tensile_strip", "tensile_round", "tensile_weld",
     "guided_bend", "flattening", "residual_stress_ring", "dwtt", "hardness",
 }
 
@@ -260,7 +262,7 @@ def _table_frequency_rows(
                            "test ünitesi max 200 boru, D > 323,9 mm max 100 boru (aynı soğuk genişletme oranı)."
                            if not is_psl1 else
                            "API 5L Table 17 #9: D ≥ 219,1 mm kaynak dikişi çekme testi; test ünitesi."),
-            "specimen_figure": "tensile_strip",
+            "specimen_figure": "tensile_weld",
             "frequency": freq,
             "location": "Kaynak dikişi (enine numune)",
             "specimen": "Kaynak dikişi enine çekme numunesi",
@@ -274,7 +276,7 @@ def _table_frequency_rows(
             "clause": f"API 5L 10.2.3.4 / {table}",
             "clause_ref": ("API 5L Table 18 #8: spiralkaynaklı boruda bobin/plaka uç kaynağı çekme testi, "
                            "aynı soğuk genişletme oranında en az 50 uç kaynağında 1."),
-            "specimen_figure": "tensile_strip",
+            "specimen_figure": "tensile_weld",
             "frequency": "En az 50 bobin/plaka uç kaynağında 1 set",
             "location": "Bobin/plaka uç kaynağı (helisel dikiş)",
             "specimen": "Enine çekme numunesi",
@@ -1285,6 +1287,21 @@ def get_comprehensive_itp_specification(pipe_config: Optional[Dict[str, Any]] = 
             "ndt_acceptance_level": f"İç/Dış Yükseklik ≤ {weld_h_max:.2f} mm, Kaçıklık ≤ {misalignment_max:.2f} mm",
             "calculated_target_str": f"İç/Dış Kaynak Yüksekliği ≤ {weld_h_max:.2f} mm | Eksenel Kaçıklık ≤ {misalignment_max:.2f} mm",
             "calculated_targets": {"max_weld_height_mm": weld_h_max, "min_weld_height_mm": 0.50, "max_misalignment_mm": misalignment_max},
+            "is_mandatory": True,
+        })
+        master_list.append({
+            "test_key": "weld_misalignment",
+            "category": "Boyutsal & Geometri",
+            "test_name": "Kaynak Hiza Kaçıklığı / Merkez Kaçıklığı (Weld Misalignment)",
+            "standard_frequency": "Vardiyada en az 2-3 kez makrografik kesit incelemesinde + her bobin ekinde (ve on-line UT prob takibinde sürekli)",
+            "standard_frequency_en": "At least 2-3 times per shift on macrographic sections + coil joints + continuous on-line UT tracking",
+            "standard_acceptance_criteria": f"Eksenel / Çapraz Hiza Kaçıklığı ≤ {misalignment_max:.2f} mm (API 5L Ek E / BOTAŞ Çizelge 4)",
+            "clause_ref": "BOTAŞ Şartnamesi Çizelge 4 / API 5L Madde 9.13.3 & Ek E",
+            "table_ref": "BOTAŞ Çizelge 4 / API 5L Annex E",
+            "ndt_method_standard": "Makrografik Kesit Ölçümü (Optik Profil Projektörü) & On-line UT Prob Takibi",
+            "ndt_acceptance_level": f"Eksenel Kaçıklık ≤ {misalignment_max:.2f} mm",
+            "calculated_target_str": f"Eksenel Kaçıklık ≤ {misalignment_max:.2f} mm",
+            "calculated_targets": {"max_misalignment_mm": misalignment_max},
             "is_mandatory": True,
         })
         master_list.append({

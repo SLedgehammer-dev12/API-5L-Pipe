@@ -1,3 +1,31 @@
+# What's New in API 5L Pipe QA/QC & Wall Thickness Suite (v2.10.1)
+## Yenilikler ve Sürüm Özeti - v2.10.1 (2026-10-09)
+
+---
+
+### 🇹🇷 Türkçe Özet (v2.10.1 - Hotfix)
+
+API 5L Pipe QA/QC Suite **v2.10.1** hotfix sürümü ile **ASTM A370 & API 5L numune 2D/3D modellerinin standart uyumu**, **WebGL Three.js etkileşimli 3D numune görüntüleyicisi** ve **kaynak geometri ölçüm frekansı önerileri** eklenmiştir:
+
+#### 1. 🔬 ASTM A370 Gövde Çekme Numuneleri (Dikişsiz Saf Ana Metal)
+- **Çekme Şerit (`tensile_strip`):** ASTM A370 Şekil 3 dog-bone omuzlu geometri ($W=38.1\text{ mm}$, $G=50.0\text{ mm}$, $R \ge 25\text{ mm}$). Boru gövdesi ana metalinden alındığı için kaynak dikişi ve ITAB kaldırıldı.
+- **Yuvarlak Çubuk (`tensile_round`):** ASTM A370 Şekil 4/5 ve Tablo 21 torna finişli silindirik mastar ($d=12.7 / 8.9 / 6.4\text{ mm}$). Boru et kalınlığı ortasından alındığı için dikişsiz saf gövde metali olarak uyarlandı.
+
+#### 2. ⚡ Kaynak Çekme Testi Numunesi (`tensile_weld`)
+- ASTM A370 Şekil A2.3 ve API 5L 10.2.3.3 uyarınca ayrı enine kaynak numunesi oluşturuldu. Çekme gerilmesi eksenelken kaynak dikişi ortada **enine ($Z$ ekseni)** yönlendirildi; taç/kök paso ve erime çizgisi eklendi.
+
+#### 3. 🔨 Çentik Darbe (CVN) & DWTT Darbe Yönü Doğrulaması
+- **Charpy V-Çentik (`charpy`):** 45° V-çentik alttaki $40\text{ mm}$ mesnet ayakları tarafına (çekme gerilmesi yüzeyi) yerleştirildi; sarkaç çekici çentiksiz düz arka yüzeye vuracak şekilde düzeltildi.
+- **DWTT (`dwtt`):** 45° pres-çentik altta $254\text{ mm}$ mesnet örsleri tarafına, düşen ağırlık çekici üst düz kenara vuracak şekilde ters çevrildi.
+
+#### 4. 🧊 3D Etkileşimli Numune Görselleştiricisi (WebGL / Three.js)
+- ITP modalında 2D Teknik Çizim ile 3D Etkileşimli Model arasında dinamik geçiş, OrbitControls (360° döndürme, pan, zoom, tel kafes modu) ve canlı numune ölçüleri eklendi.
+
+#### 5. 📏 Kaynak & Geometri Ölçüm Frekansı Önerileri
+- `Radial Offset`, `Kaynak Yüksekliği`, `Misalignment`, `Boru Ucu Çatılaşma / Diklik` parametreleri için API 5L Çizelge 14/16/Ek E ve BOTAŞ Çizelge 4 frekans önerileri matrise, Excel'e, Master ITP'ye ve `ⓘ` bilgi pencerelerine bağlandı.
+
+---
+
 # What's New in API 5L Pipe QA/QC & Wall Thickness Suite (v2.10.0)
 ## Yenilikler ve Sürüm Özeti - v2.10.0 (2026-10-07)
 

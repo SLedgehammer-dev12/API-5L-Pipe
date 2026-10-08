@@ -93,6 +93,10 @@ const SPECIMEN_DRAWINGS = {
     // Orthographic views + magnified notch detail + 40 mm anvil span.
     // Selected sub-size (Table 22) highlighted from the pipe's CVN size.
     // ------------------------------------------------------------------
+    // ------------------------------------------------------------------
+    // Charpy V-notch specimen (10 × 10 × 55 mm) — API 5L 9.8 / Table 22
+    // Photorealistic 2.5D orthographic views + optical comparator notch detail + 40 mm anvil span.
+    // ------------------------------------------------------------------
     charpy: (pd) => {
         const tt = (pd && pd.toughness_and_tests) || {};
         const sizeLabel = String(tt.notch_specimen_size || '');
@@ -100,120 +104,174 @@ const SPECIMEN_DRAWINGS = {
         const sel = sizeLabel.includes('10 x 10') ? 'full'
             : (sizeLabel.includes('7.5') ? '34'
             : (sizeLabel.includes('6.67') ? '23'
-            : (sizeLabel.includes('5 x 10') ? '12' : '')));
-        const hlFill = (k) => (!cvnReq ? '#e2e8f0' : (sel === k ? '#fde68a' : '#e2e8f0'));
-        const hlStroke = (k) => (cvnReq && sel === k ? '#b45309' : '#334155');
-        const hlW = (k) => (cvnReq && sel === k ? 2.5 : 1);
+            : (sizeLabel.includes('5 x 10') ? '12' : 'full')));
+        const hlFill = (k) => (!cvnReq ? 'url(#cvn-steel-flat)' : (sel === k ? 'url(#cvn-sel-grad)' : 'url(#cvn-sub-grad)'));
+        const hlStroke = (k) => (cvnReq && sel === k ? '#b45309' : '#475569');
+        const hlW = (k) => (cvnReq && sel === k ? 2.5 : 1.2);
         const tag = (k, y) => (cvnReq && sel === k
             ? `<text x="404" y="${y}" text-anchor="end" class="sd-note" fill="#b45309" font-weight="700">seçili ▶</text>` : '');
+
         return `
-    <svg viewBox="0 0 640 420" xmlns="http://www.w3.org/2000/svg" class="w-full h-auto max-h-[420px]">
+    <svg viewBox="0 0 640 430" xmlns="http://www.w3.org/2000/svg" class="w-full h-auto max-h-[430px]">
       <style>
         .sd-line{stroke:#334155;stroke-width:1.5;fill:none}
-        .sd-dim{stroke:#3b82f6;stroke-width:1;stroke-dasharray:3,3}
+        .sd-dim{stroke:#2563eb;stroke-width:1.2;stroke-dasharray:3,3}
         .sd-txt{font-family:'JetBrains Mono',monospace;font-size:11px;fill:#0f172a}
-        .sd-lbl{font-family:'Inter',sans-serif;font-size:10.5px;font-weight:600;fill:#1e3a8a}
-        .sd-dimtxt{font-family:'JetBrains Mono',monospace;font-size:10px;fill:#2563eb}
-        .sd-note{font-family:'Inter',sans-serif;font-size:9.5px;fill:#64748b}
+        .sd-lbl{font-family:'Inter',sans-serif;font-size:11px;font-weight:700;fill:#1e3a8a}
+        .sd-dimtxt{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;fill:#1d4ed8}
+        .sd-note{font-family:'Inter',sans-serif;font-size:9.5px;fill:#475569}
       </style>
       <defs>
-        <marker id="sd-arr2" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
-          <path d="M0,0 L7,3 L0,6 Z" fill="#3b82f6"/>
+        <marker id="sd-arr-cvn" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+          <path d="M0,0 L7,3 L0,6 Z" fill="#2563eb"/>
         </marker>
+        <filter id="sd-drop-shadow" x="-5%" y="-5%" width="115%" height="120%">
+          <feDropShadow dx="2" dy="3" stdDeviation="2.5" flood-color="#0f172a" flood-opacity="0.18"/>
+        </filter>
+        <!-- Steel ground finish gradient -->
+        <linearGradient id="cvn-steel-bar" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#f8fafc"/>
+          <stop offset="15%" stop-color="#e2e8f0"/>
+          <stop offset="50%" stop-color="#cbd5e1"/>
+          <stop offset="85%" stop-color="#94a3b8"/>
+          <stop offset="100%" stop-color="#64748b"/>
+        </linearGradient>
+        <linearGradient id="cvn-steel-end" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#f1f5f9"/>
+          <stop offset="50%" stop-color="#cbd5e1"/>
+          <stop offset="100%" stop-color="#94a3b8"/>
+        </linearGradient>
+        <linearGradient id="cvn-anvil-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#334155"/><stop offset="50%" stop-color="#64748b"/><stop offset="100%" stop-color="#1e293b"/>
+        </linearGradient>
+        <linearGradient id="cvn-sel-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#fef3c7"/><stop offset="100%" stop-color="#fde68a"/>
+        </linearGradient>
+        <linearGradient id="cvn-sub-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#f1f5f9"/><stop offset="100%" stop-color="#e2e8f0"/>
+        </linearGradient>
       </defs>
 
-      <text x="320" y="22" text-anchor="middle" class="sd-txt" font-weight="bold" font-size="12">Charpy V-Çentik Numunesi — API 5L 9.8 / Çizelge 22 (ISO 148-1 / ASTM A370)</text>
+      <!-- Title Header -->
+      <rect x="12" y="6" width="616" height="26" rx="4" fill="#f8fafc" stroke="#e2e8f0"/>
+      <text x="320" y="23" text-anchor="middle" class="sd-txt" font-weight="bold" font-size="12" fill="#0f172a">
+        Charpy V-Çentik Numunesi — API 5L 9.8 / Çizelge 22 (ISO 148-1 / ASTM A370)
+      </text>
 
-      <!-- ============ A) Side elevation ============ -->
-      <text x="24" y="48" class="sd-lbl">A) Yan görünüş (55 × 10 mm)</text>
-      <rect x="40" y="70" width="302" height="55" fill="#e2e8f0" stroke="#334155" stroke-width="2"/>
-      <path d="M 186 70 L 191 81 L 196 70" fill="#fff" stroke="#334155" stroke-width="1.4"/>
-      <circle cx="191" cy="81" r="1.4" fill="#fff" stroke="#334155" stroke-width="0.9"/>
-      <text x="191" y="61" text-anchor="middle" class="sd-txt" font-weight="bold" font-size="10">45°</text>
-      <line x1="206" y1="70" x2="206" y2="81" class="sd-dim"/>
-      <text x="210" y="78" class="sd-dimtxt">2 mm</text>
-      <line x1="222" y1="81" x2="222" y2="125" class="sd-dim"/>
-      <line x1="218" y1="81" x2="226" y2="81" class="sd-dim"/>
+      <!-- ============ A) Side Elevation ============ -->
+      <text x="24" y="52" class="sd-lbl">A) Yan Görünüş (55 × 10 mm) • Taşlanmış Yüzey</text>
+      <!-- Specimen Bar with Shadow -->
+      <g filter="url(#sd-drop-shadow)">
+        <rect x="40" y="70" width="302" height="55" rx="1.5" fill="url(#cvn-steel-bar)" stroke="#334155" stroke-width="1.8"/>
+        <!-- Bevel highlights -->
+        <line x1="41" y1="71" x2="341" y2="71" stroke="#ffffff" stroke-width="1" opacity="0.85"/>
+        <line x1="41" y1="124" x2="341" y2="124" stroke="#475569" stroke-width="1" opacity="0.6"/>
+        <!-- Notch cut (45 deg, 2mm deep) -->
+        <path d="M 185 70 L 191 82 L 197 70 Z" fill="#ffffff" stroke="#334155" stroke-width="1.4"/>
+        <path d="M 185 70 L 191 82 L 197 70" fill="none" stroke="#b45309" stroke-width="1.6"/>
+        <circle cx="191" cy="82" r="1.5" fill="#f59e0b" stroke="#b45309" stroke-width="0.8"/>
+      </g>
+      <!-- 45 deg callout -->
+      <text x="191" y="62" text-anchor="middle" class="sd-txt" font-weight="bold" font-size="10" fill="#b45309">45° V-Çentik</text>
+      <line x1="206" y1="70" x2="206" y2="82" class="sd-dim"/>
+      <text x="210" y="79" class="sd-dimtxt">2,0 mm</text>
+      <line x1="222" y1="82" x2="222" y2="125" class="sd-dim"/>
+      <line x1="218" y1="82" x2="226" y2="82" class="sd-dim"/>
       <line x1="218" y1="125" x2="226" y2="125" class="sd-dim"/>
-      <text x="228" y="106" class="sd-dimtxt">8 mm</text>
-      <line x1="188" y1="84" x2="166" y2="104" stroke="#3b82f6" stroke-width="0.8"/>
-      <text x="164" y="116" text-anchor="end" class="sd-dimtxt">r = 0,25 mm</text>
-      <line x1="40" y1="145" x2="342" y2="145" class="sd-dim" marker-start="url(#sd-arr2)" marker-end="url(#sd-arr2)"/>
+      <text x="228" y="106" class="sd-dimtxt">8,0 mm</text>
+      <!-- Root radius pointer -->
+      <line x1="189" y1="83" x2="162" y2="105" stroke="#2563eb" stroke-width="1.2"/>
+      <circle cx="162" cy="105" r="2" fill="#2563eb"/>
+      <text x="158" y="118" text-anchor="end" class="sd-dimtxt">r = 0,25 ± 0,025 mm</text>
+      <!-- Total Length L=55mm -->
+      <line x1="40" y1="145" x2="342" y2="145" class="sd-dim" marker-start="url(#sd-arr-cvn)" marker-end="url(#sd-arr-cvn)"/>
       <line x1="40" y1="139" x2="40" y2="151" class="sd-dim"/>
       <line x1="342" y1="139" x2="342" y2="151" class="sd-dim"/>
-      <text x="191" y="163" text-anchor="middle" class="sd-dimtxt">L = 55 mm</text>
+      <text x="191" y="163" text-anchor="middle" class="sd-dimtxt">L = 55,0 ± 0,60 mm</text>
+      <!-- Height 10mm -->
       <line x1="358" y1="70" x2="358" y2="125" class="sd-dim"/>
       <line x1="352" y1="70" x2="364" y2="70" class="sd-dim"/>
       <line x1="352" y1="125" x2="364" y2="125" class="sd-dim"/>
-      <text x="366" y="102" class="sd-dimtxt">10 mm</text>
-      <text x="191" y="192" text-anchor="middle" class="sd-note">V-çentik: 45° dahil açı • 2 mm derinlik • r = 0,25 mm kök</text>
+      <text x="366" y="102" class="sd-dimtxt">10,0 mm</text>
+      <text x="191" y="190" text-anchor="middle" class="sd-note">V-çentik: 45° ± 1° dahil açı • Derinlik: 2,00 ± 0,05 mm • Kök: r = 0,25 mm</text>
 
-      <!-- ============ B) Cross-section + magnified notch ============ -->
-      <text x="24" y="228" class="sd-lbl">B) Kesit (10 × 10) ve çentik detayı</text>
-      <rect x="50" y="245" width="60" height="60" fill="#e2e8f0" stroke="#334155" stroke-width="2"/>
-      <path d="M 74 245 L 80 256 L 86 245" fill="#fff" stroke="#334155" stroke-width="1.4"/>
-      <line x1="118" y1="245" x2="118" y2="305" class="sd-dim"/>
-      <line x1="114" y1="245" x2="122" y2="245" class="sd-dim"/>
-      <line x1="114" y1="305" x2="122" y2="305" class="sd-dim"/>
+      <!-- ============ B) End Section & Optical Reticle ============ -->
+      <text x="24" y="226" class="sd-lbl">B) Kesit (10 × 10) ve Optik Komparatör Detayı (25×)</text>
+      <g filter="url(#sd-drop-shadow)">
+        <rect x="50" y="244" width="60" height="60" rx="1" fill="url(#cvn-steel-end)" stroke="#334155" stroke-width="1.8"/>
+        <path d="M 74 244 L 80 256 L 86 244 Z" fill="#ffffff" stroke="#b45309" stroke-width="1.4"/>
+      </g>
+      <line x1="118" y1="244" x2="118" y2="304" class="sd-dim"/>
+      <line x1="114" y1="244" x2="122" y2="244" class="sd-dim"/>
+      <line x1="114" y1="304" x2="122" y2="304" class="sd-dim"/>
       <text x="126" y="278" class="sd-dimtxt">10 mm</text>
-      <line x1="50" y1="318" x2="110" y2="318" class="sd-dim" marker-start="url(#sd-arr2)" marker-end="url(#sd-arr2)"/>
-      <text x="80" y="332" text-anchor="middle" class="sd-dimtxt">10 mm</text>
-      <!-- magnifier -->
-      <circle cx="240" cy="272" r="52" fill="#f8fafc" stroke="#94a3b8" stroke-width="1.2" stroke-dasharray="4,3"/>
-      <text x="240" y="214" text-anchor="middle" class="sd-note">Büyütülmüş çentik detayı</text>
-      <line x1="214" y1="246" x2="266" y2="246" stroke="#94a3b8" stroke-width="1"/>
-      <path d="M 214 246 L 240 298 L 266 246" fill="none" stroke="#334155" stroke-width="2"/>
-      <line x1="240" y1="246" x2="240" y2="298" class="sd-dim"/>
-      <text x="248" y="268" class="sd-dimtxt">2 mm</text>
-      <text x="254" y="292" class="sd-dimtxt">45°</text>
-      <circle cx="240" cy="298" r="2.2" fill="#fff" stroke="#334155" stroke-width="1"/>
-      <line x1="242" y1="300" x2="282" y2="316" stroke="#3b82f6" stroke-width="0.8"/>
-      <text x="285" y="321" class="sd-dimtxt">r = 0,25 mm</text>
+      <line x1="50" y1="316" x2="110" y2="316" class="sd-dim" marker-start="url(#sd-arr-cvn)" marker-end="url(#sd-arr-cvn)"/>
+      <text x="80" y="330" text-anchor="middle" class="sd-dimtxt">10 mm</text>
 
-      <!-- ============ D) Sub-size variants (Table 22) ============ -->
-      <text x="380" y="48" class="sd-lbl">D) Alt boyutlar (Çizelge 22)</text>
-      <rect x="410" y="64" width="120" height="27" fill="${hlFill('full')}" stroke="${hlStroke('full')}" stroke-width="${hlW('full')}"/>
-      <text x="538" y="82" class="sd-note" font-size="10.5px">Tam boy 10 × 10 × 55</text>
+      <!-- Optical Reticle / Magnifier -->
+      <g transform="translate(236, 282)">
+        <circle cx="0" cy="0" r="48" fill="#f8fafc" stroke="#3b82f6" stroke-width="1.5" stroke-dasharray="5,3"/>
+        <circle cx="0" cy="0" r="45" fill="none" stroke="#cbd5e1" stroke-width="0.8"/>
+        <!-- Reticle Crosshair -->
+        <line x1="-42" y1="0" x2="42" y2="0" stroke="#94a3b8" stroke-width="0.8" stroke-dasharray="2,2"/>
+        <line x1="0" y1="-42" x2="0" y2="42" stroke="#94a3b8" stroke-width="0.8" stroke-dasharray="2,2"/>
+        <!-- Precision notch profile magnified -->
+        <path d="M -26 -28 L 0 20 L 26 -28" fill="none" stroke="#b45309" stroke-width="2.6" stroke-linejoin="round"/>
+        <!-- Root radius arc -->
+        <path d="M -5 10 Q 0 22 5 10" fill="none" stroke="#2563eb" stroke-width="2"/>
+        <text x="0" y="-32" text-anchor="middle" class="sd-note" font-weight="bold" fill="#1e3a8a">25× Optik Şablon</text>
+        <text x="12" y="-10" class="sd-dimtxt" font-size="9px">45°</text>
+        <text x="8" y="32" class="sd-dimtxt" font-size="9px">r = 0,25 mm</text>
+      </g>
+
+      <!-- ============ D) Sub-size Variants (Table 22) ============ -->
+      <text x="380" y="52" class="sd-lbl">D) Alt Boyutlar (Çizelge 22)</text>
+      <g filter="url(#sd-drop-shadow)">
+        <rect x="410" y="64" width="120" height="27" rx="2" fill="${hlFill('full')}" stroke="${hlStroke('full')}" stroke-width="${hlW('full')}"/>
+        <rect x="410" y="104" width="120" height="20" rx="2" fill="${hlFill('34')}" stroke="${hlStroke('34')}" stroke-width="${hlW('34')}"/>
+        <rect x="410" y="138" width="120" height="18" rx="2" fill="${hlFill('23')}" stroke="${hlStroke('23')}" stroke-width="${hlW('23')}"/>
+        <rect x="410" y="170" width="120" height="14" rx="2" fill="${hlFill('12')}" stroke="${hlStroke('12')}" stroke-width="${hlW('12')}"/>
+      </g>
+      <text x="538" y="82" class="sd-note" font-size="10.5px" font-weight="600">Tam boy 10 × 10 × 55</text>
       ${tag('full', 82)}
-      <rect x="410" y="106" width="120" height="20" fill="${hlFill('34')}" stroke="${hlStroke('34')}" stroke-width="${hlW('34')}"/>
-      <text x="538" y="120" class="sd-note" font-size="10.5px">3/4 boy 7,5 × 10 × 55</text>
-      ${tag('34', 120)}
-      <rect x="410" y="142" width="120" height="18" fill="${hlFill('23')}" stroke="${hlStroke('23')}" stroke-width="${hlW('23')}"/>
-      <text x="538" y="155" class="sd-note" font-size="10.5px">2/3 boy 6,67 × 10 × 55</text>
-      ${tag('23', 155)}
-      <rect x="410" y="176" width="120" height="14" fill="${hlFill('12')}" stroke="${hlStroke('12')}" stroke-width="${hlW('12')}"/>
-      <text x="538" y="188" class="sd-note" font-size="10.5px">1/2 boy 5 × 10 × 55</text>
-      ${tag('12', 188)}
-      <text x="380" y="214" class="sd-note">Alt boyutta enerji ölçeklenir (9.8.1.1);</text>
-      <text x="380" y="228" class="sd-note">tek değer ≥ ortalamanın %75'i (9.8.1.2).</text>
-      ${cvnReq ? '' : '<text x="380" y="248" class="sd-note" fill="#b45309" font-weight="700">PSL1: CVN zorunlu değil (Çizelge 17).</text>'}
+      <text x="538" y="118" class="sd-note" font-size="10.5px">3/4 boy 7,5 × 10 × 55</text>
+      ${tag('34', 118)}
+      <text x="538" y="151" class="sd-note" font-size="10.5px">2/3 boy 6,67 × 10 × 55</text>
+      ${tag('23', 151)}
+      <text x="538" y="181" class="sd-note" font-size="10.5px">1/2 boy 5 × 10 × 55</text>
+      ${tag('12', 181)}
+      <text x="380" y="206" class="sd-note">Alt boyutta enerji oranı: 9.8.1.1</text>
+      <text x="380" y="220" class="sd-note">Tek değer ≥ ortalamanın %75'i (9.8.1.2)</text>
+      ${cvnReq ? '' : '<text x="380" y="238" class="sd-note" fill="#b45309" font-weight="700">PSL1: CVN zorunlu değil (Çizelge 17).</text>'}
 
-      <!-- ============ C) Impact rig (3-point bending) ============ -->
-      <text x="380" y="270" class="sd-lbl">C) Darbe düzeni (3 nokta eğilme)</text>
-      <line x1="465" y1="272" x2="465" y2="284" stroke="#475569" stroke-width="2"/>
-      <path d="M 461 277 L 469 277 L 465 285 Z" fill="#475569"/>
-      <path d="M 450 285 L 480 285 L 465 306 Z" fill="#94a3b8" stroke="#334155" stroke-width="1.2"/>
-      <text x="486" y="292" class="sd-note">Vurucu (sarkaç)</text>
-      <rect x="405" y="306" width="125" height="12" fill="#e2e8f0" stroke="#334155" stroke-width="1.5"/>
-      <path d="M 461 318 L 465 324 L 469 318" fill="#fff" stroke="#334155" stroke-width="1.2"/>
-      <rect x="400" y="324" width="40" height="14" fill="#475569" stroke="#334155" stroke-width="1"/>
-      <rect x="490" y="324" width="40" height="14" fill="#475569" stroke="#334155" stroke-width="1"/>
-      <text x="474" y="337" class="sd-note">çentik</text>
-      <line x1="440" y1="348" x2="490" y2="348" class="sd-dim" marker-start="url(#sd-arr2)" marker-end="url(#sd-arr2)"/>
-      <text x="496" y="352" class="sd-note" font-size="10px">40 mm örs açıklığı</text>
-      <text x="380" y="366" class="sd-note">Çentik, vurucunun karşı yüzünde (altta).</text>
+      <!-- ============ C) Impact Rig (3-Point Bending) ============ -->
+      <text x="380" y="258" class="sd-lbl">C) Darbe Test Düzeni (3 Nokta Eğilme)</text>
+      <!-- Striker tup hammer -->
+      <path d="M 452 268 L 478 268 L 465 292 Z" fill="#ef4444" stroke="#991b1b" stroke-width="1.2"/>
+      <line x1="465" y1="258" x2="465" y2="268" stroke="#ef4444" stroke-width="2"/>
+      <text x="484" y="278" class="sd-note" font-weight="bold" fill="#b91c1c">Vurucu (Sarkaç)</text>
+      <!-- Specimen bar on anvils -->
+      <rect x="402" y="294" width="126" height="14" rx="1" fill="url(#cvn-steel-bar)" stroke="#334155" stroke-width="1.2"/>
+      <path d="M 461 308 L 465 301 L 469 308 Z" fill="#ffffff" stroke="#b45309" stroke-width="1"/>
+      <!-- Hardened Anvils -->
+      <rect x="398" y="308" width="24" height="16" rx="2" fill="url(#cvn-anvil-grad)" stroke="#1e293b" stroke-width="1"/>
+      <rect x="506" y="308" width="24" height="16" rx="2" fill="url(#cvn-anvil-grad)" stroke="#1e293b" stroke-width="1"/>
+      <text x="472" y="322" class="sd-note" fill="#b45309" font-size="9px">V-çentik</text>
+      <!-- Anvil Span 40 mm -->
+      <line x1="410" y1="334" x2="518" y2="334" class="sd-dim" marker-start="url(#sd-arr-cvn)" marker-end="url(#sd-arr-cvn)"/>
+      <text x="464" y="347" text-anchor="middle" class="sd-dimtxt">40,0 ± 0,2 mm Örs Açıklığı</text>
+      <text x="380" y="364" class="sd-note">Çentik, vurucunun zıt yüzünde (çekme gerilmesi tarafında) yer alır.</text>
 
       <!-- ============ Captions ============ -->
-      <line x1="16" y1="378" x2="624" y2="378" stroke="#cbd5e1" stroke-width="1"/>
-      <text x="16" y="392" class="sd-note">Çentik, boru dış yüzeyine dik açılacak şekilde işlenir (API 5L 9.8.2) • Test sıcaklığı ve kabul enerjileri Çizelge 8 / BOTAŞ Tablo 3.</text>
-      <text x="16" y="408" class="sd-note">Kaynak/ITAB numunesinde çentik, kaynak merkez hattına veya füzyon hattına +2 mm konumlandırılır.</text>
+      <line x1="16" y1="382" x2="624" y2="382" stroke="#cbd5e1" stroke-width="1"/>
+      <text x="16" y="398" class="sd-note">Çentik, boru dış yüzeyine dik işlenir (API 5L 9.8.2) • Test sıcaklığı: 0 °C (Standart) / -20 °C (BOTAŞ Madde 3.3.4).</text>
+      <text x="16" y="412" class="sd-note">Kaynak/ITAB numunelerinde çentik ekseni, kaynak merkez çizgisine veya füzyon hattına konumlandırılır.</text>
     </svg>`;
     },
 
     // ------------------------------------------------------------------
-    // Tensile strip specimen (38.1 mm wide, full wall thickness)
-    // API 5L 10.2.3.2.1 — rectangular test piece, ISO 6892-1 / ASTM A370.
-    // Plan + end section + extraction inset; weld + HAZ for welded pipe.
+    // GÖVDE Çekme Şerit Numunesi (38,1 mm × t, Dog-Bone) — ASTM A370 Şekil 3 / Şekil A2.1 & API 5L 10.2.3.2.1
+    // Boru GÖVDESİNDEN (kaynaktan uzakta) alınır, bu sebeple üzerinde KAYNAK DİKİŞİ BULUNMAZ.
     // ------------------------------------------------------------------
     tensile_strip: (pd) => {
         const s = (pd && pd.input_summary) || {};
@@ -222,92 +280,148 @@ const SPECIMEN_DRAWINGS = {
         const isSmls = proc.includes('SMLS') || proc.includes('SEAMLESS') || proc.includes('DIKISSIZ') || proc.includes('DİKİŞSİZ');
         const tStr = t.toFixed(2);
         const hpx = Math.max(16, Math.min(48, Math.round(t * 1.5)));
-        const gripTicks = (x0, x1) => {
-            let out = '';
-            for (let x = x0; x <= x1; x += 15) out += `<line x1="${x}" y1="62" x2="${x}" y2="126"/>`;
-            return out;
-        };
+
         return `
-    <svg viewBox="0 0 640 380" xmlns="http://www.w3.org/2000/svg" class="w-full h-auto max-h-[380px]">
+    <svg viewBox="0 0 640 400" xmlns="http://www.w3.org/2000/svg" class="w-full h-auto max-h-[400px]">
       <style>
         .sd-line{stroke:#334155;stroke-width:1.5;fill:none}
-        .sd-dim{stroke:#3b82f6;stroke-width:1;stroke-dasharray:3,3}
+        .sd-dim{stroke:#2563eb;stroke-width:1.2;stroke-dasharray:3,3}
         .sd-txt{font-family:'JetBrains Mono',monospace;font-size:11px;fill:#0f172a}
-        .sd-lbl{font-family:'Inter',sans-serif;font-size:10.5px;font-weight:600;fill:#1e3a8a}
-        .sd-dimtxt{font-family:'JetBrains Mono',monospace;font-size:10px;fill:#2563eb}
-        .sd-note{font-family:'Inter',sans-serif;font-size:9.5px;fill:#64748b}
+        .sd-lbl{font-family:'Inter',sans-serif;font-size:11px;font-weight:700;fill:#1e3a8a}
+        .sd-dimtxt{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;fill:#1d4ed8}
+        .sd-note{font-family:'Inter',sans-serif;font-size:9.5px;fill:#475569}
       </style>
       <defs>
-        <marker id="sd-arr3" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
-          <path d="M0,0 L7,3 L0,6 Z" fill="#3b82f6"/>
+        <marker id="sd-arr-ts" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+          <path d="M0,0 L7,3 L0,6 Z" fill="#2563eb"/>
         </marker>
+        <filter id="sd-ts-shadow" x="-5%" y="-5%" width="115%" height="120%">
+          <feDropShadow dx="2" dy="3" stdDeviation="2.5" flood-color="#0f172a" flood-opacity="0.18"/>
+        </filter>
+        <!-- Homogeneous brushed steel body -->
+        <linearGradient id="ts-steel-body" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#f8fafc"/>
+          <stop offset="15%" stop-color="#e2e8f0"/>
+          <stop offset="50%" stop-color="#cbd5e1"/>
+          <stop offset="85%" stop-color="#94a3b8"/>
+          <stop offset="100%" stop-color="#64748b"/>
+        </linearGradient>
+        <!-- Serrated clamp grip texture -->
+        <pattern id="ts-knurl" width="8" height="8" patternUnits="userSpaceOnUse">
+          <path d="M0,8 L8,0 M0,0 L8,8" stroke="#64748b" stroke-width="0.9" opacity="0.45"/>
+        </pattern>
       </defs>
 
-      <text x="320" y="22" text-anchor="middle" class="sd-txt" font-weight="bold" font-size="12">Çekme Şerit Numunesi — 38,1 mm × t (API 5L 10.2.3.2.1; ISO 6892-1 / ASTM A370)</text>
+      <!-- Title Header -->
+      <rect x="12" y="6" width="616" height="26" rx="4" fill="#f8fafc" stroke="#e2e8f0"/>
+      <text x="320" y="23" text-anchor="middle" class="sd-txt" font-weight="bold" font-size="12" fill="#0f172a">
+        Boru Gövdesi Çekme Şerit Numunesi — ASTM A370 Şekil 3 (Omuzlu / Köpek Kemiği) &amp; API 5L 10.2.3.2.1
+      </text>
 
-      <!-- ============ A) Plan view ============ -->
-      <text x="24" y="48" class="sd-lbl">A) Üst görünüş (tam cidar şerit)</text>
-      <rect x="60" y="62" width="520" height="64" fill="#e2e8f0" stroke="#334155" stroke-width="2"/>
-      <rect x="60" y="62" width="80" height="64" fill="#cbd5e1" stroke="#334155" stroke-width="1"/>
-      <rect x="500" y="62" width="80" height="64" fill="#cbd5e1" stroke="#334155" stroke-width="1"/>
-      <g stroke="#94a3b8" stroke-width="1">
-        ${gripTicks(75, 135)}
-        ${gripTicks(515, 575)}
+      <!-- ============ A) Plan View (Dog-Bone Specimen) ============ -->
+      <text x="24" y="52" class="sd-lbl">A) Üst Görünüş: ASTM A370 İndirgenmiş Kesitli Şerit (Gövde Malzemesi — Kaynaksız)</text>
+
+      <g filter="url(#sd-ts-shadow)">
+        <!-- Dog-Bone Specimen Outline -->
+        <!-- Grip Width = 72px (C ~ 50 mm), Gauge Width = 48px (W = 38.1 mm), Fillet R = 25 mm -->
+        <path d="M 50 62 
+                 L 140 62 
+                 Q 165 62, 185 74 
+                 L 435 74 
+                 Q 455 62, 480 62 
+                 L 570 62 
+                 L 570 134 
+                 L 480 134 
+                 Q 455 134, 435 122 
+                 L 185 122 
+                 Q 165 134, 140 134 
+                 L 50 134 Z" 
+              fill="url(#ts-steel-body)" stroke="#334155" stroke-width="1.8"/>
+
+        <!-- Longitudinal rolled steel texture lines -->
+        <line x1="185" y1="88" x2="435" y2="88" stroke="#94a3b8" stroke-width="0.9" stroke-dasharray="12,8" opacity="0.6"/>
+        <line x1="185" y1="108" x2="435" y2="108" stroke="#94a3b8" stroke-width="0.9" stroke-dasharray="12,8" opacity="0.6"/>
+
+        <!-- Knurled grip pads on widened ends -->
+        <rect x="50" y="62" width="80" height="72" fill="#94a3b8" stroke="#334155" stroke-width="1"/>
+        <rect x="50" y="62" width="80" height="72" fill="url(#ts-knurl)"/>
+        <rect x="490" y="62" width="80" height="72" fill="#94a3b8" stroke="#334155" stroke-width="1"/>
+        <rect x="490" y="62" width="80" height="72" fill="url(#ts-knurl)"/>
       </g>
-      <text x="100" y="98" text-anchor="middle" class="sd-lbl" fill="#475569">Tutma</text>
-      <text x="540" y="98" text-anchor="middle" class="sd-lbl" fill="#475569">Tutma</text>
-      <line x1="278" y1="54" x2="278" y2="134" stroke="#3b82f6" stroke-width="1.5"/>
-      <line x1="362" y1="54" x2="362" y2="134" stroke="#3b82f6" stroke-width="1.5"/>
-      ${isSmls ? `
-      <line x1="70" y1="94" x2="570" y2="94" stroke="#d97706" stroke-width="3" opacity="0.75"/>
-      <text x="320" y="150" text-anchor="middle" class="sd-lbl" fill="#b45309">Boyuna numune — dikişsiz gövde</text>` : `
-      <rect x="304" y="62" width="6" height="64" fill="#fcd34d" opacity="0.6"/>
-      <rect x="312" y="62" width="16" height="64" fill="#fbbf24" opacity="0.65"/>
-      <rect x="330" y="62" width="6" height="64" fill="#fcd34d" opacity="0.6"/>
-      <text x="320" y="150" text-anchor="middle" class="sd-lbl" fill="#b45309">Kaynak (enine, ortada) + ITAB</text>`}
-      <line x1="278" y1="170" x2="362" y2="170" class="sd-dim" marker-start="url(#sd-arr3)" marker-end="url(#sd-arr3)"/>
-      <line x1="278" y1="164" x2="278" y2="176" class="sd-dim"/>
-      <line x1="362" y1="164" x2="362" y2="176" class="sd-dim"/>
-      <text x="320" y="186" text-anchor="middle" class="sd-dimtxt">L0 = 50 mm (uzama esası)</text>
-      <line x1="596" y1="62" x2="596" y2="126" class="sd-dim"/>
-      <line x1="590" y1="62" x2="602" y2="62" class="sd-dim"/>
-      <line x1="590" y1="126" x2="602" y2="126" class="sd-dim"/>
-      <text x="600" y="98" class="sd-dimtxt">38,1 mm</text>
-      <text x="320" y="206" text-anchor="middle" class="sd-note">${isSmls ? 'Dikişsiz boruda numune boyuna (eksenel) alınır.' : 'Kaynaklı boruda numune kaynağa dik (enine) alınır; kaynak mastar ortasındadır.'}</text>
 
-      <!-- ============ B) End section ============ -->
-      <text x="24" y="228" class="sd-lbl">B) Uç kesiti (38,1 × t)</text>
-      <rect x="50" y="240" width="120" height="${hpx}" fill="#e2e8f0" stroke="#334155" stroke-width="2"/>
-      <path d="M 50 240 Q 110 226 170 240" fill="none" stroke="#94a3b8" stroke-width="1" stroke-dasharray="4,3"/>
-      <line x1="186" y1="240" x2="186" y2="${240 + hpx}" class="sd-dim"/>
-      <line x1="180" y1="240" x2="192" y2="240" class="sd-dim"/>
-      <line x1="180" y1="${240 + hpx}" x2="192" y2="${240 + hpx}" class="sd-dim"/>
-      <text x="196" y="${240 + Math.round(hpx / 2) + 4}" class="sd-dimtxt">t = ${tStr} mm</text>
-      <line x1="50" y1="${240 + hpx + 18}" x2="170" y2="${240 + hpx + 18}" class="sd-dim" marker-start="url(#sd-arr3)" marker-end="url(#sd-arr3)"/>
-      <text x="110" y="${240 + hpx + 32}" text-anchor="middle" class="sd-dimtxt">38,1 mm</text>
+      <!-- Grip Labels -->
+      <text x="90" y="102" text-anchor="middle" class="sd-txt" font-weight="bold" fill="#0f172a">Çene (B ≥ 75)</text>
+      <text x="530" y="102" text-anchor="middle" class="sd-txt" font-weight="bold" fill="#0f172a">Çene (B ≥ 75)</text>
 
-      <!-- ============ C) Extraction inset ============ -->
-      <text x="250" y="228" class="sd-lbl">C) Numune alımı (boru kesiti)</text>
-      <circle cx="450" cy="272" r="54" fill="#e2e8f0" stroke="#334155" stroke-width="2"/>
-      <circle cx="450" cy="272" r="46" fill="#0f172a"/>
-      <path d="M 431.5 221.2 A 54 54 0 0 1 468.5 221.2 L 465.7 228.8 A 46 46 0 0 0 434.3 228.8 Z"
-            fill="#f59e0b" opacity="0.9" stroke="#b45309" stroke-width="1"/>
-      <circle cx="450" cy="218" r="3.5" fill="#d97706"/>
-      <text x="466" y="214" class="sd-note">kaynak</text>
-      <text x="496" y="226" class="sd-lbl" fill="#b45309">şerit</text>
-      <text x="450" y="344" text-anchor="middle" class="sd-note">${isSmls ? 'Boyuna numune (eksenel)' : 'Enine numune (kaynak ortada)'}</text>
+      <!-- Fillet Radius Callout (R >= 25 mm) -->
+      <path d="M 160 68 Q 170 70 176 74" fill="none" stroke="#2563eb" stroke-width="1.2"/>
+      <text x="175" y="62" class="sd-dimtxt">R ≥ 25 mm (Omuz Radyüsü)</text>
+
+      <!-- Gauge Marks & Gauge Length (G = 50.0 mm) -->
+      <line x1="260" y1="66" x2="260" y2="130" stroke="#2563eb" stroke-width="1.6"/>
+      <line x1="360" y1="66" x2="360" y2="130" stroke="#2563eb" stroke-width="1.6"/>
+      <circle cx="260" cy="98" r="2.5" fill="#2563eb"/>
+      <circle cx="360" cy="98" r="2.5" fill="#2563eb"/>
+
+      <line x1="260" y1="150" x2="360" y2="150" class="sd-dim" marker-start="url(#sd-arr-ts)" marker-end="url(#sd-arr-ts)"/>
+      <line x1="260" y1="144" x2="260" y2="156" class="sd-dim"/>
+      <line x1="360" y1="144" x2="360" y2="156" class="sd-dim"/>
+      <text x="310" y="164" text-anchor="middle" class="sd-dimtxt">G = 50,0 ± 0,10 mm (2,000 inç Ölçüm Mastarı)</text>
+
+      <!-- Reduced Section Length (A >= 60 mm) -->
+      <line x1="185" y1="172" x2="435" y2="172" class="sd-dim" marker-start="url(#sd-arr-ts)" marker-end="url(#sd-arr-ts)"/>
+      <text x="310" y="184" text-anchor="middle" class="sd-dimtxt">A ≥ 60 mm (Paralel İndirgenmiş Bölge Boyu)</text>
+
+      <!-- Reduced Width Dimension (W = 38.1 mm) -->
+      <line x1="450" y1="74" x2="450" y2="122" class="sd-dim"/>
+      <line x1="444" y1="74" x2="456" y2="74" class="sd-dim"/>
+      <line x1="444" y1="122" x2="456" y2="122" class="sd-dim"/>
+      <text x="460" y="102" class="sd-dimtxt">W = 38,1 ± 0,25 mm (1,50 in)</text>
+
+      <!-- Grip Width Dimension (C ~ 50 mm) -->
+      <line x1="582" y1="62" x2="582" y2="134" class="sd-dim"/>
+      <line x1="576" y1="62" x2="588" y2="62" class="sd-dim"/>
+      <line x1="576" y1="134" x2="588" y2="134" class="sd-dim"/>
+      <text x="592" y="102" class="sd-dimtxt">C ≈ 50 mm</text>
+
+      <!-- ============ B) End Section ============ -->
+      <text x="24" y="214" class="sd-lbl">B) Uç Kesiti (38,1 × t mm)</text>
+      <g filter="url(#sd-ts-shadow)">
+        <rect x="50" y="228" width="120" height="${hpx}" rx="2" fill="url(#ts-steel-body)" stroke="#334155" stroke-width="1.8"/>
+        <path d="M 50 228 Q 110 216 170 228" fill="none" stroke="#2563eb" stroke-width="1.2" stroke-dasharray="4,3"/>
+      </g>
+      <line x1="184" y1="228" x2="184" y2="${228 + hpx}" class="sd-dim"/>
+      <line x1="178" y1="228" x2="190" y2="228" class="sd-dim"/>
+      <line x1="178" y1="${228 + hpx}" x2="190" y2="${228 + hpx}" class="sd-dim"/>
+      <text x="194" y="${228 + Math.round(hpx / 2) + 4}" class="sd-dimtxt">t = ${tStr} mm</text>
+      <line x1="50" y1="${228 + hpx + 16}" x2="170" y2="${228 + hpx + 16}" class="sd-dim" marker-start="url(#sd-arr-ts)" marker-end="url(#sd-arr-ts)"/>
+      <text x="110" y="${228 + hpx + 30}" text-anchor="middle" class="sd-dimtxt">W = 38,1 mm</text>
+
+      <!-- ============ C) Extraction Inset ============ -->
+      <text x="270" y="214" class="sd-lbl">C) Gövdeden Numune Alımı (Kaynak Dikişinden Uzakta)</text>
+      <g transform="translate(460, 268)">
+        <circle cx="0" cy="0" r="50" fill="#e2e8f0" stroke="#334155" stroke-width="2"/>
+        <circle cx="0" cy="0" r="42" fill="#0f172a"/>
+        <!-- Weld seam at top 12 o'clock -->
+        <circle cx="0" cy="-46" r="3.5" fill="#d97706"/>
+        <text x="0" y="-53" text-anchor="middle" class="sd-note" font-size="8.5px" fill="#b45309">kaynak dikişi (0°)</text>
+        <!-- Body specimen at 90 deg / 180 deg in pipe wall -->
+        <path d="M 40 -16 A 50 50 0 0 1 47.4 16 L 39.6 14 A 42 42 0 0 0 33.6 -13.5 Z"
+              fill="#3b82f6" stroke="#1d4ed8" stroke-width="1.4"/>
+        <text x="56" y="4" class="sd-dimtxt">gövde numunesi (90°)</text>
+        <text x="0" y="68" text-anchor="middle" class="sd-note">Gövde mekanik testlerinde numune ana metalden alınır; dikiş içermez.</text>
+      </g>
 
       <!-- ============ Captions ============ -->
-      <line x1="16" y1="352" x2="624" y2="352" stroke="#cbd5e1" stroke-width="1"/>
-      <text x="16" y="366" class="sd-note">API 5L 10.2.3.2.1 — dikdörtgen test parçası, tam cidar; genişlik 38,1 mm; uzama 50 mm esası.</text>
-      <text x="16" y="376" class="sd-note">ISO 6892-1 / ASTM A370 — paralel kenarlı, işlenmiş veya hadde yüzeyli şerit numune.</text>
+      <line x1="16" y1="360" x2="624" y2="360" stroke="#cbd5e1" stroke-width="1"/>
+      <text x="16" y="376" class="sd-note">ASTM A370 Şekil 3 / Şekil A2.1: Gövde çekme numunesi paralel omuzlu (dog-bone) işlenir; akma (Rt0,5), çekme (Rm) ve uzama gövdeden belirlenir.</text>
+      <text x="16" y="390" class="sd-note">Boru cidar eğriliği standart çene kavisleriyle kavranır; düzleştirme yalnızca soğuk deformasyon sınırlarında uygulanabilir.</text>
     </svg>`;
     },
 
     // ------------------------------------------------------------------
-    // Tensile round-bar specimen — API 5L 10.2.3.2.5 / Table 21
-    // Grip ends + shoulders with radius + parallel gauge with the transverse
-    // weld at mid-length. Bar diameter (6.4 / 8.9 / 12.7 mm) per Table 21.
+    // GÖVDE Çekme Yuvarlak Çubuk Numunesi — ASTM A370 Şekil 4 / Şekil 5 & API 5L 10.2.3.2.5 / Tablo 21
+    // Boru GÖVDESİNDEN (dikişsiz veya kaynaktan uzakta) cidar ortasından alınır; KAYNAK İÇERMEZ.
     // ------------------------------------------------------------------
     tensile_round: (pd) => {
         const s = (pd && pd.input_summary) || {};
@@ -316,91 +430,276 @@ const SPECIMEN_DRAWINGS = {
         const isSmls = proc.includes('SMLS') || proc.includes('SEAMLESS') || proc.includes('DIKISSIZ') || proc.includes('DİKİŞSİZ');
         const dBar = isSmls ? (t >= 19.0 ? 12.7 : 6.4) : rsRoundBarDia(s.diameter_mm || 1219.0, t);
         const dStr = dBar.toFixed(1);
-        const barH = Math.round(dBar * 2.6);
-        const gripH = Math.round(barH * 1.9);
+        const barH = Math.round(dBar * 2.8);
+        const gripH = Math.round(barH * 1.8);
         const cy = 100;
         const gTop = cy - Math.round(barH / 2);
         const gBot = cy + Math.round(barH / 2);
         const pTop = cy - Math.round(gripH / 2);
         const pBot = cy + Math.round(gripH / 2);
-        const threadTicks = (x0, x1) => {
-            let out = '';
-            for (let x = x0; x <= x1; x += 12) out += `<line x1="${x}" y1="${pTop + 2}" x2="${x}" y2="${pBot - 2}"/>`;
-            return out;
-        };
         const thk = Math.max(16, Math.min(48, Math.round(t * 1.5)));
         const barR = Math.max(4, Math.min(Math.round(dBar * 1.6), Math.round(thk / 2) - 1));
+
         return `
-    <svg viewBox="0 0 640 380" xmlns="http://www.w3.org/2000/svg" class="w-full h-auto max-h-[380px]">
+    <svg viewBox="0 0 640 400" xmlns="http://www.w3.org/2000/svg" class="w-full h-auto max-h-[400px]">
       <style>
         .sd-line{stroke:#334155;stroke-width:1.5;fill:none}
-        .sd-dim{stroke:#3b82f6;stroke-width:1;stroke-dasharray:3,3}
+        .sd-dim{stroke:#2563eb;stroke-width:1.2;stroke-dasharray:3,3}
         .sd-txt{font-family:'JetBrains Mono',monospace;font-size:11px;fill:#0f172a}
-        .sd-lbl{font-family:'Inter',sans-serif;font-size:10.5px;font-weight:600;fill:#1e3a8a}
-        .sd-dimtxt{font-family:'JetBrains Mono',monospace;font-size:10px;fill:#2563eb}
-        .sd-note{font-family:'Inter',sans-serif;font-size:9.5px;fill:#64748b}
+        .sd-lbl{font-family:'Inter',sans-serif;font-size:11px;font-weight:700;fill:#1e3a8a}
+        .sd-dimtxt{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;fill:#1d4ed8}
+        .sd-note{font-family:'Inter',sans-serif;font-size:9.5px;fill:#475569}
       </style>
       <defs>
-        <marker id="sd-arr4" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
-          <path d="M0,0 L7,3 L0,6 Z" fill="#3b82f6"/>
+        <marker id="sd-arr-tr" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+          <path d="M0,0 L7,3 L0,6 Z" fill="#2563eb"/>
         </marker>
+        <filter id="sd-tr-shadow" x="-5%" y="-5%" width="115%" height="120%">
+          <feDropShadow dx="2" dy="3" stdDeviation="2.5" flood-color="#0f172a" flood-opacity="0.18"/>
+        </filter>
+        <linearGradient id="tr-cyl-body" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#cbd5e1"/>
+          <stop offset="20%" stop-color="#f8fafc"/>
+          <stop offset="50%" stop-color="#f1f5f9"/>
+          <stop offset="80%" stop-color="#94a3b8"/>
+          <stop offset="100%" stop-color="#475569"/>
+        </linearGradient>
+        <linearGradient id="tr-cyl-grip" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#94a3b8"/>
+          <stop offset="25%" stop-color="#e2e8f0"/>
+          <stop offset="60%" stop-color="#cbd5e1"/>
+          <stop offset="100%" stop-color="#334155"/>
+        </linearGradient>
+        <pattern id="tr-thread" width="8" height="16" patternUnits="userSpaceOnUse">
+          <line x1="0" y1="0" x2="8" y2="8" stroke="#334155" stroke-width="1.2"/>
+          <line x1="0" y1="8" x2="8" y2="16" stroke="#ffffff" stroke-width="0.8" opacity="0.6"/>
+        </pattern>
       </defs>
 
-      <text x="320" y="22" text-anchor="middle" class="sd-txt" font-weight="bold" font-size="12">Yuvarlak Çubuk Çekme Numunesi (API 5L 10.2.3.2.5 / Tablo 21)</text>
+      <!-- Title Header -->
+      <rect x="12" y="6" width="616" height="26" rx="4" fill="#f8fafc" stroke="#e2e8f0"/>
+      <text x="320" y="23" text-anchor="middle" class="sd-txt" font-weight="bold" font-size="12" fill="#0f172a">
+        Boru Gövdesi Yuvarlak Çubuk Çekme Numunesi — ASTM A370 Şekil 4/5 (Standart 0.500 in) &amp; API 5L Tablo 21
+      </text>
 
-      <!-- ============ A) Elevation ============ -->
-      <text x="24" y="48" class="sd-lbl">A) Görünüş (dişli uçlar + omuz + mastar)</text>
-      <g stroke="#64748b" stroke-width="1.3">${threadTicks(52, 132)}${threadTicks(512, 592)}</g>
-      <rect x="40" y="${pTop}" width="100" height="${gripH}" fill="#e2e8f0" stroke="#334155" stroke-width="2"/>
-      <path d="M 140 ${pTop} C 158 ${pTop}, 158 ${gTop}, 168 ${gTop} L 168 ${gBot} C 158 ${gBot}, 158 ${pBot}, 140 ${pBot} Z"
-            fill="#cbd5e1" stroke="#334155" stroke-width="2"/>
-      <rect x="168" y="${gTop}" width="304" height="${barH}" fill="#fef3c7" stroke="#b45309" stroke-width="2"/>
-      <path d="M 472 ${gTop} C 482 ${gTop}, 482 ${pTop}, 500 ${pTop} L 500 ${pBot} C 482 ${pBot}, 482 ${gBot}, 472 ${gBot} Z"
-            fill="#cbd5e1" stroke="#334155" stroke-width="2"/>
-      <rect x="500" y="${pTop}" width="100" height="${gripH}" fill="#e2e8f0" stroke="#334155" stroke-width="2"/>
-      <line x1="278" y1="${gTop - 4}" x2="278" y2="${gBot + 4}" stroke="#3b82f6" stroke-width="1.3"/>
-      <line x1="362" y1="${gTop - 4}" x2="362" y2="${gBot + 4}" stroke="#3b82f6" stroke-width="1.3"/>
-      ${isSmls ? `
-      <text x="320" y="${gTop - 10}" text-anchor="middle" class="sd-lbl" fill="#b45309">Boyuna numune (dikişsiz)</text>` : `
-      <rect x="312" y="${gTop}" width="16" height="${barH}" fill="#fbbf24" opacity="0.65"/>
-      <rect x="304" y="${gTop}" width="6" height="${barH}" fill="#fcd34d" opacity="0.6"/>
-      <rect x="330" y="${gTop}" width="6" height="${barH}" fill="#fcd34d" opacity="0.6"/>
-      <text x="320" y="${gTop - 10}" text-anchor="middle" class="sd-lbl" fill="#b45309">Kaynak (enine, ortada) + ITAB</text>`}
-      <line x1="200" y1="${gTop}" x2="200" y2="${gTop - 16}" class="sd-dim"/>
-      <text x="204" y="${gTop - 18}" class="sd-dimtxt">d = ${dStr} mm (Tablo 21)</text>
-      <line x1="278" y1="${gBot + 22}" x2="362" y2="${gBot + 22}" class="sd-dim" marker-start="url(#sd-arr4)" marker-end="url(#sd-arr4)"/>
-      <line x1="278" y1="${gBot + 16}" x2="278" y2="${gBot + 28}" class="sd-dim"/>
-      <line x1="362" y1="${gBot + 16}" x2="362" y2="${gBot + 28}" class="sd-dim"/>
-      <text x="320" y="${gBot + 38}" text-anchor="middle" class="sd-dimtxt">L0 = 50 mm</text>
-      <text x="90" y="${cy + 4}" text-anchor="middle" class="sd-lbl" fill="#475569">Dişli uç</text>
-      <text x="550" y="${cy + 4}" text-anchor="middle" class="sd-lbl" fill="#475569">Dişli uç</text>
-      <line x1="152" y1="${pBot}" x2="180" y2="${pBot + 12}" stroke="#3b82f6" stroke-width="0.8"/>
-      <text x="182" y="${pBot + 16}" class="sd-dimtxt">r (omuz yarıçapı)</text>
+      <!-- ============ A) Elevation View ============ -->
+      <text x="24" y="52" class="sd-lbl">A) Görünüş: Dişli Uçlar + R Radyüslü Omuz + Silindirik Mastar (Gövde — Kaynaksız)</text>
 
-      <!-- ============ B) Extraction from the wall (d ≤ t) ============ -->
-      <text x="24" y="196" class="sd-lbl">B) Cidardan alım (d ≤ t)</text>
-      <rect x="50" y="220" width="240" height="${thk}" fill="#cbd5e1" stroke="#334155" stroke-width="2"/>
-      <line x1="50" y1="${220 + Math.round(thk / 2)}" x2="290" y2="${220 + Math.round(thk / 2)}" stroke="#94a3b8" stroke-width="1" stroke-dasharray="4,3"/>
-      <circle cx="170" cy="${220 + Math.round(thk / 2)}" r="${barR}" fill="#fef3c7" stroke="#b45309" stroke-width="2"/>
-      <text x="170" y="212" text-anchor="middle" class="sd-dimtxt">d = ${dStr} mm</text>
-      <text x="298" y="${220 + Math.round(thk / 2) + 4}" class="sd-dimtxt">t = ${t.toFixed(2)} mm</text>
-      <text x="170" y="${220 + thk + 16}" text-anchor="middle" class="sd-note">${isSmls ? 'Boyuna çubuk (eksenel) — d ≤ t' : 'Enine çubuk (cidar boyunca) — d ≤ t'}</text>
+      <g filter="url(#sd-tr-shadow)">
+        <!-- Left Threaded Grip -->
+        <rect x="40" y="${pTop}" width="95" height="${gripH}" rx="2" fill="url(#tr-cyl-grip)" stroke="#334155" stroke-width="1.8"/>
+        <rect x="40" y="${pTop}" width="95" height="${gripH}" fill="url(#tr-thread)" opacity="0.35"/>
 
-      <!-- ============ C) Shoulder / gauge detail ============ -->
-      <text x="340" y="196" class="sd-lbl">C) Omuz ve mastar detayı</text>
-      <rect x="350" y="238" width="60" height="74" fill="#e2e8f0" stroke="#334155" stroke-width="1.5"/>
-      <path d="M 410 238 C 428 238, 440 250, 440 266 L 440 284 C 440 300, 428 312, 410 312 Z"
-            fill="#cbd5e1" stroke="#334155" stroke-width="1.5"/>
-      <rect x="440" y="266" width="150" height="18" fill="#fef3c7" stroke="#b45309" stroke-width="1.5"/>
-      <line x1="416" y1="246" x2="452" y2="226" stroke="#3b82f6" stroke-width="0.8"/>
-      <text x="455" y="223" class="sd-dimtxt">r</text>
-      <text x="515" y="278" text-anchor="middle" class="sd-dimtxt">mastar d = ${dStr} mm</text>
-      <text x="380" y="326" text-anchor="middle" class="sd-note">işlenmiş omuz geçişi</text>
+        <!-- Left Transition Shoulder (R >= 10 mm) -->
+        <path d="M 135 ${pTop} C 152 ${pTop}, 152 ${gTop}, 165 ${gTop} L 165 ${gBot} C 152 ${gBot}, 152 ${pBot}, 135 ${pBot} Z"
+              fill="url(#tr-cyl-body)" stroke="#334155" stroke-width="1.8"/>
+
+        <!-- Parallel Reduced Section (Pure Base Metal) -->
+        <rect x="165" y="${gTop}" width="310" height="${barH}" fill="url(#tr-cyl-body)" stroke="#334155" stroke-width="1.8"/>
+        <line x1="165" y1="${cy - Math.round(barH / 4)}" x2="475" y2="${cy - Math.round(barH / 4)}" stroke="#ffffff" stroke-width="1.2" opacity="0.9"/>
+
+        <!-- Right Transition Shoulder -->
+        <path d="M 475 ${gTop} C 488 ${gTop}, 488 ${pTop}, 505 ${pTop} L 505 ${pBot} C 488 ${pBot}, 488 ${gBot}, 475 ${gBot} Z"
+              fill="url(#tr-cyl-body)" stroke="#334155" stroke-width="1.8"/>
+
+        <!-- Right Threaded Grip -->
+        <rect x="505" y="${pTop}" width="95" height="${gripH}" rx="2" fill="url(#tr-cyl-grip)" stroke="#334155" stroke-width="1.8"/>
+        <rect x="505" y="${pTop}" width="95" height="${gripH}" fill="url(#tr-thread)" opacity="0.35"/>
+      </g>
+
+      <text x="320" y="${gTop - 12}" text-anchor="middle" class="sd-lbl" fill="#1e3a8a">Gövde Malzemesi (Torna Finişi Ra ≤ 0,8 µm — Kaynak Dikişsiz)</text>
+
+      <!-- Gauge Diameter d Callout -->
+      <line x1="205" y1="${gTop}" x2="205" y2="${gTop - 16}" class="sd-dim"/>
+      <line x1="205" y1="${gBot}" x2="205" y2="${gBot + 16}" class="sd-dim"/>
+      <text x="210" y="${gTop - 18}" class="sd-dimtxt">d = ${dStr} mm (Tablo 21)</text>
+
+      <!-- Gauge Length Marks (G = 50.0 mm) -->
+      <line x1="275" y1="${gTop - 6}" x2="275" y2="${gBot + 6}" stroke="#2563eb" stroke-width="1.6"/>
+      <line x1="365" y1="${gTop - 6}" x2="365" y2="${gBot + 6}" stroke="#2563eb" stroke-width="1.6"/>
+      <line x1="275" y1="${gBot + 24}" x2="365" y2="${gBot + 24}" class="sd-dim" marker-start="url(#sd-arr-tr)" marker-end="url(#sd-arr-tr)"/>
+      <text x="320" y="${gBot + 38}" text-anchor="middle" class="sd-dimtxt">G = 50,0 ± 0,10 mm (veya 4d)</text>
+
+      <!-- Thread labels -->
+      <text x="87" y="${cy + 4}" text-anchor="middle" class="sd-txt" font-weight="bold" fill="#0f172a">Dişli Başlık</text>
+      <text x="552" y="${cy + 4}" text-anchor="middle" class="sd-txt" font-weight="bold" fill="#0f172a">Dişli Başlık</text>
+
+      <line x1="150" y1="${pBot}" x2="175" y2="${pBot + 14}" stroke="#2563eb" stroke-width="1.2"/>
+      <text x="178" y="${pBot + 18}" class="sd-dimtxt">R ≥ 10 mm (Omuz Radyüsü)</text>
+
+      <!-- ============ B) Wall Extraction Inset ============ -->
+      <text x="24" y="218" class="sd-lbl">B) Boru Cidarından Çıkarma (d ≤ t Kriteri)</text>
+      <g filter="url(#sd-tr-shadow)">
+        <rect x="50" y="238" width="240" height="${thk}" rx="2" fill="url(#tr-cyl-body)" stroke="#334155" stroke-width="1.8"/>
+        <line x1="50" y1="${238 + Math.round(thk / 2)}" x2="290" y2="${238 + Math.round(thk / 2)}" stroke="#2563eb" stroke-width="1" stroke-dasharray="4,3"/>
+        <circle cx="170" cy="${238 + Math.round(thk / 2)}" r="${barR}" fill="url(#tr-cyl-grip)" stroke="#b45309" stroke-width="2"/>
+      </g>
+      <text x="170" y="230" text-anchor="middle" class="sd-dimtxt">d = ${dStr} mm</text>
+      <text x="298" y="${238 + Math.round(thk / 2) + 4}" class="sd-dimtxt">t = ${t.toFixed(2)} mm</text>
+      <text x="170" y="${238 + thk + 18}" text-anchor="middle" class="sd-note">Gövde cidar ortasından (t/2) çıkarılır; d ≤ t sağlanır.</text>
+
+      <!-- ============ C) Shoulder Detail ============ -->
+      <text x="350" y="218" class="sd-lbl">C) Hassas Torna Geçiş Profili</text>
+      <g filter="url(#sd-tr-shadow)" transform="translate(360, 240)">
+        <rect x="0" y="0" width="60" height="60" rx="2" fill="url(#tr-cyl-grip)" stroke="#334155" stroke-width="1.5"/>
+        <path d="M 60 0 C 80 0, 95 15, 95 30 L 95 30 C 95 45, 80 60, 60 60 Z"
+              fill="url(#tr-cyl-body)" stroke="#334155" stroke-width="1.5"/>
+        <rect x="95" y="16" width="120" height="28" fill="url(#tr-cyl-body)" stroke="#334155" stroke-width="1.5"/>
+      </g>
+      <text x="490" y="274" class="sd-dimtxt">Mastar d = ${dStr} mm</text>
+      <text x="440" y="322" class="sd-note">ASTM A370: R kavis geçişi gerilme yığılmasını önler.</text>
 
       <!-- ============ Captions ============ -->
-      <line x1="16" y1="340" x2="624" y2="340" stroke="#cbd5e1" stroke-width="1"/>
-      <text x="16" y="354" class="sd-note">API 5L 10.2.3.2.5 / Tablo 21 — mastar çapı d: 6,4 / 8,9 / 12,7 mm (D ve t'ye göre); ISO 6892-1 / ASTM A370.</text>
-      <text x="16" y="370" class="sd-note">Kaynaklı boruda enine numune (kaynak mastar ortasında); SMLS'te t ≥ 19,0 mm ise boyuna 12,7 mm çubuk zorunludur.</text>
+      <line x1="16" y1="358" x2="624" y2="358" stroke="#cbd5e1" stroke-width="1"/>
+      <text x="16" y="374" class="sd-note">ASTM A370 Şekil 4 / Şekil 5: D = 12,7 mm (0.500 in) veya Çizelge 21 alt boyutları (8,9 mm / 6,4 mm); gövdeden alınır.</text>
+      <text x="16" y="388" class="sd-note">SMLS borularda t ≥ 19,0 mm ise 12,7 mm boyuna yuvarlak çubuk testi zorunludur.</text>
+    </svg>`;
+    },
+
+    // ------------------------------------------------------------------
+    // KAYNAK Çekme Testi Numunesi (Enine Kaynak) — ASTM A370 Şekil A2.3 & API 5L 10.2.3.3 / Çizelge 18 #6/#7
+    // Kaynak dikişi tam ortada ENİNE yönde yer alır; kaynak bağlantısının çekme dayanımını (Rm) ölçer.
+    // ------------------------------------------------------------------
+    tensile_weld: (pd) => {
+        const s = (pd && pd.input_summary) || {};
+        const t = parseFloat(s.wall_thickness_mm) || 14.30;
+        const tStr = t.toFixed(2);
+        const hpx = Math.max(16, Math.min(48, Math.round(t * 1.5)));
+
+        return `
+    <svg viewBox="0 0 640 400" xmlns="http://www.w3.org/2000/svg" class="w-full h-auto max-h-[400px]">
+      <style>
+        .sd-line{stroke:#334155;stroke-width:1.5;fill:none}
+        .sd-dim{stroke:#2563eb;stroke-width:1.2;stroke-dasharray:3,3}
+        .sd-txt{font-family:'JetBrains Mono',monospace;font-size:11px;fill:#0f172a}
+        .sd-lbl{font-family:'Inter',sans-serif;font-size:11px;font-weight:700;fill:#1e3a8a}
+        .sd-dimtxt{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;fill:#1d4ed8}
+        .sd-note{font-family:'Inter',sans-serif;font-size:9.5px;fill:#475569}
+      </style>
+      <defs>
+        <marker id="sd-arr-tw" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+          <path d="M0,0 L7,3 L0,6 Z" fill="#2563eb"/>
+        </marker>
+        <filter id="sd-tw-shadow" x="-5%" y="-5%" width="115%" height="120%">
+          <feDropShadow dx="2" dy="3" stdDeviation="2.5" flood-color="#0f172a" flood-opacity="0.18"/>
+        </filter>
+        <linearGradient id="tw-steel-body" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#f8fafc"/>
+          <stop offset="20%" stop-color="#e2e8f0"/>
+          <stop offset="50%" stop-color="#cbd5e1"/>
+          <stop offset="80%" stop-color="#94a3b8"/>
+          <stop offset="100%" stop-color="#64748b"/>
+        </linearGradient>
+        <linearGradient id="tw-weld-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#b45309"/>
+          <stop offset="30%" stop-color="#f59e0b"/>
+          <stop offset="50%" stop-color="#fde68a"/>
+          <stop offset="70%" stop-color="#f59e0b"/>
+          <stop offset="100%" stop-color="#b45309"/>
+        </linearGradient>
+        <linearGradient id="tw-haz-l" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#64748b" stop-opacity="0"/>
+          <stop offset="40%" stop-color="#6366f1" stop-opacity="0.6"/>
+          <stop offset="70%" stop-color="#d97706" stop-opacity="0.8"/>
+          <stop offset="100%" stop-color="#f59e0b" stop-opacity="0.95"/>
+        </linearGradient>
+        <linearGradient id="tw-haz-r" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#f59e0b" stop-opacity="0.95"/>
+          <stop offset="30%" stop-color="#d97706" stop-opacity="0.8"/>
+          <stop offset="60%" stop-color="#6366f1" stop-opacity="0.6"/>
+          <stop offset="100%" stop-color="#64748b" stop-opacity="0"/>
+        </linearGradient>
+        <pattern id="tw-knurl" width="8" height="8" patternUnits="userSpaceOnUse">
+          <path d="M0,8 L8,0 M0,0 L8,8" stroke="#64748b" stroke-width="0.9" opacity="0.45"/>
+        </pattern>
+      </defs>
+
+      <!-- Title Header -->
+      <rect x="12" y="6" width="616" height="26" rx="4" fill="#f8fafc" stroke="#e2e8f0"/>
+      <text x="320" y="23" text-anchor="middle" class="sd-txt" font-weight="bold" font-size="12" fill="#0f172a">
+        Kaynak Çekme Testi Numunesi (Enine Kaynak) — ASTM A370 Şekil A2.3 &amp; API 5L 10.2.3.3
+      </text>
+
+      <!-- ============ A) Plan View (Transverse Weld Specimen) ============ -->
+      <text x="24" y="52" class="sd-lbl">A) Üst Görünüş: Enine Kaynak Dikişi (Tam Ortada) + ITAB + Çekme Ekseni</text>
+
+      <g filter="url(#sd-tw-shadow)">
+        <!-- Specimen Strip -->
+        <rect x="50" y="64" width="530" height="66" rx="2" fill="url(#tw-steel-body)" stroke="#334155" stroke-width="1.8"/>
+
+        <!-- Knurled Grip Ends -->
+        <rect x="50" y="64" width="85" height="66" fill="#94a3b8" stroke="#334155" stroke-width="1.2"/>
+        <rect x="50" y="64" width="85" height="66" fill="url(#tw-knurl)"/>
+        <rect x="495" y="64" width="85" height="66" fill="#94a3b8" stroke="#334155" stroke-width="1.2"/>
+        <rect x="495" y="64" width="85" height="66" fill="url(#tw-knurl)"/>
+
+        <!-- HAZ Heat-Affected Zone Bands (Enine Şerit Ortasında) -->
+        <rect x="294" y="64" width="14" height="66" fill="url(#tw-haz-l)"/>
+        <rect x="326" y="64" width="14" height="66" fill="url(#tw-haz-r)"/>
+
+        <!-- Central Transverse Weld Seam (Enine Dikiş, Çekme Eksenine Dik) -->
+        <rect x="306" y="64" width="22" height="66" fill="url(#tw-weld-grad)" stroke="#b45309" stroke-width="1.4"/>
+        <!-- Multi-pass ripple scales running transversely across width -->
+        <path d="M 306 72 Q 317 76 328 72 M 306 82 Q 317 86 328 82 M 306 92 Q 317 96 328 92 M 306 102 Q 317 106 328 102 M 306 112 Q 317 116 328 112 M 306 122 Q 317 126 328 122"
+              stroke="#78350f" stroke-width="1.2" fill="none" opacity="0.8"/>
+      </g>
+
+      <!-- Tension Load Arrows -->
+      <g stroke="#b91c1c" stroke-width="2.4" fill="#b91c1c">
+        <!-- Left pull arrow -->
+        <line x1="42" y1="97" x2="16" y2="97"/>
+        <polygon points="16,93 16,101 8,97"/>
+        <text x="24" y="86" class="sd-lbl" fill="#b91c1c" font-size="10px">◀ F</text>
+        <!-- Right pull arrow -->
+        <line x1="588" y1="97" x2="614" y2="97"/>
+        <polygon points="614,93 614,101 622,97"/>
+        <text x="600" y="86" class="sd-lbl" fill="#b91c1c" font-size="10px">F ▶</text>
+      </g>
+
+      <text x="317" y="58" text-anchor="middle" class="sd-lbl" fill="#b45309">Kaynak Dikişi (Enine / Transverse) + ITAB</text>
+
+      <!-- Gauge / Weld Centerline -->
+      <line x1="317" y1="60" x2="317" y2="138" stroke="#b45309" stroke-width="1.2" stroke-dasharray="4,3"/>
+      <text x="317" y="152" text-anchor="middle" class="sd-dimtxt">Kaynak Merkez Hattı (Çekme Eksenine Dik)</text>
+
+      <!-- Width 38.1 mm -->
+      <line x1="592" y1="64" x2="592" y2="130" class="sd-dim"/>
+      <text x="602" y="101" class="sd-dimtxt">W = 38,1 mm</text>
+
+      <!-- Total Length ~ 250 mm -->
+      <line x1="50" y1="168" x2="580" y2="168" class="sd-dim" marker-start="url(#sd-arr-tw)" marker-end="url(#sd-arr-tw)"/>
+      <text x="315" y="182" text-anchor="middle" class="sd-dimtxt">Numune Boyu L ≈ 250 - 300 mm (Enine Alınmış Numune)</text>
+
+      <!-- ============ B) End Section ============ -->
+      <text x="24" y="214" class="sd-lbl">B) Uç Kesiti ve Taşlanmış Kaynak Yüzeyi</text>
+      <g filter="url(#sd-tw-shadow)">
+        <rect x="50" y="228" width="120" height="${hpx}" rx="2" fill="url(#tw-steel-body)" stroke="#334155" stroke-width="1.8"/>
+        <!-- Weld flush machined indication -->
+        <rect x="95" y="228" width="30" height="${hpx}" fill="url(#tw-weld-grad)" opacity="0.8" stroke="#b45309" stroke-width="1"/>
+      </g>
+      <line x1="184" y1="228" x2="184" y2="${228 + hpx}" class="sd-dim"/>
+      <text x="194" y="${228 + Math.round(hpx / 2) + 4}" class="sd-dimtxt">t = ${tStr} mm</text>
+      <text x="110" y="${228 + hpx + 24}" text-anchor="middle" class="sd-note">API 5L 10.2.3.3: Kaynak takviyesi ana metale kadar taşlanabilir.</text>
+
+      <!-- ============ C) Extraction Inset ============ -->
+      <text x="270" y="214" class="sd-lbl">C) Boru Kaynağından Enine Çıkarma Yönü</text>
+      <g transform="translate(460, 268)">
+        <circle cx="0" cy="0" r="50" fill="#e2e8f0" stroke="#334155" stroke-width="2"/>
+        <circle cx="0" cy="0" r="42" fill="#0f172a"/>
+        <!-- Weld seam at top -->
+        <rect x="-4" y="-50" width="8" height="8" fill="#d97706"/>
+        <!-- Transverse strip cutting across the weld -->
+        <path d="M -18 -46.5 A 50 50 0 0 1 18 -46.5 L 15.5 -38.8 A 42 42 0 0 0 -15.5 -38.8 Z"
+              fill="#f59e0b" stroke="#b45309" stroke-width="1.4"/>
+        <text x="0" y="-55" text-anchor="middle" class="sd-note" font-size="8.5px" fill="#b45309">kaynak dikişi</text>
+        <text x="36" y="-36" class="sd-dimtxt">enine kaynak numunesi</text>
+        <text x="0" y="68" text-anchor="middle" class="sd-note">Numune kaynağa dik alınır; kaynak dikişi numunenin tam ortasından geçer.</text>
+      </g>
+
+      <!-- ============ Captions ============ -->
+      <line x1="16" y1="360" x2="624" y2="360" stroke="#cbd5e1" stroke-width="1"/>
+      <text x="16" y="376" class="sd-note">API 5L 9.3.2 &amp; 10.2.3.3 / ASTM A370 Şekil A2.3: Kaynak dikişi enine çekme testinde yalnızca çekme dayanımı Rm belirlenir.</text>
+      <text x="16" y="390" class="sd-note">Kabul şartı: Kaynak dikişi çekme dayanımı Rm, belirtilen minimum gövde çekme dayanımından (SMTS) az olamaz.</text>
     </svg>`;
     },
 
@@ -650,38 +949,156 @@ const SPECIMEN_DRAWINGS = {
     },
 
     // ------------------------------------------------------------------
-    // DWTT specimen (full-thickness, press-notch)
+    // DWTT specimen (API 5L 9.9 / ASTM E436)
+    // Photorealistic 2.5D plate (305 × 76 mm × t) + cold press-notch + 254 mm anvil span
+    // + fracture surface ductile shear area evaluation zone.
     // ------------------------------------------------------------------
-    dwtt: () => `
-    <svg viewBox="0 0 640 260" xmlns="http://www.w3.org/2000/svg" class="w-full h-auto max-h-[260px]">
+    dwtt: (pd) => {
+        const s = (pd && pd.input_summary) || {};
+        const t = parseFloat(s.wall_thickness_mm) || 14.30;
+        const tStr = t.toFixed(2);
+        const grade = s.material_grade || 'X65';
+
+        return `
+    <svg viewBox="0 0 640 420" xmlns="http://www.w3.org/2000/svg" class="w-full h-auto max-h-[420px]">
       <style>
         .sd-line{stroke:#334155;stroke-width:1.5;fill:none}
-        .sd-dim{stroke:#3b82f6;stroke-width:1;stroke-dasharray:3,3}
+        .sd-dim{stroke:#2563eb;stroke-width:1.2;stroke-dasharray:3,3}
         .sd-txt{font-family:'JetBrains Mono',monospace;font-size:11px;fill:#0f172a}
-        .sd-lbl{font-family:'Inter',sans-serif;font-size:10.5px;font-weight:600;fill:#1e3a8a}
-        .sd-dimtxt{font-family:'JetBrains Mono',monospace;font-size:10px;fill:#2563eb}
+        .sd-lbl{font-family:'Inter',sans-serif;font-size:11px;font-weight:700;fill:#1e3a8a}
+        .sd-dimtxt{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;fill:#1d4ed8}
+        .sd-note{font-family:'Inter',sans-serif;font-size:9.5px;fill:#475569}
       </style>
-      <g transform="translate(60,40)">
-        <!-- specimen plate -->
-        <rect x="0" y="60" width="500" height="90" fill="#e2e8f0" stroke="#334155" stroke-width="2"/>
-        <!-- press notch -->
-        <path d="M 250 60 L 262 96 L 274 60 Z" fill="#fff" stroke="#334155" stroke-width="1.5"/>
-        <!-- drop weight -->
-        <rect x="210" y="0" width="110" height="34" fill="#94a3b8" stroke="#334155" stroke-width="2"/>
-        <text x="265" y="22" text-anchor="middle" class="sd-txt" fill="#1e293b" font-weight="bold" font-size="10">Ağırlık</text>
-        <line x1="265" y1="34" x2="265" y2="58" stroke="#475569" stroke-width="2" stroke-dasharray="4,3"/>
-        <path d="M 230 58 L 300 58" stroke="#475569" stroke-width="2"/>
-        <text x="262" y="120" text-anchor="middle" class="sd-lbl" fill="#b91c1c">Press-notch</text>
-        <!-- length dim -->
-        <line x1="0" y1="172" x2="500" y2="172" class="sd-dim"/>
-        <text x="250" y="190" text-anchor="middle" class="sd-dimtxt">Numune uzunluğu (örn. 305 mm)</text>
-        <!-- thickness dim -->
-        <line x1="516" y1="60" x2="516" y2="150" class="sd-dim"/>
-        <text x="521" y="110" class="sd-dimtxt">t (tam cidar)</text>
-        <text x="250" y="210" text-anchor="middle" class="sd-txt" fill="#64748b" font-size="10">Kırılma yüzeyi sünek alan oranı değerlendirilir</text>
+      <defs>
+        <marker id="sd-arr-dwtt" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+          <path d="M0,0 L7,3 L0,6 Z" fill="#2563eb"/>
+        </marker>
+        <filter id="sd-dwtt-shadow" x="-5%" y="-5%" width="115%" height="120%">
+          <feDropShadow dx="2" dy="3" stdDeviation="2.5" flood-color="#0f172a" flood-opacity="0.18"/>
+        </filter>
+        <!-- Steel heavy plate gradient -->
+        <linearGradient id="dwtt-steel-plate" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#f8fafc"/>
+          <stop offset="15%" stop-color="#e2e8f0"/>
+          <stop offset="50%" stop-color="#cbd5e1"/>
+          <stop offset="85%" stop-color="#94a3b8"/>
+          <stop offset="100%" stop-color="#64748b"/>
+        </linearGradient>
+        <linearGradient id="dwtt-tup-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#fbbf24"/>
+          <stop offset="50%" stop-color="#d97706"/>
+          <stop offset="100%" stop-color="#78350f"/>
+        </linearGradient>
+        <linearGradient id="dwtt-roller-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#334155"/>
+          <stop offset="50%" stop-color="#64748b"/>
+          <stop offset="100%" stop-color="#1e293b"/>
+        </linearGradient>
+        <linearGradient id="dwtt-fracture-shear" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#bbf7d0"/>
+          <stop offset="50%" stop-color="#86efac"/>
+          <stop offset="100%" stop-color="#4ade80"/>
+        </linearGradient>
+      </defs>
+
+      <!-- Title Header -->
+      <rect x="12" y="6" width="616" height="26" rx="4" fill="#f8fafc" stroke="#e2e8f0"/>
+      <text x="320" y="23" text-anchor="middle" class="sd-txt" font-weight="bold" font-size="12" fill="#0f172a">
+        DWTT Numunesi (Drop Weight Tear Test) — API 5L 9.9 / ASTM E436
+      </text>
+
+      <!-- ============ A) Test Rig & Specimen Setup ============ -->
+      <text x="24" y="52" class="sd-lbl">A) Test Düzeneği (305 × 76 mm × t) • 254 mm Mesnet Açıklığı</text>
+
+      <!-- Drop Weight Tup Hammer -->
+      <g transform="translate(320, 52)">
+        <path d="M -22 0 L 22 0 L 12 28 L -12 28 Z" fill="url(#dwtt-tup-grad)" stroke="#92400e" stroke-width="1.4"/>
+        <path d="M -12 28 Q 0 38 12 28 Z" fill="#b45309"/>
+        <!-- Impact Arrow -->
+        <line x1="0" y1="-14" x2="0" y2="-2" stroke="#b91c1c" stroke-width="2.5"/>
+        <polygon points="-4,-2 4,-2 0,6" fill="#b91c1c"/>
+        <text x="32" y="16" class="sd-lbl" fill="#b91c1c">Düşen Ağırlık (Tup)</text>
       </g>
-      <text x="340" y="26" text-anchor="middle" class="sd-txt" font-weight="bold" font-size="12">DWTT Numunesi (API 5L 9.9)</text>
-    </svg>`,
+
+      <!-- Specimen Plate with Shadow -->
+      <g filter="url(#sd-dwtt-shadow)">
+        <!-- Main Plate Body -->
+        <rect x="70" y="96" width="500" height="96" rx="2" fill="url(#dwtt-steel-plate)" stroke="#334155" stroke-width="1.8"/>
+        <!-- Specular Highlight -->
+        <line x1="71" y1="97" x2="569" y2="97" stroke="#ffffff" stroke-width="1.2" opacity="0.9"/>
+
+        <!-- Press-Notch (Center Bottom) -->
+        <path d="M 312 192 L 320 178 L 328 192 Z" fill="#ffffff" stroke="#b45309" stroke-width="1.5"/>
+        <!-- Plastic deformation halo -->
+        <circle cx="320" cy="178" r="4" fill="#f59e0b" opacity="0.45"/>
+        <line x1="312" y1="192" x2="320" y2="178" stroke="#b45309" stroke-width="1.8"/>
+        <line x1="328" y1="192" x2="320" y2="178" stroke="#b45309" stroke-width="1.8"/>
+
+        <!-- Anvils (Rollers) -->
+        <!-- Left Anvil (x = 111, span = 254 mm scaled) -->
+        <rect x="99" y="192" width="24" height="24" rx="4" fill="url(#dwtt-roller-grad)" stroke="#1e293b" stroke-width="1.4"/>
+        <!-- Right Anvil (x = 505) -->
+        <rect x="517" y="192" width="24" height="24" rx="4" fill="url(#dwtt-roller-grad)" stroke="#1e293b" stroke-width="1.4"/>
+      </g>
+
+      <!-- Press-notch label & callout -->
+      <text x="320" y="214" text-anchor="middle" class="sd-lbl" fill="#b45309">Pres Çentik (Press-Notch)</text>
+      <text x="320" y="228" text-anchor="middle" class="sd-dimtxt">45° Açılı Bıçak • Derinlik = 5,08 ± 0,19 mm</text>
+
+      <!-- Span Dimension: 254 mm -->
+      <line x1="111" y1="236" x2="529" y2="236" class="sd-dim" marker-start="url(#sd-arr-dwtt)" marker-end="url(#sd-arr-dwtt)"/>
+      <line x1="111" y1="228" x2="111" y2="244" class="sd-dim"/>
+      <line x1="529" y1="228" x2="529" y2="244" class="sd-dim"/>
+      <text x="320" y="250" text-anchor="middle" class="sd-dimtxt">Örs Açıklığı = 254,0 ± 1,5 mm (10 inç)</text>
+
+      <!-- Length Dimension: 305 mm -->
+      <line x1="70" y1="84" x2="570" y2="84" class="sd-dim" marker-start="url(#sd-arr-dwtt)" marker-end="url(#sd-arr-dwtt)"/>
+      <line x1="70" y1="78" x2="70" y2="90" class="sd-dim"/>
+      <line x1="570" y1="78" x2="570" y2="90" class="sd-dim"/>
+      <text x="320" y="80" text-anchor="middle" class="sd-dimtxt">L = 305 ± 5,0 mm (12 inç)</text>
+
+      <!-- Height Dimension: 76 mm -->
+      <line x1="586" y1="96" x2="586" y2="192" class="sd-dim"/>
+      <line x1="580" y1="96" x2="592" y2="96" class="sd-dim"/>
+      <line x1="580" y1="192" x2="592" y2="192" class="sd-dim"/>
+      <text x="596" y="148" class="sd-dimtxt">W = 76 mm</text>
+
+      <!-- Thickness Callout -->
+      <line x1="70" y1="144" x2="36" y2="144" class="sd-dim" marker-end="url(#sd-arr-dwtt)"/>
+      <text x="32" y="140" text-anchor="end" class="sd-dimtxt">t = ${tStr} mm</text>
+      <text x="32" y="152" text-anchor="end" class="sd-note">(tam cidar)</text>
+
+      <!-- ============ B) Fracture Surface Evaluation Region ============ -->
+      <text x="24" y="278" class="sd-lbl">B) Kırılma Yüzeyi ve Sünek Kırılma Alanı Değerlendirme Bölgesi (API 5L 9.9)</text>
+
+      <!-- Fracture bar diagram -->
+      <g filter="url(#sd-dwtt-shadow)">
+        <rect x="70" y="292" width="500" height="42" rx="2" fill="#e2e8f0" stroke="#334155" stroke-width="1.5"/>
+        <!-- Notch side excluded zone (first 19 mm / 0.75 in) -->
+        <rect x="70" y="292" width="70" height="42" fill="#fecaca" opacity="0.75"/>
+        <text x="105" y="316" text-anchor="middle" class="sd-note" font-size="9px" fill="#991b1b">Hariç (19 mm)</text>
+
+        <!-- Valid Shear Evaluation Area (Middle) -->
+        <rect x="140" y="292" width="360" height="42" fill="url(#dwtt-fracture-shear)" stroke="#16a34a" stroke-width="1.2"/>
+        <text x="320" y="312" text-anchor="middle" class="sd-lbl" fill="#14532d">Geçerli Değerlendirme Bölgesi (%85 Sünek Kırılma Alanı Sınırı)</text>
+        <text x="320" y="326" text-anchor="middle" class="sd-dimtxt" fill="#166534">Mat / Fibröz Kesme Kırılması Yüzdesi Ölçülür</text>
+
+        <!-- Tup side excluded zone (19 mm) -->
+        <rect x="500" y="292" width="70" height="42" fill="#fecaca" opacity="0.75"/>
+        <text x="535" y="316" text-anchor="middle" class="sd-note" font-size="9px" fill="#991b1b">Hariç (19 mm)</text>
+      </g>
+
+      <line x1="70" y1="344" x2="140" y2="344" class="sd-dim"/>
+      <text x="105" y="356" text-anchor="middle" class="sd-dimtxt">19 mm</text>
+      <line x1="500" y1="344" x2="570" y2="344" class="sd-dim"/>
+      <text x="535" y="356" text-anchor="middle" class="sd-dimtxt">19 mm</text>
+
+      <!-- ============ Captions ============ -->
+      <line x1="16" y1="372" x2="624" y2="372" stroke="#cbd5e1" stroke-width="1"/>
+      <text x="16" y="388" class="sd-note">API 5L Madde 9.9: D ≥ 508 mm (20 in) hat borularında her test birimi için iki numunede ortalama sünek kırılma alanı ≥ %85 olmalıdır.</text>
+      <text x="16" y="402" class="sd-note">Kırılma yüzeyinde çentik ucundan 19 mm ve vuruş kenarından 19 mm olan ezilme bölgeleri değerlendirmeye dahil edilmez (ASTM E436).</text>
+    </svg>`;
+    },
 
     // ------------------------------------------------------------------
     // Hardness indentation positions (body / weld / HAZ)

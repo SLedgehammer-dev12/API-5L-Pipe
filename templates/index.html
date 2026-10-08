@@ -1675,15 +1675,22 @@
 
     <!-- ITP Info Modal (clause text / specimen drawing) -->
     <div id="itp-info-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-        <div class="bg-white rounded-2xl max-w-3xl w-full p-6 shadow-2xl border border-slate-200 text-xs text-slate-700 max-h-[90vh] overflow-y-auto">
-            <div class="flex items-center justify-between pb-3 border-b border-slate-200 mb-4">
-                <h3 id="itp-info-title" class="font-bold text-base text-slate-900">API 5L Standart Referansı</h3>
+        <div class="bg-white rounded-2xl max-w-4xl w-full p-6 shadow-2xl border border-slate-200 text-xs text-slate-700 max-h-[92vh] overflow-y-auto">
+            <div class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-200 mb-4">
+                <div class="flex items-center gap-3">
+                    <h3 id="itp-info-title" class="font-bold text-base text-slate-900">API 5L Standart Referansı</h3>
+                    <div id="itp-modal-view-toggle" class="hidden items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200 text-xs font-semibold">
+                        <button id="itp-btn-view-2d" onclick="switchItpSpecimenView('2d')" class="px-3 py-1 rounded-md transition bg-white text-blue-700 shadow-sm">📐 2D Çizim</button>
+                        <button id="itp-btn-view-3d" onclick="switchItpSpecimenView('3d')" class="px-3 py-1 rounded-md transition text-slate-600 hover:text-slate-900">🧊 3D WebGL Model</button>
+                    </div>
+                </div>
                 <button onclick="closeItpInfoModal()" class="text-slate-400 hover:text-slate-600 text-lg font-bold">✕</button>
             </div>
             <div id="itp-info-body" class="space-y-3">
                 <!-- Populated by JS -->
             </div>
-            <div class="pt-3 flex justify-end border-t border-slate-100 mt-4">
+            <div class="pt-3 flex justify-between items-center border-t border-slate-100 mt-4">
+                <span id="itp-modal-footer-note" class="text-[11px] text-slate-500 font-medium">API Spec 5L 47th Edition / ISO 3183 & BOTAŞ Şartnamesi</span>
                 <button onclick="closeItpInfoModal()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-1.5 rounded-lg transition">Kapat</button>
             </div>
         </div>
@@ -1698,6 +1705,7 @@
     <script src="/static/js/pipe_visualizer_2d.js"></script>
     <script src="/static/js/pipe_visualizer_3d.js"></script>
     <script src="/static/js/specimen_drawings.js"></script>
+    <script src="/static/js/specimen_visualizer_3d.js"></script>
     <script src="/static/js/project_storage.js"></script>
     <script src="/static/js/app.js"></script>
 
