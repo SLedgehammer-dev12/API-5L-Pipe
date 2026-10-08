@@ -45,19 +45,33 @@
     <div class="overflow-x-auto mb-6">
         <table class="matrix-table text-xs border-2 border-slate-900">
             <tbody>
+                {% macro freqcell(key) -%}
+                {%- set ns = namespace(vals=[]) -%}
+                {%- for p in pipes -%}
+                {%- set rf = (p.row_frequency if p.row_frequency else {}) -%}
+                {%- set v = rf.get(key) if key else none -%}
+                {%- if v and v not in ns.vals -%}{%- set ns.vals = ns.vals + [v] -%}{%- endif -%}
+                {%- endfor -%}
+                {{- ns.vals | join(' | ') if ns.vals else '—' -}}
+                {%- endmacro %}
+                <tr>
+                    <td colspan="{{ 4 + pipes|length }}" class="th-main"></td>
+                    <td class="th-main font-bold text-center">Test Frekansı / Sıklık &amp; Numune</td>
+                </tr>
                 <!-- Diameter Inch -->
                 <tr>
                     <td colspan="4" class="th-main font-bold">ÇAP (inch)</td>
                     {% for p in pipes %}
                     <td class="th-sub font-bold">{{ p.input_summary.diameter_inch }}</td>
                     {% endfor %}
-                </tr>
+                
                 <!-- Diameter Mm -->
                 <tr>
                     <td colspan="4" class="th-main font-bold">ÇAP (mm)</td>
                     {% for p in pipes %}
                     <td class="th-sub font-bold">{{ p.input_summary.diameter_mm }}</td>
                     {% endfor %}
+                <td class="text-center text-indigo-800 freq-col">{{ freqcell(none) }}</td>
                 </tr>
                 <!-- Design Factor -->
                 <tr>
@@ -65,6 +79,7 @@
                     {% for p in pipes %}
                     <td class="th-sub font-bold">{{ p.input_summary.design_factor_str }}</td>
                     {% endfor %}
+                <td class="text-center text-indigo-800 freq-col">{{ freqcell(none) }}</td>
                 </tr>
                 <!-- Wall Thickness -->
                 <tr>
@@ -72,6 +87,7 @@
                     {% for p in pipes %}
                     <td class="th-sub font-black text-indigo-900">{{ "%.2f"|format(p.input_summary.wall_thickness_mm) }}</td>
                     {% endfor %}
+                <td class="text-center text-indigo-800 freq-col">{{ freqcell(none) }}</td>
                 </tr>
                 <!-- Process -->
                 <tr>
@@ -79,6 +95,7 @@
                     {% for p in pipes %}
                     <td class="th-sub font-bold">{{ p.input_summary.manufacturing_process }}</td>
                     {% endfor %}
+                <td class="text-center text-indigo-800 freq-col">{{ freqcell(none) }}</td>
                 </tr>
                 <!-- Material Grade -->
                 <tr>
@@ -86,6 +103,7 @@
                     {% for p in pipes %}
                     <td class="th-sub font-bold text-emerald-900">{{ p.input_summary.material_grade }}</td>
                     {% endfor %}
+                <td class="text-center text-indigo-800 freq-col">{{ freqcell(none) }}</td>
                 </tr>
                 <!-- SMYS -->
                 <tr>
@@ -93,6 +111,7 @@
                     {% for p in pipes %}
                     <td class="th-sub font-bold">{{ p.mechanical_properties.smys_psi }}</td>
                     {% endfor %}
+                <td class="text-center text-indigo-800 freq-col">{{ freqcell(none) }}</td>
                 </tr>
 
                 <!-- Chemical Block -->
@@ -103,56 +122,67 @@
                     <td class="font-bold text-center">C</td>
                     <td class="text-center text-xs">Max %</td>
                     {% for p in pipes %}<td>{{ p.chemical_analysis.C_max | fmt(2) }}</td>{% endfor %}
+                <td class="text-center text-indigo-800 freq-col">{{ freqcell('chemical') }}</td>
                 </tr>
                 <tr>
                     <td class="font-bold text-center">Mn</td>
                     <td class="text-center text-xs">Max %</td>
                     {% for p in pipes %}<td>{{ p.chemical_analysis.Mn_max | fmt(2) }}</td>{% endfor %}
+                <td class="text-center text-indigo-800 freq-col">{{ freqcell('chemical') }}</td>
                 </tr>
                 <tr>
                     <td class="font-bold text-center">P</td>
                     <td class="text-center text-xs">Max %</td>
                     {% for p in pipes %}<td>{{ p.chemical_analysis.P_max | fmt(3) }}</td>{% endfor %}
+                <td class="text-center text-indigo-800 freq-col">{{ freqcell('chemical') }}</td>
                 </tr>
                 <tr>
                     <td class="font-bold text-center">S</td>
                     <td class="text-center text-xs">Max %</td>
                     {% for p in pipes %}<td>{{ p.chemical_analysis.S_max | fmt(3) }}</td>{% endfor %}
+                <td class="text-center text-indigo-800 freq-col">{{ freqcell('chemical') }}</td>
                 </tr>
                 <tr>
                     <td class="font-bold text-center">Nb</td>
                     <td class="text-center text-xs">{{ "Min%-Max%" if nb_ns.has_min else "Max %" }}</td>
                     {% for p in pipes %}<td>{{ p.chemical_analysis.Nb_min_max if p.chemical_analysis.Nb_min_max else "—" }}</td>{% endfor %}
+                <td class="text-center text-indigo-800 freq-col">{{ freqcell('chemical') }}</td>
                 </tr>
                 <tr>
                     <td class="font-bold text-center">V</td>
                     <td class="text-center text-xs">Max %</td>
                     {% for p in pipes %}<td>{{ p.chemical_analysis.V_max | fmt(2) }}</td>{% endfor %}
+                <td class="text-center text-indigo-800 freq-col">{{ freqcell('chemical') }}</td>
                 </tr>
                 <tr>
                     <td class="font-bold text-center">Ti</td>
                     <td class="text-center text-xs">Max %</td>
                     {% for p in pipes %}<td>{{ p.chemical_analysis.Ti_max | fmt(2) }}</td>{% endfor %}
+                <td class="text-center text-indigo-800 freq-col">{{ freqcell('chemical') }}</td>
                 </tr>
                 <tr>
                     <td class="font-bold text-center">N</td>
                     <td class="text-center text-xs">Max %</td>
                     {% for p in pipes %}<td>{{ p.chemical_analysis.N_max | fmt(3) }}</td>{% endfor %}
+                <td class="text-center text-indigo-800 freq-col">{{ freqcell('chemical') }}</td>
                 </tr>
                 <tr>
                     <td class="font-bold text-center">CE (IIW)</td>
                     <td class="text-center text-xs">Max</td>
                     {% for p in pipes %}<td>{{ p.chemical_analysis.CE_IIW_max | fmt(2) }}</td>{% endfor %}
+                <td class="text-center text-indigo-800 freq-col">{{ freqcell('chemical') }}</td>
                 </tr>
                 <tr>
                     <td class="font-bold text-center">CE (Pcm)</td>
                     <td class="text-center text-xs">Max</td>
                     {% for p in pipes %}<td>{{ p.chemical_analysis.CE_Pcm_max | fmt(2) }}</td>{% endfor %}
+                <td class="text-center text-indigo-800 freq-col">{{ freqcell('chemical') }}</td>
                 </tr>
                 {% if pipes[0].chemical_analysis.as_agreed %}
                 <tr>
                     <td colspan="4" class="font-bold text-center text-amber-700">t > 25.0 mm — Kimyasal bileşim anlaşmaya bağlıdır (API 5L 9.2.3)</td>
                     {% for p in pipes %}<td></td>{% endfor %}
+                <td class="text-center text-indigo-800 freq-col">{{ freqcell(none) }}</td>
                 </tr>
                 {% endif %}
 
@@ -161,86 +191,105 @@
                     <td rowspan="2" class="th-side font-bold text-center text-xs">Et Kalınlığı Toleransı</td>
                     <td colspan="3" class="label-cell">Et Kalınlığı: Min. (mm)</td>
                     {% for p in pipes %}<td class="font-bold text-red-700">{{ "%.2f"|format(p.wall_thickness_tolerance.min_mm) }}</td>{% endfor %}
+                <td class="text-center text-indigo-800 freq-col">{{ freqcell('dimensional') }}</td>
                 </tr>
                 <tr>
                     <td colspan="3" class="label-cell">Et Kalınlığı: Max. (mm)</td>
                     {% for p in pipes %}<td class="font-bold text-emerald-700">{{ "%.2f"|format(p.wall_thickness_tolerance.max_mm) }}</td>{% endfor %}
+                <td class="text-center text-indigo-800 freq-col">{{ freqcell('dimensional') }}</td>
                 </tr>
 
                 <!-- Mechanical Properties -->
                 <tr>
                     <td colspan="4" class="label-cell">Yield Min. (Psi-Mpa)</td>
                     {% for p in pipes %}<td>{{ p.mechanical_properties.yield_min_psi }} / {{ p.mechanical_properties.yield_min_mpa }}</td>{% endfor %}
+                <td class="text-center text-indigo-800 freq-col">{{ freqcell('tensile') }}</td>
                 </tr>
                 <tr>
                     <td colspan="4" class="label-cell">Yield Max. (Psi-Mpa)</td>
                     {% for p in pipes %}<td>{{ p.mechanical_properties.yield_max_psi }} / {{ p.mechanical_properties.yield_max_mpa }}</td>{% endfor %}
+                <td class="text-center text-indigo-800 freq-col">{{ freqcell('tensile') }}</td>
                 </tr>
                 <tr>
                     <td colspan="4" class="label-cell">Tensile Min (Psi-Mpa)</td>
                     {% for p in pipes %}<td>{{ p.mechanical_properties.tensile_min_psi }} / {{ p.mechanical_properties.tensile_min_mpa }}</td>{% endfor %}
+                <td class="text-center text-indigo-800 freq-col">{{ freqcell('tensile') }}</td>
                 </tr>
                 <tr>
                     <td colspan="4" class="label-cell">Tensile Max (Psi-Mpa)</td>
                     {% for p in pipes %}<td>{{ p.mechanical_properties.tensile_max_psi }} / {{ p.mechanical_properties.tensile_max_mpa }}</td>{% endfor %}
+                <td class="text-center text-indigo-800 freq-col">{{ freqcell('tensile') }}</td>
                 </tr>
                 <tr>
                     <td colspan="4" class="label-cell">Hydro Test Basıncı Max.(Bar)</td>
                     {% for p in pipes %}<td class="font-bold text-blue-900">{{ "%.2f"|format(p.hydrostatic_test.hydro_test_max_bar) }}</td>{% endfor %}
+                <td class="text-center text-indigo-800 freq-col">{{ freqcell('hydro') }}</td>
                 </tr>
                 <tr>
                     <td colspan="4" class="label-cell">Hydro Test Basıncı Min.(Bar)</td>
                     {% for p in pipes %}<td>{{ "%.2f"|format(p.hydrostatic_test.hydro_test_min_bar) }}</td>{% endfor %}
+                <td class="text-center text-indigo-800 freq-col">{{ freqcell('hydro') }}</td>
                 </tr>
                 <tr>
                     <td colspan="4" class="label-cell">API 5L Standart Test Pressure (Bar)</td>
                     {% for p in pipes %}<td>{{ "%.2f"|format(p.hydrostatic_test.api_5l_std_test_bar) }}</td>{% endfor %}
+                <td class="text-center text-indigo-800 freq-col">{{ freqcell('hydro') }}</td>
                 </tr>
                 <tr>
                     <td colspan="4" class="label-cell">Minimum Uzama (% e) - Malzeme</td>
                     {% for p in pipes %}<td><strong>{{ "%.2f"|format(p.toughness_and_tests.elongation_mat_min_percent) }}%</strong></td>{% endfor %}
+                <td class="text-center text-indigo-800 freq-col">{{ freqcell('tensile') }}</td>
                 </tr>
                 <tr>
                     <td colspan="4" class="label-cell">Radial Offset Max. (mm)</td>
                     {% for p in pipes %}<td>{{ p.weld_and_geometry.radial_offset_max_mm }}</td>{% endfor %}
+                <td class="text-center text-indigo-800 freq-col">{{ freqcell(none) }}</td>
                 </tr>
                 <tr>
                     <td colspan="4" class="label-cell">Kaynak Yüksekliği - İç / Dış (mm)</td>
                     {% for p in pipes %}<td>{{ p.weld_and_geometry.weld_height_inside_mm }} / {{ p.weld_and_geometry.weld_height_outside_mm }}</td>{% endfor %}
+                <td class="text-center text-indigo-800 freq-col">{{ freqcell(none) }}</td>
                 </tr>
                 <tr>
                     <td colspan="4" class="label-cell">Artık Stres Testi Max (mm)</td>
                     {% for p in pipes %}<td><strong>{{ p.toughness_and_tests.residual_stress_max_mm }}</strong></td>{% endfor %}
+                <td class="text-center text-indigo-800 freq-col">{{ freqcell('residual_stress') }}</td>
                 </tr>
                 <tr>
                     <td colspan="4" class="label-cell">Yırtılma Testi (DWTT)</td>
                     {% for p in pipes %}<td><strong>{{ p.toughness_and_tests.dwtt_test }}</strong></td>{% endfor %}
+                <td class="text-center text-indigo-800 freq-col">{{ freqcell('dwtt') }}</td>
                 </tr>
                 <tr>
                     <td colspan="4" class="label-cell">Mandrel Çapı / Çene Açıklığı Max (mm)</td>
                     {% for p in pipes %}<td>{{ p.toughness_and_tests.mandrel_dia_max_mm }} / {{ p.toughness_and_tests.jaw_opening_max_mm }}</td>{% endfor %}
+                <td class="text-center text-indigo-800 freq-col">{{ freqcell('bend') }}</td>
                 </tr>
                 <tr>
                     <td colspan="4" class="label-cell">Ağırlık Nominal (Kg/m)</td>
                     {% for p in pipes %}<td><strong>{{ "%.2f"|format(p.weights_and_safety.weight_nominal_kg_m) }}</strong></td>{% endfor %}
+                <td class="text-center text-indigo-800 freq-col">{{ freqcell(none) }}</td>
                 </tr>
                 <tr>
                     <td colspan="4" class="label-cell">Operating pressure/ SMYS</td>
                     {% for p in pipes %}<td>{{ p.weights_and_safety.operating_press_over_smys_percent }}</td>{% endfor %}
+                <td class="text-center text-indigo-800 freq-col">{{ freqcell(none) }}</td>
                 </tr>
                 <tr>
                     <td colspan="4" class="label-cell">841.1.2 Fracture Control and Arrest</td>
                     {% for p in pipes %}<td>{{ p.weights_and_safety.fracture_control_asme_841_1_2 }}</td>{% endfor %}
+                <td class="text-center text-indigo-800 freq-col">{{ freqcell(none) }}</td>
                 </tr>
                 <tr>
                     <td colspan="4" class="label-cell">D/t & Alternatif Basınç Dizayn</td>
                     {% for p in pipes %}<td>{{ p.weights_and_safety.d_over_t }} ({{ p.weights_and_safety.alternative_design_pressure_bar }})</td>{% endfor %}
+                <td class="text-center text-indigo-800 freq-col">{{ freqcell(none) }}</td>
                 </tr>
             </tbody>
         </table>
     </div>
-
-    <!-- API 5L Inspection & Test Plan (Sampling Info) -->
+                <td class="text-center text-indigo-800 freq-col">{{ freqcell(none) }}</td>
+                </tr><!-- API 5L Inspection & Test Plan (Sampling Info) -->
     {% if test_plan %}
     <div class="mb-6">
         <h3 class="text-sm font-black text-slate-900 uppercase border-b-2 border-slate-800 pb-1 mb-3">

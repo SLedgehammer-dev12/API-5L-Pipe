@@ -127,14 +127,28 @@ body {
     background-color: #e2e8f0 !important;
 }
 
-/* Sticky Right Explanation Column */
+/* Sticky Right Explanation Column (offset so the frequency column stays far-right) */
 .sticky-right {
     position: sticky;
-    right: 0;
+    right: 190px;
     z-index: 15;
     background-color: #f8fafc !important;
     border-left: 2px solid #cbd5e1 !important;
     box-shadow: -3px 0 6px rgba(0, 0, 0, 0.04);
+}
+
+/* Sticky Far-Right Test Frequency Column */
+.sticky-right-freq {
+    position: sticky;
+    right: 0;
+    z-index: 16;
+    width: 190px;
+    min-width: 190px;
+    max-width: 190px;
+    white-space: normal;
+    background-color: #eef2ff !important;
+    border-left: 2px solid #c7d2fe !important;
+    box-shadow: -3px 0 6px rgba(0, 0, 0, 0.06);
 }
 
 /* Sticky Top Sticky Header Row */
@@ -152,6 +166,11 @@ body {
 .sticky-top-header th.sticky-right,
 .sticky-top-header td.sticky-right {
     z-index: 32 !important;
+}
+
+.sticky-top-header th.sticky-right-freq,
+.sticky-top-header td.sticky-right-freq {
+    z-index: 33 !important;
 }
 
 /* --------------------------------------------------------------------------

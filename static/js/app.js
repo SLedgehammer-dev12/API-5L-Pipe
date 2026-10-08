@@ -283,6 +283,22 @@ function renderMatrixTable() {
         return parts.map(x => `<strong>${x.tag}:</strong> ${x.text}`).join("<br>");
     };
 
+    // Per-row test frequency: collect distinct frequency texts across columns.
+    const getFreq = (key) => {
+        if (!key) return '<span class="text-slate-300">—</span>';
+        const seen = new Set();
+        const parts = [];
+        (calculatedPipes || []).forEach((p) => {
+            const f = (p.row_frequency || {})[key];
+            if (!f || seen.has(f)) return;
+            seen.add(f);
+            parts.push({ tag: stdTag(p), text: f });
+        });
+        if (parts.length === 0) return '<span class="text-slate-300">—</span>';
+        if (parts.length === 1) return esc(parts[0].text);
+        return parts.map(x => `<strong>${x.tag}:</strong> ${esc(x.text)}`).join("<br>");
+    };
+
     const isColActive = (idx) => idx === selectedPipeIndex;
 
     // SECTION 0: COLUMN SELECTOR & FOCUS INDICATOR ROW (Sticky Top)
@@ -305,6 +321,9 @@ function renderMatrixTable() {
     });
     html += `<td class="sticky-right bg-slate-100 text-slate-600 text-[11px] px-3 py-1 font-bold italic text-left max-w-[280px] border-l-2 border-slate-300">
         Standart & Mühendislik Açıklamaları
+    </td>
+    <td class="sticky-right-freq bg-slate-100 text-slate-600 text-[11px] px-3 py-1 font-bold italic text-left border-l-2 border-slate-300">
+        🧪 Test Frekansı / Sıklık &amp; Numune
     </td></tr>`;
 
     // SECTION 1: HEADER PARAMETERS (Always visible / uncollapsed)
@@ -335,12 +354,13 @@ function renderMatrixTable() {
             const activeColClass = active ? 'active-pipe-col' : '';
             html += `<td onclick="selectPipe(${idx})" class="pipe-header-cell text-center px-2 py-1.5 ${activeHeaderClass} ${activeColClass}" title="3D/2D Modelde Odaklamak için Tıklayın">${hr.extractor(p)}</td>`;
         });
-        html += `<td class="sticky-right bg-slate-50 text-slate-600 text-[11px] px-3 py-1 italic text-left max-w-[280px] border-l-2 border-slate-300">${hr.exp}</td></tr>`;
+        html += `<td class="sticky-right bg-slate-50 text-slate-600 text-[11px] px-3 py-1 italic text-left max-w-[280px] border-l-2 border-slate-300">${hr.exp}</td>
+            <td class="sticky-right-freq bg-slate-50 text-slate-600 text-[11px] px-3 py-1 italic text-left border-l-2 border-slate-300">—</td></tr>`;
     });
 
     // Helper for Accordion Section Headers
     const renderAccordionSectionHeader = (secId, title, count) => {
-        const totalCols = calculatedPipes.length + 2;
+        const totalCols = calculatedPipes.length + 3;
         return `
             <tr class="accordion-header bg-slate-200 border-y-2 border-slate-400" onclick="toggleAccordion('${secId}')">
                 <td colspan="${totalCols}" class="text-left px-3 py-2 font-bold text-slate-800 flex items-center justify-between text-xs tracking-wide">
@@ -382,11 +402,12 @@ function renderMatrixTable() {
             const cell = isAsAgreed(p) ? '<span class="text-amber-600 italic">Anlaşmaya bağlı</span>' : cr.ext(p);
             html += `<td onclick="selectPipe(${cIdx})" class="text-center font-mono text-xs px-2 py-1.5 cursor-pointer ${activeColClass}">${cell}</td>`;
         });
-        html += `<td class="sticky-right bg-slate-50 text-slate-600 text-[11px] px-3 py-1 italic text-left border-l-2 border-slate-300">${getExp('chemical')}</td></tr>`;
+        html += `<td class="sticky-right bg-slate-50 text-slate-600 text-[11px] px-3 py-1 italic text-left border-l-2 border-slate-300">${getExp('chemical')}</td>
+            <td class="sticky-right-freq bg-slate-50 text-indigo-700 text-[11px] px-3 py-1 italic text-left border-l-2 border-slate-300">${getFreq('chemical')}</td></tr>`;
     });
     if (calculatedPipes.some(p => p.chemical_analysis.as_agreed === true)) {
         html += `<tr class="row-sec-chem border-b border-gray-200">
-            <td class="th-side sticky-left text-left font-bold px-3 py-1.5 text-xs text-amber-700" colspan="${calculatedPipes.length + 2}">
+            <td class="th-side sticky-left text-left font-bold px-3 py-1.5 text-xs text-amber-700" colspan="${calculatedPipes.length + 3}">
                 ⚠️ t > 25.0 mm: kimyasal bileşim anlaşmaya bağlıdır (API 5L 9.2.3).
             </td></tr>`;
     }
@@ -394,14 +415,14 @@ function renderMatrixTable() {
     // SECTION 3: MECHANICAL & HYDROSTATIC PRESSURE
     html += renderAccordionSectionHeader("sec-mech", "💥 MEKANİK MUKAVEMET & HİDROSTATİK FABRİKA BASINCI", "8");
     const mechRows = [
-        { label: "Yield Min. (Psi / MPa)", exp: getExp('yield_tensile'), ext: p => `${p.mechanical_properties.yield_min_psi.toFixed(0)} psi / ${p.mechanical_properties.yield_min_mpa.toFixed(2)} MPa` },
-        { label: "Yield Max. (Psi / MPa)", exp: getExp('yield_tensile'), ext: p => `${p.mechanical_properties.yield_max_psi.toFixed(0)} psi / ${p.mechanical_properties.yield_max_mpa.toFixed(2)} MPa` },
-        { label: "Tensile Min. (Psi / MPa)", exp: getExp('yield_tensile'), ext: p => `${p.mechanical_properties.tensile_min_psi.toFixed(0)} psi / ${p.mechanical_properties.tensile_min_mpa.toFixed(2)} MPa` },
-        { label: "Tensile Max. (Psi / MPa)", exp: getExp('yield_tensile'), ext: p => `${p.mechanical_properties.tensile_max_psi.toFixed(0)} psi / ${p.mechanical_properties.tensile_max_mpa.toFixed(2)} MPa` },
-        { label: `Akma / Çekme Oranı Max. (Y/T)${noteBtn("yt_ratio")}`, exp: getExp('yt_ratio'), ext: p => p.mechanical_properties.yield_to_tensile_ratio_max > 0 ? p.mechanical_properties.yield_to_tensile_ratio_max.toFixed(2) : "<span class='text-slate-400'>— (PSL1)</span>" },
-        { label: `Hydro Test Basıncı Max. (Bar)${noteBtn("hydro_factor")}`, exp: getExp('hydro_test'), ext: p => `<span class="font-bold text-blue-700">${p.hydrostatic_test.hydro_test_max_bar.toFixed(2)} Bar</span>` },
-        { label: `Hydro Test Basıncı Min. (Bar)${noteBtn("hydro_factor")}`, exp: "Fabrika Test Alt Sınırı (API: Standart Test Basıncı / BOTAŞ: P_max - 2.0 Bar)", ext: p => `${p.hydrostatic_test.hydro_test_min_bar.toFixed(2)} Bar` },
-        { label: `API 5L Standart Test Pressure (Bar)${noteBtn("hydro_factor")}`, exp: getExp('api_std_test'), ext: p => `${p.hydrostatic_test.api_5l_std_test_bar.toFixed(2)} Bar` },
+        { label: "Yield Min. (Psi / MPa)", freqKey: "tensile", exp: getExp('yield_tensile'), ext: p => `${p.mechanical_properties.yield_min_psi.toFixed(0)} psi / ${p.mechanical_properties.yield_min_mpa.toFixed(2)} MPa` },
+        { label: "Yield Max. (Psi / MPa)", freqKey: "tensile", exp: getExp('yield_tensile'), ext: p => `${p.mechanical_properties.yield_max_psi.toFixed(0)} psi / ${p.mechanical_properties.yield_max_mpa.toFixed(2)} MPa` },
+        { label: "Tensile Min. (Psi / MPa)", freqKey: "tensile", exp: getExp('yield_tensile'), ext: p => `${p.mechanical_properties.tensile_min_psi.toFixed(0)} psi / ${p.mechanical_properties.tensile_min_mpa.toFixed(2)} MPa` },
+        { label: "Tensile Max. (Psi / MPa)", freqKey: "tensile", exp: getExp('yield_tensile'), ext: p => `${p.mechanical_properties.tensile_max_psi.toFixed(0)} psi / ${p.mechanical_properties.tensile_max_mpa.toFixed(2)} MPa` },
+        { label: `Akma / Çekme Oranı Max. (Y/T)${noteBtn("yt_ratio")}`, freqKey: "tensile", exp: getExp('yt_ratio'), ext: p => p.mechanical_properties.yield_to_tensile_ratio_max > 0 ? p.mechanical_properties.yield_to_tensile_ratio_max.toFixed(2) : "<span class='text-slate-400'>— (PSL1)</span>" },
+        { label: `Hydro Test Basıncı Max. (Bar)${noteBtn("hydro_factor")}`, freqKey: "hydro", exp: getExp('hydro_test'), ext: p => `<span class="font-bold text-blue-700">${p.hydrostatic_test.hydro_test_max_bar.toFixed(2)} Bar</span>` },
+        { label: `Hydro Test Basıncı Min. (Bar)${noteBtn("hydro_factor")}`, freqKey: "hydro", exp: "Fabrika Test Alt Sınırı (API: Standart Test Basıncı / BOTAŞ: P_max - 2.0 Bar)", ext: p => `${p.hydrostatic_test.hydro_test_min_bar.toFixed(2)} Bar` },
+        { label: `API 5L Standart Test Pressure (Bar)${noteBtn("hydro_factor")}`, freqKey: "hydro", exp: getExp('api_std_test'), ext: p => `${p.hydrostatic_test.api_5l_std_test_bar.toFixed(2)} Bar` },
     ];
     mechRows.forEach(mr => {
         html += `<tr class="row-sec-mech border-b border-gray-300 searchable-row">
@@ -410,19 +431,20 @@ function renderMatrixTable() {
             const activeColClass = isColActive(cIdx) ? 'active-pipe-col font-bold' : '';
             html += `<td onclick="selectPipe(${cIdx})" class="text-center text-xs px-2 py-1.5 cursor-pointer ${activeColClass}">${mr.ext(p)}</td>`;
         });
-        html += `<td class="sticky-right bg-slate-50 text-slate-600 text-[11px] px-3 py-1 italic text-left border-l-2 border-slate-300">${mr.exp}</td></tr>`;
+        html += `<td class="sticky-right bg-slate-50 text-slate-600 text-[11px] px-3 py-1 italic text-left border-l-2 border-slate-300">${mr.exp}</td>
+            <td class="sticky-right-freq bg-slate-50 text-indigo-700 text-[11px] px-3 py-1 italic text-left border-l-2 border-slate-300">${getFreq(mr.freqKey)}</td></tr>`;
     });
 
     // SECTION 4: DIMENSIONAL & WELD TOLERANCES
     html += renderAccordionSectionHeader("sec-dim", "📐 BOYUTSAL & KAYNAK TOLERANSLARI", "11");
     const dimRows = [
-        { label: `Et Kalınlığı: Min. (mm)${noteBtn("smls_wall_tol")}`, exp: getExp('wall_thickness_tol'), ext: p => `<span class="font-bold text-red-700">${p.wall_thickness_tolerance.min_mm.toFixed(2)} mm</span>` },
-        { label: `Et Kalınlığı: Max. (mm)${noteBtn("smls_wall_tol")}`, exp: getExp('wall_thickness_tol'), ext: p => `<span class="font-bold text-emerald-700">${p.wall_thickness_tolerance.max_mm.toFixed(2)} mm</span>` },
-        { label: `Boru Çap Toleransı - Boru Ucu Max/Min${noteBtn("diameter_tol")}`, exp: getExp('diameter_tol'), ext: p => `[${fmtNum(p.dimensional_tolerances.diameter_end_min_mm, 2)} - ${fmtNum(p.dimensional_tolerances.diameter_end_max_mm, 2)}] mm` },
-        { label: `Boru Çap Toleransı - Gövde Max/Min${noteBtn("diameter_tol")}`, exp: getExp('diameter_tol'), ext: p => `[${fmtNum(p.dimensional_tolerances.diameter_body_min_mm, 2)} - ${fmtNum(p.dimensional_tolerances.diameter_body_max_mm, 2)}] mm` },
-        { label: "Boru Çevre Toleransı - Boru Ucu (mm)", exp: getExp('circumference_tol'), ext: p => `[${typeof p.dimensional_tolerances.circ_end_min_mm === 'number' ? p.dimensional_tolerances.circ_end_min_mm.toFixed(2) : p.dimensional_tolerances.circ_end_min_mm} - ${typeof p.dimensional_tolerances.circ_end_max_mm === 'number' ? p.dimensional_tolerances.circ_end_max_mm.toFixed(2) : p.dimensional_tolerances.circ_end_max_mm}] mm` },
-        { label: "Boru Çevre Toleransı - Gövde (mm)", exp: getExp('circumference_tol'), ext: p => `[${typeof p.dimensional_tolerances.circ_body_min_mm === 'number' ? p.dimensional_tolerances.circ_body_min_mm.toFixed(2) : p.dimensional_tolerances.circ_body_min_mm} - ${typeof p.dimensional_tolerances.circ_body_max_mm === 'number' ? p.dimensional_tolerances.circ_body_max_mm.toFixed(2) : p.dimensional_tolerances.circ_body_max_mm}] mm` },
-        { label: "Ovalite - Boru Ucu / Gövde (mm)", exp: getExp('ovality'), ext: p => `Uç: ${p.dimensional_tolerances.ovality_end_mm} mm | Gövde: ${p.dimensional_tolerances.ovality_body_mm} mm` },
+        { label: `Et Kalınlığı: Min. (mm)${noteBtn("smls_wall_tol")}`, freqKey: "dimensional", exp: getExp('wall_thickness_tol'), ext: p => `<span class="font-bold text-red-700">${p.wall_thickness_tolerance.min_mm.toFixed(2)} mm</span>` },
+        { label: `Et Kalınlığı: Max. (mm)${noteBtn("smls_wall_tol")}`, freqKey: "dimensional", exp: getExp('wall_thickness_tol'), ext: p => `<span class="font-bold text-emerald-700">${p.wall_thickness_tolerance.max_mm.toFixed(2)} mm</span>` },
+        { label: `Boru Çap Toleransı - Boru Ucu Max/Min${noteBtn("diameter_tol")}`, freqKey: "dimensional", exp: getExp('diameter_tol'), ext: p => `[${fmtNum(p.dimensional_tolerances.diameter_end_min_mm, 2)} - ${fmtNum(p.dimensional_tolerances.diameter_end_max_mm, 2)}] mm` },
+        { label: `Boru Çap Toleransı - Gövde Max/Min${noteBtn("diameter_tol")}`, freqKey: "dimensional", exp: getExp('diameter_tol'), ext: p => `[${fmtNum(p.dimensional_tolerances.diameter_body_min_mm, 2)} - ${fmtNum(p.dimensional_tolerances.diameter_body_max_mm, 2)}] mm` },
+        { label: "Boru Çevre Toleransı - Boru Ucu (mm)", freqKey: "dimensional", exp: getExp('circumference_tol'), ext: p => `[${typeof p.dimensional_tolerances.circ_end_min_mm === 'number' ? p.dimensional_tolerances.circ_end_min_mm.toFixed(2) : p.dimensional_tolerances.circ_end_min_mm} - ${typeof p.dimensional_tolerances.circ_end_max_mm === 'number' ? p.dimensional_tolerances.circ_end_max_mm.toFixed(2) : p.dimensional_tolerances.circ_end_max_mm}] mm` },
+        { label: "Boru Çevre Toleransı - Gövde (mm)", freqKey: "dimensional", exp: getExp('circumference_tol'), ext: p => `[${typeof p.dimensional_tolerances.circ_body_min_mm === 'number' ? p.dimensional_tolerances.circ_body_min_mm.toFixed(2) : p.dimensional_tolerances.circ_body_min_mm} - ${typeof p.dimensional_tolerances.circ_body_max_mm === 'number' ? p.dimensional_tolerances.circ_body_max_mm.toFixed(2) : p.dimensional_tolerances.circ_body_max_mm}] mm` },
+        { label: "Ovalite - Boru Ucu / Gövde (mm)", freqKey: "dimensional", exp: getExp('ovality'), ext: p => `Uç: ${p.dimensional_tolerances.ovality_end_mm} mm | Gövde: ${p.dimensional_tolerances.ovality_body_mm} mm` },
         { label: "Radial Offset Max. (mm)", exp: getExp('radial_offset'), ext: p => `${p.weld_and_geometry.radial_offset_max_mm} mm` },
         { label: "Kaynak Yüksekliği - İç / Dış (mm)", exp: getExp('weld_height'), ext: p => `İç: ${p.weld_and_geometry.weld_height_inside_mm} mm | Dış: ${p.weld_and_geometry.weld_height_outside_mm} mm` },
         { label: "Misalignment (mm)", exp: getExp('misalignment'), ext: p => `${p.weld_and_geometry.misalignment_max_mm} mm` },
@@ -435,22 +457,23 @@ function renderMatrixTable() {
             const activeColClass = isColActive(cIdx) ? 'active-pipe-col font-bold' : '';
             html += `<td onclick="selectPipe(${cIdx})" class="text-center text-xs px-2 py-1.5 cursor-pointer ${activeColClass}">${dr.ext(p)}</td>`;
         });
-        html += `<td class="sticky-right bg-slate-50 text-slate-600 text-[11px] px-3 py-1 italic text-left border-l-2 border-slate-300">${dr.exp}</td></tr>`;
+        html += `<td class="sticky-right bg-slate-50 text-slate-600 text-[11px] px-3 py-1 italic text-left border-l-2 border-slate-300">${dr.exp}</td>
+            <td class="sticky-right-freq bg-slate-50 text-indigo-700 text-[11px] px-3 py-1 italic text-left border-l-2 border-slate-300">${getFreq(dr.freqKey)}</td></tr>`;
     });
 
     // SECTION 5: TOUGHNESS & SPECIAL FACTORY TESTS
     html += renderAccordionSectionHeader("sec-tests", "🔬 TOKLUK & ÖZEL FABRİKA KABUL TESTLERİ", "9");
     const testRows = [
-        { label: `Minimum Uzama - Malzeme (%)${noteBtn("elongation")}`, exp: getExp('elongation'), ext: p => p.toughness_and_tests.tensile_dual_option
+        { label: `Minimum Uzama - Malzeme (%)${noteBtn("elongation")}`, freqKey: "tensile", exp: getExp('elongation'), ext: p => p.toughness_and_tests.tensile_dual_option
             ? `Şerit: <span class="font-bold text-teal-800">${p.toughness_and_tests.elongation_strip_percent.toFixed(2)}%</span> | Yuvarlak: <span class="font-bold text-teal-800">${p.toughness_and_tests.elongation_round_percent.toFixed(2)}%</span>`
             : `<span class="font-bold text-teal-800">${p.toughness_and_tests.elongation_mat_min_percent.toFixed(2)}%</span>` },
-        { label: "Minimum Uzama - Kaynak (%)", exp: "Kaynak Dikişi Min. %10 Uzama", ext: p => `${typeof p.toughness_and_tests.elongation_weld_min_percent === 'number' ? p.toughness_and_tests.elongation_weld_min_percent.toFixed(2) : p.toughness_and_tests.elongation_weld_min_percent}%` },
-        { label: `Çentik Darbe (J) - Malzeme / Kaynak${noteBtn("cvn_body")}`, exp: getExp('cvn'), ext: p => `Gövde: ${p.toughness_and_tests.notch_impact_mat_j} J | Kaynak: ${p.toughness_and_tests.notch_impact_weld_j} J` },
-        { label: "Artık Gerilme Testi Max (mm)", exp: getExp('residual_stress'), ext: p => `${typeof p.toughness_and_tests.residual_stress_max_mm === 'number' ? p.toughness_and_tests.residual_stress_max_mm.toFixed(2) + ' mm' : p.toughness_and_tests.residual_stress_max_mm}` },
-        { label: `Yırtılma Testi (DWTT)${noteBtn("dwtt")}`, exp: getExp('dwtt'), ext: p => p.toughness_and_tests.dwtt_test === "Var" ? `<span class="badge-pass font-bold">Var (D ≥ 508mm)</span>` : `<span class="text-slate-400">${esc(p.toughness_and_tests.dwtt_test)}</span>` },
-        { label: "Sertlik TESTİ", exp: getExp('hardness'), ext: p => p.toughness_and_tests.hardness_test_max },
-        { label: "Mandrel Çapı / Çene Açıklığı (mm)", exp: getExp('mandrel_jaw'), ext: p => `${typeof p.toughness_and_tests.mandrel_dia_max_mm === 'number' ? p.toughness_and_tests.mandrel_dia_max_mm.toFixed(2) : p.toughness_and_tests.mandrel_dia_max_mm} / ${typeof p.toughness_and_tests.jaw_opening_max_mm === 'number' ? p.toughness_and_tests.jaw_opening_max_mm.toFixed(2) : p.toughness_and_tests.jaw_opening_max_mm} mm` },
-        { label: `FLATTENING - Kaynak / Çatlak Açılma${noteBtn("flattening")}`, exp: getExp('flattening'), ext: p => `Kaynak: ${p.flattening.weld_opening_height_mm} mm | Çatlak: ${p.flattening.material_crack_height_mm} mm` },
+        { label: "Minimum Uzama - Kaynak (%)", freqKey: "tensile", exp: "Kaynak Dikişi Min. %10 Uzama", ext: p => `${typeof p.toughness_and_tests.elongation_weld_min_percent === 'number' ? p.toughness_and_tests.elongation_weld_min_percent.toFixed(2) : p.toughness_and_tests.elongation_weld_min_percent}%` },
+        { label: `Çentik Darbe (J) - Malzeme / Kaynak${noteBtn("cvn_body")}`, freqKey: "cvn", exp: getExp('cvn'), ext: p => `Gövde: ${p.toughness_and_tests.notch_impact_mat_j} J | Kaynak: ${p.toughness_and_tests.notch_impact_weld_j} J` },
+        { label: "Artık Gerilme Testi Max (mm)", freqKey: "residual_stress", exp: getExp('residual_stress'), ext: p => `${typeof p.toughness_and_tests.residual_stress_max_mm === 'number' ? p.toughness_and_tests.residual_stress_max_mm.toFixed(2) + ' mm' : p.toughness_and_tests.residual_stress_max_mm}` },
+        { label: `Yırtılma Testi (DWTT)${noteBtn("dwtt")}`, freqKey: "dwtt", exp: getExp('dwtt'), ext: p => p.toughness_and_tests.dwtt_test === "Var" ? `<span class="badge-pass font-bold">Var (D ≥ 508mm)</span>` : `<span class="text-slate-400">${esc(p.toughness_and_tests.dwtt_test)}</span>` },
+        { label: "Sertlik TESTİ", freqKey: "hardness", exp: getExp('hardness'), ext: p => p.toughness_and_tests.hardness_test_max },
+        { label: "Mandrel Çapı / Çene Açıklığı (mm)", freqKey: "bend", exp: getExp('mandrel_jaw'), ext: p => `${typeof p.toughness_and_tests.mandrel_dia_max_mm === 'number' ? p.toughness_and_tests.mandrel_dia_max_mm.toFixed(2) : p.toughness_and_tests.mandrel_dia_max_mm} / ${typeof p.toughness_and_tests.jaw_opening_max_mm === 'number' ? p.toughness_and_tests.jaw_opening_max_mm.toFixed(2) : p.toughness_and_tests.jaw_opening_max_mm} mm` },
+        { label: `FLATTENING - Kaynak / Çatlak Açılma${noteBtn("flattening")}`, freqKey: "flattening", exp: getExp('flattening'), ext: p => `Kaynak: ${p.flattening.weld_opening_height_mm} mm | Çatlak: ${p.flattening.material_crack_height_mm} mm` },
         { label: "Tamir Kaynağı Uzunluğu & Ön Isıtma", exp: getExp('weld_repair'), ext: p => `${p.weld_and_geometry.weld_repair_length_max_mm} mm (${p.weld_and_geometry.weld_repair_preheat})` },
     ];
     testRows.forEach(tr => {
@@ -460,7 +483,8 @@ function renderMatrixTable() {
             const activeColClass = isColActive(cIdx) ? 'active-pipe-col font-bold' : '';
             html += `<td onclick="selectPipe(${cIdx})" class="text-center text-xs px-2 py-1.5 cursor-pointer ${activeColClass}">${tr.ext(p)}</td>`;
         });
-        html += `<td class="sticky-right bg-slate-50 text-slate-600 text-[11px] px-3 py-1 italic text-left border-l-2 border-slate-300">${tr.exp}</td></tr>`;
+        html += `<td class="sticky-right bg-slate-50 text-slate-600 text-[11px] px-3 py-1 italic text-left border-l-2 border-slate-300">${tr.exp}</td>
+            <td class="sticky-right-freq bg-slate-50 text-indigo-700 text-[11px] px-3 py-1 italic text-left border-l-2 border-slate-300">${getFreq(tr.freqKey)}</td></tr>`;
     });
 
     // SECTION 6: WEIGHT & ASME FRACTURE CONTROL
@@ -478,7 +502,8 @@ function renderMatrixTable() {
             const activeColClass = isColActive(cIdx) ? 'active-pipe-col font-bold' : '';
             html += `<td onclick="selectPipe(${cIdx})" class="text-center text-xs px-2 py-1.5 cursor-pointer ${activeColClass}">${wr.ext(p)}</td>`;
         });
-        html += `<td class="sticky-right bg-slate-50 text-slate-600 text-[11px] px-3 py-1 italic text-left border-l-2 border-slate-300">${wr.exp}</td></tr>`;
+        html += `<td class="sticky-right bg-slate-50 text-slate-600 text-[11px] px-3 py-1 italic text-left border-l-2 border-slate-300">${wr.exp}</td>
+            <td class="sticky-right-freq bg-slate-50 text-slate-300 text-[11px] px-3 py-1 italic text-left border-l-2 border-slate-300">—</td></tr>`;
     });
 
     // SECTION 7: TEST FREQUENCY (sampling) - driven by diameter + grade + PSL + process
@@ -498,7 +523,8 @@ function renderMatrixTable() {
             const cell = entry ? esc(entry.frequency) : '<span class="text-slate-400">—</span>';
             html += `<td onclick="selectPipe(${cIdx})" class="text-center text-xs px-2 py-1.5 cursor-pointer ${activeColClass}">${cell}</td>`;
         });
-        html += `<td class="sticky-right bg-slate-50 text-slate-600 text-[11px] px-3 py-1 italic text-left border-l-2 border-slate-300">Çap, malzeme kalitesi, PSL seviyesi ve imalat yöntemine göre şartname gereği test/numune sıklığı.</td></tr>`;
+        html += `<td class="sticky-right bg-slate-50 text-slate-600 text-[11px] px-3 py-1 italic text-left border-l-2 border-slate-300">Çap, malzeme kalitesi, PSL seviyesi ve imalat yöntemine göre şartname gereği test/numune sıklığı.</td>
+            <td class="sticky-right-freq bg-slate-50 text-slate-300 text-[11px] px-3 py-1 italic text-left border-l-2 border-slate-300">—</td></tr>`;
     });
 
     tableBody.innerHTML = html;
@@ -695,6 +721,7 @@ function updateVisualizers(pipeData) {
         visualizer3DInstance.renderPipe(pipeData);
     }
     renderSawhCard(pipeData);
+    renderSawlCard(pipeData);
     renderResidualStressCard(pipeData);
 }
 
@@ -1551,7 +1578,8 @@ function renderSawhCard(pipeData) {
     if (!card || !na) return;
 
     const process = (pipeData.input_summary.manufacturing_process || "").toUpperCase();
-    const isSawh = process.includes("SAWH") || process.includes("SAWL");
+    // Spiral card applies ONLY to SAWH (helical seam). SAWL/LSAW -> longitudinal card.
+    const isSawh = process.includes("SAWH");
     if (!isSawh) {
         card.classList.add("hidden");
         na.classList.remove("hidden");
@@ -1648,6 +1676,383 @@ function sawhRedraw() {
             sawhSimulatorInstance.updateParameters(d, t, B);
         }
     }
+}
+
+// ============================================================================
+// SAWL Longitudinal Seam (Uzunlamasına Tozaltı Kaynak) Simulation Engine
+// Real-time 3D roll-bending + single straight longitudinal seam + SAW torches
+// ============================================================================
+let sawlSimulatorInstance = null;
+
+class SawlSimulationEngine {
+    constructor() {
+        this.canvas3D = null; this.ctx3D = null;
+        this.canvas2D = null; this.ctx2D = null;
+        this.animId = null;
+
+        this.d = 1219.0; this.t = 14.30; this.dm = 1204.7;
+        this.plateWidth = Math.PI * this.dm;
+
+        this.isPlaying = true; this.speed = 1.0;
+        this.weldPos = 0.0; this.dir = 1;
+        this.viewMode = '3d';
+        this.showSparks = true; this.showDims = true; this.showRolls = true; this.showXray = false;
+        this.sparks = []; this.maxSparks = 28;
+        this.rot = 0.0;
+        this.initialized = false;
+    }
+
+    init() {
+        this.canvas3D = document.getElementById("sawl-anim-canvas");
+        this.canvas2D = document.getElementById("sawl-2d-canvas");
+        if (!this.canvas3D || !this.canvas2D) return;
+        this.ctx3D = this.canvas3D.getContext("2d");
+        this.ctx2D = this.canvas2D.getContext("2d");
+        this.bindEvents();
+        this.resize();
+        window.addEventListener("resize", () => this.resize());
+        this.initialized = true;
+        this.start();
+    }
+
+    resize() {
+        const rs = (cv) => {
+            if (!cv) return;
+            const rect = cv.getBoundingClientRect();
+            const dpr = window.devicePixelRatio || 1;
+            const w = Math.max(300, Math.round(rect.width || 600));
+            const h = Math.max(250, Math.round(rect.height || 460));
+            if (cv.width !== w * dpr || cv.height !== h * dpr) { cv.width = w * dpr; cv.height = h * dpr; }
+        };
+        rs(this.canvas3D); rs(this.canvas2D);
+    }
+
+    updateParameters(d, t) {
+        this.d = Math.max(10, parseFloat(d) || 1219.0);
+        this.t = Math.max(0.5, parseFloat(t) || 14.30);
+        this.dm = this.d - this.t;
+        this.plateWidth = Math.PI * this.dm;
+        this.updateDOM();
+    }
+
+    updateDOM() {
+        const set = (id, v) => { const e = document.getElementById(id); if (e) e.innerText = v; };
+        set("sawl-d", this.d.toFixed(1));
+        set("sawl-t", this.t.toFixed(2));
+        set("sawl-dmid", this.dm.toFixed(1));
+        set("sawl-plate", Math.round(this.plateWidth));
+        set("sawl-hud-seam", "Boyuna Dikiş • Plaka: " + Math.round(this.plateWidth) + " mm");
+        const badge = document.getElementById("sawl-badge");
+        if (badge) badge.innerText = "Boyuna Dikiş (1 adet)";
+    }
+
+    bindEvents() {
+        const btn3d = document.getElementById("sawl-view-3d-btn");
+        const btn2d = document.getElementById("sawl-view-2d-btn");
+        const toggle = document.getElementById("sawl-anim-toggle");
+        const reset = document.getElementById("sawl-anim-reset");
+        const chkSparks = document.getElementById("sawl-opt-sparks");
+        const chkDims = document.getElementById("sawl-opt-dims");
+        const chkRolls = document.getElementById("sawl-opt-rolls");
+        const chkXray = document.getElementById("sawl-opt-xray");
+
+        if (btn3d) btn3d.onclick = () => this.setView('3d');
+        if (btn2d) btn2d.onclick = () => this.setView('2d');
+        if (toggle) toggle.onclick = () => this.togglePlay();
+        if (reset) reset.onclick = () => { this.weldPos = 0; this.dir = 1; };
+        if (chkSparks) chkSparks.onchange = (e) => { this.showSparks = e.target.checked; };
+        if (chkDims) chkDims.onchange = (e) => { this.showDims = e.target.checked; };
+        if (chkRolls) chkRolls.onchange = (e) => { this.showRolls = e.target.checked; };
+        if (chkXray) chkXray.onchange = (e) => { this.showXray = e.target.checked; };
+
+        document.querySelectorAll(".sawl-speed-btn").forEach(btn => {
+            btn.onclick = () => {
+                document.querySelectorAll(".sawl-speed-btn").forEach(b => {
+                    b.classList.remove("bg-white", "text-blue-600", "shadow-2xs");
+                    b.classList.add("text-slate-600");
+                });
+                btn.classList.add("bg-white", "text-blue-600", "shadow-2xs");
+                btn.classList.remove("text-slate-600");
+                this.speed = parseFloat(btn.dataset.speed) || 1.0;
+            };
+        });
+        this.setView('3d');
+    }
+
+    setView(mode) {
+        this.viewMode = mode;
+        const c3 = this.canvas3D, c2 = this.canvas2D;
+        const b3 = document.getElementById("sawl-view-3d-btn");
+        const b2 = document.getElementById("sawl-view-2d-btn");
+        if (mode === '2d') {
+            if (c3) c3.classList.add("hidden");
+            if (c2) c2.classList.remove("hidden");
+            if (b2) { b2.classList.add("bg-white", "text-blue-600", "shadow-xs"); b2.classList.remove("text-slate-600"); }
+            if (b3) { b3.classList.remove("bg-white", "text-blue-600", "shadow-xs"); b3.classList.add("text-slate-600"); }
+        } else {
+            if (c3) c3.classList.remove("hidden");
+            if (c2) c2.classList.add("hidden");
+            if (b3) { b3.classList.add("bg-white", "text-blue-600", "shadow-xs"); b3.classList.remove("text-slate-600"); }
+            if (b2) { b2.classList.remove("bg-white", "text-blue-600", "shadow-xs"); b2.classList.add("text-slate-600"); }
+        }
+        this.resize();
+    }
+
+    togglePlay() {
+        this.isPlaying = !this.isPlaying;
+        const icon = document.getElementById("sawl-anim-icon");
+        const label = document.getElementById("sawl-anim-label");
+        if (icon) icon.innerText = this.isPlaying ? "⏸️" : "▶️";
+        if (label) label.innerText = this.isPlaying ? "Durdur" : "Devam";
+    }
+
+    start() {
+        if (!this.isPlaying) this.isPlaying = true;
+        if (!this.animId) this.loop();
+    }
+
+    loop() {
+        this.draw();
+        this.animId = requestAnimationFrame(() => this.loop());
+    }
+
+    updateSparks() {
+        if (this.showSparks) {
+            // target position: torch at weld carriage
+            const s = this.screenGeom();
+            const tx = s.cx - s.L / 2 + this.weldPos * s.L;
+            const ty = s.cy - s.r - 14;
+            for (let i = 0; i < 2; i++) {
+                if (this.sparks.length < this.maxSparks) {
+                    this.sparks.push({
+                        x: tx + (Math.random() - 0.5) * 6, y: ty,
+                        vx: (Math.random() - 0.5) * 2.2, vy: -Math.random() * 2.6 - 0.6,
+                        life: 1.0, size: Math.random() * 1.8 + 0.8,
+                    });
+                }
+            }
+        }
+        this.sparks.forEach(sp => { sp.x += sp.vx; sp.y += sp.vy; sp.vy += 0.06; sp.life -= 0.035; });
+        this.sparks = this.sparks.filter(sp => sp.life > 0);
+    }
+
+    screenGeom() {
+        const cv = this.canvas3D;
+        const w = cv ? cv.clientWidth : 600, h = cv ? cv.clientHeight : 460;
+        const r = Math.min(h * 0.16, w * 0.10);
+        const L = w * 0.60;
+        return { w, h, cx: w * 0.5, cy: h * 0.52, r, L };
+    }
+
+    draw() {
+        if (this.isPlaying) {
+            this.weldPos += 0.006 * this.speed * this.dir;
+            if (this.weldPos >= 1) { this.weldPos = 1; this.dir = -1; }
+            if (this.weldPos <= 0) { this.weldPos = 0; this.dir = 1; }
+            this.rot += 0.02 * this.speed;
+        }
+        this.updateSparks();
+        if (this.viewMode === '2d') this.draw2D();
+        else this.draw3D();
+    }
+
+    draw3D() {
+        const cv = this.canvas3D; if (!cv) return;
+        const ctx = this.ctx3D; const dpr = window.devicePixelRatio || 1;
+        const g = this.screenGeom();
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.clearRect(0, 0, g.w, g.h);
+
+        const { cx, cy, r, L } = g;
+        const x0 = cx - L / 2, x1 = cx + L / 2;
+        const depth = r * 0.36;
+
+        // Forming rolls (behind pipe)
+        if (this.showRolls) {
+            const rollR = r * 0.55;
+            const rolls = [
+                { x: x0 + r * 0.6, y: cy + r * 1.05 },
+                { x: x0 + r * 0.6, y: cy - r * 1.05 },
+                { x: x1 - r * 0.6, y: cy - r * 1.05 },
+                { x: x1 - r * 0.6, y: cy + r * 1.05 },
+            ];
+            rolls.forEach(rl => {
+                const grad = ctx.createRadialGradient(rl.x - rollR * 0.3, rl.y - rollR * 0.3, rollR * 0.2, rl.x, rl.y, rollR);
+                grad.addColorStop(0, "#94a3b8"); grad.addColorStop(1, "#334155");
+                ctx.beginPath(); ctx.arc(rl.x, rl.y, rollR, 0, Math.PI * 2);
+                ctx.fillStyle = grad; ctx.fill();
+                ctx.strokeStyle = "#1e293b"; ctx.lineWidth = 2; ctx.stroke();
+                ctx.beginPath(); ctx.arc(rl.x, rl.y, rollR * 0.35, 0, Math.PI * 2);
+                ctx.fillStyle = "#1f2937"; ctx.fill();
+            });
+        }
+
+        // Cylinder body
+        const bodyGrad = ctx.createLinearGradient(0, cy - r, 0, cy + r);
+        if (this.showXray) {
+            bodyGrad.addColorStop(0, "rgba(96,165,250,0.25)");
+            bodyGrad.addColorStop(1, "rgba(59,130,246,0.10)");
+        } else {
+            bodyGrad.addColorStop(0, "#cbd5e1");
+            bodyGrad.addColorStop(0.45, "#e2e8f0");
+            bodyGrad.addColorStop(0.75, "#94a3b8");
+            bodyGrad.addColorStop(1, "#64748b");
+        }
+        ctx.beginPath();
+        ctx.moveTo(x0, cy - r);
+        ctx.lineTo(x1, cy - r);
+        ctx.ellipse(x1, cy, depth, r, 0, -Math.PI / 2, Math.PI / 2, false);
+        ctx.lineTo(x0, cy + r);
+        ctx.ellipse(x0, cy, depth, r, 0, Math.PI / 2, -Math.PI / 2, true);
+        ctx.closePath();
+        ctx.fillStyle = bodyGrad; ctx.fill();
+        ctx.strokeStyle = "#475569"; ctx.lineWidth = 1.5; ctx.stroke();
+
+        // Ring texture
+        ctx.strokeStyle = "rgba(71,85,105,0.25)";
+        for (let i = 1; i < 10; i++) {
+            const xr = x0 + (L * i / 10);
+            ctx.beginPath(); ctx.ellipse(xr, cy, depth, r, 0, 0, Math.PI * 2); ctx.stroke();
+        }
+        // End cap (near)
+        ctx.beginPath(); ctx.ellipse(x0, cy, depth, r, 0, 0, Math.PI * 2);
+        ctx.fillStyle = this.showXray ? "rgba(30,41,59,0.4)" : "#475569"; ctx.fill();
+        ctx.strokeStyle = "#334155"; ctx.stroke();
+        ctx.beginPath(); ctx.ellipse(x0, cy, depth * 0.82, r * 0.82, 0, 0, Math.PI * 2);
+        ctx.fillStyle = "#0f172a"; ctx.fill();
+
+        // Longitudinal seam (straight line along the top)
+        ctx.save();
+        ctx.lineWidth = 5; ctx.lineCap = "round";
+        ctx.strokeStyle = "rgba(245,158,11,0.55)";
+        ctx.beginPath(); ctx.moveTo(x0 + 3, cy - r + 2); ctx.lineTo(x1 - 3, cy - r + 2); ctx.stroke();
+        ctx.lineWidth = 3; ctx.strokeStyle = "#fbbf24";
+        ctx.beginPath(); ctx.moveTo(x0 + 3, cy - r + 2); ctx.lineTo(x1 - 3, cy - r + 2); ctx.stroke();
+        // inner seam hint
+        ctx.lineWidth = 2; ctx.strokeStyle = "#f97316";
+        ctx.beginPath(); ctx.moveTo(x0 + 3, cy - r + 8); ctx.lineTo(x1 - 3, cy - r + 8); ctx.stroke();
+        ctx.restore();
+
+        // Weld carriage + torches at current position
+        const wx = x0 + this.weldPos * L;
+        // OD torch
+        this.drawTorch(ctx, wx, cy - r - 14, true);
+        // ID torch
+        this.drawTorch(ctx, wx, cy + r + 14, false);
+        // arc glow at seam
+        const glow = ctx.createRadialGradient(wx, cy - r + 2, 1, wx, cy - r + 2, 26);
+        glow.addColorStop(0, "rgba(255,240,150,0.95)");
+        glow.addColorStop(0.4, "rgba(251,191,36,0.55)");
+        glow.addColorStop(1, "rgba(251,191,36,0)");
+        ctx.beginPath(); ctx.arc(wx, cy - r + 2, 26, 0, Math.PI * 2); ctx.fillStyle = glow; ctx.fill();
+
+        // Sparks
+        if (this.showSparks) {
+            this.sparks.forEach(sp => {
+                ctx.globalAlpha = Math.max(0, sp.life);
+                ctx.fillStyle = sp.life > 0.6 ? "#fff7cc" : (sp.life > 0.3 ? "#fbbf24" : "#f97316");
+                ctx.beginPath(); ctx.arc(sp.x, sp.y, sp.size, 0, Math.PI * 2); ctx.fill();
+            });
+            ctx.globalAlpha = 1;
+        }
+
+        // Dimension arrow (plate width = circumference) when dims on
+        if (this.showDims) {
+            ctx.strokeStyle = "#93c5fd"; ctx.fillStyle = "#bfdbfe"; ctx.lineWidth = 1;
+            const yD = cy + r + 34;
+            ctx.beginPath(); ctx.moveTo(x0, yD); ctx.lineTo(x1, yD); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(x0, yD - 5); ctx.lineTo(x0, yD + 5); ctx.moveTo(x1, yD - 5); ctx.lineTo(x1, yD + 5); ctx.stroke();
+            ctx.font = "11px monospace"; ctx.textAlign = "center";
+            ctx.fillText("Plaka / Dikiş Boyu ≈ " + Math.round(this.plateWidth) + " mm", cx, yD + 16);
+        }
+    }
+
+    drawTorch(ctx, x, y, od) {
+        ctx.save();
+        ctx.strokeStyle = od ? "#f59e0b" : "#fb923c";
+        ctx.fillStyle = od ? "#b45309" : "#c2410c";
+        ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.rect(x - 4, od ? y - 12 : y, 8, 12); ctx.fill(); ctx.stroke();
+        ctx.beginPath();
+        if (od) { ctx.moveTo(x, y); ctx.lineTo(x, y + 10); }
+        else { ctx.moveTo(x, y); ctx.lineTo(x, y - 10); }
+        ctx.stroke();
+        ctx.restore();
+    }
+
+    draw2D() {
+        const cv = this.canvas2D; if (!cv) return;
+        const ctx = this.ctx2D; const dpr = window.devicePixelRatio || 1;
+        const w = cv.clientWidth, h = cv.clientHeight;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.clearRect(0, 0, w, h);
+
+        const margin = 60;
+        const plateW = Math.min(w - margin * 2, 520);
+        const plateH = Math.min(h - margin * 2, 200);
+        const x0 = (w - plateW) / 2, y0 = (h - plateH) / 2;
+
+        // Flat plate (developed circumference)
+        const grad = ctx.createLinearGradient(x0, y0, x0, y0 + plateH);
+        grad.addColorStop(0, "#e2e8f0"); grad.addColorStop(1, "#94a3b8");
+        ctx.fillStyle = grad; ctx.fillRect(x0, y0, plateW, plateH);
+        ctx.strokeStyle = "#475569"; ctx.lineWidth = 1.5; ctx.strokeRect(x0, y0, plateW, plateH);
+
+        // thickness hint
+        ctx.strokeStyle = "#64748b"; ctx.setLineDash([5, 4]);
+        ctx.beginPath(); ctx.moveTo(x0, y0 + 6); ctx.lineTo(x0 + plateW, y0 + 6); ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Straight longitudinal seam at the right edge
+        const sx = x0 + plateW - 6;
+        ctx.strokeStyle = "#f59e0b"; ctx.lineWidth = 6; ctx.lineCap = "round";
+        ctx.beginPath(); ctx.moveTo(sx, y0 + 4); ctx.lineTo(sx, y0 + plateH - 4); ctx.stroke();
+        ctx.strokeStyle = "#fbbf24"; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.moveTo(sx, y0 + 4); ctx.lineTo(sx, y0 + plateH - 4); ctx.stroke();
+
+        // Plate width dimension
+        ctx.strokeStyle = "#93c5fd"; ctx.fillStyle = "#dbeafe"; ctx.lineWidth = 1;
+        const yd = y0 + plateH + 26;
+        ctx.beginPath(); ctx.moveTo(x0, yd); ctx.lineTo(x0 + plateW, yd); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(x0, yd - 5); ctx.lineTo(x0, yd + 5); ctx.moveTo(x0 + plateW, yd - 5); ctx.lineTo(x0 + plateW, yd + 5); ctx.stroke();
+        ctx.font = "12px monospace"; ctx.textAlign = "center";
+        ctx.fillText("Plaka Genişliği = π · D_mid = " + Math.round(this.plateWidth) + " mm", x0 + plateW / 2, yd + 18);
+
+        // labels
+        ctx.fillStyle = "#cbd5e1"; ctx.font = "11px monospace"; ctx.textAlign = "left";
+        ctx.fillText("D = " + this.d.toFixed(1) + " mm   t = " + this.t.toFixed(2) + " mm   D_mid = " + this.dm.toFixed(1) + " mm", x0, y0 - 14);
+        ctx.textAlign = "right";
+        ctx.fillStyle = "#fbbf24";
+        ctx.fillText("Boyuna Dikiş (1 adet, çift taraflı SAW)", x0 + plateW, y0 - 14);
+    }
+}
+
+function renderSawlCard(pipeData) {
+    const card = document.getElementById("sawl-card");
+    const na = document.getElementById("sawl-not-applicable");
+    if (!card || !na) return;
+
+    const process = (pipeData.input_summary.manufacturing_process || "").toUpperCase();
+    const isSawl = process.includes("SAWL") || process.includes("LSAW") || (process.includes("SAW") && !process.includes("SAWH"));
+    if (!isSawl) {
+        card.classList.add("hidden");
+        na.classList.remove("hidden");
+        const p = document.getElementById("sawl-na-process");
+        if (p) p.innerText = pipeData.input_summary.manufacturing_process || "—";
+        return;
+    }
+
+    na.classList.add("hidden");
+    card.classList.remove("hidden");
+
+    const d = pipeData.input_summary.diameter_mm || 1219.0;
+    const t = pipeData.input_summary.wall_thickness_mm || 14.30;
+
+    if (!sawlSimulatorInstance) {
+        sawlSimulatorInstance = new SawlSimulationEngine();
+        sawlSimulatorInstance.init();
+    }
+    sawlSimulatorInstance.updateParameters(d, t);
 }
 
 // BOTAŞ auto-lookup for modal inputs

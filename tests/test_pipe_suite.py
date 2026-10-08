@@ -2185,6 +2185,55 @@ class TestPipeQAQCSuite(unittest.TestCase):
         self.assertGreater(len(ver['frequency_references']), 0)
         self.assertNotIn('Test Frekansı', {chk['category'] for chk in ver['checks']})
 
+    def test_67_row_frequency_mapping(self):
+        """row_frequency satır→test eşlemesi çap/kalite/PSL/prosese göre doğru doldurulur."""
+        big = PipeQAQCEngine.calculate_pipe_qc(
+            diameter_inch='48"', material_grade='X65', manufacturing_process='SAWH',
+            standard_type='BOTAŞ')['row_frequency']
+        for k in ('chemical', 'tensile', 'hydro', 'dimensional', 'cvn',
+                  'residual_stress', 'dwtt', 'hardness'):
+            self.assertTrue(big.get(k), msg=f"48in SAWH {k} boş")
+
+        small = PipeQAQCEngine.calculate_pipe_qc(
+            diameter_inch='12"', material_grade='X52', manufacturing_process='ERW HFW',
+            standard_type='BOTAŞ')['row_frequency']
+        self.assertIsNone(small['dwtt'])
+        self.assertIsNone(small['residual_stress'])
+
+        psl1 = PipeQAQCEngine.calculate_pipe_qc(
+            diameter_inch='24"', material_grade='X65', manufacturing_process='SAWH',
+            standard_type='API 5L', psl_level='PSL1')['row_frequency']
+        self.assertIsNone(psl1['cvn'])
+        self.assertIsNone(psl1['dwtt'])
+
+        # API free selection has no dimensional/NDT row -> None
+        api = PipeQAQCEngine.calculate_pipe_qc(
+            diameter_inch='48"', material_grade='X65', manufacturing_process='SAWH',
+            standard_type='API 5L', psl_level='PSL2', delivery_condition='M')['row_frequency']
+        self.assertIsNone(api['dimensional'])
+
+    def test_68_operating_pressure_ratio(self):
+        """operating_pressure_bar girilince Operating/SMYS oranı bu değere göre hesaplanır."""
+        base = dict(diameter_inch='48"', wall_thickness_mm=14.30, material_grade='X65',
+                    manufacturing_process='SAWH', standard_type='API 5L',
+                    psl_level='PSL2', delivery_condition='M')
+        r_default = PipeQAQCEngine.calculate_pipe_qc(**base)
+        r_oper = PipeQAQCEngine.calculate_pipe_qc(**base, operating_pressure_bar=90.0)
+        # Operating pressure takes priority over the design-pressure fallback
+        self.assertEqual(r_oper['input_summary']['design_pressure_bar'], 90.0)
+        self.assertEqual(r_oper['input_summary']['operating_pressure_bar'], 90.0)
+        self.assertNotEqual(r_oper['weights_and_safety']['operating_press_over_smys_percent'],
+                            r_default['weights_and_safety']['operating_press_over_smys_percent'])
+        # Ratio = p_oper / (2*SMYS*t/D); 90 bar must be higher than the 75 bar default
+        ratio_oper = float(r_oper['weights_and_safety']['operating_press_over_smys_percent'].rstrip('%'))
+        ratio_def = float(r_default['weights_and_safety']['operating_press_over_smys_percent'].rstrip('%'))
+        self.assertGreater(ratio_oper, ratio_def)
+        # BOTAŞ without operating pressure keeps previous behaviour
+        botas = PipeQAQCEngine.calculate_pipe_qc(
+            diameter_inch='48"', material_grade='X65', manufacturing_process='SAWH',
+            standard_type='BOTAŞ')
+        self.assertIsNone(botas['input_summary']['operating_pressure_bar'])
+
 
 if __name__ == '__main__':
     unittest.main()

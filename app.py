@@ -80,6 +80,7 @@ def _calculate_pipes(pipes) -> list:
                 manufacturing_process=pd.get("manufacturing_process", "SAWH"),
                 standard_type=pd.get("standard_type", "BOTAŞ"),
                 design_pressure_bar=pd.get("design_pressure_bar", 75.0),
+                operating_pressure_bar=pd.get("operating_pressure_bar"),
                 psl_level=pd.get("psl_level", "PSL2"),
                 delivery_condition=pd.get("delivery_condition", "M")
             )

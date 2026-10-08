@@ -119,6 +119,7 @@ class PipeVerificationEngine:
             manufacturing_process=pipe_config.get('manufacturing_process', 'SAWH'),
             standard_type=standard_type,
             design_pressure_bar=pipe_config.get('design_pressure_bar'),
+            operating_pressure_bar=pipe_config.get('operating_pressure_bar'),
             psl_level=psl_level,
             delivery_condition=pipe_config.get('delivery_condition', 'M')
         )

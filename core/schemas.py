@@ -35,6 +35,7 @@ class PipeInput(BaseModel):
     manufacturing_process: str = "SAWH"
     standard_type: str = "BOTAŞ"
     design_pressure_bar: Optional[float] = None
+    operating_pressure_bar: Optional[float] = None
     psl_level: Optional[str] = "PSL2"
     delivery_condition: Optional[str] = "M"
 
@@ -70,7 +71,7 @@ class PipeInput(BaseModel):
             )
         return g
 
-    @field_validator("design_pressure_bar", "wall_thickness_mm")
+    @field_validator("design_pressure_bar", "operating_pressure_bar", "wall_thickness_mm")
     @classmethod
     def _check_non_negative(cls, v):
         if v is not None and v < 0:

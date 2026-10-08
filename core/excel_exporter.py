@@ -243,44 +243,59 @@ class ExcelExporter:
             return f"{v}{suffix}" if suffix and not str(v).endswith(suffix) else str(v)
 
         # 4. Remaining Inspection Rows (Full width label in Cols 1-4)
+        # Each row also carries a row_frequency key so the far-right
+        # "Test Frekansı" column can be filled from each pipe's row_frequency map.
         inspection_rows = [
-            ("Boru Çap Toleransı - Boru Ucu Max (mm)", lambda p: _fmt(p['dimensional_tolerances']['diameter_end_max_mm']), get_exp('diameter_tol')),
-            ("Boru Çap Toleransı - Boru Ucu Min (mm)", lambda p: _fmt(p['dimensional_tolerances']['diameter_end_min_mm']), get_exp('diameter_tol')),
-            ("Boru Çap Toleransı - Boru Gövdesi Max (mm)", lambda p: _fmt(p['dimensional_tolerances']['diameter_body_max_mm']), get_exp('diameter_tol')),
-            ("Boru Çap Toleransı - Boru Gövdesi Min (mm)", lambda p: _fmt(p['dimensional_tolerances']['diameter_body_min_mm']), get_exp('diameter_tol')),
-            ("Boru Çevre Toleransı - Boru Ucu Max (mm)", lambda p: str(p['dimensional_tolerances']['circ_end_max_mm']), get_exp('circumference_tol')),
-            ("Boru Çevre Toleransı - Boru Ucu Min (mm)", lambda p: str(p['dimensional_tolerances']['circ_end_min_mm']), get_exp('circumference_tol')),
-            ("Boru Çevre Toleransı - Boru Gövdesi Max (mm)", lambda p: str(p['dimensional_tolerances']['circ_body_max_mm']), get_exp('circumference_tol')),
-            ("Boru Çevre Toleransı - Boru Gövdesi Min (mm)", lambda p: str(p['dimensional_tolerances']['circ_body_min_mm']), get_exp('circumference_tol')),
-            ("Ovalite - Boru Ucu (mm)", lambda p: str(p['dimensional_tolerances']['ovality_end_mm']), get_exp('ovality')),
-            ("Ovalite - Boru Gövdesi (mm)", lambda p: str(p['dimensional_tolerances']['ovality_body_mm']), get_exp('ovality')),
-            ("Yield Min. (Psi-Mpa)", lambda p: f"{_fmt(p['mechanical_properties']['yield_min_psi'])} / {_fmt(p['mechanical_properties']['yield_min_mpa'])}", get_exp('yield_tensile')),
-            ("Yield Max. (Psi-Mpa)", lambda p: f"{_fmt(p['mechanical_properties']['yield_max_psi'])} / {_fmt(p['mechanical_properties']['yield_max_mpa'])}", get_exp('yield_tensile')),
-            ("Tensile Min (Psi-Mpa)", lambda p: f"{_fmt(p['mechanical_properties']['tensile_min_psi'])} / {_fmt(p['mechanical_properties']['tensile_min_mpa'])}", get_exp('yield_tensile')),
-            ("Tensile Max (Psi-Mpa)", lambda p: f"{_fmt(p['mechanical_properties']['tensile_max_psi'])} / {_fmt(p['mechanical_properties']['tensile_max_mpa'])}", get_exp('yield_tensile')),
-            ("Akma / Çekme Oranı Max. (Y/T)", lambda p: _fmt(p['mechanical_properties']['yield_to_tensile_ratio_max']), get_exp('yt_ratio')),
-            ("Hydro Test Basıncı Max. (Bar)", lambda p: _fmt(p['hydrostatic_test']['hydro_test_max_bar']), get_exp('hydro_test')),
-            ("Hydro Test Basıncı Min. (Bar)", lambda p: _fmt(p['hydrostatic_test']['hydro_test_min_bar']), "P_max - 2.0 Bar (Fabrika Test Alt Sınırı)"),
-            ("API 5L Standart Test Pressure (Bar)", lambda p: _fmt(p['hydrostatic_test']['api_5l_std_test_bar']), get_exp('api_std_test')),
-            ("Minimum Uzama (% e) - Malzeme", lambda p: _fmt(p['toughness_and_tests']['elongation_mat_min_percent'], suffix="%"), get_exp('elongation')),
-            ("Minimum Uzama (% e) - Kaynak", lambda p: _fmt(p['toughness_and_tests']['elongation_weld_min_percent'], suffix="%"), "Kaynak Dikişi Min. %10 Uzama"),
-            ("Çentik Darbe (J) - Malzeme", lambda p: _fmt(p['toughness_and_tests']['notch_impact_mat_j'], suffix=" J"), get_exp('cvn')),
-            ("Çentik Darbe (J) - Kaynak", lambda p: _fmt(p['toughness_and_tests']['notch_impact_weld_j'], suffix=" J"), get_exp('cvn')),
-            ("Radial Offset Max. (mm)", lambda p: _fmt(p['weld_and_geometry']['radial_offset_max_mm']), get_exp('radial_offset')),
-            ("Kaynak Yüksekliği - İç / Dış (mm)", lambda p: f"{_fmt(p['weld_and_geometry']['weld_height_inside_mm'])} / {_fmt(p['weld_and_geometry']['weld_height_outside_mm'])}", get_exp('weld_height')),
-            ("Misalignment (mm)", lambda p: _fmt(p['weld_and_geometry']['misalignment_max_mm']), get_exp('misalignment')),
-            ("Artık Gerilme Testi Max (mm)", lambda p: _fmt(p['toughness_and_tests']['residual_stress_max_mm']), get_exp('residual_stress')),
-            ("Yırtılma Testi (DWTT)", lambda p: str(p['toughness_and_tests']['dwtt_test']), get_exp('dwtt')),
-            ("Sertlik TESTİ", lambda p: str(p['toughness_and_tests']['hardness_test_max']), get_exp('hardness')),
-            ("Mandrel Çapı / Çene Açıklığı (mm)", lambda p: f"{_fmt(p['toughness_and_tests']['mandrel_dia_max_mm'])} / {_fmt(p['toughness_and_tests']['jaw_opening_max_mm'])}", get_exp('mandrel_jaw')),
-            ("FLATTENING - Kaynak / Çatlak", lambda p: f"{_fmt(p['flattening']['weld_opening_height_mm'])} / {_fmt(p['flattening']['material_crack_height_mm'])}", get_exp('flattening')),
-            ("Ağırlık Nominal (Kg/m)", lambda p: f"{_fmt(p['weights_and_safety']['weight_nominal_kg_m'])} ({_fmt(p['weights_and_safety']['weight_min_kg_m'])} - {_fmt(p['weights_and_safety']['weight_max_kg_m'])})", get_exp('weight')),
-            ("Operating pressure / SMYS", lambda p: str(p['weights_and_safety']['operating_press_over_smys_percent']), "İşletme Gerilmesi / SMYS Oranı"),
-            ("841.1.2 Fracture Control and Arrest", lambda p: str(p['weights_and_safety']['fracture_control_asme_841_1_2']), get_exp('fracture_control')),
-            ("D/t & Alternatif Basınç Dizayn", lambda p: f"D/t={_fmt(p['weights_and_safety']['d_over_t'])} ({_fmt(p['weights_and_safety']['design_formula_asme_841_1_1'])})", get_exp('thick_wall_alt')),
+            ("Boru Çap Toleransı - Boru Ucu Max (mm)", lambda p: _fmt(p['dimensional_tolerances']['diameter_end_max_mm']), get_exp('diameter_tol'), "dimensional"),
+            ("Boru Çap Toleransı - Boru Ucu Min (mm)", lambda p: _fmt(p['dimensional_tolerances']['diameter_end_min_mm']), get_exp('diameter_tol'), "dimensional"),
+            ("Boru Çap Toleransı - Boru Gövdesi Max (mm)", lambda p: _fmt(p['dimensional_tolerances']['diameter_body_max_mm']), get_exp('diameter_tol'), "dimensional"),
+            ("Boru Çap Toleransı - Boru Gövdesi Min (mm)", lambda p: _fmt(p['dimensional_tolerances']['diameter_body_min_mm']), get_exp('diameter_tol'), "dimensional"),
+            ("Boru Çevre Toleransı - Boru Ucu Max (mm)", lambda p: str(p['dimensional_tolerances']['circ_end_max_mm']), get_exp('circumference_tol'), "dimensional"),
+            ("Boru Çevre Toleransı - Boru Ucu Min (mm)", lambda p: str(p['dimensional_tolerances']['circ_end_min_mm']), get_exp('circumference_tol'), "dimensional"),
+            ("Boru Çevre Toleransı - Boru Gövdesi Max (mm)", lambda p: str(p['dimensional_tolerances']['circ_body_max_mm']), get_exp('circumference_tol'), "dimensional"),
+            ("Boru Çevre Toleransı - Boru Gövdesi Min (mm)", lambda p: str(p['dimensional_tolerances']['circ_body_min_mm']), get_exp('circumference_tol'), "dimensional"),
+            ("Ovalite - Boru Ucu (mm)", lambda p: str(p['dimensional_tolerances']['ovality_end_mm']), get_exp('ovality'), "dimensional"),
+            ("Ovalite - Boru Gövdesi (mm)", lambda p: str(p['dimensional_tolerances']['ovality_body_mm']), get_exp('ovality'), "dimensional"),
+            ("Yield Min. (Psi-Mpa)", lambda p: f"{_fmt(p['mechanical_properties']['yield_min_psi'])} / {_fmt(p['mechanical_properties']['yield_min_mpa'])}", get_exp('yield_tensile'), "tensile"),
+            ("Yield Max. (Psi-Mpa)", lambda p: f"{_fmt(p['mechanical_properties']['yield_max_psi'])} / {_fmt(p['mechanical_properties']['yield_max_mpa'])}", get_exp('yield_tensile'), "tensile"),
+            ("Tensile Min (Psi-Mpa)", lambda p: f"{_fmt(p['mechanical_properties']['tensile_min_psi'])} / {_fmt(p['mechanical_properties']['tensile_min_mpa'])}", get_exp('yield_tensile'), "tensile"),
+            ("Tensile Max (Psi-Mpa)", lambda p: f"{_fmt(p['mechanical_properties']['tensile_max_psi'])} / {_fmt(p['mechanical_properties']['tensile_max_mpa'])}", get_exp('yield_tensile'), "tensile"),
+            ("Akma / Çekme Oranı Max. (Y/T)", lambda p: _fmt(p['mechanical_properties']['yield_to_tensile_ratio_max']), get_exp('yt_ratio'), "tensile"),
+            ("Hydro Test Basıncı Max. (Bar)", lambda p: _fmt(p['hydrostatic_test']['hydro_test_max_bar']), get_exp('hydro_test'), "hydro"),
+            ("Hydro Test Basıncı Min. (Bar)", lambda p: _fmt(p['hydrostatic_test']['hydro_test_min_bar']), "P_max - 2.0 Bar (Fabrika Test Alt Sınırı)", "hydro"),
+            ("API 5L Standart Test Pressure (Bar)", lambda p: _fmt(p['hydrostatic_test']['api_5l_std_test_bar']), get_exp('api_std_test'), "hydro"),
+            ("Minimum Uzama (% e) - Malzeme", lambda p: _fmt(p['toughness_and_tests']['elongation_mat_min_percent'], suffix="%"), get_exp('elongation'), "tensile"),
+            ("Minimum Uzama (% e) - Kaynak", lambda p: _fmt(p['toughness_and_tests']['elongation_weld_min_percent'], suffix="%"), "Kaynak Dikişi Min. %10 Uzama", "tensile"),
+            ("Çentik Darbe (J) - Malzeme", lambda p: _fmt(p['toughness_and_tests']['notch_impact_mat_j'], suffix=" J"), get_exp('cvn'), "cvn"),
+            ("Çentik Darbe (J) - Kaynak", lambda p: _fmt(p['toughness_and_tests']['notch_impact_weld_j'], suffix=" J"), get_exp('cvn'), "cvn"),
+            ("Radial Offset Max. (mm)", lambda p: _fmt(p['weld_and_geometry']['radial_offset_max_mm']), get_exp('radial_offset'), None),
+            ("Kaynak Yüksekliği - İç / Dış (mm)", lambda p: f"{_fmt(p['weld_and_geometry']['weld_height_inside_mm'])} / {_fmt(p['weld_and_geometry']['weld_height_outside_mm'])}", get_exp('weld_height'), None),
+            ("Misalignment (mm)", lambda p: _fmt(p['weld_and_geometry']['misalignment_max_mm']), get_exp('misalignment'), None),
+            ("Artık Gerilme Testi Max (mm)", lambda p: _fmt(p['toughness_and_tests']['residual_stress_max_mm']), get_exp('residual_stress'), "residual_stress"),
+            ("Yırtılma Testi (DWTT)", lambda p: str(p['toughness_and_tests']['dwtt_test']), get_exp('dwtt'), "dwtt"),
+            ("Sertlik TESTİ", lambda p: str(p['toughness_and_tests']['hardness_test_max']), get_exp('hardness'), "hardness"),
+            ("Mandrel Çapı / Çene Açıklığı (mm)", lambda p: f"{_fmt(p['toughness_and_tests']['mandrel_dia_max_mm'])} / {_fmt(p['toughness_and_tests']['jaw_opening_max_mm'])}", get_exp('mandrel_jaw'), "bend"),
+            ("FLATTENING - Kaynak / Çatlak", lambda p: f"{_fmt(p['flattening']['weld_opening_height_mm'])} / {_fmt(p['flattening']['material_crack_height_mm'])}", get_exp('flattening'), "flattening"),
+            ("Ağırlık Nominal (Kg/m)", lambda p: f"{_fmt(p['weights_and_safety']['weight_nominal_kg_m'])} ({_fmt(p['weights_and_safety']['weight_min_kg_m'])} - {_fmt(p['weights_and_safety']['weight_max_kg_m'])})", get_exp('weight'), None),
+            ("Operating pressure / SMYS", lambda p: str(p['weights_and_safety']['operating_press_over_smys_percent']), "İşletme Gerilmesi / SMYS Oranı", None),
+            ("841.1.2 Fracture Control and Arrest", lambda p: str(p['weights_and_safety']['fracture_control_asme_841_1_2']), get_exp('fracture_control'), None),
+            ("D/t & Alternatif Basınç Dizayn", lambda p: f"D/t={_fmt(p['weights_and_safety']['d_over_t'])} ({_fmt(p['weights_and_safety']['design_formula_asme_841_1_1'])})", get_exp('thick_wall_alt'), None),
         ]
 
-        for lbl, ext, remark in inspection_rows:
+        def _agg_freq(freq_key):
+            if not freq_key:
+                return "—"
+            seen = []
+            for p in pipes_data:
+                v = (p.get('row_frequency') or {}).get(freq_key)
+                if v and v not in seen:
+                    seen.append(v)
+            return " | ".join(seen) if seen else "—"
+
+        remarks_col_idx = 5 + num_pipes
+        freq_col_idx = remarks_col_idx + 1
+
+        for lbl, ext, remark, freq_key in inspection_rows:
             ws.merge_cells(start_row=current_r, start_column=1, end_row=current_r, end_column=4)
             c_lbl = ws.cell(current_r, 1, lbl)
             c_lbl.font = font_header_dark
@@ -300,6 +315,13 @@ class ExcelExporter:
                 if current_r % 2 == 0:
                     c_val.fill = fill_zebra
 
+            c_freq = ws.cell(current_r, freq_col_idx, _agg_freq(freq_key))
+            c_freq.font = font_regular
+            c_freq.alignment = align_center
+            c_freq.border = border_all
+            if current_r % 2 == 0:
+                c_freq.fill = fill_zebra
+
             row_remarks_map[current_r] = remark
             current_r += 1
 
@@ -311,7 +333,7 @@ class ExcelExporter:
                     freq_test_names.append(f['test'])
         if freq_test_names:
             current_r += 1
-            ws.merge_cells(start_row=current_r, start_column=1, end_row=current_r, end_column=5 + num_pipes)
+            ws.merge_cells(start_row=current_r, start_column=1, end_row=current_r, end_column=freq_col_idx)
             c_sec = ws.cell(current_r, 1, "TEST FREKANSI (Sıklık / Numune Sayısı)")
             c_sec.font = font_header_dark
             c_sec.fill = fill_header_main
@@ -358,6 +380,15 @@ class ExcelExporter:
         cell_rem_head.fill = fill_header_main
         cell_rem_head.alignment = align_center
         cell_rem_head.border = border_all
+
+        # Test frequency column (far right) width & header
+        freq_col_letter = get_column_letter(freq_col_idx)
+        ws.column_dimensions[freq_col_letter].width = 30
+        cell_freq_head = ws.cell(start_row - 1, freq_col_idx, "Test Frekansı / Sıklık & Numune" if lang == "tr" else "Test Frequency / Sampling")
+        cell_freq_head.font = font_header_dark
+        cell_freq_head.fill = fill_header_main
+        cell_freq_head.alignment = align_center
+        cell_freq_head.border = border_all
 
         for r_idx, rem_text in row_remarks_map.items():
             c_exp = ws.cell(r_idx, remarks_col_idx, rem_text)

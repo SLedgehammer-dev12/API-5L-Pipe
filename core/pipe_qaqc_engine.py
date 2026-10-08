@@ -389,6 +389,7 @@ class PipeQAQCEngine:
         manufacturing_process: str = "SAWH",
         standard_type: str = "BOTAŞ",
         design_pressure_bar: Optional[float] = None,
+        operating_pressure_bar: Optional[float] = None,
         psl_level: str = "PSL2",
         delivery_condition: str = "M"
     ) -> Dict[str, Any]:
@@ -714,7 +715,11 @@ class PipeQAQCEngine:
         weight_max = weight_nom * 1.10
 
         # 16. Operating Pressure / SMYS & Fracture Control
-        if design_pressure_bar and design_pressure_bar > 0:
+        # Explicit operating pressure (API 5L free selection) takes priority;
+        # otherwise fall back to the design pressure, then to the factor default.
+        if operating_pressure_bar and operating_pressure_bar > 0:
+            p_oper = float(operating_pressure_bar)
+        elif design_pressure_bar and design_pressure_bar > 0:
             p_oper = float(design_pressure_bar)
         else:
             p_oper = default_design_pressure_for_factor(f_factor)
@@ -762,6 +767,28 @@ class PipeQAQCEngine:
         except Exception:
             test_frequency = []
 
+        # Row-level frequency map: matrix/Excel/report rows reference the frequency
+        # of the test that covers them. Unmatched rows stay None -> shown as "—".
+        def _pick_freq(*needles):
+            for _f in test_frequency:
+                _t = (_f.get('test') or '').lower()
+                if any(n.lower() in _t for n in needles):
+                    return _f.get('frequency')
+            return None
+
+        row_frequency = {
+            'chemical': _pick_freq('kimyasal'),
+            'tensile': _pick_freq('çekme'),
+            'hydro': _pick_freq('hidrostatik'),
+            'dimensional': _pick_freq('laminasyon'),
+            'cvn': _pick_freq('çentik darbe'),
+            'residual_stress': _pick_freq('artık stres'),
+            'dwtt': _pick_freq('dwtt'),
+            'hardness': _pick_freq('sertlik'),
+            'bend': _pick_freq('bükme', 'guıded', 'guided', 'bend'),
+            'flattening': _pick_freq('düzleştirme', 'flattening'),
+        }
+
         return {
             'input_summary': {
                 'diameter_inch': d_inch,
@@ -775,6 +802,7 @@ class PipeQAQCEngine:
                 'psl_level': psl_level if is_api_mode else "BOTAŞ",
                 'delivery_condition': delivery if is_api_mode and not is_psl1 else "—",
                 'design_pressure_bar': round(p_oper, 2),
+                'operating_pressure_bar': round(p_oper, 2) if operating_pressure_bar else None,
                 'botas_thickness_status': botas_thickness_status,
                 'validation_warning': validation_warning
             },
@@ -879,6 +907,7 @@ class PipeQAQCEngine:
                 'alternative_design_pressure_bar': round(alt_design_press, 2) if isinstance(alt_design_press, (int, float)) else alt_design_press
             },
             'test_frequency': test_frequency,
+            'row_frequency': row_frequency,
             'explanations': build_standard_explanations(is_botas_mode, is_psl1),
             'edition_notes': build_edition_notes({
                 'material_grade': material_grade,
