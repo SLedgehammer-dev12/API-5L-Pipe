@@ -3658,6 +3658,86 @@ class TestPipeQAQCSuite(unittest.TestCase):
         )
         self.assertIn("attachment; filename=", resp_excel.headers["content-disposition"])
 
+    def test_86_matrix_pdf_export_verification(self):
+        """
+        Tests API Spec 5L 47th Ed. & BOTAŞ Quality Assurance, Factory Acceptance
+        and Dimensional Tolerances Matrix publication-grade Landscape A4 PDF export
+        generation, NumberedCanvas page numbering, and FastAPI endpoint.
+        """
+        from core.pdf_exporter import PDFExporter
+        import io
+        import pypdf
+
+        # 1. Direct PDF Generation Test
+        project_info = {
+            "project_name": "BOTAŞ Anadolu Doğal Gaz Boru Hattı",
+            "project_no": "PRJ-BOTAS-2026-PDF",
+            "revision": "Rev. 1",
+            "standard": "BOTAŞ Şartnamesi & API Spec 5L"
+        }
+        calc_resp = self.client.post("/api/calculate", json={
+            "pipes": [
+                {
+                    "diameter_inch": "48\"",
+                    "diameter_mm": 1219.0,
+                    "wall_thickness_mm": 14.30,
+                    "material_grade": "X65",
+                    "manufacturing_process": "SAWH",
+                    "standard_type": "BOTAŞ",
+                    "design_factor_str": "0.72 (Hat)",
+                    "design_pressure_bar": 75.0
+                },
+                {
+                    "diameter_inch": "48\"",
+                    "diameter_mm": 1219.0,
+                    "wall_thickness_mm": 17.15,
+                    "material_grade": "X65",
+                    "manufacturing_process": "SAWH",
+                    "standard_type": "BOTAŞ",
+                    "design_factor_str": "0.60 (Hat)",
+                    "design_pressure_bar": 75.0
+                }
+            ],
+            "standard_type": "BOTAŞ"
+        })
+        self.assertEqual(calc_resp.status_code, 200)
+        pipes_data = calc_resp.json()["data"]
+        self.assertEqual(len(pipes_data), 2)
+
+        pdf_buf = PDFExporter.export_matrix_pdf(project_info, pipes_data, lang="tr")
+        self.assertIsNotNone(pdf_buf)
+        pdf_bytes = pdf_buf.getvalue()
+        self.assertGreater(len(pdf_bytes), 20000)
+        self.assertTrue(pdf_bytes.startswith(b"%PDF-"))
+
+        reader = pypdf.PdfReader(io.BytesIO(pdf_bytes))
+        self.assertGreaterEqual(len(reader.pages), 1)
+        self.assertAlmostEqual(float(reader.pages[0].mediabox.width), 841.89, places=1)
+        self.assertAlmostEqual(float(reader.pages[0].mediabox.height), 595.28, places=1)
+
+        # 2. API Endpoint /api/export-matrix-pdf Test
+        resp_pdf_api = self.client.post("/api/export-matrix-pdf", json={
+            "project_info": project_info,
+            "pipes": [
+                {
+                    "diameter_inch": "48\"",
+                    "diameter_mm": 1219.0,
+                    "wall_thickness_mm": 14.30,
+                    "material_grade": "X65",
+                    "manufacturing_process": "SAWH",
+                    "standard_type": "BOTAŞ",
+                    "design_factor_str": "0.72 (Hat)",
+                    "design_pressure_bar": 75.0
+                }
+            ],
+            "lang": "tr"
+        })
+        self.assertEqual(resp_pdf_api.status_code, 200)
+        self.assertEqual(resp_pdf_api.headers["content-type"], "application/pdf")
+        self.assertIn("Boru_Kalite_Guvence_Kabul_Matrisi_", resp_pdf_api.headers["content-disposition"])
+        self.assertGreater(len(resp_pdf_api.content), 20000)
+        self.assertTrue(resp_pdf_api.content.startswith(b"%PDF-"))
+
 
 if __name__ == '__main__':
     unittest.main()

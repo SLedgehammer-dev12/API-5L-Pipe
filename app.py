@@ -270,6 +270,29 @@ async def export_excel(data: ExportRequest = Body(...)):
         headers=headers
     )
 
+@app.post("/api/export-matrix-pdf")
+async def export_matrix_pdf_endpoint(data: ExportRequest = Body(...)):
+    """
+    Generates and streams publication-grade Landscape A4 PDF report
+    for the multi-pipe QA/QC Factory Acceptance & Dimensional Tolerances Matrix.
+    """
+    import re
+    project_info = data.project_info or {}
+    lang = data.lang or "tr"
+    pipes_calculated = _calculate_pipes(data.pipes)
+
+    pdf_stream = PDFExporter.export_matrix_pdf(project_info, pipes_calculated, lang=lang)
+
+    raw_no = str(project_info.get("project_no", "API5L")).strip()
+    safe_no = re.sub(r"[^a-zA-Z0-9_\-\.]", "_", raw_no)
+    filename = f"Boru_Kalite_Guvence_Kabul_Matrisi_{safe_no}.pdf" if lang == "tr" else f"Pipe_QA_QC_Acceptance_Matrix_{safe_no}.pdf"
+
+    return StreamingResponse(
+        pdf_stream,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'inline; filename="{filename}"'}
+    )
+
 @app.post("/api/export-verification-excel")
 async def export_verification_excel(data: ExportVerificationRequest = Body(...)):
     """

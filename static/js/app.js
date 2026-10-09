@@ -2788,6 +2788,12 @@ function setupEventListeners() {
         });
     }
 
+    // Export Matrix PDF Button
+    const btnMatrixPdf = document.getElementById("btn-export-matrix-pdf");
+    if (btnMatrixPdf) {
+        btnMatrixPdf.addEventListener("click", () => exportMatrixPdf());
+    }
+
     // Save Project Button
     const btnSaveProj = document.getElementById("btn-save-project-json");
     if (btnSaveProj) {
@@ -2923,6 +2929,62 @@ function setupEventListeners() {
             selectPrevPipe();
         }
     });
+}
+
+async function exportMatrixPdf() {
+    if (!activeProject.pipes || activeProject.pipes.length === 0) {
+        showToast("PDF matris raporu oluşturmak için önce en az bir boru ekleyin!", "error");
+        return;
+    }
+
+    const btnNav = document.getElementById("btn-export-matrix-pdf");
+    const origNavHtml = btnNav ? btnNav.innerHTML : "";
+    if (btnNav) {
+        btnNav.disabled = true;
+        btnNav.innerHTML = `<span class="animate-pulse">⏳ PDF Hazırlanıyor...</span>`;
+    }
+
+    try {
+        const resp = await fetch("/api/export-matrix-pdf", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                project_info: activeProject.project_info,
+                pipes: activeProject.pipes,
+                lang: currentLang
+            })
+        });
+
+        if (!resp.ok) {
+            throw new Error(`Sunucu hatası: ${resp.status}`);
+        }
+
+        const blob = await resp.blob();
+        const url = window.URL.createObjectURL(blob);
+        const pNo = (activeProject.project_info && activeProject.project_info.project_no) || "API5L";
+        const filename = `Boru_Kalite_Guvence_Kabul_Matrisi_${pNo}.pdf`;
+
+        // Open in new tab for direct viewing
+        window.open(url, "_blank");
+
+        // Also trigger download
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
+        showToast("Kalite Güvence ve Kabul Matrisi PDF raporu başarıyla oluşturuldu!", "success");
+    } catch (err) {
+        console.error("PDF export error:", err);
+        showToast("PDF raporu oluşturulurken hata meydana geldi!", "error");
+    } finally {
+        if (btnNav) {
+            btnNav.disabled = false;
+            btnNav.innerHTML = origNavHtml;
+        }
+    }
 }
 
 function setupWallThicknessDynamicUI() {

@@ -3,6 +3,39 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.11.0] - 2026-10-09 (Boru Kalite Güvence ve Kabul Matrisi PDF Raporu, Et Kalınlığı Underflow & Barlow Derating Motoru)
+
+### 🚀 Yeni Özellikler (New Features)
+- **Boru Kalite Güvence, Fabrika Kabul ve Boyutsal Tolerans Matrisi Resmi PDF Raporu:**
+  - `core/pdf_exporter.py` içinde `PDFExporter.export_matrix_pdf(...)` fonksiyonu geliştirildi.
+  - Yatay A4 (Landscape) kurumsal tasarım, iki geçişli dinamik sayfalama (`NumberedCanvas` ile "Sayfa X / Y") ve proje künyesi.
+  - Çoklu boru sütunlarını yan yana matris olarak sunan 5 ana bölüm:
+    1. Genel Boru Özellikleri ve Tasarım Verileri (Çap, Cidar, Kalite, Proses, Basınç, SMYS)
+    2. Boyutsal Toleranslar (API 5L Tablo 9-14 & BOTAŞ 8.1.2: Çap, Cidar, Ovallik, Düzlük, Kaynak Fazlalığı, Basamaklanma)
+    3. Kimyasal Bileşim & Karbon Eşdeğeri Sınırları (API 5L Tablo 5 & BOTAŞ Çizelge 2: C, Mn, P, S, Nb, CE IIW, CE Pcm)
+    4. Mekanik Dayanım & Darbe Tokluğu (API 5L Tablo 7, 8 & BOTAŞ Çizelge 3: Akma, Çekme, Akma/Çekme, Uzama, Charpy CVN, Kalan Gerilme)
+    5. Fabrika Hidrostatik Testi & ASME B31.8 Emniyet Değerleri (Test Basıncı, % SMYS, Boru Ağırlığı, D/t, Kırılma Kontrolü)
+  - QA/QC Kontrol Mühendisi, Boru QA/QC Şefi / IWE ve BOTAŞ / Müşteri Denetim Temsilcisi için 3'lü resmi imza ve kaşe onay bloğu.
+  - FastAPI rotası: `POST /api/export-matrix-pdf` (`inline; filename="..."` başlığıyla tarayıcıda doğrudan açma ve indirme).
+  - Kullanıcı arayüzünde üst menüye ve Tab 1 matris araç çubuğuna **"📄 PDF Raporu"** butonları entegre edildi.
+- **Et Kalınlığı Eksi Tolerans Alt Sınırı (Underflow) & Barlow Derating Analiz Motoru:**
+  - `core/derating_engine.py` ile API Spec 5L Tablo 11 ve BOTAŞ 8.1.2.4 eksi tolerans ($-\%10.0$ / $-\%8.0$) alt sınır hesaplaması.
+  - ASME B31.8 Madde 841.1 ve API 5L 9.4 Barlow tasarım basıncı kapasite düşüşü $\Delta P$ ve derating yüzde kaybı hesabı.
+  - API 5L 10.2.6.7 fabrika hidrostatik test gerilme sıçraması hesabı (nominal $\%95\text{ SMYS}$'den alt sınırda $\ge \%100\text{ SMYS}$ akma sınırına sıçrama riski).
+  - API 5L 9.11.3 doğrusal çelik kütle sapması hesabı ($\text{kg/m}$ ve boru boyu başına $\text{kg}$).
+  - 2D Dinamik SVG cidar kesiti (`pipe_derating`), 3D WebGL boru cidar katmanları modeli (`buildPipeDerating3D`) ve 7 bölümlü kurumsal Excel hesap föyü ihracı (`POST /api/export-derating-excel`).
+
+### 🛠️ Düzeltmeler ve İyileştirmeler (Fixed & Improved)
+- **Arayüz Kararlılığı:** JavaScript template literal sözdizimindeki Python biçimlendirme ifadesi düzeltildi (`.toFixed(1)`).
+- **Modal Dinamikliği:** BOTAŞ otomatik doldurma kutusu işaretlenmediğinde elle parametre giriş alanlarının açılması garantiye alındı.
+- **Dinamik Sürüm Bilgisi:** PDF raporu dipnotundaki sistem sürümü doğrudan `version.__version__` ile senkronize edildi.
+
+### 🧪 Testler (Testing)
+- Pytest test süiti 95/95 test ile %100 başarıyla tamamlandı (`95 passed`).
+- `test_86_matrix_pdf_export_verification` ile PDF üretimi, sayfa boyutları, başlıklar ve API rotası doğrulandı.
+
+---
+
 ## [2.10.1] - 2026-10-09 (ASTM A370 & API 5L Numune Çizimleri, 3D WebGL ve Geometrik Muayene Frekansları Hotfix)
 
 ### 🛠️ Düzeltmeler ve İyileştirmeler (Fixed & Improved)

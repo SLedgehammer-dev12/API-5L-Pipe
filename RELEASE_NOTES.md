@@ -1,3 +1,51 @@
+# Sürüm Notları / Release Notes - v2.11.0
+
+## 🚀 API 5L PSL1/PSL2 & BOTAŞ Boru Kalite Güvence, Et Kalınlığı Tasarım ve Akıllı ITP Denetim Süiti (v2.11.0)
+
+Bu ana sürüm (**v2.11.0**), **Boru Kalite Güvence ve Kabul Matrisi Resmi PDF Raporlama Motoru**, **Et Kalınlığı Eksi Tolerans Alt Sınırı (Underflow) & Barlow Basınç İndirgeme (Derating) Analiz Modülü** ve **95/95 Kapsamlı Test Doğrulaması** ile donatılmıştır.
+
+---
+
+### 🌟 v2.11.0 ile Gelen Başlıca Yenilikler ve İyileştirmeler
+
+1. **📄 Kalite Güvence ve Boyutsal Tolerans Matrisi Resmi PDF Raporu:**
+   - **Tek Tıkla Çıktı:** Arayüzün üst araç çubuğuna ve matris tablosuna **"📄 PDF Raporu"** butonları eklendi.
+   - **Yatay A4 (Landscape) Mühendislik Düzeni:** ReportLab ve `NumberedCanvas` (iki geçişli sayfalama "Sayfa X / Y") ile tam sayfa kurumsal mühendislik belgesi.
+   - **5 Kapsamlı Bölüm:**
+     * 1. Genel Boru Özellikleri ve Tasarım Verileri
+     * 2. Boyutsal Toleranslar (API 5L Tablo 9-14 & BOTAŞ 8.1.2)
+     * 3. Kimyasal Bileşim & Karbon Eşdeğeri Sınırları (API 5L Tablo 5 & BOTAŞ Çizelge 2)
+     * 4. Mekanik Dayanım & Darbe Tokluğu (API 5L Tablo 7, 8 & BOTAŞ Çizelge 3)
+     * 5. Fabrika Hidrostatik Testi & ASME B31.8 Tasarım Emniyeti
+   - **Resmi Mühendislik Onay & İmza Bloğu:** İmalatçı Kalite Kontrol Mühendisi, Boru QA/QC Şefi / IWE ve BOTAŞ / Müşteri Temsilcisi için 3'lü kaşe/imza kutuları.
+   - **Görüntüleme & İndirme:** Tarayıcıda yeni sekmede görüntülenirken aynı zamanda otomatik `.pdf` indirmesi yapılır.
+
+2. **📉 Et Kalınlığı Eksi Tolerans Alt Sınırı (Underflow) & Barlow Derating Analiz Motoru:**
+   - **API 5L Tablo 11 & BOTAŞ 8.1.2.4 Tolerans Alt Sınırı ($t_{\min}$):** Kaynaklı borularda $-\%10.0$ (BOTAŞ $t \ge 15\text{ mm}$ için $-\%8.0$), dikişsiz borularda $-\%12.5$ alt sınır hesabı.
+   - **ASME B31.8 Madde 841.1 Barlow Basınç Kapasite Kaybı ($\Delta P$):** Nominal ile alt tolerans sınırı arasındaki güvenli tasarım basıncı kapasite düşüşü ve kayıp yüzdesi.
+   - **API 5L Madde 10.2.6.7 Hidrotest Gerilme Sıçraması:** Fabrika test basıncında nominalde $\%90-\%95\text{ SMYS}$ olan gerilmenin $t_{\min}$'de akma sınırına ($\ge \%100\text{ SMYS}$) sıçrama riski denetimi.
+   - **API 5L Madde 9.11.3 Çelik Kütle Sapması:** Boru başına doğrusal kütle farkı ($\text{kg/m}$ ve boru boyu başına $\text{kg}$).
+   - **2D & 3D Görselleştirme:** 2D dinamik kesit SVG (`pipe_derating`), 270° kesitli parıltılı 3D WebGL modeli (`buildPipeDerating3D`) ve 7 bölümlü kurumsal Excel hesap föyü (`export_derating_report`).
+
+3. **🛠️ Arayüz Kararlılığı ve Sözdizimi Düzeltmeleri:**
+   - JavaScript template literal sözdizimi `.toFixed(1)` ile temizlendi.
+   - BOTAŞ otomatik doldurma / elle parametre girişi görünürlük kontrolleri güçlendirildi.
+   - 95 testin 95'i de eksiksiz geçti (%100 Başarı).
+
+---
+
+### 💻 İndirme Bağlantıları (v2.11.0)
+
+- **🪟 Windows (x64):**  
+  [**`API-5L-Pipe-Windows-x64-v2.11.0.exe` İndir**](https://github.com/SLedgehammer-dev12/API-5L-Pipe/releases/download/v2.11.0/API-5L-Pipe-Windows-x64-v2.11.0.exe)  
+  *Tek dosyadır, kurulum gerektirmez. Doğrudan çift tıklayarak çalıştırabilirsiniz.*
+
+- **🍏 macOS (Apple Silicon M1/M2/M3/M4 & Intel):**  
+  [**`API-5L-Pipe-macOS-v2.11.0.dmg` İndir**](https://github.com/SLedgehammer-dev12/API-5L-Pipe/releases/download/v2.11.0/API-5L-Pipe-macOS-v2.11.0.dmg)  
+  *Disk kalıbını açıp `API-5L-Pipe.app` uygulamasını Applications klasörüne sürükleyin.*
+
+---
+
 # Sürüm Notları / Release Notes - v2.10.1 (Hotfix)
 
 ## 🚀 API 5L PSL1/PSL2 & BOTAŞ Boru Kalite Güvence, Et Kalınlığı Tasarım ve Akıllı ITP Denetim Süiti (v2.10.1)

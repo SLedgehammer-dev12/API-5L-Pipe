@@ -1,9 +1,36 @@
-# What's New in API 5L Pipe QA/QC & Wall Thickness Suite (v2.10.1)
-## Yenilikler ve Sürüm Özeti - v2.10.1 (2026-10-09)
+# What's New in API 5L Pipe QA/QC & Wall Thickness Suite (v2.11.0)
+## Yenilikler ve Sürüm Özeti - v2.11.0 (2026-10-09)
 
 ---
 
-### 🇹🇷 Türkçe Özet (v2.10.1 - Hotfix)
+### 🇹🇷 Türkçe Özet (v2.11.0)
+
+API 5L Pipe QA/QC Suite **v2.11.0** sürümü ile **Boru Kalite Güvence ve Kabul Matrisi Resmi PDF Raporlama Motoru**, **Et Kalınlığı Eksi Tolerans Alt Sınırı & Barlow Basınç İndirgeme (Derating) Analiz Modülü** ve **95/95 Kapsamlı Test Doğrulaması** entegre edilmiştir:
+
+#### 1. 📄 Boru Kalite Güvence & Boyutsal Tolerans Matrisi Resmi PDF Raporu
+- **Tek Tıkla Kurumsal Çıktı:** Arayüzün üst menüsüne ve matris araç çubuğuna **"📄 PDF Raporu"** butonu eklendi.
+- **Yatay A4 (Landscape) Mühendislik Tasarımı:** ReportLab ve `NumberedCanvas` (iki geçişli dinamik sayfalama "Sayfa X / Y") ile tam sayfa kurumsal düzen.
+- **5 Ana Bölüm:** Genel Boru Özellikleri, Boyutsal Toleranslar (API 5L Tablo 9-14 & BOTAŞ 8.1.2), Kimyasal Bileşim & CE (Tablo 5 & Çizelge 2), Mekanik Dayanım & CVN (Tablo 7, 8 & Çizelge 3), Fabrika Hidrostatik Testi & ASME B31.8 Tasarım Emniyeti.
+- **Mühendislik Kaşe & İmza Onay Bloğu:** İmalatçı Kalite Kontrol Mühendisi, Boru QA/QC Şefi / IWE Kaynak Mühendisi ve BOTAŞ / Müşteri Denetim Temsilcisi için resmi onay kutuları.
+- **Çoklu Boru Sütunu Desteği:** Matristeki tüm boru varyantlarını dinamik sütun genişliğiyle yan yana karşılaştırır.
+- **Görüntüleme & İndirme:** Tarayıcıda anında yeni sekmede PDF önizleme açılırken eşzamanlı olarak `.pdf` dosyası indirilir.
+
+#### 2. 📉 Et Kalınlığı Eksi Tolerans Alt Sınırı (Underflow) & Barlow Derating Analiz Motoru
+- **API 5L Tablo 11 & BOTAŞ 8.1.2.4 Tolerans Alt Sınırı ($t_{\min}$):** Kaynaklı borularda $-\%10.0$ (BOTAŞ $t \ge 15\text{ mm}$ için $-\%8.0$), dikişsiz borularda $-\%12.5$ alt limit hesabı.
+- **ASME B31.8 Madde 841.1 Barlow Basınç Kaybı ($\Delta P$):** Nominal cidar ile alt tolerans sınırı arasındaki güvenli tasarım basıncı kapasite düşüşü ve kayıp yüzdesi.
+- **API 5L Madde 10.2.6.7 Hidrotest Gerilme Sıçraması:** Fabrika test basıncında nominal $\%90-\%95\text{ SMYS}$ olan gerilmenin $t_{\min}$'de akma sınırına ($\ge \%100\text{ SMYS}$) sıçrama riski denetimi.
+- **API 5L Madde 9.11.3 Çelik Kütle Sapması:** Boru başına doğrusal kütle kaybı ($\text{kg/m}$ ve boru boyu toplam $\text{kg}$).
+- **2D & 3D Görselleştirme:** Cidar kesitli 2D SVG (`pipe_derating`), 270° kesitli parıltılı risk katmanlı 3D WebGL modeli (`buildPipeDerating3D`) ve 7 bölümlü kurumsal Excel raporu (`POST /api/export-derating-excel`).
+
+#### 3. 🛠️ Arayüz Kararlılığı ve Sözdizimi Düzeltmeleri
+- JavaScript template literal sözdizimi temizlendi (`.toFixed(1)`).
+- BOTAŞ otomatik doldurma / serbest elle giriş dinamik görünürlük kontrolleri güçlendirildi.
+- Pytest test süiti 95/95 test ile %100 başarı oranına ulaştı.
+
+---
+
+# What's New in API 5L Pipe QA/QC & Wall Thickness Suite (v2.10.1)
+## Yenilikler ve Sürüm Özeti - v2.10.1 (2026-10-09)
 
 API 5L Pipe QA/QC Suite **v2.10.1** hotfix sürümü ile **ASTM A370 & API 5L numune 2D/3D modellerinin standart uyumu**, **WebGL Three.js etkileşimli 3D numune görüntüleyicisi** ve **kaynak geometri ölçüm frekansı önerileri** eklenmiştir:
 
