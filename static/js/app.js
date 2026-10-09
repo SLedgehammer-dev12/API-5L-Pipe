@@ -2191,8 +2191,8 @@ async function calculateDeratingFromInputs(pipeData) {
                 setTxt("der-kpi-stressjump", `+${r.hydro_stress_jump_pct.toFixed(1)}%`);
                 setTxt("der-kpi-weightdiff", `-${r.mass_loss_per_pipe_kg.toFixed(0)} kg`);
 
-                setTxt("der-param-band", `[${r.t_min_allowed_mm.toFixed(2)} — ${r.t_max_allowed_mm.toFixed(2)}] mm (%${r.tol_neg_pct:.1f} / +%${r.tol_pos_pct:.1f})`);
-                setTxt("der-param-press-desc", `P_nom = ${r.p_des_nom_bar.toFixed(1)} bar → P_min = ${r.p_des_min_bar.toFixed(1)} bar (-%${r.derating_loss_pct:.1f})`);
+                setTxt("der-param-band", `[${r.t_min_allowed_mm.toFixed(2)} — ${r.t_max_allowed_mm.toFixed(2)}] mm (%${r.tol_neg_pct.toFixed(1)} / +%${r.tol_pos_pct.toFixed(1)})`);
+                setTxt("der-param-press-desc", `P_nom = ${r.p_des_nom_bar.toFixed(1)} bar → P_min = ${r.p_des_min_bar.toFixed(1)} bar (-%${r.derating_loss_pct.toFixed(1)})`);
                 setTxt("der-param-hydro-desc", `%${r.hydro_smys_nom_pct.toFixed(1)} SMYS → %${r.hydro_smys_min_pct.toFixed(1)} SMYS (Test: ${r.hydro_test_pressure_bar.toFixed(1)} bar)`);
 
                 const badge = document.getElementById("der-verdict-badge");

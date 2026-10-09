@@ -2391,8 +2391,10 @@
 
                 if (deliverySec) deliverySec.classList.toggle("hidden", !isPsl2);
                 if (autoSection) autoSection.style.display = isBotas ? "" : "none";
+                const autoCheckbox = document.getElementById("chk-auto-populate-botas");
+                const isAutoPopulate = isBotas && autoCheckbox && autoCheckbox.checked;
                 if (document.getElementById("manual-fields-section")) {
-                    document.getElementById("manual-fields-section").classList.toggle("hidden", isBotas);
+                    document.getElementById("manual-fields-section").classList.toggle("hidden", isAutoPopulate);
                 }
                 // Operating Pressure input is only for API 5L free selection
                 const opSec = document.getElementById("operating-pressure-section");
@@ -2413,6 +2415,8 @@
             }
 
             stdSel.addEventListener("change", applyFilters);
+            const chkAuto = document.getElementById("chk-auto-populate-botas");
+            if (chkAuto) chkAuto.addEventListener("change", applyFilters);
             if (deliverySel) deliverySel.addEventListener("change", () => {
                 const std = stdSel.value;
                 if (std === "API 5L PSL2") {
