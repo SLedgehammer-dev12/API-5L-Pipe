@@ -3537,6 +3537,127 @@ class TestPipeQAQCSuite(unittest.TestCase):
         )
         self.assertIn("attachment; filename=", resp_excel.headers["content-disposition"])
 
+    def test_85_wall_thickness_underflow_and_derating_verification(self):
+        """
+        Tests API Spec 5L Table 11 & ASME B31.8 Section 841.1 wall thickness
+        underflow (minus tolerance), Barlow design pressure derating, hydro stress jump,
+        mass variance, API calculation endpoints, and corporate Excel export.
+        """
+        from core.derating_engine import DeratingEngine
+        from core.excel_exporter import ExcelExporter
+        import openpyxl
+
+        # 1. Tolerance Lookups (API 5L Table 11 & BOTAŞ 8.1.2.4)
+        tols_botas_thick = DeratingEngine.get_wall_thickness_tolerances(1219.0, 16.0, "SAWH", is_botas=True)
+        self.assertEqual(tols_botas_thick["tol_neg_pct"], -8.0)
+        self.assertEqual(tols_botas_thick["tol_pos_pct"], 10.0)
+
+        tols_botas_standard = DeratingEngine.get_wall_thickness_tolerances(1219.0, 14.30, "SAWH", is_botas=True)
+        self.assertEqual(tols_botas_standard["tol_neg_pct"], -10.0)
+        self.assertEqual(tols_botas_standard["tol_pos_pct"], 10.0)
+        self.assertEqual(tols_botas_standard["t_min_allowed_mm"], 12.87)
+        self.assertEqual(tols_botas_standard["t_max_allowed_mm"], 15.73)
+
+        tols_smls = DeratingEngine.get_wall_thickness_tolerances(508.0, 12.70, "SMLS", is_botas=False)
+        self.assertEqual(tols_smls["tol_neg_pct"], -12.5)
+
+        # 2. Calculation of Nominal Derating (48" x 14.30 mm, Grade X65)
+        res = DeratingEngine.calculate_derating(
+            diameter_mm=1219.0,
+            wall_thickness_mm=14.30,
+            material_grade="X65",
+            manufacturing_process="SAWH",
+            standard_code="BOTAŞ",
+            design_factor_f=0.72,
+            corrosion_allowance_mm=0.0
+        )
+        self.assertEqual(res["t_min_allowed_mm"], 12.87)
+        self.assertAlmostEqual(res["p_des_nom_bar"], 76.02, places=1)
+        self.assertAlmostEqual(res["p_des_min_bar"], 68.41, places=1)
+        self.assertAlmostEqual(res["delta_p_des_bar"], 7.61, places=1)
+        self.assertAlmostEqual(res["derating_loss_pct"], 10.01, places=1)
+        self.assertGreater(res["hydro_stress_jump_pct"], 10.0)
+        self.assertEqual(res["verdict"], "NOMINAL (DENETİME HAZIR)")
+
+        # 3. Actual Thickness PASS Case
+        res_pass = DeratingEngine.calculate_derating(
+            diameter_mm=1219.0,
+            wall_thickness_mm=14.30,
+            material_grade="X65",
+            actual_measured_thickness_mm=13.50
+        )
+        self.assertTrue(res_pass["is_compliant"])
+        self.assertEqual(res_pass["verdict"], "UYGUN (KABUL / PASS)")
+
+        # 4. Actual Thickness FAIL Case (under minimum tolerance 12.87 mm)
+        res_fail = DeratingEngine.calculate_derating(
+            diameter_mm=1219.0,
+            wall_thickness_mm=14.30,
+            material_grade="X65",
+            actual_measured_thickness_mm=12.20
+        )
+        self.assertFalse(res_fail["is_compliant"])
+        self.assertEqual(res_fail["verdict"], "RED (UYGUNSUZ / REJECT)")
+        self.assertEqual(res_fail["checks"][0]["status"], "FAIL")
+
+        # 5. API Endpoint /api/derating-calc Test
+        resp_calc = self.client.post("/api/derating-calc", json={
+            "diameter_mm": 1219.0,
+            "wall_thickness_mm": 14.30,
+            "material_grade": "X65",
+            "standard_code": "BOTAŞ",
+            "design_factor_f": 0.72,
+            "actual_measured_thickness_mm": 13.90
+        })
+        self.assertEqual(resp_calc.status_code, 200)
+        data_calc = resp_calc.json()
+        self.assertEqual(data_calc["status"], "success")
+        self.assertTrue(data_calc["data"]["is_compliant"])
+        self.assertAlmostEqual(data_calc["data"]["t_min_allowed_mm"], 12.87, places=1)
+
+        # 6. Corporate Excel Exporter Direct Test
+        project_info = {
+            "project_name": "BOTAŞ Ege Doğalgaz İletim Hattı",
+            "project_no": "DERATING-BOTAS-2026-001"
+        }
+        pipe_info = {
+            "diameter_inch": "48\"",
+            "diameter_mm": 1219.0,
+            "wall_thickness_mm": 14.30,
+            "material_grade": "X65",
+            "standard_type": "BOTAŞ"
+        }
+        excel_buf = ExcelExporter.export_derating_report(project_info, res_pass, pipe_info, lang="tr")
+        self.assertIsNotNone(excel_buf)
+        wb = openpyxl.load_workbook(excel_buf, data_only=True)
+        ws = wb.active
+        self.assertEqual(ws.title, "Et Kalınlığı İndirgeme Raporu")
+        all_text = " ".join(str(cell.value) for row in ws.iter_rows() for cell in row if cell.value is not None)
+        self.assertIn("API SPEC 5L & ASME B31.8 ET KALINLIĞI TOLERANS ALTI", all_text)
+        self.assertIn("ET KALINLIĞI İMALAT TOLERANSLARI", all_text)
+        self.assertIn("BARLOW TASARIM BASINCI VE GÜVENLİK MARJI İNDİRGEMESİ", all_text)
+        self.assertIn("FABRİKA HİDROSTATİK TEST GERİLME SIÇRAMASI", all_text)
+        self.assertIn("ÇELİK KÜTLESİ VE AĞIRLIK DEĞİŞİMİ", all_text)
+        self.assertIn("HAZIRLAYAN", all_text)
+
+        # 7. API Endpoint /api/export-derating-excel Test
+        resp_excel = self.client.post("/api/export-derating-excel", json={
+            "project_info": project_info,
+            "derating_data": {
+                "diameter_mm": 1219.0,
+                "wall_thickness_mm": 14.30,
+                "actual_measured_thickness_mm": 13.90
+            },
+            "pipe_info": pipe_info,
+            "lang": "tr"
+        })
+        self.assertEqual(resp_excel.status_code, 200)
+        self.assertEqual(
+            resp_excel.headers["content-type"],
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+        self.assertIn("attachment; filename=", resp_excel.headers["content-disposition"])
+
 
 if __name__ == '__main__':
     unittest.main()

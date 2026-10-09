@@ -3254,6 +3254,355 @@ class ExcelExporter:
         output.seek(0)
         return output
 
+    @classmethod
+    def export_derating_report(
+        cls,
+        project_info: Dict[str, Any],
+        derating_data: Dict[str, Any],
+        pipe_info: Optional[Dict[str, Any]] = None,
+        lang: str = "tr"
+    ) -> io.BytesIO:
+        """
+        Exports official Wall Thickness Underflow (Minus Tolerance), Barlow Design Pressure
+        Derating, and Hydrostatic Hoop Stress Verification Report to corporate Excel.
+        Conforms to API Spec 5L Table 11 & ASME B31.8 Section 841.1.
+        """
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Et Kalınlığı İndirgeme Raporu"
+        ws.views.sheetView[0].showGridLines = True
+
+        p_info = project_info or {}
+        p_extra = pipe_info or {}
+
+        # Colors & Fonts
+        navy_dark = "1E3A8A"
+        teal_hdr = "0F766E"
+        blue_hdr = "1D4ED8"
+        slate_hdr = "334155"
+        amber_hdr = "B45309"
+        zebra_bg = "F8FAFC"
+        pass_green = "059669"
+        fail_red = "DC2626"
+
+        font_title = Font(name="Calibri", size=14, bold=True, color="FFFFFF")
+        font_sub = Font(name="Calibri", size=9.5, italic=True, color="CBD5E1")
+        font_sec = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
+        font_tbl_hdr = Font(name="Calibri", size=10, bold=True, color="FFFFFF")
+        font_bold = Font(name="Calibri", size=10, bold=True, color="0F172A")
+        font_regular = Font(name="Calibri", size=9.5, color="1E293B")
+        font_mono_bold = Font(name="Consolas", size=10, bold=True, color="0F172A")
+        font_info = Font(name="Calibri", size=9, color="475569")
+        font_pass = Font(name="Calibri", size=10, bold=True, color="047857")
+        font_fail = Font(name="Calibri", size=10, bold=True, color="B91C1C")
+
+        fill_title = PatternFill(start_color=navy_dark, end_color=navy_dark, fill_type="solid")
+        fill_sec = PatternFill(start_color=teal_hdr, end_color=teal_hdr, fill_type="solid")
+        fill_tbl_hdr = PatternFill(start_color=slate_hdr, end_color=slate_hdr, fill_type="solid")
+        fill_zebra = PatternFill(start_color=zebra_bg, end_color=zebra_bg, fill_type="solid")
+        fill_pass = PatternFill(start_color="ECFDF5", end_color="ECFDF5", fill_type="solid")
+        fill_fail = PatternFill(start_color="FEF2F2", end_color="FEF2F2", fill_type="solid")
+
+        border_thin = Side(border_style="thin", color="CBD5E1")
+        border_all = Border(left=border_thin, right=border_thin, top=border_thin, bottom=border_thin)
+
+        align_center = Alignment(horizontal="center", vertical="center")
+        align_left = Alignment(horizontal="left", vertical="center")
+        align_right = Alignment(horizontal="right", vertical="center")
+
+        # -------------------------------------------------------------
+        # Header Block
+        # -------------------------------------------------------------
+        ws.merge_cells("A1:E1")
+        ws.row_dimensions[1].height = 28
+        c = ws.cell(1, 1, "API SPEC 5L & ASME B31.8 ET KALINLIĞI TOLERANS ALTI & BASINÇ İNDİRGEME RAPORU")
+        c.font = font_title; c.fill = fill_title; c.alignment = align_center
+
+        ws.merge_cells("A2:E2")
+        ws.row_dimensions[2].height = 20
+        c = ws.cell(2, 1, "API Spec 5L Çizelge 11 & ASME B31.8 Madde 841.1 — Eksi Tolerans, Barlow Basınç Kaybı & Hidro Gerilme Sıçraması")
+        c.font = font_sub; c.fill = fill_title; c.alignment = align_center
+
+        ws.row_dimensions[3].height = 10
+        r_curr = 4
+
+        # -------------------------------------------------------------
+        # Section 1: Proje ve Boru Genel Bilgileri
+        # -------------------------------------------------------------
+        ws.merge_cells(f"A{r_curr}:E{r_curr}")
+        ws.row_dimensions[r_curr].height = 22
+        c = ws.cell(r_curr, 1, "1. PROJE VE BORU TANIMLAMA BİLGİLERİ")
+        c.font = font_sec; c.fill = fill_sec; c.alignment = align_left
+        r_curr += 1
+
+        d_mm = derating_data.get("diameter_mm") or p_extra.get("diameter_mm") or 1219.0
+        t_mm = derating_data.get("wall_thickness_mm") or p_extra.get("wall_thickness_mm") or 14.30
+        l_m = derating_data.get("pipe_length_m") or p_extra.get("pipe_length_m") or 12.0
+        grade = derating_data.get("material_grade") or p_extra.get("material_grade") or "X65"
+        proc = derating_data.get("manufacturing_process") or p_extra.get("manufacturing_process") or "SAWH"
+        std = derating_data.get("standard_code") or "BOTAŞ"
+        smys = derating_data.get("smys_mpa", 450.0)
+        f_fact = derating_data.get("design_factor_f", 0.72)
+        ca = derating_data.get("corrosion_allowance_mm", 0.0)
+
+        info_rows = [
+            ("Proje Adı", p_info.get("project_name") or "API 5L / BOTAŞ Boru Hattı İletim Projesi",
+             "Rapor Tarihi", datetime.now().strftime("%d.%m.%Y %H:%M")),
+            ("Boru Çapı (D)", f"{d_mm:.1f} mm ({p_extra.get('diameter_inch') or '48\"'})",
+             "Nominal Et Kalınlığı (t)", f"{t_mm:.2f} mm"),
+            ("Çelik Kalitesi & SMYS", f"{grade} (SMYS = {smys:.0f} MPa)",
+             "İmalat Yöntemi & Standart", f"{proc} ({std})"),
+            ("Tasarım Faktörü (F)", f"{f_fact:.2f} (ASME B31.8 Sınıf 1)",
+             "Korozyon Payı (CA)", f"{ca:.2f} mm"),
+        ]
+
+        for r_data in info_rows:
+            ws.row_dimensions[r_curr].height = 20
+            c = ws.cell(r_curr, 1, r_data[0]); c.font = font_bold; c.fill = fill_zebra; c.border = border_all
+            c = ws.cell(r_curr, 2, r_data[1]); c.font = font_regular; c.border = border_all
+            c = ws.cell(r_curr, 3, r_data[2]); c.font = font_bold; c.fill = fill_zebra; c.border = border_all
+            ws.merge_cells(f"D{r_curr}:E{r_curr}")
+            c = ws.cell(r_curr, 4, r_data[3]); c.font = font_regular; c.border = border_all
+            ws.cell(r_curr, 5).border = border_all
+            r_curr += 1
+
+        r_curr += 1
+
+        # -------------------------------------------------------------
+        # Section 2: Et Kalınlığı İmalat Toleransları
+        # -------------------------------------------------------------
+        ws.merge_cells(f"A{r_curr}:E{r_curr}")
+        ws.row_dimensions[r_curr].height = 22
+        c = ws.cell(r_curr, 1, "2. ET KALINLIĞI İMALAT TOLERANSLARI (API 5L ÇİZELGE 11 & BOTAŞ)")
+        c.font = font_sec; c.fill = fill_sec; c.alignment = align_left
+        r_curr += 1
+
+        tol_pos_pct = derating_data.get("tol_pos_pct", 10.0)
+        tol_neg_pct = derating_data.get("tol_neg_pct", -10.0)
+        tol_pos_mm = derating_data.get("tol_pos_mm", 1.43)
+        tol_neg_mm = derating_data.get("tol_neg_mm", -1.43)
+        t_min = derating_data.get("t_min_allowed_mm", 12.87)
+        t_max = derating_data.get("t_max_allowed_mm", 15.73)
+
+        tol_rows = [
+            ("Artı Tolerans (+)", f"+%{tol_pos_pct:.1f} (+{tol_pos_mm:.2f} mm)", f"Maksimum izin verilen cidar: t_max = {t_max:.2f} mm"),
+            ("Eksi Tolerans (-) [KRİTİK]", f"%{tol_neg_pct:.1f} ({tol_neg_mm:.2f} mm)", f"Minimum izin verilen cidar: t_min = {t_min:.2f} mm"),
+            ("İzin Verilen Tolerans Bandı", f"[{t_min:.2f} mm — {t_max:.2f} mm]", "API 5L Tablo 11 & BOTAŞ 8.1.2.4 fabrika kabul bandı"),
+        ]
+
+        for t_label, t_val, t_desc in tol_rows:
+            ws.row_dimensions[r_curr].height = 20
+            ws.merge_cells(f"A{r_curr}:B{r_curr}")
+            c = ws.cell(r_curr, 1, t_label); c.font = font_bold; c.border = border_all
+            ws.cell(r_curr, 2).border = border_all
+            c = ws.cell(r_curr, 3, t_val); c.font = font_mono_bold; c.alignment = align_center; c.border = border_all
+            ws.merge_cells(f"D{r_curr}:E{r_curr}")
+            c = ws.cell(r_curr, 4, t_desc); c.font = font_info; c.border = border_all
+            ws.cell(r_curr, 5).border = border_all
+            r_curr += 1
+
+        r_curr += 1
+
+        # -------------------------------------------------------------
+        # Section 3: Barlow Basınç Kapasitesi Karşılaştırma & Derating
+        # -------------------------------------------------------------
+        ws.merge_cells(f"A{r_curr}:E{r_curr}")
+        ws.row_dimensions[r_curr].height = 22
+        c = ws.cell(r_curr, 1, "3. BARLOW TASARIM BASINCI VE GÜVENLİK MARJI İNDİRGEMESİ (DERATING)")
+        c.font = font_sec; c.fill = fill_sec; c.alignment = align_left
+        r_curr += 1
+
+        ws.row_dimensions[r_curr].height = 24
+        tbl_headers = ["Performans Parametresi", "Nominal Kalınlık (t_nom)", "Alt Sınır (t_min)", "Fark / Değişim (Δ)", "Mühendislik Yorumu"]
+        for idx, h_text in enumerate(tbl_headers, 1):
+            c = ws.cell(r_curr, idx, h_text)
+            c.font = font_tbl_hdr; c.fill = fill_tbl_hdr; c.alignment = align_center; c.border = border_all
+        r_curr += 1
+
+        p_nom = derating_data.get("p_des_nom_bar", 76.0)
+        p_min = derating_data.get("p_des_min_bar", 68.4)
+        dp = derating_data.get("delta_p_des_bar", 7.6)
+        dp_pct = derating_data.get("derating_loss_pct", 10.0)
+
+        sig_op_nom = derating_data.get("sigma_op_nom_mpa", 324.0)
+        sig_op_min = derating_data.get("sigma_op_min_mpa", 360.0)
+        util_nom = derating_data.get("hoop_util_nom_pct", 72.0)
+        util_min = derating_data.get("hoop_util_min_pct", 80.0)
+
+        comp_rows = [
+            ("Efektif Taşıyıcı Cidar (t - CA)", f"{t_mm - ca:.2f} mm", f"{t_min - ca:.2f} mm", f"-{t_mm - t_min:.2f} mm", "Haddelenmiş net et kalınlığı"),
+            ("Barlow Tasarım Basıncı (P_des)", f"{p_nom:.2f} bar", f"{p_min:.2f} bar", f"-{dp:.2f} bar (-%{dp_pct:.1f})", "Maksimum güvenli hat işletme basıncı"),
+            ("İşletme Çeper Gerilmesi (σ_h)", f"{sig_op_nom:.1f} MPa", f"{sig_op_min:.1f} MPa", f"+{sig_op_min - sig_op_nom:.1f} MPa", "P_nom basıncında çeper gerilme artışı"),
+            ("Gerilme / SMYS Kullanım Oranı", f"%{util_nom:.1f} SMYS", f"%{util_min:.1f} SMYS", f"+%{util_min - util_nom:.1f} SMYS", "Emniyet marjı daralması"),
+        ]
+
+        for p_name, v_nom, v_min, v_diff, v_comm in comp_rows:
+            ws.row_dimensions[r_curr].height = 22
+            c = ws.cell(r_curr, 1, p_name); c.font = font_bold; c.border = border_all
+            c = ws.cell(r_curr, 2, v_nom); c.font = font_mono_bold; c.alignment = align_center; c.border = border_all
+            c = ws.cell(r_curr, 3, v_min); c.font = font_mono_bold; c.alignment = align_center; c.border = border_all
+            c = ws.cell(r_curr, 4, v_diff); c.font = Font(name="Consolas", size=10, bold=True, color="B91C1C"); c.alignment = align_center; c.border = border_all
+            c = ws.cell(r_curr, 5, v_comm); c.font = font_info; c.border = border_all
+            r_curr += 1
+
+        r_curr += 1
+
+        # -------------------------------------------------------------
+        # Section 4: Fabrika Hidrostatik Test Gerilme Sıçraması
+        # -------------------------------------------------------------
+        ws.merge_cells(f"A{r_curr}:E{r_curr}")
+        ws.row_dimensions[r_curr].height = 22
+        c = ws.cell(r_curr, 1, "4. FABRİKA HİDROSTATİK TEST GERİLME SIÇRAMASI (API 5L 10.2.6.7)")
+        c.font = font_sec; c.fill = fill_sec; c.alignment = align_left
+        r_curr += 1
+
+        p_hydro = derating_data.get("hydro_test_pressure_bar", 100.0)
+        h_nom_pct = derating_data.get("hydro_smys_nom_pct", 95.0)
+        h_min_pct = derating_data.get("hydro_smys_min_pct", 105.6)
+        h_jump = derating_data.get("hydro_stress_jump_pct", 10.6)
+        is_crit = derating_data.get("is_hydro_stress_critical", False)
+
+        hydro_rows = [
+            ("Uygulanan Test Basıncı (P_hydro)", f"{p_hydro:.1f} bar", "Fabrika presi hidrostatik test basıncı"),
+            ("Nominal Cidar Test Gerilmesi", f"%{h_nom_pct:.1f} SMYS", "Hedef fabrika gerilme düzeyi (≤ %95 SMYS)"),
+            ("Alt Sınırda (t_min) Gerçekleşen Gerilme", f"%{h_min_pct:.1f} SMYS", "Plastik deformasyon eşiği kontrolü (≤ %100 SMYS)"),
+            ("Gerilme Sıçraması (Stress Jump)", f"+%{h_jump:.1f} SMYS", "Eksi tolerans nedeniyle çeperdeki ilave gerilme yığılması"),
+        ]
+
+        for h_label, h_val, h_desc in hydro_rows:
+            ws.row_dimensions[r_curr].height = 20
+            ws.merge_cells(f"A{r_curr}:B{r_curr}")
+            c = ws.cell(r_curr, 1, h_label); c.font = font_bold; c.border = border_all
+            ws.cell(r_curr, 2).border = border_all
+            c = ws.cell(r_curr, 3, h_val)
+            if "Alt Sınırda" in h_label and is_crit:
+                c.font = font_fail; c.fill = fill_fail
+            else:
+                c.font = font_mono_bold
+            c.alignment = align_center; c.border = border_all
+            ws.merge_cells(f"D{r_curr}:E{r_curr}")
+            c = ws.cell(r_curr, 4, h_desc); c.font = font_info; c.border = border_all
+            ws.cell(r_curr, 5).border = border_all
+            r_curr += 1
+
+        r_curr += 1
+
+        # -------------------------------------------------------------
+        # Section 5: Çelik Kütlesi ve Ağırlık Varyansı
+        # -------------------------------------------------------------
+        ws.merge_cells(f"A{r_curr}:E{r_curr}")
+        ws.row_dimensions[r_curr].height = 22
+        c = ws.cell(r_curr, 1, "5. ÇELİK KÜTLESİ VE AĞIRLIK DEĞİŞİMİ (API 5L 9.11.3 FORMÜLÜ)")
+        c.font = font_sec; c.fill = fill_sec; c.alignment = align_left
+        r_curr += 1
+
+        m_nom_m = derating_data.get("mass_nom_kg_m", 425.0)
+        m_min_m = derating_data.get("mass_min_kg_m", 383.0)
+        m_nom_p = derating_data.get("mass_nom_pipe_kg", 5100.0)
+        m_min_p = derating_data.get("mass_min_pipe_kg", 4600.0)
+        m_loss = derating_data.get("mass_loss_per_pipe_kg", 500.0)
+        m_var_pct = derating_data.get("mass_variance_pct", -9.8)
+
+        mass_rows = [
+            ("Birim Metre Kütlesi (kg/m)", f"Nominal: {m_nom_m:.2f} kg/m", f"Alt Sınır: {m_min_m:.2f} kg/m", f"Varyans: %{m_var_pct:.1f}"),
+            (f"Tek Boru Kütlesi (L = {l_m:.1f} m)", f"Nominal: {m_nom_p:.1f} kg", f"Alt Sınır: {m_min_p:.1f} kg", f"Fark: -{m_loss:.1f} kg / boru"),
+        ]
+
+        for m_label, m_v1, m_v2, m_v3 in mass_rows:
+            ws.row_dimensions[r_curr].height = 20
+            ws.merge_cells(f"A{r_curr}:B{r_curr}")
+            c = ws.cell(r_curr, 1, m_label); c.font = font_bold; c.border = border_all
+            ws.cell(r_curr, 2).border = border_all
+            c = ws.cell(r_curr, 3, m_v1); c.font = font_mono_bold; c.alignment = align_center; c.border = border_all
+            c = ws.cell(r_curr, 4, m_v2); c.font = font_mono_bold; c.alignment = align_center; c.border = border_all
+            c = ws.cell(r_curr, 5, m_v3); c.font = font_bold; c.alignment = align_center; c.border = border_all
+            r_curr += 1
+
+        r_curr += 1
+
+        # -------------------------------------------------------------
+        # Section 6: Nihai Değerlendirme & Karar Bloğu
+        # -------------------------------------------------------------
+        ws.merge_cells(f"A{r_curr}:E{r_curr}")
+        ws.row_dimensions[r_curr].height = 22
+        c = ws.cell(r_curr, 1, "6. NİHAİ KALİTE GÜVENCE VE EMNİYET KARARI")
+        c.font = font_sec; c.fill = fill_sec; c.alignment = align_left
+        r_curr += 1
+
+        verdict = derating_data.get("verdict", "NOMINAL (DENETİME HAZIR)")
+        is_compliant = derating_data.get("is_compliant", True)
+
+        ws.merge_cells(f"A{r_curr}:B{r_curr}")
+        c = ws.cell(r_curr, 1, "NİHAİ UYGUNLUK KARARI"); c.font = font_bold; c.border = border_all
+        ws.cell(r_curr, 2).border = border_all
+
+        ws.merge_cells(f"C{r_curr}:E{r_curr}")
+        c = ws.cell(r_curr, 3, verdict)
+        if is_compliant and "UYGUN" in verdict:
+            c.font = Font(name="Calibri", size=13, bold=True, color="047857")
+            c.fill = fill_pass
+        elif not is_compliant:
+            c.font = Font(name="Calibri", size=13, bold=True, color="B91C1C")
+            c.fill = fill_fail
+        else:
+            c.font = Font(name="Calibri", size=13, bold=True, color="1D4ED8")
+            c.fill = fill_zebra
+        c.alignment = align_center; c.border = border_all
+        ws.cell(r_curr, 4).border = border_all
+        ws.cell(r_curr, 5).border = border_all
+        ws.row_dimensions[r_curr].height = 30
+        r_curr += 1
+
+        # Methodology Explanation
+        methodology = derating_data.get("methodology_note", "")
+        ws.merge_cells(f"A{r_curr}:E{r_curr}")
+        ws.row_dimensions[r_curr].height = 42
+        c = ws.cell(r_curr, 1, methodology)
+        c.font = font_info; c.alignment = Alignment(horizontal="left", vertical="center", wrap_text=True)
+        c.border = border_all
+        for col_idx in range(2, 6):
+            ws.cell(r_curr, col_idx).border = border_all
+        r_curr += 2
+
+        # -------------------------------------------------------------
+        # Section 7: Onay ve İmza Bloğu
+        # -------------------------------------------------------------
+        ws.merge_cells(f"A{r_curr}:E{r_curr}")
+        ws.row_dimensions[r_curr].height = 20
+        c = ws.cell(r_curr, 1, "7. MÜHENDİSLİK KONTROL VE ONAY İMZALARI")
+        c.font = font_sec; c.fill = fill_sec; c.alignment = align_left
+        r_curr += 1
+
+        ws.row_dimensions[r_curr].height = 24
+        c = ws.cell(r_curr, 1, "HAZIRLAYAN (Boru Tasarım Mühendisi)")
+        c.font = font_bold; c.alignment = align_left
+
+        c = ws.cell(r_curr, 3, "KONTROL EDEN (QA/QC Şefi)")
+        c.font = font_bold; c.alignment = align_left
+
+        c = ws.cell(r_curr, 5, "ONAYLAYAN (Baş Denetçi / TPI / İdare)")
+        c.font = font_bold; c.alignment = align_left
+        r_curr += 1
+
+        ws.row_dimensions[r_curr].height = 32
+        for col in (1, 3, 5):
+            c = ws.cell(r_curr, col, "İmza / Kaşe / Tarih: ____________________")
+            c.font = font_info
+            c.alignment = align_left
+
+        # Column widths
+        widths = [42, 25, 25, 26, 44]
+        for idx, w in enumerate(widths, 1):
+            ws.column_dimensions[get_column_letter(idx)].width = w
+
+        ws.freeze_panes = "A5"
+
+        output = io.BytesIO()
+        wb.save(output)
+        output.seek(0)
+        return output
+
+
 
 
 

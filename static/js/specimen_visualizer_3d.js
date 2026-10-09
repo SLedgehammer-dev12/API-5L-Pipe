@@ -248,6 +248,11 @@ class SpecimenVisualizer3D {
             case 'dimensional_straightness':
                 this.buildPipeStraightness3D(this.pipeData);
                 break;
+            case 'pipe_derating':
+            case 'derating':
+            case 'wall_thickness_derating':
+                this.buildPipeDerating3D(this.pipeData);
+                break;
             default:
                 this.buildGenericBlock(specimenKey);
                 break;
@@ -1334,6 +1339,118 @@ class SpecimenVisualizer3D {
         this.camera.position.set(0, 12, 38);
         this.camera.lookAt(0, maxBowY / 2, 0);
         if (this.controls) this.controls.target.set(0, maxBowY / 2, 0);
+    }
+
+    // -------------------------------------------------------------
+    // SPECIMEN 11: Wall Thickness Underflow & Barlow Derating (API 5L Table 11 & ASME B31.8)
+    // -------------------------------------------------------------
+    buildPipeDerating3D(pd) {
+        const s = (pd && pd.input_summary) || {};
+        const d = parseFloat(s.diameter_mm) || 1219.0;
+        const dInch = s.diameter_inch || '48"';
+        const t = parseFloat(s.wall_thickness_mm) || 14.30;
+        const grade = s.material_grade || 'X65';
+        const std = s.standard_type || 'BOTAŞ';
+        const isBotas = String(std).toUpperCase().includes('BOTAŞ') || String(std).toUpperCase().includes('BOTAS');
+
+        const tolNegPct = (isBotas && t >= 15.0) ? 8.0 : 10.0;
+        const tMin = (t * (1.0 - tolNegPct / 100.0)).toFixed(2);
+        const deltaT = (t - parseFloat(tMin)).toFixed(2);
+
+        const pNom = (((2.0 * 450.0 * t) / d) * 0.72 * 10.0).toFixed(1);
+        const pMin = (((2.0 * 450.0 * parseFloat(tMin)) / d) * 0.72 * 10.0).toFixed(1);
+        const deltaP = (parseFloat(pNom) - parseFloat(pMin)).toFixed(1);
+
+        const hydroStressNom = isBotas ? 95.0 : 90.0;
+        const hydroStressMin = (hydroStressNom * (t / parseFloat(tMin))).toFixed(1);
+
+        this.updateBadge(
+            'Et Kalınlığı Tolerans Altı (Underflow) & Barlow Derating',
+            `${dInch} (OD ${d.toFixed(1)} mm) • t_nom = ${t.toFixed(2)} mm • t_min = ${tMin} mm (-%${tolNegPct}) • P_nom = ${pNom} bar → P_min = ${pMin} bar (-${deltaP} bar) • Hidro Gerilme: %${hydroStressNom} → %${hydroStressMin} SMYS`
+        );
+
+        // Visual proportions
+        const R_out = 9.0;
+        const R_nom_inner = R_out * (1.0 - (t / d) * 2.8);
+        const R_min_inner = R_out * (1.0 - (parseFloat(tMin) / d) * 2.8);
+        const pipeLen = 18.0;
+
+        // 1. Nominal Pipe Shell (outer metallic cylinder) with 90° cutaway (270 degrees)
+        const thetaLength = (3.0 * Math.PI) / 2.0;
+        const nomShellGeom = new THREE.CylinderGeometry(R_out, R_out, pipeLen, 48, 1, false, 0, thetaLength);
+        const steelPipeMat = new THREE.MeshStandardMaterial({
+            color: 0x334155,
+            metalness: 0.85,
+            roughness: 0.25,
+            side: THREE.DoubleSide
+        });
+        const nomShell = new THREE.Mesh(nomShellGeom, steelPipeMat);
+        this.currentMeshGroup.add(nomShell);
+
+        // 2. Inner Actual Wall Boundary at t_nom
+        const innerNomGeom = new THREE.CylinderGeometry(R_nom_inner, R_nom_inner, pipeLen, 48, 1, false, 0, thetaLength);
+        const innerNomMat = new THREE.MeshStandardMaterial({
+            color: 0x0284c7,
+            metalness: 0.7,
+            roughness: 0.3,
+            side: THREE.DoubleSide
+        });
+        const innerNom = new THREE.Mesh(innerNomGeom, innerNomMat);
+        this.currentMeshGroup.add(innerNom);
+
+        // 3. Underflow Negative Tolerance Gap Layer (Glowing Crimson Ring)
+        const gapGeom = new THREE.CylinderGeometry(R_min_inner, R_min_inner, pipeLen - 0.2, 48, 1, false, 0, thetaLength);
+        const gapMat = new THREE.MeshStandardMaterial({
+            color: 0xf43f5e,
+            metalness: 0.5,
+            roughness: 0.3,
+            transparent: true,
+            opacity: 0.75,
+            side: THREE.DoubleSide
+        });
+        const gapMesh = new THREE.Mesh(gapGeom, gapMat);
+        this.currentMeshGroup.add(gapMesh);
+
+        // 4. Front Cut Section Cap
+        const capShape = new THREE.Shape();
+        capShape.moveTo(R_nom_inner, 0);
+        capShape.lineTo(R_out, 0);
+        capShape.lineTo(R_out, 0.4);
+        capShape.lineTo(R_nom_inner, 0.4);
+        capShape.closePath();
+        const capGeom = new THREE.ShapeGeometry(capShape);
+        const capMat = new THREE.MeshStandardMaterial({ color: 0x0ea5e9, side: THREE.DoubleSide });
+        const frontCap = new THREE.Mesh(capGeom, capMat);
+        frontCap.rotation.x = Math.PI / 2;
+        frontCap.position.set(0, pipeLen / 2, 0);
+        this.currentMeshGroup.add(frontCap);
+
+        const riskCapShape = new THREE.Shape();
+        riskCapShape.moveTo(R_min_inner, 0);
+        riskCapShape.lineTo(R_nom_inner, 0);
+        riskCapShape.lineTo(R_nom_inner, 0.4);
+        riskCapShape.lineTo(R_min_inner, 0.4);
+        riskCapShape.closePath();
+        const riskCapGeom = new THREE.ShapeGeometry(riskCapShape);
+        const riskCapMat = new THREE.MeshBasicMaterial({ color: 0xef4444, side: THREE.DoubleSide });
+        const riskCap = new THREE.Mesh(riskCapGeom, riskCapMat);
+        riskCap.rotation.x = Math.PI / 2;
+        riskCap.position.set(0, pipeLen / 2, 0);
+        this.currentMeshGroup.add(riskCap);
+
+        // 5. Circular Hoop Stress Force Vectors
+        const arrowRadius = R_out + 0.8;
+        const arrowGeom = new THREE.TorusGeometry(arrowRadius, 0.08, 8, 48, Math.PI);
+        const arrowMat = new THREE.MeshBasicMaterial({ color: 0xf59e0b });
+        const arrowRing = new THREE.Mesh(arrowGeom, arrowMat);
+        arrowRing.rotation.x = Math.PI / 2;
+        arrowRing.position.set(0, 0, 0);
+        this.currentMeshGroup.add(arrowRing);
+
+        // Perspective camera
+        this.camera.position.set(20, 16, 26);
+        this.camera.lookAt(0, 0, 0);
+        if (this.controls) this.controls.target.set(0, 0, 0);
     }
 
     buildGenericBlock(key) {

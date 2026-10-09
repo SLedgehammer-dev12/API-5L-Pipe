@@ -119,6 +119,7 @@ VALID_FIGURES = {
     "sampling_location", "charpy", "tensile_strip", "tensile_round", "tensile_weld",
     "guided_bend", "flattening", "residual_stress_ring", "dwtt", "hardness",
     "pipe_bevel", "bevel", "pipe_straightness", "straightness",
+    "pipe_derating", "derating",
 }
 
 

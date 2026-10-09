@@ -171,6 +171,14 @@ class ExportStraightnessRequest(BaseModel):
     lang: str = "tr"
 
 
+class ExportDeratingRequest(BaseModel):
+    model_config = ConfigDict(extra="allow")
+    project_info: dict = Field(default_factory=dict)
+    derating_data: dict = Field(default_factory=dict)
+    pipe_info: Optional[dict] = Field(default_factory=dict)
+    lang: str = "tr"
+
+
 class ReportRequest(BaseModel):
     model_config = ConfigDict(extra="allow")
     project_info: dict = Field(default_factory=dict)
@@ -294,5 +302,22 @@ class StraightnessCalcRequest(BaseModel):
     total_straightness_actual_mm: Optional[float] = None
     end_straightness_left_actual_mm: Optional[float] = None
     end_straightness_right_actual_mm: Optional[float] = None
+
+
+class DeratingCalcRequest(BaseModel):
+    model_config = ConfigDict(extra="allow")
+    diameter_mm: Optional[float] = None
+    diameter_inch: Optional[str] = None
+    wall_thickness_mm: Optional[float] = 14.30
+    material_grade: Optional[str] = "X65"
+    manufacturing_process: Optional[str] = "SAWH"
+    standard_code: Optional[str] = "BOTAŞ"
+    design_factor_f: Optional[float] = 0.72
+    corrosion_allowance_mm: Optional[float] = 0.0
+    smys_mpa: Optional[float] = None
+    design_pressure_bar: Optional[float] = None
+    hydro_test_pressure_bar: Optional[float] = None
+    pipe_length_m: Optional[float] = 12.0
+    actual_measured_thickness_mm: Optional[float] = None
 
 

@@ -27,6 +27,7 @@ from core.schemas import (
     ExportErwRequest,
     ExportBevelRequest,
     ExportStraightnessRequest,
+    ExportDeratingRequest,
     PipeInput,
     ReportRequest,
     SawhStripRequest,
@@ -35,6 +36,7 @@ from core.schemas import (
     ErwCalcRequest,
     BevelCalcRequest,
     StraightnessCalcRequest,
+    DeratingCalcRequest,
     VerificationRequest,
     WallThicknessRequest,
 )
@@ -810,6 +812,102 @@ async def export_straightness_excel_endpoint(data: ExportStraightnessRequest = B
     if not safe_dia.endswith('in') and not safe_dia.endswith('mm'):
         safe_dia = f"{safe_dia}in"
     filename = f"Boru_Duzluk_Sapma_Foyu_{safe_no}_{safe_dia}.xlsx"
+    headers = {
+        'Content-Disposition': f'attachment; filename="{filename}"'
+    }
+    return StreamingResponse(
+        excel_file,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers=headers
+    )
+
+
+@app.post("/api/derating-calc")
+async def api_derating_calc(data: DeratingCalcRequest = Body(...)):
+    """
+    Calculates wall thickness underflow (minus tolerance), Barlow design pressure derating,
+    and hydrostatic hoop stress jump per API Spec 5L Table 11 & ASME B31.8 Section 841.1.
+    """
+    from core.derating_engine import DeratingEngine
+
+    d_mm = data.diameter_mm
+    if d_mm is None and data.diameter_inch:
+        from core.database import get_pipe_size_by_inch
+        ps = get_pipe_size_by_inch(data.diameter_inch)
+        d_mm = ps['mm'] if ps else 1219.0
+    elif d_mm is None:
+        d_mm = 1219.0
+
+    res = DeratingEngine.calculate_derating(
+        diameter_mm=float(d_mm),
+        wall_thickness_mm=float(data.wall_thickness_mm or 14.30),
+        material_grade=str(data.material_grade or "X65"),
+        manufacturing_process=str(data.manufacturing_process or "SAWH"),
+        standard_code=str(data.standard_code or "BOTAŞ"),
+        design_factor_f=float(data.design_factor_f if data.design_factor_f is not None else 0.72),
+        corrosion_allowance_mm=float(data.corrosion_allowance_mm if data.corrosion_allowance_mm is not None else 0.0),
+        smys_mpa=data.smys_mpa,
+        design_pressure_bar=data.design_pressure_bar,
+        hydro_test_pressure_bar=data.hydro_test_pressure_bar,
+        pipe_length_m=float(data.pipe_length_m or 12.0),
+        actual_measured_thickness_mm=data.actual_measured_thickness_mm,
+    )
+    return JSONResponse(content={"status": "success", "data": res})
+
+
+@app.post("/api/export-derating-excel")
+async def export_derating_excel_endpoint(data: ExportDeratingRequest = Body(...)):
+    """
+    Exports official Wall Thickness Underflow (Minus Tolerance), Barlow Design Pressure
+    Derating, and Hydrostatic Hoop Stress Verification Report to Excel.
+    """
+    import re
+    from core.derating_engine import DeratingEngine
+
+    project_info = data.project_info or {}
+    derating_data = data.derating_data or {}
+    pipe_info = data.pipe_info or {}
+    lang = data.lang or "tr"
+
+    d_val = float(pipe_info.get('diameter_mm') or derating_data.get('diameter_mm') or 1219.0)
+    t_val = float(pipe_info.get('wall_thickness_mm') or derating_data.get('wall_thickness_mm') or 14.30)
+    grade_val = str(pipe_info.get('material_grade') or derating_data.get('material_grade') or 'X65')
+    proc_val = str(pipe_info.get('manufacturing_process') or derating_data.get('manufacturing_process') or 'SAWH')
+    std_val = str(pipe_info.get('standard_type') or derating_data.get('standard_code') or 'BOTAŞ')
+    l_val = float(pipe_info.get('pipe_length_m') or derating_data.get('pipe_length_m') or 12.0)
+    f_val = float(derating_data.get('design_factor_f') if derating_data.get('design_factor_f') is not None else 0.72)
+    ca_val = float(derating_data.get('corrosion_allowance_mm') if derating_data.get('corrosion_allowance_mm') is not None else 0.0)
+
+    computed = DeratingEngine.calculate_derating(
+        diameter_mm=d_val,
+        wall_thickness_mm=t_val,
+        material_grade=grade_val,
+        manufacturing_process=proc_val,
+        standard_code=std_val,
+        design_factor_f=f_val,
+        corrosion_allowance_mm=ca_val,
+        smys_mpa=derating_data.get('smys_mpa'),
+        design_pressure_bar=derating_data.get('design_pressure_bar'),
+        hydro_test_pressure_bar=derating_data.get('hydro_test_pressure_bar'),
+        pipe_length_m=l_val,
+        actual_measured_thickness_mm=derating_data.get('actual_measured_thickness_mm'),
+    )
+    final_derating_data = {**derating_data, **computed}
+
+    excel_file = ExcelExporter.export_derating_report(
+        project_info,
+        final_derating_data,
+        pipe_info=pipe_info,
+        lang=lang
+    )
+
+    raw_no = str(project_info.get('project_no', 'DERATING')).strip()
+    safe_no = re.sub(r'[^a-zA-Z0-9_\-\.]', '_', raw_no) if raw_no else 'DERATING'
+    raw_dia = str(pipe_info.get('diameter_inch', f"{d_val:.0f}mm")).replace('"', '').replace("'", "").strip()
+    safe_dia = re.sub(r'[^a-zA-Z0-9_\-\.]', '', raw_dia) if raw_dia else '48in'
+    if not safe_dia.endswith('in') and not safe_dia.endswith('mm'):
+        safe_dia = f"{safe_dia}in"
+    filename = f"Et_Kalinligi_Indirgeme_Foyu_{safe_no}_{safe_dia}.xlsx"
     headers = {
         'Content-Disposition': f'attachment; filename="{filename}"'
     }

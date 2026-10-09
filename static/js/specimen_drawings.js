@@ -1152,6 +1152,171 @@ const SPECIMEN_DRAWINGS = {
     },
     straightness: (pd) => SPECIMEN_DRAWINGS.pipe_straightness(pd),
 
+    // ------------------------------------------------------------------
+    // Wall Thickness Underflow & Barlow Derating (API 5L Table 11 & ASME B31.8)
+    // ------------------------------------------------------------------
+    pipe_derating: (pd) => {
+        const s = (pd && pd.input_summary) || {};
+        const d = parseFloat(s.diameter_mm) || 1219.0;
+        const dInch = s.diameter_inch || '48"';
+        const t = parseFloat(s.wall_thickness_mm) || 14.30;
+        const grade = s.material_grade || "X65";
+        const std = s.standard_type || "BOTAŞ";
+        const isBotas = String(std).toUpperCase().includes("BOTAŞ") || String(std).toUpperCase().includes("BOTAS");
+
+        const tolNegPct = (isBotas && t >= 15.0) ? 8.0 : 10.0;
+        const tolPosPct = 10.0;
+        const tMin = (t * (1.0 - tolNegPct / 100.0)).toFixed(2);
+        const tMax = (t * (1.0 + tolPosPct / 100.0)).toFixed(2);
+        const deltaT = (t - parseFloat(tMin)).toFixed(2);
+
+        // Demo bar calculations (F = 0.72, SMYS = 450 MPa)
+        const pNom = (((2.0 * 450.0 * t) / d) * 0.72 * 10.0).toFixed(1);
+        const pMin = (((2.0 * 450.0 * parseFloat(tMin)) / d) * 0.72 * 10.0).toFixed(1);
+        const deltaP = (parseFloat(pNom) - parseFloat(pMin)).toFixed(1);
+
+        const hydroStressNom = isBotas ? 95.0 : 90.0;
+        const hydroStressMin = (hydroStressNom * (t / parseFloat(tMin))).toFixed(1);
+
+        return `
+    <div class="relative w-full overflow-hidden rounded-lg bg-slate-950 p-2 border border-slate-800 text-slate-200">
+      <svg viewBox="0 0 740 380" xmlns="http://www.w3.org/2000/svg" class="w-full h-auto">
+        <defs>
+          <linearGradient id="der-steel-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#334155" />
+            <stop offset="50%" stop-color="#475569" />
+            <stop offset="100%" stop-color="#1e293b" />
+          </linearGradient>
+          <linearGradient id="der-risk-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#f43f5e" stop-opacity="0.8" />
+            <stop offset="100%" stop-color="#be123c" stop-opacity="0.9" />
+          </linearGradient>
+          <marker id="der-arr" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+            <path d="M0,0 L6,3 L0,6 Z" fill="#38bdf8" />
+          </marker>
+          <marker id="der-arr-rose" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+            <path d="M0,0 L6,3 L0,6 Z" fill="#f43f5e" />
+          </marker>
+        </defs>
+
+        <!-- Canvas Background -->
+        <rect x="0" y="0" width="740" height="380" fill="#020617" />
+
+        <!-- Title & Spec Header -->
+        <text x="24" y="24" font-size="12.5" font-weight="bold" fill="#f8fafc">
+          ET KALINLIĞI TOLERANS ALTI (UNDERFLOW) &amp; BASINÇ İNDİRGEME (DERATING) ŞEMASI
+        </text>
+        <text x="24" y="40" font-size="9.5" fill="#94a3b8">
+          Standart: API 5L Çizelge 11 &amp; ASME B31.8 • ${dInch} (OD ${d.toFixed(1)} mm) • Nominal t = ${t.toFixed(2)} mm • ${grade} (${std})
+        </text>
+
+        <!-- ================= LEFT: MAGNIFIED WALL CROSS-SECTION ================= -->
+        <!-- Wall thickness slice: X outer surface at 300, inner surfaces to the left -->
+        <rect x="30" y="60" width="310" height="205" rx="6" fill="#0f172a" stroke="#334155" stroke-width="1.2" />
+        <text x="42" y="80" font-size="10" font-weight="bold" fill="#38bdf8">
+          Boru Cidar Kesiti &amp; Tolerans Katmanları:
+        </text>
+
+        <!-- Outer Pipe Surface (Dış Yüzey) at x = 280 -->
+        <line x1="280" y1="95" x2="280" y2="245" stroke="#38bdf8" stroke-width="3" />
+        <text x="280" y="90" font-size="8.5" font-weight="bold" fill="#38bdf8" text-anchor="middle">Dış Yüzey (OD)</text>
+
+        <!-- Wall Steel Body (Nominal t Zone: from 280 to 140) -->
+        <rect x="140" y="100" width="140" height="140" fill="url(#der-steel-grad)" stroke="#64748b" stroke-width="1.2" />
+
+        <!-- Underflow Negative Tolerance Zone (from 140 to 175) -->
+        <rect x="140" y="100" width="35" height="140" fill="url(#der-risk-grad)" stroke="#f43f5e" stroke-width="1.5" stroke-dasharray="3,3" />
+
+        <!-- Upper Tolerance Extension Zone (from 105 to 140) -->
+        <rect x="105" y="100" width="35" height="140" fill="#f59e0b" fill-opacity="0.15" stroke="#f59e0b" stroke-width="1.2" stroke-dasharray="4,4" />
+
+        <!-- Labels on slices -->
+        <!-- t_max line at x = 105 -->
+        <line x1="105" y1="95" x2="105" y2="245" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="4,4" />
+        <text x="105" y="90" font-size="8" fill="#fbbf24" text-anchor="middle">t_max (+%${tolPosPct})</text>
+
+        <!-- t_nom line at x = 140 -->
+        <line x1="140" y1="95" x2="140" y2="245" stroke="#38bdf8" stroke-width="2" />
+        <text x="140" y="90" font-size="8" font-weight="bold" fill="#38bdf8" text-anchor="middle">t_nom (${t.toFixed(1)}mm)</text>
+
+        <!-- t_min line at x = 175 -->
+        <line x1="175" y1="95" x2="175" y2="245" stroke="#f43f5e" stroke-width="2.5" />
+        <text x="175" y="90" font-size="8" font-weight="bold" fill="#f43f5e" text-anchor="middle">t_min (-%${tolNegPct})</text>
+
+        <!-- Dimension arrows below slice at y = 252 -->
+        <!-- Nominal t dimension (140 to 280) -->
+        <line x1="140" y1="252" x2="280" y2="252" stroke="#38bdf8" stroke-width="1.5" marker-start="url(#der-arr)" marker-end="url(#der-arr)" />
+        <text x="210" y="264" font-size="8.5" font-weight="bold" fill="#38bdf8" text-anchor="middle">t_nom = ${t.toFixed(2)} mm</text>
+
+        <!-- Underflow delta t (140 to 175) -->
+        <line x1="140" y1="170" x2="175" y2="170" stroke="#f43f5e" stroke-width="2" marker-start="url(#der-arr-rose)" marker-end="url(#der-arr-rose)" />
+        <text x="157" y="162" font-size="7.5" font-weight="bold" fill="#fecdd3" text-anchor="middle">Δt = ${deltaT}mm</text>
+        <text x="157" y="185" font-size="7" fill="#fecdd3" text-anchor="middle">Kayıp Cidar</text>
+
+        <!-- ================= RIGHT: BARLOW CAPACITY & STRESS JUMP GAUGES ================= -->
+        <rect x="360" y="60" width="355" height="205" rx="6" fill="#0f172a" stroke="#334155" stroke-width="1.2" />
+        <text x="375" y="80" font-size="10" font-weight="bold" fill="#38bdf8">
+          Basınç Kapasitesi ve Gerilme Değerlendirmesi:
+        </text>
+
+        <!-- 1. Barlow Design Pressure Gauge -->
+        <text x="375" y="105" font-size="9" font-weight="bold" fill="#e2e8f0">
+          1. Barlow Tasarım Basıncı (ASME B31.8 F=0.72):
+        </text>
+        <!-- Background track -->
+        <rect x="375" y="112" width="320" height="14" rx="4" fill="#1e293b" />
+        <!-- Nominal bar (100% width = 320 px) -->
+        <rect x="375" y="112" width="320" height="14" rx="4" fill="#0284c7" />
+        <text x="535" y="123" font-size="8.5" font-weight="bold" fill="#ffffff" text-anchor="middle">Nominal P_nom = ${pNom} bar</text>
+        <!-- Derated bar overlay -->
+        <rect x="375" y="130" width="288" height="14" rx="4" fill="#d97706" />
+        <text x="519" y="141" font-size="8.5" font-weight="bold" fill="#ffffff" text-anchor="middle">İndirgenmiş P_min = ${pMin} bar (-${deltaP} bar / -%${tolNegPct})</text>
+
+        <!-- 2. Hydrostatic Test Hoop Stress Jump Gauge -->
+        <text x="375" y="165" font-size="9" font-weight="bold" fill="#e2e8f0">
+          2. Fabrika Hidrostatik Test Çeper Gerilmesi (Hoop Stress):
+        </text>
+        <rect x="375" y="172" width="320" height="14" rx="4" fill="#1e293b" />
+        <!-- Nominal Stress (%95 SMYS = 280 px) -->
+        <rect x="375" y="172" width="280" height="14" rx="4" fill="#059669" />
+        <text x="515" y="183" font-size="8.5" font-weight="bold" fill="#ffffff" text-anchor="middle">Nominal t'de Gerilme: %${hydroStressNom.toFixed(1)} SMYS</text>
+
+        <!-- 100% Yield Stress Marker Line at x = 670 -->
+        <line x1="670" y1="168" x2="670" y2="212" stroke="#ef4444" stroke-width="2" stroke-dasharray="3,3" />
+        <text x="670" y="166" font-size="8" font-weight="bold" fill="#ef4444" text-anchor="middle">%100 SMYS (Akma Sınırı)</text>
+
+        <!-- Stress Jump Bar at t_min -->
+        <rect x="375" y="190" width="305" height="14" rx="4" fill="#e11d48" />
+        <text x="527" y="201" font-size="8.5" font-weight="bold" fill="#ffffff" text-anchor="middle">Alt Sınır t_min'de: %${hydroStressMin} SMYS (Sıçrama: +%${(parseFloat(hydroStressMin) - hydroStressNom).toFixed(1)})</text>
+
+        <!-- Warning Callout Badge -->
+        <rect x="375" y="214" width="320" height="38" rx="4" fill="#450a0a" stroke="#b91c1c" stroke-width="1" />
+        <text x="385" y="228" font-size="8" font-weight="bold" fill="#fca5a5">
+          ⚠️ KALİTE GÜVENCE UYARISI:
+        </text>
+        <text x="385" y="242" font-size="7.8" fill="#fecdd3">
+          Boru alt toleransta (%-${tolNegPct}) üretilirse, fabrika hidrostatik testinde akma sınırı aşılabilir veya hat tasarım basıncı %${tolNegPct} düşer!
+        </text>
+
+        <!-- ================= BOTTOM: ENGINEERING CRITERIA CARD ================= -->
+        <rect x="24" y="280" width="692" height="85" rx="6" fill="#0f172a" stroke="#334155" stroke-width="1.2" />
+        <text x="40" y="300" font-size="10" font-weight="bold" fill="#38bdf8">
+          STANDART KABUL VE İNDİRGEME KRİTERLERİ (QA/QC CRITERIA):
+        </text>
+        <text x="40" y="318" font-size="9" fill="#e2e8f0">
+          • <tspan font-weight="bold" fill="#fbbf24">İmalat Cidar Toleransı (API 5L Tablo 11):</tspan> Nominal ${t.toFixed(2)} mm → Alt Sınır: <tspan font-weight="bold" fill="#f43f5e">${tMin} mm</tspan> / Üst Sınır: <tspan font-weight="bold" fill="#34d399">${tMax} mm</tspan>
+        </text>
+        <text x="40" y="334" font-size="9" fill="#e2e8f0">
+          • <tspan font-weight="bold" fill="#fbbf24">ASME B31.8 Basınç İndirgemesi:</tspan> Hat güvenli işletme basıncı <tspan font-weight="bold" fill="#f59e0b">${pNom} bar</tspan> yerine <tspan font-weight="bold" fill="#f87171">${pMin} bar</tspan> olarak baz alınmalıdır.
+        </text>
+        <text x="40" y="350" font-size="8.5" fill="#94a3b8">
+          • <tspan fill="#cbd5e1">BOTAŞ Şartnamesi Madde 8.1.2.4:</tspan> D ≥ 20" borularda et kalınlığı her boru boyunca ultrasonik kalınlık ölçerle %100 taranır.
+        </text>
+      </svg>
+    </div>`;
+    },
+    derating: (pd) => SPECIMEN_DRAWINGS.pipe_derating(pd),
+
 
     // ------------------------------------------------------------------
     // Residual Stress Ring Test (BOTAŞ Madde 3.3.9) — 150 mm ring cut +

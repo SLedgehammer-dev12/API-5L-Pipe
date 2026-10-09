@@ -880,6 +880,7 @@ function updateVisualizers(pipeData) {
     renderResidualStressCard(pipeData);
     renderBevelCard(pipeData);
     renderStraightnessCard(pipeData);
+    renderDeratingCard(pipeData);
 }
 
 // ============================================================================
@@ -2127,6 +2128,100 @@ async function calculateStraightnessFromInputs(pipeData) {
     }
 }
 
+async function renderDeratingCard(pipeData) {
+    const card = document.getElementById("derating-card");
+    if (!card) return;
+
+    // 2D preview container
+    const previewContainer = document.getElementById("derating-2d-preview-container");
+    if (previewContainer && typeof getSpecimenDrawing === "function") {
+        previewContainer.innerHTML = getSpecimenDrawing("pipe_derating", pipeData);
+    }
+
+    // Call calculateDeratingFromInputs with current input values
+    calculateDeratingFromInputs(pipeData);
+}
+
+async function calculateDeratingFromInputs(pipeData) {
+    const pd = pipeData || (calculatedPipes && calculatedPipes[selectedPipeIndex]) || {};
+    const inp = pd.input_summary || {};
+    const d = parseFloat(inp.diameter_mm) || 1219.0;
+    const t = parseFloat(inp.wall_thickness_mm) || 14.30;
+    const grade = inp.material_grade || "X65";
+    const proc = inp.manufacturing_process || "SAWH";
+    const std = inp.standard_type || "BOTAŞ";
+    const l_m = parseFloat(inp.pipe_length_m) || 12.0;
+
+    const inAct = document.getElementById("der-in-act");
+    const inCa = document.getElementById("der-in-ca");
+    const inF = document.getElementById("der-in-f");
+
+    const tAct = inAct ? parseFloat(inAct.value) : 13.90;
+    const caVal = inCa ? parseFloat(inCa.value) : 0.0;
+    const fVal = inF ? parseFloat(inF.value) : 0.72;
+
+    try {
+        const resp = await fetch("/api/derating-calc", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                diameter_mm: d,
+                wall_thickness_mm: t,
+                material_grade: grade,
+                manufacturing_process: proc,
+                standard_code: std,
+                design_factor_f: isNaN(fVal) ? 0.72 : fVal,
+                corrosion_allowance_mm: isNaN(caVal) ? 0.0 : caVal,
+                pipe_length_m: l_m,
+                actual_measured_thickness_mm: isNaN(tAct) ? null : tAct
+            })
+        });
+
+        if (resp.ok) {
+            const data = await resp.json();
+            if (data.status === "success" && data.data) {
+                const r = data.data;
+                const setTxt = (id, val) => {
+                    const el = document.getElementById(id);
+                    if (el) el.innerText = val;
+                };
+
+                setTxt("der-kpi-tmin", `${r.t_min_allowed_mm.toFixed(2)} mm`);
+                setTxt("der-kpi-deltap", `-${r.delta_p_des_bar.toFixed(1)} bar`);
+                setTxt("der-kpi-stressjump", `+${r.hydro_stress_jump_pct.toFixed(1)}%`);
+                setTxt("der-kpi-weightdiff", `-${r.mass_loss_per_pipe_kg.toFixed(0)} kg`);
+
+                setTxt("der-param-band", `[${r.t_min_allowed_mm.toFixed(2)} — ${r.t_max_allowed_mm.toFixed(2)}] mm (%${r.tol_neg_pct:.1f} / +%${r.tol_pos_pct:.1f})`);
+                setTxt("der-param-press-desc", `P_nom = ${r.p_des_nom_bar.toFixed(1)} bar → P_min = ${r.p_des_min_bar.toFixed(1)} bar (-%${r.derating_loss_pct:.1f})`);
+                setTxt("der-param-hydro-desc", `%${r.hydro_smys_nom_pct.toFixed(1)} SMYS → %${r.hydro_smys_min_pct.toFixed(1)} SMYS (Test: ${r.hydro_test_pressure_bar.toFixed(1)} bar)`);
+
+                const badge = document.getElementById("der-verdict-badge");
+                const msg = document.getElementById("der-input-msg");
+                if (badge) {
+                    if (r.is_compliant) {
+                        badge.className = "px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800";
+                        badge.innerText = "✓ UYGUN (PASS)";
+                        if (msg) {
+                            msg.className = "text-[10px] text-emerald-700 font-medium";
+                            msg.innerText = `✓ Ölçülen cidar (${tAct.toFixed(2)} mm) kabul aralığı [${r.t_min_allowed_mm.toFixed(2)} - ${r.t_max_allowed_mm.toFixed(2)} mm] dahilinde.`;
+                        }
+                    } else {
+                        badge.className = "px-2 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-800";
+                        badge.innerText = "✗ RED (FAIL)";
+                        if (msg) {
+                            msg.className = "text-[10px] text-rose-700 font-medium";
+                            const fails = r.checks.filter(c => c.status === "FAIL").map(c => c.parameter).join(", ");
+                            msg.innerText = `⚠️ Tolerans / emniyet aşımı: ${fails}`;
+                        }
+                    }
+                }
+            }
+        }
+    } catch (e) {
+        console.error("Derating calculation error:", e);
+    }
+}
+
 function sawhRedraw() {
     if (sawhSimulatorInstance) {
         const range = document.getElementById("sawh-strip-range");
@@ -3329,6 +3424,76 @@ async function exportStraightnessExcel() {
     }
 }
 
+async function exportDeratingExcel() {
+    const selectedPipe = (calculatedPipes && calculatedPipes[selectedPipeIndex]) || calculatedPipes[0] || {};
+    const inp = selectedPipe.input_summary || {};
+    const dVal = parseFloat(inp.diameter_mm) || 1219.0;
+    const tVal = parseFloat(inp.wall_thickness_mm) || 14.30;
+    const lVal = parseFloat(inp.pipe_length_m) || 12.0;
+    const grade = inp.material_grade || "X65";
+    const proc = inp.manufacturing_process || "SAWH";
+    const std = inp.standard_type || "BOTAŞ";
+
+    const inAct = document.getElementById("der-in-act");
+    const inCa = document.getElementById("der-in-ca");
+    const inF = document.getElementById("der-in-f");
+
+    const tAct = inAct ? parseFloat(inAct.value) : 13.90;
+    const caVal = inCa ? parseFloat(inCa.value) : 0.0;
+    const fVal = inF ? parseFloat(inF.value) : 0.72;
+
+    const deratingPayload = {
+        diameter_mm: dVal,
+        wall_thickness_mm: tVal,
+        material_grade: grade,
+        manufacturing_process: proc,
+        standard_code: std,
+        design_factor_f: isNaN(fVal) ? 0.72 : fVal,
+        corrosion_allowance_mm: isNaN(caVal) ? 0.0 : caVal,
+        pipe_length_m: lVal,
+        actual_measured_thickness_mm: isNaN(tAct) ? 13.90 : tAct
+    };
+
+    try {
+        showToast("Et Kalınlığı İndirgeme Hesap Föyü Excel olarak hazırlanıyor...", "info");
+        const resp = await fetch("/api/export-derating-excel", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                project_info: activeProject.project_info || {},
+                derating_data: deratingPayload,
+                pipe_info: {
+                    diameter_inch: inp.diameter_inch || '48"',
+                    diameter_mm: dVal,
+                    wall_thickness_mm: tVal,
+                    pipe_length_m: lVal,
+                    material_grade: grade,
+                    manufacturing_process: proc,
+                    standard_type: std,
+                    psl_level: inp.psl_level || 'PSL2'
+                },
+                lang: currentLang || "tr"
+            })
+        });
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const blob = await resp.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        const rawNo = (activeProject.project_info && activeProject.project_info.project_no) ? String(activeProject.project_info.project_no).replace(/[^a-zA-Z0-9_\-\.]/g, '_') : 'DERATING';
+        const dStr = inp.diameter_inch ? String(inp.diameter_inch).replace(/[^a-zA-Z0-9_\-\.]/g, '') : '48in';
+        a.download = `Et_Kalinligi_Indirgeme_Foyu_${rawNo}_${dStr}.xlsx`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+        showToast("Et Kalınlığı İndirgeme ve Barlow Hesap Föyü başarıyla indirildi.", "success");
+    } catch (e) {
+        console.error("Derating Excel export error:", e);
+        showToast("İndirgeme hesap föyü indirilirken hata oluştu!", "error");
+    }
+}
+
 async function exportHydroExcel() {
     const selectedPipe = (calculatedPipes && calculatedPipes[selectedPipeIndex]) || calculatedPipes[0] || {};
     const inp = selectedPipe.input_summary || {};
@@ -3798,7 +3963,7 @@ async function loadTestPlan() {
                     ${hasFig ? `
                     <span class="inline-flex items-center gap-1 ml-1.5">
                         <button onclick="event.stopPropagation(); openItpInfoModal('figure', ${i}, '2d')" class="itp-info-btn text-blue-600 hover:text-blue-800" title="2D Çizimi göster">📐</button>
-                        ${['tensile_strip', 'tensile_round', 'tensile_weld', 'charpy', 'dwtt', 'flattening', 'flattening_test', 'pipe_bevel', 'bevel', 'dimensional_bevel_ends', 'pipe_straightness', 'straightness', 'dimensional_straightness'].includes(tp.specimen_figure) ? `
+                        ${['tensile_strip', 'tensile_round', 'tensile_weld', 'charpy', 'dwtt', 'flattening', 'flattening_test', 'pipe_bevel', 'bevel', 'dimensional_bevel_ends', 'pipe_straightness', 'straightness', 'dimensional_straightness', 'pipe_derating', 'derating', 'wall_thickness_derating'].includes(tp.specimen_figure) ? `
                         <button onclick="event.stopPropagation(); openItpInfoModal('figure', ${i}, '3d')" class="itp-info-btn text-indigo-600 hover:text-indigo-800" title="3D Etkileşimli Modeli göster">🧊</button>` : ''}
                     </span>` : ''}
                 </td>
@@ -3810,7 +3975,7 @@ async function loadTestPlan() {
                     <div class="border border-slate-200 rounded-xl bg-white p-3 shadow-sm">
                         <div class="flex items-center justify-between mb-2">
                             <span class="font-bold text-xs text-slate-800">Numune Çizimi (API 5L Standart Referansı)</span>
-                            ${['tensile_strip', 'tensile_round', 'tensile_weld', 'charpy', 'dwtt', 'flattening', 'flattening_test', 'pipe_bevel', 'bevel', 'dimensional_bevel_ends', 'pipe_straightness', 'straightness', 'dimensional_straightness'].includes(tp.specimen_figure) ? `
+                            ${['tensile_strip', 'tensile_round', 'tensile_weld', 'charpy', 'dwtt', 'flattening', 'flattening_test', 'pipe_bevel', 'bevel', 'dimensional_bevel_ends', 'pipe_straightness', 'straightness', 'dimensional_straightness', 'pipe_derating', 'derating', 'wall_thickness_derating'].includes(tp.specimen_figure) ? `
                             <button onclick="event.stopPropagation(); openItpInfoModal('figure', ${i}, '3d')" class="inline-flex items-center gap-1 px-2.5 py-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg text-xs font-semibold shadow hover:from-blue-700 hover:to-indigo-700 transition">
                                 <span>🧊</span> 3D Etkileşimli İncele
                             </button>` : ''}
@@ -3892,7 +4057,7 @@ function openItpInfoModal(type, idx, preferredView) {
     currentItpModalState.type = type;
     currentItpModalState.idx = idx;
 
-    const has3D = ['tensile_strip', 'tensile_round', 'tensile_weld', 'charpy', 'dwtt', 'flattening', 'flattening_test', 'pipe_bevel', 'bevel', 'dimensional_bevel_ends', 'pipe_straightness', 'straightness', 'dimensional_straightness'].includes(data.specimen_figure);
+    const has3D = ['tensile_strip', 'tensile_round', 'tensile_weld', 'charpy', 'dwtt', 'flattening', 'flattening_test', 'pipe_bevel', 'bevel', 'dimensional_bevel_ends', 'pipe_straightness', 'straightness', 'dimensional_straightness', 'pipe_derating', 'derating', 'wall_thickness_derating'].includes(data.specimen_figure);
 
     if (type === "clause") {
         if (toggle) toggle.classList.add("hidden");
@@ -3987,6 +4152,28 @@ function openStraightnessSpecimenModal(viewMode = '3d') {
             location: "Tüm boru boyu ve her iki boru ucu",
             specimen: "Lazer Kolimatör & 1.0 m Çelik Mastar",
             specimen_figure: "pipe_straightness"
+        });
+    }
+    openItpInfoModal('figure', idx, viewMode);
+}
+
+function openDeratingSpecimenModal(viewMode = '3d') {
+    const modal = document.getElementById("itp-info-modal");
+    const title = document.getElementById("itp-info-title");
+    if (!modal || !title) return;
+
+    window._itpData = window._itpData || [];
+    let idx = window._itpData.findIndex(x => x && (x.specimen_figure === 'pipe_derating' || x.specimen_figure === 'derating' || x.specimen_figure === 'wall_thickness_derating'));
+    if (idx === -1) {
+        idx = window._itpData.length;
+        window._itpData.push({
+            test: "Et Kalınlığı Tolerans Altı & Basınç İndirgeme (Derating)",
+            clause: "API 5L Tablo 11 & ASME B31.8 Madde 841.1",
+            clause_ref: "Eksi Cidar Toleransı: -%8.0 / -%10.0 (API 5L Tablo 11 & BOTAŞ 8.1.2.4).\nBarlow Tasarım Basıncı İndirgemesi: P_min = (2 * S * (t_min - CA) / D) * F.\nHidrostatik Test Gerilme Sıçraması: Alt sınır cidarında hidro gerilmesi SMYS'nin %100'ünü aşmamalıdır (API 5L 10.2.6.7).",
+            frequency: "Her boru (%100 ultrasonik cidar kontrolü)",
+            location: "Tüm boru boyu ve uçlar",
+            specimen: "Ultrasonik Et Kalınlığı Ölçer",
+            specimen_figure: "pipe_derating"
         });
     }
     openItpInfoModal('figure', idx, viewMode);
