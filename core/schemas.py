@@ -109,6 +109,68 @@ class ExportRequest(BaseModel):
     lang: str = "tr"
 
 
+class ExportVerificationRequest(BaseModel):
+    model_config = ConfigDict(extra="allow")
+    project_info: dict = Field(default_factory=dict)
+    verification: dict = Field(default_factory=dict)
+    lang: str = "tr"
+
+
+class ExportWallThicknessRequest(BaseModel):
+    model_config = ConfigDict(extra="allow")
+    project_info: dict = Field(default_factory=dict)
+    calculation_data: dict = Field(default_factory=dict)
+    lang: str = "tr"
+
+
+class ExportSawhRequest(BaseModel):
+    model_config = ConfigDict(extra="allow")
+    project_info: dict = Field(default_factory=dict)
+    sawh_data: dict = Field(default_factory=dict)
+    pipe_info: Optional[dict] = Field(default_factory=dict)
+    lang: str = "tr"
+
+
+class ExportSawlRequest(BaseModel):
+    model_config = ConfigDict(extra="allow")
+    project_info: dict = Field(default_factory=dict)
+    sawl_data: dict = Field(default_factory=dict)
+    pipe_info: Optional[dict] = Field(default_factory=dict)
+    lang: str = "tr"
+
+
+class ExportHydroRequest(BaseModel):
+    model_config = ConfigDict(extra="allow")
+    project_info: dict = Field(default_factory=dict)
+    hydro_data: dict = Field(default_factory=dict)
+    pipe_info: Optional[dict] = Field(default_factory=dict)
+    lang: str = "tr"
+
+
+class ExportErwRequest(BaseModel):
+    model_config = ConfigDict(extra="allow")
+    project_info: dict = Field(default_factory=dict)
+    erw_data: dict = Field(default_factory=dict)
+    pipe_info: Optional[dict] = Field(default_factory=dict)
+    lang: str = "tr"
+
+
+class ExportBevelRequest(BaseModel):
+    model_config = ConfigDict(extra="allow")
+    project_info: dict = Field(default_factory=dict)
+    bevel_data: dict = Field(default_factory=dict)
+    pipe_info: Optional[dict] = Field(default_factory=dict)
+    lang: str = "tr"
+
+
+class ExportStraightnessRequest(BaseModel):
+    model_config = ConfigDict(extra="allow")
+    project_info: dict = Field(default_factory=dict)
+    straightness_data: dict = Field(default_factory=dict)
+    pipe_info: Optional[dict] = Field(default_factory=dict)
+    lang: str = "tr"
+
+
 class ReportRequest(BaseModel):
     model_config = ConfigDict(extra="allow")
     project_info: dict = Field(default_factory=dict)
@@ -167,4 +229,70 @@ class SawhStripRequest(BaseModel):
     strip_width_mm: Optional[float] = None
     helix_angle_deg: Optional[float] = None
     wall_thickness_mm: Optional[float] = 0.0
+    edge_milling_allowance_mm: Optional[float] = 15.0
+    coil_length_m: Optional[float] = 800.0
+    pipe_length_m: Optional[float] = 12.0
+    min_skelp_end_distance_mm: Optional[float] = 300.0
+
+
+class SawlCalcRequest(BaseModel):
+    model_config = ConfigDict(extra="allow")
+    diameter_mm: Optional[float] = None
+    diameter_inch: Optional[str] = None
+    wall_thickness_mm: Optional[float] = 14.30
+    pipe_length_m: Optional[float] = 12.0
+    edge_milling_allowance_mm: Optional[float] = 30.0
+    expansion_ratio_pct: Optional[float] = 1.0
+
+
+class HydroCalcRequest(BaseModel):
+    model_config = ConfigDict(extra="allow")
+    diameter_mm: Optional[float] = None
+    diameter_inch: Optional[str] = None
+    wall_thickness_mm: Optional[float] = 14.30
+    smys_mpa: Optional[float] = 450.0
+    pipe_length_m: Optional[float] = 12.0
+    is_botas: bool = True
+    press_cap_bar: Optional[float] = 250.0
+
+
+class ErwCalcRequest(BaseModel):
+    model_config = ConfigDict(extra="allow")
+    diameter_mm: Optional[float] = None
+    diameter_inch: Optional[str] = None
+    wall_thickness_mm: Optional[float] = 9.53
+    material_grade: Optional[str] = "X52"
+    psl_level: Optional[str] = "PSL2"
+    pipe_length_m: Optional[float] = 12.0
+
+
+class BevelCalcRequest(BaseModel):
+    model_config = ConfigDict(extra="allow")
+    diameter_mm: Optional[float] = None
+    diameter_inch: Optional[str] = None
+    wall_thickness_mm: Optional[float] = 14.30
+    material_grade: Optional[str] = "X65"
+    standard_code: Optional[str] = "BOTAŞ"
+    end_type: Optional[str] = "BEVEL"
+    bevel_angle_actual: Optional[float] = None
+    root_face_actual: Optional[float] = None
+    out_of_squareness_actual: Optional[float] = None
+    end_diameter_min_actual: Optional[float] = None
+    end_diameter_max_actual: Optional[float] = None
+    pipe_length_m: Optional[float] = 12.0
+
+
+class StraightnessCalcRequest(BaseModel):
+    model_config = ConfigDict(extra="allow")
+    diameter_mm: Optional[float] = None
+    diameter_inch: Optional[str] = None
+    wall_thickness_mm: Optional[float] = 14.30
+    pipe_length_m: Optional[float] = 12.0
+    material_grade: Optional[str] = "X65"
+    manufacturing_process: Optional[str] = "SAWH"
+    standard_code: Optional[str] = "BOTAŞ"
+    total_straightness_actual_mm: Optional[float] = None
+    end_straightness_left_actual_mm: Optional[float] = None
+    end_straightness_right_actual_mm: Optional[float] = None
+
 

@@ -3,7 +3,9 @@ Verification & Compliance Engine (PASS / FAIL Analysis).
 Compares actual inspection / lab test data against all 40+ API 5L PSL2 and BOTAŞ specification limits.
 """
 
-from typing import Any, Dict, List
+import math
+import re
+from typing import Any, Dict, List, Optional
 
 from core.database import compute_ce_iww, compute_ce_pcm, get_cvn_specimen_size, get_mn_max_compensated
 from core.pipe_qaqc_engine import PipeQAQCEngine
@@ -33,6 +35,7 @@ def applicable_parameter_keys(limits: Dict[str, Any]) -> List[str]:
     d = float(inp.get("diameter_mm", 1219.0))
     proc = str(inp.get("manufacturing_process", "")).upper()
     is_saw = any(k in proc for k in ("SAW", "COW"))
+    is_welded = not any(k in proc for k in ("SMLS", "SEAMLESS", "DIKISSIZ"))
     yt_max = mech.get("yield_to_tensile_ratio_max", 0)
 
     keys: List[str] = []
@@ -62,9 +65,14 @@ def applicable_parameter_keys(limits: Dict[str, Any]) -> List[str]:
     if _num(dim, "pipe_end_peaking_max_mm") and is_saw:
         keys.append("peaking")
     keys.append("squareness")
+    t_val = float(inp.get("wall_thickness_mm", 10.0) or 10.0)
+    if t_val >= 3.2:
+        keys += ["bevel_angle", "root_face"]
 
     # --- Mechanical ---
     keys += ["yield", "tensile"]
+    if is_welded:
+        keys += ["weld_tensile", "guided_bend"]
     if (not is_psl1) and yt_max > 0 and (not is_api or d > 323.9):
         keys.append("yt_ratio")
     keys.append("elongation")
@@ -75,6 +83,8 @@ def applicable_parameter_keys(limits: Dict[str, Any]) -> List[str]:
             keys.append("cvn_mat")
         if _num(tough, "notch_impact_weld_j"):
             keys.append("cvn_weld")
+    if tough.get("dwtt_test") == "Var":
+        keys.append("dwtt")
     if _num(tough, "residual_stress_max_mm") and is_saw:
         keys.append("residual_stress")
     keys.append("hardness")
@@ -92,6 +102,150 @@ def applicable_parameter_keys(limits: Dict[str, Any]) -> List[str]:
     keys += ["weight", "hydro"]
 
     return keys
+
+
+def compute_ramberg_osgood_model(
+    yield_strength_mpa: float,
+    tensile_strength_mpa: float,
+    elongation_percent: float = 24.0,
+    elastic_modulus_mpa: float = 206000.0,
+) -> Dict[str, Any]:
+    """
+    Computes Ramberg-Osgood elastic-plastic stress-strain (sigma - epsilon) curve
+    and strain-based design parameters according to API 5L Annex N, CSA Z662 Annex C,
+    and DNV-RP-F108 / BS 7910.
+
+    Equation:
+        epsilon = (sigma / E) + 0.002 * (sigma / Rt0.5)^n
+
+    Parameters:
+        yield_strength_mpa: Rt0.5 yield strength in MPa.
+        tensile_strength_mpa: Rm ultimate tensile strength in MPa.
+        elongation_percent: Af percentage elongation after fracture (e.g. 24.5%).
+        elastic_modulus_mpa: Young's modulus E (default 206,000 MPa for linepipe steel).
+    """
+    rt = float(max(50.0, yield_strength_mpa))
+    rm = float(max(rt + 1.0, tensile_strength_mpa))
+    af = float(max(2.0, elongation_percent))
+    E = float(max(100000.0, elastic_modulus_mpa))
+
+    yt_ratio = rt / rm
+    delta_r = rm - rt  # Strain hardening margin (MPa)
+
+    # Solve for Ramberg-Osgood strain hardening exponent n via Considere's necking criterion:
+    # At Rm, uniform plastic strain eps_p,u = 1 / n
+    # Power-law plastic offset: eps_p,u = 0.002 * (rm / rt)^n
+    # Hence: n * 0.002 * (rm / rt)^n = 1  =>  ln(n) + ln(0.002) + n * ln(rm / rt) = 0
+    r = rm / rt
+    ln_r = math.log(r)
+    n = 15.0
+    for _ in range(40):
+        val = math.log(n) + math.log(0.002) + n * ln_r
+        dval = (1.0 / n) + ln_r
+        n_next = n - (val / dval)
+        if abs(n_next - n) < 1e-6:
+            n = n_next
+            break
+        n = max(2.5, min(75.0, n_next))
+    n = round(float(n), 2)
+
+    eps_p_u = 1.0 / n
+    eps_u_total = (rm / E) + eps_p_u
+    Agt = eps_u_total * 100.0  # Uniform elongation in %
+
+    # Modulus of Resilience (Ur): Elastic energy absorption capacity (MJ/m^3 or MPa)
+    Ur = (rt ** 2) / (2.0 * E)
+
+    # Modulus of Toughness (Ut): Total plastic deformation energy absorption capacity (MJ/m^3 or MPa)
+    eps_f = af / 100.0
+    Ut = ((rt + 2.0 * rm) / 3.0) * eps_f
+
+    # Yield point strain at Rt0.5
+    eps_y = (rt / E) + 0.002
+
+    # Stress at fracture point (necking drop)
+    sig_f = round(rm * 0.84, 1)
+
+    # Generate continuous curve points for 2D/SVG plotting
+    points: List[Dict[str, Any]] = []
+
+    # 1. Elastic region: 0 to 0.85 * Rt0.5 (16 points)
+    sig_prop = 0.85 * rt
+    for i in range(16):
+        sig = sig_prop * (i / 15.0)
+        eps = sig / E
+        points.append({
+            "strain": round(eps, 5),
+            "stress": round(sig, 2),
+            "strain_pct": round(eps * 100.0, 3),
+            "zone": "elastic"
+        })
+
+    # 2. Yield transition: 0.85 * Rt0.5 to Rt0.5 (15 points)
+    for i in range(1, 16):
+        frac = i / 15.0
+        sig = sig_prop + (rt - sig_prop) * frac
+        eps = (sig / E) + 0.002 * ((sig / rt) ** n)
+        points.append({
+            "strain": round(eps, 5),
+            "stress": round(sig, 2),
+            "strain_pct": round(eps * 100.0, 3),
+            "zone": "yield_transition"
+        })
+
+    # 3. Strain hardening: Rt0.5 to Rm (25 points)
+    for i in range(1, 26):
+        frac = i / 25.0
+        sig = rt + (rm - rt) * frac
+        eps = (sig / E) + 0.002 * ((sig / rt) ** n)
+        points.append({
+            "strain": round(eps, 5),
+            "stress": round(sig, 2),
+            "strain_pct": round(eps * 100.0, 3),
+            "zone": "strain_hardening"
+        })
+
+    # 4. Post-uniform necking to fracture: eps_u_total to eps_f (20 points)
+    if eps_f > eps_u_total:
+        for i in range(1, 21):
+            frac = i / 20.0
+            eps = eps_u_total + (eps_f - eps_u_total) * frac
+            sig = rm - (rm - sig_f) * (frac ** 1.25)
+            points.append({
+                "strain": round(eps, 5),
+                "stress": round(sig, 2),
+                "strain_pct": round(eps * 100.0, 3),
+                "zone": "necking"
+            })
+
+    # Strain capacity assessment (API 5L Annex N / BOTAŞ)
+    is_high_strain = delta_r >= 80.0 and yt_ratio <= 0.90 and Agt >= 5.0
+    verdict_text = (
+        "Yüksek Süneklik ve Gerinim Bazlı Tasarım Uygunluğu (API 5L Ek N)"
+        if is_high_strain else
+        "Standart Süneklik ve Pekleşme Rezervi (API 5L PSL2)"
+    )
+
+    return {
+        "n_exponent": n,
+        "uniform_strain_pct": round(Agt, 2),
+        "hardening_margin_mpa": round(delta_r, 2),
+        "yt_ratio": round(yt_ratio, 3),
+        "resilience_modulus_mpa": round(Ur, 3),
+        "toughness_modulus_mpa": round(Ut, 1),
+        "yield_strength_mpa": round(rt, 2),
+        "tensile_strength_mpa": round(rm, 2),
+        "elongation_pct": round(af, 2),
+        "elastic_modulus_mpa": round(E, 1),
+        "is_high_strain_compliant": is_high_strain,
+        "verdict_text": verdict_text,
+        "landmarks": {
+            "yield": {"strain_pct": round(eps_y * 100.0, 3), "stress_mpa": round(rt, 2)},
+            "uts": {"strain_pct": round(Agt, 3), "stress_mpa": round(rm, 2)},
+            "fracture": {"strain_pct": round(af, 2), "stress_mpa": round(sig_f, 2)}
+        },
+        "curve_points": points
+    }
 
 
 class PipeVerificationEngine:
@@ -299,6 +453,32 @@ class PipeVerificationEngine:
                 passed = sq_act <= sq_lim
                 add_check("Boru Ucu Diklik (Squareness mm)", "Boyutsal Tolerans", f"{sq_act:.2f} mm", f"Max {sq_lim:.2f} mm", passed)
 
+        if 'bevel_angle_actual' in actual_data and actual_data['bevel_angle_actual'] is not None:
+            ba_act = float(actual_data['bevel_angle_actual'])
+            ba_min, ba_max = 30.0, 35.0
+            passed = (ba_act >= ba_min and ba_act <= ba_max)
+            add_check(
+                "Kaynak Ağzı Açısı (Bevel Angle °)",
+                "Boyutsal Tolerans",
+                f"{ba_act:.1f}°",
+                f"{ba_min:.1f}° - {ba_max:.1f}° (30° +5°/-0°)",
+                passed,
+                notes="API 5L 9.11.3.4 / BOTAŞ 8.8.2 Alın Kaynak Ağzı Açısı" if passed else f"Kaynak ağzı açısı ({ba_act:.1f}°) 30°-35° limitleri dışında!"
+            )
+
+        if 'root_face_actual' in actual_data and actual_data['root_face_actual'] is not None:
+            rf_act = float(actual_data['root_face_actual'])
+            rf_min, rf_max = 0.80, 2.40
+            passed = (rf_act >= rf_min and rf_act <= rf_max)
+            add_check(
+                "Kök Yüzeyi / Kütük (Root Face mm)",
+                "Boyutsal Tolerans",
+                f"{rf_act:.2f} mm",
+                f"{rf_min:.2f} - {rf_max:.2f} mm (1.6±0.8 mm)",
+                passed,
+                notes="API 5L 9.11.3.4 / BOTAŞ 8.8.2 Kök Yüzeyi" if passed else f"Kök yüzeyi ({rf_act:.2f} mm) 0.8-2.4 mm limitleri dışında!"
+            )
+
         # ----------------------------------------------------
         # 3. Mechanical Properties
         # ----------------------------------------------------
@@ -318,6 +498,55 @@ class PipeVerificationEngine:
             passed = (u_act >= u_min and (u_max == 0 or u_act <= u_max))
             limit_str = f"Min {u_min:.2f} MPa" if u_max == 0 else f"{u_min:.2f} - {u_max:.2f} MPa"
             add_check("Çekme Dayanımı (Tensile)", "Mekanik Testler", f"{u_act:.2f} MPa", limit_str, passed)
+
+        proc_str = str(pipe_config.get('manufacturing_process', limits['input_summary'].get('manufacturing_process', 'SAWH'))).upper()
+        is_welded_pipe = not any(k in proc_str for k in ("SMLS", "SEAMLESS", "DIKISSIZ"))
+        if is_welded_pipe and ('weld_tensile_actual' in actual_data or 'weld_tensile_strength_actual' in actual_data):
+            wt_raw = actual_data.get('weld_tensile_actual') if 'weld_tensile_actual' in actual_data else actual_data.get('weld_tensile_strength_actual')
+            if wt_raw is not None:
+                wt_act = float(wt_raw)
+                u_min = mech_lim['tensile_min_mpa']
+                passed = wt_act >= u_min
+                limit_str = f"Min {u_min:.2f} MPa"
+                note_str = "Kaynak dikişi enine çekme dayanımı şartname minimumunu sağlıyor (API 5L Tablo 18 / 9.3)." if passed else f"Kaynak çekme dayanımı ({wt_act:.1f} MPa) boru minimum çekme sınırının ({u_min:.1f} MPa) altında!"
+                add_check("Kaynak Çekme Dayanımı (Weld Tensile)", "Mekanik Testler", f"{wt_act:.2f} MPa", limit_str, passed, notes=note_str)
+
+        if is_welded_pipe and ('guided_bend_actual' in actual_data and actual_data['guided_bend_actual'] is not None):
+            gb_raw = actual_data['guided_bend_actual']
+            gb_str = str(gb_raw).strip()
+            passed = False
+            actual_val_display = gb_str
+
+            lower_val = gb_str.lower()
+            positive_keywords = ("kusursuz", "uygun", "satisfactory", "no defect", "pass", "ok", "kabul", "sound", "çatlak yok", "catlak yok", "temiz", "çatlaksız", "catlaksiz", "hasarsız", "hasarsiz")
+            negative_keywords = ("red", "fail", "kusurlu", "kırık", "kirik", "yırtık", "yirtik")
+
+            # Check if qualitative without explicit defect dimension
+            if any(pos in lower_val for pos in positive_keywords) and not any(neg in lower_val for neg in negative_keywords):
+                passed = True
+                actual_val_display = "Kusursuz (Çatlak Yok)" if ("kusursuz" in lower_val or "no defect" in lower_val) else gb_str
+            elif any(neg in lower_val for neg in negative_keywords) and not re.search(r'(\d+(?:\.\d+)?)', gb_str):
+                passed = False
+                actual_val_display = gb_str
+            else:
+                # Numeric crack length check
+                m = re.search(r'(\d+(?:\.\d+)?)', gb_str)
+                if m:
+                    try:
+                        crack_mm = float(m.group(1))
+                        passed = (crack_mm <= 3.20)
+                        if passed:
+                            actual_val_display = f"Kabul ({crack_mm:.1f} mm)"
+                        else:
+                            actual_val_display = f"Red ({crack_mm:.1f} mm > 3.2 mm)"
+                    except ValueError:
+                        passed = False
+                else:
+                    passed = True
+
+            limit_desc = "Kusursuz / Çatlak ≤ 3.2 mm"
+            note_str = "Kılavuzlu bükme testinde (180°) 3.2 mm'yi aşan çatlak tespit edilmedi (API 5L 9.7 / BOTAŞ 3.3.4)." if passed else f"Bükme testinde kaynak dikişi veya ITAB'da 3.2 mm sınırını aşan kusur ({actual_val_display}) tespit edildi!"
+            add_check("Kılavuzlu Bükme Testi (Guided Bend)", "Mekanik Testler", actual_val_display, limit_desc, passed, notes=note_str)
 
         if 'yield_strength_actual' in actual_data and 'tensile_strength_actual' in actual_data:
             if actual_data['yield_strength_actual'] and actual_data['tensile_strength_actual']:
@@ -409,6 +638,27 @@ class PipeVerificationEngine:
                     add_check("Çentik Darbe - Kaynak (CVN J)", "Tokluk ve Testler",
                               f"{cvn_w_act:.2f} J", f"Min {eff_w:.2f} J", passed, note)
 
+        # DWTT (Drop Weight Tear Test - API 5L 9.9 / Table 20 & BOTAŞ 3.3.6)
+        dwtt_applicable = tough_lim.get('dwtt_test') == 'Var'
+        if dwtt_applicable or ('dwtt_shear_actual' in actual_data and actual_data['dwtt_shear_actual'] is not None):
+            if 'dwtt_shear_actual' in actual_data and actual_data['dwtt_shear_actual'] is not None:
+                dwtt_act = float(actual_data['dwtt_shear_actual'])
+                passed = dwtt_act >= 85.0
+                note = ""
+                if 'dwtt_shear_ind_actual' in actual_data and actual_data['dwtt_shear_ind_actual'] is not None:
+                    dwtt_ind = float(actual_data['dwtt_shear_ind_actual'])
+                    if dwtt_ind < 60.0:
+                        passed = False
+                        note = f"Tekil numune kırılma yüzeyi %60'ın altında (%{dwtt_ind:.1f} < %60) (API 5L 9.9 / BOTAŞ 3.3.6)"
+                add_check(
+                    "DWTT Kırılma Yüzeyi (Shear Area %)",
+                    "Tokluk ve Testler",
+                    f"%{dwtt_act:.1f}",
+                    "Ort. Min %85 (Tekil Min %60)",
+                    passed,
+                    note
+                )
+
         if 'residual_stress_actual' in actual_data and actual_data['residual_stress_actual'] is not None:
             rs_act = float(actual_data['residual_stress_actual'])
             rs_lim = tough_lim['residual_stress_max_mm']
@@ -449,6 +699,19 @@ class PipeVerificationEngine:
             passed = (h_act >= (h_min - 0.5) and h_act <= (h_max + 1.0))
             add_check("Fabrika Hidrostatik Basıncı", "Hidrostatik Test", f"{h_act:.2f} Bar", f"{h_min:.2f} - {h_max:.2f} Bar", passed)
 
+        # Ramberg-Osgood Elastic-Plastic Stress-Strain Analysis (API 5L Annex N / BOTAŞ)
+        ro_model: Optional[Dict[str, Any]] = None
+        if 'yield_strength_actual' in actual_data and 'tensile_strength_actual' in actual_data:
+            if actual_data['yield_strength_actual'] is not None and actual_data['tensile_strength_actual'] is not None:
+                try:
+                    y_val = float(actual_data['yield_strength_actual'])
+                    u_val = float(actual_data['tensile_strength_actual'])
+                    e_raw = actual_data.get('elongation_actual')
+                    e_val = float(e_raw) if e_raw is not None else 24.0
+                    ro_model = compute_ramberg_osgood_model(y_val, u_val, e_val)
+                except Exception:
+                    ro_model = None
+
         # Summary
         passed_count = sum(1 for c in checks if c['status'] == 'PASS')
         failed_count = sum(1 for c in checks if c['status'] == 'FAIL')
@@ -474,6 +737,7 @@ class PipeVerificationEngine:
             'total_applicable': total_applicable,
             'unchecked_count': unchecked_count,
             'checks': checks,
+            'ramberg_osgood': ro_model,
             'frequency_references': limits.get('test_frequency', []),
             'pipe_summary': limits['input_summary']
         }

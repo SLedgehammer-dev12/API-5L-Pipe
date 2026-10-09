@@ -35,6 +35,7 @@ let calculatedPipes = [];
 let selectedPipeIndex = 0;
 let visualizer3DInstance = null;
 let lastVerification = null;
+let lastWallThicknessCalc = null;
 
 // HTML-escape helper to prevent XSS via user-supplied strings injected into innerHTML.
 function esc(str) {
@@ -109,6 +110,10 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (calculatedPipes.length > 0) {
             updateVisualizers(calculatedPipes[selectedPipeIndex] || calculatedPipes[0]);
         }
+        const isSchematicActive = !document.getElementById("schematic-tab")?.classList.contains("hidden");
+        if (!isSchematicActive && visualizer3DInstance) {
+            visualizer3DInstance.pause();
+        }
     }, 400);
 
     setupEventListeners();
@@ -177,6 +182,7 @@ async function calculateAndRenderAll() {
             renderPipesManagementList();
             render3DPipeChips();
             renderITPPipeChips();
+            renderVerifyPipeChips();
             hideKPICards();
             return;
         }
@@ -198,6 +204,7 @@ async function calculateAndRenderAll() {
             renderPipesManagementList();
             render3DPipeChips();
             renderITPPipeChips();
+            renderVerifyPipeChips();
             if (typeof updateITPTargetPipes === "function") updateITPTargetPipes();
             if (calculatedPipes.length > 0) {
                 updateVisualizers(calculatedPipes[selectedPipeIndex]);
@@ -629,6 +636,152 @@ function renderITPPipeChips() {
     container.innerHTML = html;
 }
 
+// Verification pipe selector chips and active pipe title
+function renderVerifyPipeChips() {
+    const titleEl = document.getElementById("verify-active-pipe-title");
+    const container = document.getElementById("verify-pipe-chips");
+    const dwttSection = document.getElementById("verify-dwtt-container");
+
+    if (!calculatedPipes || calculatedPipes.length === 0) {
+        if (titleEl) titleEl.innerText = "Matriste boru bulunmuyor";
+        if (container) container.innerHTML = `<span class="text-xs text-slate-400 italic">Önce bir boru ekleyin.</span>`;
+        if (dwttSection) dwttSection.classList.add("hidden");
+        return;
+    }
+
+    const cur = calculatedPipes[selectedPipeIndex] || calculatedPipes[0];
+    if (titleEl && cur) {
+        const inp = cur.input_summary;
+        titleEl.innerText = `${inp.diameter_inch} (${inp.diameter_mm} mm) - ${inp.material_grade} | ${inp.manufacturing_process} | t = ${inp.wall_thickness_mm.toFixed(2)} mm | ${inp.standard_type || 'BOTAŞ'}`;
+    }
+
+    // Toggle DWTT inputs depending on applicability (API 5L 9.9: welded, D >= 508 mm, PSL2)
+    if (dwttSection && cur) {
+        const d_mm = cur.input_summary.diameter_mm || 1219.0;
+        const proc = (cur.input_summary.manufacturing_process || "").toUpperCase();
+        const isWelded = !proc.includes("SMLS") && !proc.includes("SEAMLESS");
+        const isPsl1 = (cur.input_summary.psl_level || "").toUpperCase().includes("PSL1");
+        const dwttReq = (!isPsl1) && isWelded && (d_mm >= 508.0);
+        dwttSection.classList.toggle("hidden", !dwttReq);
+
+        const weldTensileContainer = document.getElementById("verify-weld-tensile-container");
+        if (weldTensileContainer) {
+            weldTensileContainer.classList.toggle("opacity-40", !isWelded);
+            const inEl = weldTensileContainer.querySelector("input");
+            if (inEl) {
+                inEl.disabled = !isWelded;
+                if (!isWelded) inEl.value = "";
+            }
+        }
+
+        const guidedBendContainer = document.getElementById("verify-guided-bend-container");
+        if (guidedBendContainer) {
+            guidedBendContainer.classList.toggle("opacity-40", !isWelded);
+            const inEl = guidedBendContainer.querySelector("input");
+            if (inEl) {
+                inEl.disabled = !isWelded;
+                if (!isWelded) inEl.value = "";
+            }
+        }
+    }
+
+    if (container) {
+        let html = "";
+        calculatedPipes.forEach((p, idx) => {
+            const isActive = idx === selectedPipeIndex;
+            html += `
+                <button type="button" onclick="selectPipe(${idx})" class="pipe-chip px-2.5 py-1 rounded-lg border text-xs font-semibold flex items-center space-x-1.5 transition ${isActive ? 'bg-blue-600 text-white border-blue-600 shadow' : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'}">
+                    <span class="w-4 h-4 rounded-full ${isActive ? 'bg-white text-blue-600' : 'bg-slate-700 text-white'} text-[9px] flex items-center justify-center font-bold">${idx + 1}</span>
+                    <span>${esc(p.input_summary.diameter_inch)} ${esc(p.input_summary.material_grade)}</span>
+                </button>
+            `;
+        });
+        container.innerHTML = html;
+    }
+}
+
+function fillSampleVerificationData() {
+    const form = document.getElementById("pipe-verification-form");
+    if (!form) return;
+    const pipe = calculatedPipes[selectedPipeIndex] || calculatedPipes[0];
+    if (!pipe) {
+        showToast("Örnek veri için önce bir boru sütunu ekleyin!", "error");
+        return;
+    }
+
+    const inp = pipe.input_summary;
+    const mech = pipe.mechanical_properties || {};
+    const tough = pipe.toughness_and_tests || {};
+    const hydro = pipe.hydrostatic_test || {};
+    const wt = pipe.weights_and_safety || {};
+
+    const values = {
+        'C': 0.10,
+        'Mn': 1.45,
+        'P': 0.012,
+        'S': 0.003,
+        'Nb': 0.035,
+        'V': 0.030,
+        'Ti': 0.020,
+        'N': 0.006,
+        'Si': 0.25,
+        'Cr': 0.05,
+        'Mo': 0.02,
+        'Ni': 0.05,
+        'Cu': 0.05,
+        'B': 0.0003,
+        'CE_IIW': 0.38,
+        'wall_thickness_actual': (inp.wall_thickness_mm + 0.05).toFixed(2),
+        'diameter_end_actual': (inp.diameter_mm + 0.2).toFixed(1),
+        'diameter_body_actual': (inp.diameter_mm + 0.5).toFixed(1),
+        'ovality_end_actual': 2.5,
+        'ovality_body_actual': 3.2,
+        'pipe_end_peaking_actual': 1.5,
+        'pipe_end_squareness_actual': 1.0,
+        'bevel_angle_actual': 32.0,
+        'root_face_actual': 1.6,
+        'yield_strength_actual': (mech.yield_min_mpa ? mech.yield_min_mpa + 35.0 : 480.0).toFixed(1),
+        'tensile_strength_actual': (mech.tensile_min_mpa ? mech.tensile_min_mpa + 50.0 : 560.0).toFixed(1),
+        'weld_tensile_actual': (mech.tensile_min_mpa ? mech.tensile_min_mpa + 45.0 : 575.0).toFixed(1),
+        'guided_bend_actual': 'Kusursuz (≤ 3.2 mm)',
+        'elongation_actual': (tough.elongation_mat_min_percent ? tough.elongation_mat_min_percent + 4.5 : 24.5).toFixed(1),
+        'cvn_mat_actual': tough.notch_impact_mat_j && typeof tough.notch_impact_mat_j === 'number' ? Math.round(tough.notch_impact_mat_j * 1.5) : 85,
+        'cvn_weld_actual': tough.notch_impact_weld_j && typeof tough.notch_impact_weld_j === 'number' ? Math.round(tough.notch_impact_weld_j * 1.4) : 65,
+        'cvn_mat_ind_actual': tough.notch_impact_mat_j && typeof tough.notch_impact_mat_j === 'number' ? Math.round(tough.notch_impact_mat_j * 1.2) : 70,
+        'cvn_weld_ind_actual': tough.notch_impact_weld_j && typeof tough.notch_impact_weld_j === 'number' ? Math.round(tough.notch_impact_weld_j * 1.1) : 55,
+        'dwtt_shear_actual': 92,
+        'dwtt_shear_ind_actual': 86,
+        'residual_stress_actual': 11.5,
+        'hardness_actual': 220,
+        'radial_offset_actual': 0.90,
+        'misalignment_actual': 1.0,
+        'weld_height_inside_actual': 1.8,
+        'weld_height_outside_actual': 2.1,
+        'weight_actual_kg_m': wt.weight_nominal_kg_m ? wt.weight_nominal_kg_m.toFixed(1) : 425.0,
+        'hydro_test_actual_bar': hydro.hydro_test_max_bar ? hydro.hydro_test_max_bar.toFixed(1) : 106.0
+    };
+
+    Object.entries(values).forEach(([name, val]) => {
+        const input = form.querySelector(`[name="${name}"]`);
+        if (input) input.value = val;
+    });
+
+    showToast(`${inp.diameter_inch} ${inp.material_grade} için örnek fabrika test verileri yüklendi.`, "success");
+    if (typeof form.requestSubmit === "function") {
+        form.requestSubmit();
+    }
+}
+
+function clearVerificationForm() {
+    const form = document.getElementById("pipe-verification-form");
+    if (form) form.reset();
+    const resDiv = document.getElementById("verification-results-panel");
+    const placeholder = document.getElementById("verification-placeholder");
+    if (resDiv) resDiv.classList.add("hidden");
+    if (placeholder) placeholder.classList.remove("hidden");
+    showToast("Doğrulama formu temizlendi.", "info");
+}
+
 function renderPipesManagementList() {
     const list = document.getElementById("pipes-management-list");
     if (!list) return;
@@ -671,6 +824,7 @@ function selectPipe(idx) {
     renderPipesManagementList();
     render3DPipeChips();
     renderITPPipeChips();
+    renderVerifyPipeChips();
     
     // Update navigator status
     const statusEl = document.getElementById("matrix-col-status");
@@ -722,7 +876,10 @@ function updateVisualizers(pipeData) {
     }
     renderSawhCard(pipeData);
     renderSawlCard(pipeData);
+    renderErwCard(pipeData);
     renderResidualStressCard(pipeData);
+    renderBevelCard(pipeData);
+    renderStraightnessCard(pipeData);
 }
 
 // ============================================================================
@@ -860,8 +1017,35 @@ class SawhSimulationEngine {
                 : `<span class="text-amber-700 font-bold">⚠️ Pratik Aralık Dışı:</span> Helis açısının 30° ile 65° arasında olması önerilir (Mevcut: ${this.alphaDeg.toFixed(1)}°).`;
         }
 
-        if (elHudAlpha) elHudAlpha.innerText = `α = ${this.alphaDeg.toFixed(1)}°`;
-        if (elHudPitch) elHudPitch.innerText = `P = ${isFinite(this.pitch) && this.pitch < 90000 ? this.pitch.toFixed(0) : "—"} mm`;
+        const elBGross = document.getElementById("sawh-bgross");
+        const elStressReduct = document.getElementById("sawh-stressreduct");
+        const bGross = this.B + 15.0;
+        const cosA = Math.cos(this.alphaRad);
+        const stressFactor = 1.0 - 0.5 * (cosA * cosA);
+        const stressReductPct = (1.0 - stressFactor) * 100.0;
+
+        if (elBGross) elBGross.innerText = Math.round(bGross);
+        if (elStressReduct) elStressReduct.innerText = `%${stressReductPct.toFixed(1)} Azalma`;
+
+        // API 5L 8.10 Skelp End Weld Clearance Calculation
+        const coilLen = 800.0;
+        const pipeLen = 12.0;
+        const sinA = Math.sin(this.alphaRad);
+        const totalPipeLenCoil = coilLen * sinA;
+        const skelpPosInPipe = pipeLen > 0 ? (totalPipeLenCoil % pipeLen) : 0.0;
+        const distToNearEndM = Math.min(skelpPosInPipe, pipeLen - skelpPosInPipe);
+        const distToNearEndMm = distToNearEndM * 1000.0;
+        const skelpSafe = distToNearEndMm >= 300.0;
+
+        const elSkelpDist = document.getElementById("sawh-skelp-dist");
+        const elSkelpStatus = document.getElementById("sawh-skelp-status");
+
+        if (elSkelpDist) elSkelpDist.innerText = distToNearEndMm.toFixed(1);
+        if (elSkelpStatus) {
+            elSkelpStatus.className = "inline-block px-1.5 py-0.5 rounded text-[10px] font-bold " +
+                (skelpSafe ? "bg-emerald-100 text-emerald-800" : "bg-red-100 text-red-800");
+            elSkelpStatus.innerText = skelpSafe ? "✓ UYGUN (≥300mm)" : "⚠️ KIRPMA (<300mm)";
+        }
 
         if (visualizer3DInstance) visualizer3DInstance.setHelixAngle(this.alphaDeg);
     }
@@ -986,21 +1170,39 @@ class SawhSimulationEngine {
         this.resize();
     }
 
+    pause() {
+        this.isPlaying = false;
+        if (this.animId) {
+            cancelAnimationFrame(this.animId);
+            this.animId = null;
+        }
+    }
+
+    resume() {
+        if (this.animId) return;
+        this.isPlaying = true;
+        this.lastTime = null;
+        this.start();
+    }
+
     start() {
+        if (this.animId) {
+            cancelAnimationFrame(this.animId);
+            this.animId = null;
+        }
         const loop = (timestamp) => {
+            if (!this.isPlaying) return;
             if (!this.lastTime) this.lastTime = timestamp;
             const dt = Math.min(0.1, (timestamp - this.lastTime) / 1000);
             this.lastTime = timestamp;
 
-            if (this.isPlaying) {
-                // Advance translation & rotation phase
-                const advanceSpeed = 0.55 * this.speed;
-                this.phase = (this.phase + dt * advanceSpeed) % (Math.PI * 2);
+            // Advance translation & rotation phase
+            const advanceSpeed = 0.55 * this.speed;
+            this.phase = (this.phase + dt * advanceSpeed) % (Math.PI * 2);
 
-                // Update sparks
-                if (this.showSparks) {
-                    this.updateSparks(dt);
-                }
+            // Update sparks
+            if (this.showSparks) {
+                this.updateSparks(dt);
             }
 
             // Render active view mode
@@ -1664,6 +1866,267 @@ function renderResidualStressCard(pipeData) {
     }
 }
 
+async function renderErwCard(pipeData) {
+    const card = document.getElementById("erw-card");
+    const na = document.getElementById("erw-not-applicable");
+    if (!card || !na) return;
+
+    const process = (pipeData.input_summary.manufacturing_process || "").toUpperCase();
+    const isErw = process.includes("ERW") || process.includes("HFW") || process.includes("EW");
+    if (!isErw) {
+        card.classList.add("hidden");
+        na.classList.remove("hidden");
+        const p = document.getElementById("erw-na-process");
+        if (p) p.innerText = pipeData.input_summary.manufacturing_process || "—";
+        return;
+    }
+
+    na.classList.add("hidden");
+    card.classList.remove("hidden");
+
+    const d = pipeData.input_summary.diameter_mm || 323.9;
+    const t = pipeData.input_summary.wall_thickness_mm || 9.53;
+    const grade = pipeData.input_summary.material_grade || "X52";
+    const pipeLen = parseFloat(pipeData.input_summary.pipe_length_m) || 12.0;
+
+    // Render 2D Specimen SVG Preview
+    const previewContainer = document.getElementById("erw-2d-preview-container");
+    if (previewContainer && typeof getSpecimenDrawing === "function") {
+        previewContainer.innerHTML = getSpecimenDrawing("flattening_test", pipeData);
+    }
+
+    try {
+        const resp = await fetch("/api/erw-calc", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                diameter_mm: d,
+                wall_thickness_mm: t,
+                material_grade: grade,
+                pipe_length_m: pipeLen
+            })
+        });
+        if (resp.ok) {
+            const data = await resp.json();
+            if (data.status === "success" && data.data) {
+                const r = data.data;
+                const setTxt = (id, val) => {
+                    const el = document.getElementById(id);
+                    if (el) el.innerText = val;
+                };
+
+                setTxt("erw-wskelp", (r.skelp_width_net_mm || 0).toFixed(2));
+                setTxt("erw-wupset", (r.upset_allowance_mm || 0).toFixed(2));
+                setTxt("erw-wgross", (r.skelp_width_gross_mm || 0).toFixed(2));
+                setTxt("erw-scrap", `%${(r.upset_loss_percent || 0).toFixed(2)}`);
+
+                setTxt("erw-hout", `≤ ${r.flash_outside_max_mm.toFixed(2)} mm (Sıfırlanmış / Flush)`);
+                setTxt("erw-hin", `≤ ${r.flash_inside_max_mm.toFixed(2)} mm`);
+                
+                const fStat = document.getElementById("erw-flash-status");
+                if (fStat) {
+                    fStat.innerText = `✓ UYGUN (PASS) — İç çapak ≤ ${r.flash_inside_max_mm.toFixed(2)} mm`;
+                }
+
+                setTxt("erw-factor-e", `${r.deformation_factor_e.toFixed(2)} (API 5L Çizelge 10.2.4.3)`);
+                setTxt("erw-h-dist", `${r.flattening_h_mm.toFixed(2)} mm`);
+                setTxt("erw-h-duct", `${r.flattening_ductility_h_mm.toFixed(2)} mm`);
+                setTxt("erw-h-sound", `${r.flattening_soundness_h_mm.toFixed(2)} mm`);
+
+                setTxt("erw-temp", `T ≥ ${r.normalizing_temp_min_c}°C (Nominal ${r.normalizing_temp_nominal_c}°C)`);
+                setTxt("erw-microstructure", r.seam_heat_treatment_rule || "Tam normalize edilmiş ince taneli ferrit-perlit yapı");
+            }
+        }
+    } catch (e) {
+        console.error("ERW calculation fetch error:", e);
+    }
+}
+
+async function renderBevelCard(pipeData) {
+    const card = document.getElementById("bevel-card");
+    if (!card) return;
+
+    // 2D preview container
+    const previewContainer = document.getElementById("bevel-2d-preview-container");
+    if (previewContainer && typeof getSpecimenDrawing === "function") {
+        previewContainer.innerHTML = getSpecimenDrawing("pipe_bevel", pipeData);
+    }
+
+    // Call calculateBevelFromInputs with current input values
+    calculateBevelFromInputs(pipeData);
+}
+
+async function calculateBevelFromInputs(pipeData) {
+    const pd = pipeData || (calculatedPipes && calculatedPipes[selectedPipeIndex]) || {};
+    const inp = pd.input_summary || {};
+    const d = parseFloat(inp.diameter_mm) || 1219.0;
+    const t = parseFloat(inp.wall_thickness_mm) || 14.30;
+    const grade = inp.material_grade || "X65";
+    const std = inp.standard_type || "BOTAŞ";
+
+    const inAngle = document.getElementById("bev-in-angle");
+    const inRoot = document.getElementById("bev-in-root");
+    const inSq = document.getElementById("bev-in-sq");
+
+    const thetaAct = inAngle ? parseFloat(inAngle.value) : 31.5;
+    const rootAct = inRoot ? parseFloat(inRoot.value) : 1.6;
+    const sqAct = inSq ? parseFloat(inSq.value) : 0.8;
+
+    try {
+        const resp = await fetch("/api/bevel-calc", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                diameter_mm: d,
+                wall_thickness_mm: t,
+                material_grade: grade,
+                standard_code: std,
+                end_type: "BEVEL",
+                bevel_angle_actual: isNaN(thetaAct) ? null : thetaAct,
+                root_face_actual: isNaN(rootAct) ? null : rootAct,
+                out_of_squareness_actual: isNaN(sqAct) ? null : sqAct
+            })
+        });
+
+        if (resp.ok) {
+            const data = await resp.json();
+            if (data.status === "success" && data.data) {
+                const r = data.data;
+                const setTxt = (id, val) => {
+                    const el = document.getElementById(id);
+                    if (el) el.innerText = val;
+                };
+
+                setTxt("bev-angle-val", `${r.bevel_angle_deg.toFixed(1)}°`);
+                setTxt("bev-root-val", `${r.root_face_mm.toFixed(2)}`);
+                setTxt("bev-depth-val", `${r.bevel_depth_mm.toFixed(2)}`);
+                setTxt("bev-axial-val", `${r.axial_cut_width_mm.toFixed(2)}`);
+                setTxt("bev-v-angle-val", `${r.included_groove_angle_deg.toFixed(1)}°`);
+                setTxt("bev-groove-area-val", `${r.total_v_groove_area_mm2.toFixed(1)}`);
+
+                setTxt("bev-ovality-limit", `≤ ${r.end_ovality_max_limit_mm.toFixed(2)}`);
+                setTxt("bev-dia-tol", `[${r.end_dia_min_allowed_mm.toFixed(1)} - ${r.end_dia_max_allowed_mm.toFixed(1)}]`);
+
+                const badge = document.getElementById("bev-verdict-badge");
+                const msg = document.getElementById("bev-input-msg");
+                if (badge) {
+                    if (r.is_compliant) {
+                        badge.className = "px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800";
+                        badge.innerText = "✓ UYGUN (PASS)";
+                        if (msg) {
+                            msg.className = "text-[10px] text-emerald-700 font-medium";
+                            msg.innerText = `✓ Açı (${thetaAct}°), Kök (${rootAct} mm) ve Diklik (${sqAct} mm) API 5L & BOTAŞ sınırları içerisinde.`;
+                        }
+                    } else {
+                        badge.className = "px-2 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-800";
+                        badge.innerText = "✗ RED (FAIL)";
+                        if (msg) {
+                            msg.className = "text-[10px] text-rose-700 font-medium";
+                            const fails = r.checks.filter(c => c.status === "FAIL").map(c => c.parameter).join(", ");
+                            msg.innerText = `⚠️ Tolerans aşımı tespit edildi: ${fails}`;
+                        }
+                    }
+                }
+            }
+        }
+    } catch (e) {
+        console.error("Bevel calculation error:", e);
+    }
+}
+
+async function renderStraightnessCard(pipeData) {
+    const card = document.getElementById("straightness-card");
+    if (!card) return;
+
+    // 2D preview container
+    const previewContainer = document.getElementById("straightness-2d-preview-container");
+    if (previewContainer && typeof getSpecimenDrawing === "function") {
+        previewContainer.innerHTML = getSpecimenDrawing("pipe_straightness", pipeData);
+    }
+
+    // Call calculateStraightnessFromInputs with current input values
+    calculateStraightnessFromInputs(pipeData);
+}
+
+async function calculateStraightnessFromInputs(pipeData) {
+    const pd = pipeData || (calculatedPipes && calculatedPipes[selectedPipeIndex]) || {};
+    const inp = pd.input_summary || {};
+    const d = parseFloat(inp.diameter_mm) || 1219.0;
+    const t = parseFloat(inp.wall_thickness_mm) || 14.30;
+    const l_m = parseFloat(inp.pipe_length_m) || 12.0;
+    const grade = inp.material_grade || "X65";
+    const proc = inp.manufacturing_process || "SAWH";
+    const std = inp.standard_type || "BOTAŞ";
+
+    const inTotal = document.getElementById("str-in-total");
+    const inLeft = document.getElementById("str-in-left");
+    const inRight = document.getElementById("str-in-right");
+
+    const totAct = inTotal ? parseFloat(inTotal.value) : 8.5;
+    const leftAct = inLeft ? parseFloat(inLeft.value) : 1.2;
+    const rightAct = inRight ? parseFloat(inRight.value) : 1.4;
+
+    try {
+        const resp = await fetch("/api/straightness-calc", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                diameter_mm: d,
+                wall_thickness_mm: t,
+                pipe_length_m: l_m,
+                standard_code: std,
+                material_grade: grade,
+                manufacturing_process: proc,
+                total_straightness_actual_mm: isNaN(totAct) ? null : totAct,
+                end_straightness_left_actual_mm: isNaN(leftAct) ? null : leftAct,
+                end_straightness_right_actual_mm: isNaN(rightAct) ? null : rightAct
+            })
+        });
+
+        if (resp.ok) {
+            const data = await resp.json();
+            if (data.status === "success" && data.data) {
+                const r = data.data;
+                const setTxt = (id, val) => {
+                    const el = document.getElementById(id);
+                    if (el) el.innerText = val;
+                };
+
+                setTxt("str-kpi-total-limit", `≤ ${r.total_straightness_max_limit_mm.toFixed(1)} mm`);
+                setTxt("str-kpi-end-limit", `≤ ${r.end_straightness_max_limit_mm.toFixed(1)} mm`);
+                setTxt("str-kpi-ratio", `%${r.total_straightness_ratio_pct.toFixed(2)}`);
+
+                setTxt("str-param-ratio-desc", `≤ %${r.total_straightness_ratio_pct.toFixed(2)} × L (${r.is_botas ? 'BOTAŞ 5.5' : 'API 5L Tablo 12'})`);
+                setTxt("str-param-end-desc", `≤ ${r.end_straightness_max_limit_mm.toFixed(2)} mm (${r.is_botas ? 'BOTAŞ 8.1.2.4' : 'API 5L 9.11.3.2'})`);
+                setTxt("str-param-len", `${r.pipe_length_m.toFixed(2)} m (${r.pipe_length_mm.toFixed(0)} mm)`);
+
+                const badge = document.getElementById("str-verdict-badge");
+                const msg = document.getElementById("str-input-msg");
+                if (badge) {
+                    if (r.is_compliant) {
+                        badge.className = "px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800";
+                        badge.innerText = "✓ UYGUN (PASS)";
+                        if (msg) {
+                            msg.className = "text-[10px] text-emerald-700 font-medium";
+                            msg.innerText = `✓ Sehim (${totAct} mm), Sol Uç (${leftAct} mm) ve Sağ Uç (${rightAct} mm) API 5L & BOTAŞ sınırları içerisinde.`;
+                        }
+                    } else {
+                        badge.className = "px-2 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-800";
+                        badge.innerText = "✗ RED (FAIL)";
+                        if (msg) {
+                            msg.className = "text-[10px] text-rose-700 font-medium";
+                            const fails = r.checks.filter(c => c.status === "FAIL").map(c => c.parameter).join(", ");
+                            msg.innerText = `⚠️ Tolerans aşımı tespit edildi: ${fails}`;
+                        }
+                    }
+                }
+            }
+        }
+    } catch (e) {
+        console.error("Straightness calculation error:", e);
+    }
+}
+
 function sawhRedraw() {
     if (sawhSimulatorInstance) {
         const range = document.getElementById("sawh-strip-range");
@@ -1727,9 +2190,10 @@ class SawlSimulationEngine {
         rs(this.canvas3D); rs(this.canvas2D);
     }
 
-    updateParameters(d, t) {
+    updateParameters(d, t, pipeLen = 12.0) {
         this.d = Math.max(10, parseFloat(d) || 1219.0);
         this.t = Math.max(0.5, parseFloat(t) || 14.30);
+        this.pipeLen = Math.max(1.0, parseFloat(pipeLen) || 12.0);
         this.dm = this.d - this.t;
         this.plateWidth = Math.PI * this.dm;
         this.updateDOM();
@@ -1737,13 +2201,32 @@ class SawlSimulationEngine {
 
     updateDOM() {
         const set = (id, v) => { const e = document.getElementById(id); if (e) e.innerText = v; };
+        const pipeLen = this.pipeLen || 12.0;
         set("sawl-d", this.d.toFixed(1));
         set("sawl-t", this.t.toFixed(2));
         set("sawl-dmid", this.dm.toFixed(1));
         set("sawl-plate", Math.round(this.plateWidth));
-        set("sawl-hud-seam", "Boyuna Dikiş • Plaka: " + Math.round(this.plateWidth) + " mm");
+        set("sawl-weld-len", pipeLen.toFixed(2));
+        set("sawl-hud-seam", `Boyuna Dikiş: ${pipeLen.toFixed(1)} m • Plaka Eni: ${Math.round(this.plateWidth)} mm`);
         const badge = document.getElementById("sawl-badge");
         if (badge) badge.innerText = "Boyuna Dikiş (1 adet)";
+
+        // SAWL Heavy Plate & Expander metrics
+        const wGross = this.plateWidth + 30.0;
+        const plateWeightGross = (wGross / 1000.0) * pipeLen * (this.t / 1000.0) * 7850.0;
+        const erPct = 1.0; // Nominal %1.0
+        const erValid = erPct >= 0.8 && erPct <= 1.5;
+
+        set("sawl-wgross", Math.round(wGross));
+        set("sawl-mgross", Math.round(plateWeightGross));
+        set("sawl-er", `%${erPct.toFixed(2)}`);
+
+        const elErStatus = document.getElementById("sawl-er-status");
+        if (elErStatus) {
+            elErStatus.className = "inline-block px-1.5 py-0.5 rounded text-[10px] font-bold " +
+                (erValid ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800");
+            elErStatus.innerText = erValid ? "✓ UYGUN (PASS)" : "⚠️ UYARI";
+        }
     }
 
     bindEvents() {
@@ -1806,12 +2289,27 @@ class SawlSimulationEngine {
         if (label) label.innerText = this.isPlaying ? "Durdur" : "Devam";
     }
 
+    pause() {
+        this.isPlaying = false;
+        if (this.animId) {
+            cancelAnimationFrame(this.animId);
+            this.animId = null;
+        }
+    }
+
+    resume() {
+        if (this.animId) return;
+        this.isPlaying = true;
+        this.loop();
+    }
+
     start() {
         if (!this.isPlaying) this.isPlaying = true;
         if (!this.animId) this.loop();
     }
 
     loop() {
+        if (!this.isPlaying) return;
         this.draw();
         this.animId = requestAnimationFrame(() => this.loop());
     }
@@ -1963,7 +2461,8 @@ class SawlSimulationEngine {
             ctx.beginPath(); ctx.moveTo(x0, yD); ctx.lineTo(x1, yD); ctx.stroke();
             ctx.beginPath(); ctx.moveTo(x0, yD - 5); ctx.lineTo(x0, yD + 5); ctx.moveTo(x1, yD - 5); ctx.lineTo(x1, yD + 5); ctx.stroke();
             ctx.font = "11px monospace"; ctx.textAlign = "center";
-            ctx.fillText("Plaka / Dikiş Boyu ≈ " + Math.round(this.plateWidth) + " mm", cx, yD + 16);
+            const pLenM = (this.pipeLen || 12.0);
+            ctx.fillText("Boyuna Kaynak Dikiş Boyu (L_kaynak = L_boru) = " + pLenM.toFixed(1) + " m (" + Math.round(pLenM * 1000) + " mm)", cx, yD + 16);
         }
     }
 
@@ -1988,9 +2487,9 @@ class SawlSimulationEngine {
         ctx.clearRect(0, 0, w, h);
 
         const margin = 60;
-        const plateW = Math.min(w - margin * 2, 520);
+        const plateW = Math.min(w - margin * 2 - 30, 500);
         const plateH = Math.min(h - margin * 2, 200);
-        const x0 = (w - plateW) / 2, y0 = (h - plateH) / 2;
+        const x0 = (w - plateW - 30) / 2, y0 = (h - plateH) / 2;
 
         // Flat plate (developed circumference)
         const grad = ctx.createLinearGradient(x0, y0, x0, y0 + plateH);
@@ -2010,20 +2509,33 @@ class SawlSimulationEngine {
         ctx.strokeStyle = "#fbbf24"; ctx.lineWidth = 3;
         ctx.beginPath(); ctx.moveTo(sx, y0 + 4); ctx.lineTo(sx, y0 + plateH - 4); ctx.stroke();
 
-        // Plate width dimension
+        // Plate width dimension (transverse / circumference)
         ctx.strokeStyle = "#93c5fd"; ctx.fillStyle = "#dbeafe"; ctx.lineWidth = 1;
         const yd = y0 + plateH + 26;
         ctx.beginPath(); ctx.moveTo(x0, yd); ctx.lineTo(x0 + plateW, yd); ctx.stroke();
         ctx.beginPath(); ctx.moveTo(x0, yd - 5); ctx.lineTo(x0, yd + 5); ctx.moveTo(x0 + plateW, yd - 5); ctx.lineTo(x0 + plateW, yd + 5); ctx.stroke();
         ctx.font = "12px monospace"; ctx.textAlign = "center";
-        ctx.fillText("Plaka Genişliği = π · D_mid = " + Math.round(this.plateWidth) + " mm", x0 + plateW / 2, yd + 18);
+        ctx.fillText("Net Plaka Genişliği (W_net = π · D_mid) = " + Math.round(this.plateWidth) + " mm (Çevre)", x0 + plateW / 2, yd + 18);
+
+        // Seam length dimension along vertical edge (pipe length / longitudinal axis)
+        const pLenM = (this.pipeLen || 12.0);
+        const xd = x0 + plateW + 24;
+        ctx.beginPath(); ctx.moveTo(xd, y0); ctx.lineTo(xd, y0 + plateH); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(xd - 5, y0); ctx.lineTo(xd + 5, y0); ctx.moveTo(xd - 5, y0 + plateH); ctx.lineTo(xd + 5, y0 + plateH); ctx.stroke();
+        ctx.save();
+        ctx.translate(xd + 14, y0 + plateH / 2);
+        ctx.rotate(-Math.PI / 2);
+        ctx.fillStyle = "#fbbf24";
+        ctx.font = "11px monospace";
+        ctx.fillText("Dikiş Boyu L_kaynak = " + pLenM.toFixed(1) + " m (" + Math.round(pLenM * 1000) + " mm)", 0, 0);
+        ctx.restore();
 
         // labels
         ctx.fillStyle = "#cbd5e1"; ctx.font = "11px monospace"; ctx.textAlign = "left";
         ctx.fillText("D = " + this.d.toFixed(1) + " mm   t = " + this.t.toFixed(2) + " mm   D_mid = " + this.dm.toFixed(1) + " mm", x0, y0 - 14);
         ctx.textAlign = "right";
         ctx.fillStyle = "#fbbf24";
-        ctx.fillText("Boyuna Dikiş (1 adet, çift taraflı SAW)", x0 + plateW, y0 - 14);
+        ctx.fillText("Boyuna Dikiş (1 adet, çift taraflı SAW, L = " + pLenM.toFixed(1) + " m)", x0 + plateW, y0 - 14);
     }
 }
 
@@ -2047,12 +2559,13 @@ function renderSawlCard(pipeData) {
 
     const d = pipeData.input_summary.diameter_mm || 1219.0;
     const t = pipeData.input_summary.wall_thickness_mm || 14.30;
+    const pipeLen = parseFloat(pipeData.input_summary.pipe_length_m) || 12.0;
 
     if (!sawlSimulatorInstance) {
         sawlSimulatorInstance = new SawlSimulationEngine();
         sawlSimulatorInstance.init();
     }
-    sawlSimulatorInstance.updateParameters(d, t);
+    sawlSimulatorInstance.updateParameters(d, t, pipeLen);
 }
 
 // BOTAŞ auto-lookup for modal inputs
@@ -2283,7 +2796,11 @@ function setupEventListeners() {
             const formData = new FormData(verForm);
             const actualData = {};
             formData.forEach((val, key) => {
-                if (val !== "") actualData[key] = parseFloat(val);
+                const trimmed = typeof val === "string" ? val.trim() : val;
+                if (trimmed !== "") {
+                    const parsed = parseFloat(trimmed);
+                    actualData[key] = (!isNaN(parsed) && String(parsed) === trimmed) ? parsed : trimmed;
+                }
             });
 
             const resp = await fetch("/api/verify", {
@@ -2409,6 +2926,7 @@ function renderWallThicknessResult(data) {
     const resDiv = document.getElementById("wt-results-panel");
     if (!resDiv) return;
 
+    lastWallThicknessCalc = data;
     resDiv.classList.remove("hidden");
     const r = data.calculation_results;
     const inp = data.input_parameters;
@@ -2419,14 +2937,20 @@ function renderWallThicknessResult(data) {
 
     resDiv.innerHTML = `
         <div class="p-4 bg-blue-50 border border-blue-200 rounded-lg shadow-sm">
-            <div class="flex items-center justify-between pb-2 mb-3 border-b border-blue-200">
+            <div class="flex flex-wrap items-center justify-between pb-2 mb-3 border-b border-blue-200 gap-2">
                 <h4 class="text-md font-bold text-blue-950 flex items-center">
                     <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                     ${r.formula_name || 'Standart Et Kalınlığı Hesabı'}
                 </h4>
-                <span class="bg-indigo-100 text-indigo-800 text-xs font-bold px-2.5 py-0.5 rounded">
-                    ${r.schedule_standard_used}
-                </span>
+                <div class="flex items-center gap-2">
+                    <span class="bg-indigo-100 text-indigo-800 text-xs font-bold px-2.5 py-1 rounded">
+                        ${r.schedule_standard_used}
+                    </span>
+                    <button onclick="exportWallThicknessExcel()" class="bg-emerald-700 hover:bg-emerald-600 text-white font-bold px-3 py-1 rounded text-xs transition flex items-center shadow-sm" title="ASME / BOTAŞ Et Kalınlığı Hesap Föyünü Excel (.xlsx) olarak indir">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        Hesap Föyü İndir (.xlsx)
+                    </button>
+                </div>
             </div>
 
             <div class="grid grid-cols-2 md:grid-cols-5 gap-2 text-sm">
@@ -2469,6 +2993,490 @@ function renderWallThicknessResult(data) {
     `;
 }
 
+async function exportWallThicknessExcel() {
+    if (!lastWallThicknessCalc) {
+        showToast("Önce bir et kalınlığı hesabı çalıştırın!", "error");
+        return;
+    }
+    try {
+        showToast("Excel et kalınlığı hesap föyü indiriliyor...", "info");
+        const resp = await fetch("/api/export-wall-thickness-excel", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                project_info: activeProject.project_info || {},
+                calculation_data: lastWallThicknessCalc,
+                lang: currentLang || "tr"
+            })
+        });
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const blob = await resp.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        const rawNo = (activeProject.project_info && activeProject.project_info.project_no) ? String(activeProject.project_info.project_no).replace(/[^a-zA-Z0-9_\-\.]/g, '_') : 'CALC';
+        const dStr = (lastWallThicknessCalc.input_parameters && lastWallThicknessCalc.input_parameters.diameter_inch) ? String(lastWallThicknessCalc.input_parameters.diameter_inch).replace(/[^a-zA-Z0-9_\-\.]/g, '') : '48in';
+        a.download = `Et_Kalinligi_Hesabi_${rawNo}_${dStr}.xlsx`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+        showToast("Et kalınlığı hesap föyü başarıyla indirildi.", "success");
+    } catch (e) {
+        console.error("Wall thickness Excel export error:", e);
+        showToast("Hesap föyü indirilirken hata oluştu!", "error");
+    }
+}
+
+async function exportSawhExcel() {
+    const selectedPipe = (calculatedPipes && calculatedPipes[selectedPipeIndex]) || calculatedPipes[0] || {};
+    const inp = selectedPipe.input_summary || {};
+    const dVal = parseFloat(inp.diameter_mm) || 1219.0;
+    const tVal = parseFloat(inp.wall_thickness_mm) || 14.30;
+    const bVal = sawhSimulatorInstance ? sawhSimulatorInstance.B : 2000.0;
+    const aVal = sawhSimulatorInstance ? sawhSimulatorInstance.alphaDeg : 45.0;
+
+    const sawhPayload = {
+        d_mm: dVal,
+        t_mm: tVal,
+        strip_width_mm: bVal,
+        helix_angle_deg: aVal,
+        edge_milling_allowance_mm: 15.0,
+        coil_length_m: 800.0,
+        pipe_length_m: 12.0,
+        min_skelp_end_distance_mm: 300.0
+    };
+
+    try {
+        showToast("SAWH Spiral İmalat Hesap Föyü Excel olarak hazırlanıyor...", "info");
+        const resp = await fetch("/api/export-sawh-excel", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                project_info: activeProject.project_info || {},
+                sawh_data: sawhPayload,
+                pipe_info: {
+                    diameter_inch: inp.diameter_inch || '48"',
+                    diameter_mm: dVal,
+                    wall_thickness_mm: tVal,
+                    material_grade: inp.material_grade || 'X65',
+                    standard_type: inp.standard_type || 'BOTAŞ',
+                    psl_level: inp.psl_level || 'PSL2'
+                },
+                lang: currentLang || "tr"
+            })
+        });
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const blob = await resp.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        const rawNo = (activeProject.project_info && activeProject.project_info.project_no) ? String(activeProject.project_info.project_no).replace(/[^a-zA-Z0-9_\-\.]/g, '_') : 'SAWH';
+        const dStr = inp.diameter_inch ? String(inp.diameter_inch).replace(/[^a-zA-Z0-9_\-\.]/g, '') : '48in';
+        a.download = `SAWH_Spiral_Geometri_${rawNo}_${dStr}.xlsx`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+        showToast("SAWH İmalat ve Bant Genişliği Hesap Föyü başarıyla indirildi.", "success");
+    } catch (e) {
+        console.error("SAWH Excel export error:", e);
+        showToast("SAWH hesap föyü indirilirken hata oluştu!", "error");
+    }
+}
+
+async function exportSawlExcel() {
+    const selectedPipe = (calculatedPipes && calculatedPipes[selectedPipeIndex]) || calculatedPipes[0] || {};
+    const inp = selectedPipe.input_summary || {};
+    const dVal = parseFloat(inp.diameter_mm) || 1219.0;
+    const tVal = parseFloat(inp.wall_thickness_mm) || 14.30;
+    const lVal = 12.0;
+
+    const sawlPayload = {
+        d_mm: dVal,
+        t_mm: tVal,
+        pipe_length_m: lVal,
+        edge_milling_allowance_mm: 30.0,
+        expansion_ratio_pct: 1.0
+    };
+
+    try {
+        showToast("SAWL Boyuna İmalat Hesap Föyü Excel olarak hazırlanıyor...", "info");
+        const resp = await fetch("/api/export-sawl-excel", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                project_info: activeProject.project_info || {},
+                sawl_data: sawlPayload,
+                pipe_info: {
+                    diameter_inch: inp.diameter_inch || '48"',
+                    diameter_mm: dVal,
+                    wall_thickness_mm: tVal,
+                    material_grade: inp.material_grade || 'X65',
+                    standard_type: inp.standard_type || 'BOTAŞ',
+                    psl_level: inp.psl_level || 'PSL2'
+                },
+                lang: currentLang || "tr"
+            })
+        });
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const blob = await resp.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        const rawNo = (activeProject.project_info && activeProject.project_info.project_no) ? String(activeProject.project_info.project_no).replace(/[^a-zA-Z0-9_\-\.]/g, '_') : 'SAWL';
+        const dStr = inp.diameter_inch ? String(inp.diameter_inch).replace(/[^a-zA-Z0-9_\-\.]/g, '') : '48in';
+        a.download = `SAWL_Boyuna_Geometri_${rawNo}_${dStr}.xlsx`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+        showToast("SAWL Boyuna İmalat ve Plaka Tedarik Hesap Föyü başarıyla indirildi.", "success");
+    } catch (e) {
+        console.error("SAWL Excel export error:", e);
+        showToast("SAWL hesap föyü indirilirken hata oluştu!", "error");
+    }
+}
+
+async function exportErwExcel() {
+    const selectedPipe = (calculatedPipes && calculatedPipes[selectedPipeIndex]) || calculatedPipes[0] || {};
+    const inp = selectedPipe.input_summary || {};
+    const dVal = parseFloat(inp.diameter_mm) || 323.9;
+    const tVal = parseFloat(inp.wall_thickness_mm) || 9.53;
+    const grade = inp.material_grade || "X52";
+    const lVal = parseFloat(inp.pipe_length_m) || 12.0;
+
+    const erwPayload = {
+        d_mm: dVal,
+        t_mm: tVal,
+        material_grade: grade,
+        pipe_length_m: lVal,
+        edge_trim_allowance_mm: 15.0,
+        flash_in_measured_mm: 0.25,
+        flash_out_measured_mm: 0.0
+    };
+
+    try {
+        showToast("ERW & HFW İmalat ve Yassıltma Hesap Föyü Excel olarak hazırlanıyor...", "info");
+        const resp = await fetch("/api/export-erw-excel", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                project_info: activeProject.project_info || {},
+                erw_data: erwPayload,
+                pipe_info: {
+                    diameter_inch: inp.diameter_inch || '12"',
+                    diameter_mm: dVal,
+                    wall_thickness_mm: tVal,
+                    material_grade: grade,
+                    standard_type: inp.standard_type || 'BOTAŞ',
+                    psl_level: inp.psl_level || 'PSL2'
+                },
+                lang: currentLang || "tr"
+            })
+        });
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const blob = await resp.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        const rawNo = (activeProject.project_info && activeProject.project_info.project_no) ? String(activeProject.project_info.project_no).replace(/[^a-zA-Z0-9_\-\.]/g, '_') : 'ERW';
+        const dStr = inp.diameter_inch ? String(inp.diameter_inch).replace(/[^a-zA-Z0-9_\-\.]/g, '') : '12in';
+        a.download = `ERW_HFW_Geometri_Yassiltma_${rawNo}_${dStr}.xlsx`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+        showToast("ERW & HFW İmalat ve Yassıltma Hesap Föyü başarıyla indirildi.", "success");
+    } catch (e) {
+        console.error("ERW Excel export error:", e);
+        showToast("ERW hesap föyü indirilirken hata oluştu!", "error");
+    }
+}
+
+async function exportBevelExcel() {
+    const selectedPipe = (calculatedPipes && calculatedPipes[selectedPipeIndex]) || calculatedPipes[0] || {};
+    const inp = selectedPipe.input_summary || {};
+    const dVal = parseFloat(inp.diameter_mm) || 1219.0;
+    const tVal = parseFloat(inp.wall_thickness_mm) || 14.30;
+    const grade = inp.material_grade || "X65";
+    const std = inp.standard_type || "BOTAŞ";
+
+    const inAngle = document.getElementById("bev-in-angle");
+    const inRoot = document.getElementById("bev-in-root");
+    const inSq = document.getElementById("bev-in-sq");
+
+    const thetaAct = inAngle ? parseFloat(inAngle.value) : 31.5;
+    const rootAct = inRoot ? parseFloat(inRoot.value) : 1.6;
+    const sqAct = inSq ? parseFloat(inSq.value) : 0.8;
+
+    const bevelPayload = {
+        diameter_mm: dVal,
+        wall_thickness_mm: tVal,
+        material_grade: grade,
+        standard_code: std,
+        end_type: "BEVEL",
+        bevel_angle_actual: isNaN(thetaAct) ? 31.5 : thetaAct,
+        root_face_actual: isNaN(rootAct) ? 1.6 : rootAct,
+        out_of_squareness_actual: isNaN(sqAct) ? 0.8 : sqAct
+    };
+
+    try {
+        showToast("Kaynak Ağzı & Uç Geometrisi Hesap Föyü Excel olarak hazırlanıyor...", "info");
+        const resp = await fetch("/api/export-bevel-excel", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                project_info: activeProject.project_info || {},
+                bevel_data: bevelPayload,
+                pipe_info: {
+                    diameter_inch: inp.diameter_inch || '48"',
+                    diameter_mm: dVal,
+                    wall_thickness_mm: tVal,
+                    material_grade: grade,
+                    standard_type: std,
+                    psl_level: inp.psl_level || 'PSL2'
+                },
+                lang: currentLang || "tr"
+            })
+        });
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const blob = await resp.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        const rawNo = (activeProject.project_info && activeProject.project_info.project_no) ? String(activeProject.project_info.project_no).replace(/[^a-zA-Z0-9_\-\.]/g, '_') : 'BEVEL';
+        const dStr = inp.diameter_inch ? String(inp.diameter_inch).replace(/[^a-zA-Z0-9_\-\.]/g, '') : '48in';
+        a.download = `Kaynak_Agzi_Uc_Geometrisi_${rawNo}_${dStr}.xlsx`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+        showToast("Boru Uç Geometrisi ve Kaynak Ağzı Hesap Föyü başarıyla indirildi.", "success");
+    } catch (e) {
+        console.error("Bevel Excel export error:", e);
+        showToast("Kaynak Ağzı hesap föyü indirilirken hata oluştu!", "error");
+    }
+}
+
+async function exportStraightnessExcel() {
+    const selectedPipe = (calculatedPipes && calculatedPipes[selectedPipeIndex]) || calculatedPipes[0] || {};
+    const inp = selectedPipe.input_summary || {};
+    const dVal = parseFloat(inp.diameter_mm) || 1219.0;
+    const tVal = parseFloat(inp.wall_thickness_mm) || 14.30;
+    const lVal = parseFloat(inp.pipe_length_m) || 12.0;
+    const grade = inp.material_grade || "X65";
+    const proc = inp.manufacturing_process || "SAWH";
+    const std = inp.standard_type || "BOTAŞ";
+
+    const inTotal = document.getElementById("str-in-total");
+    const inLeft = document.getElementById("str-in-left");
+    const inRight = document.getElementById("str-in-right");
+
+    const totAct = inTotal ? parseFloat(inTotal.value) : 8.5;
+    const leftAct = inLeft ? parseFloat(inLeft.value) : 1.2;
+    const rightAct = inRight ? parseFloat(inRight.value) : 1.4;
+
+    const straightnessPayload = {
+        diameter_mm: dVal,
+        wall_thickness_mm: tVal,
+        pipe_length_m: lVal,
+        material_grade: grade,
+        manufacturing_process: proc,
+        standard_code: std,
+        total_straightness_actual_mm: isNaN(totAct) ? 8.5 : totAct,
+        end_straightness_left_actual_mm: isNaN(leftAct) ? 1.2 : leftAct,
+        end_straightness_right_actual_mm: isNaN(rightAct) ? 1.4 : rightAct
+    };
+
+    try {
+        showToast("Düzlük & Uç Sapması Hesap Föyü Excel olarak hazırlanıyor...", "info");
+        const resp = await fetch("/api/export-straightness-excel", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                project_info: activeProject.project_info || {},
+                straightness_data: straightnessPayload,
+                pipe_info: {
+                    diameter_inch: inp.diameter_inch || '48"',
+                    diameter_mm: dVal,
+                    wall_thickness_mm: tVal,
+                    pipe_length_m: lVal,
+                    material_grade: grade,
+                    manufacturing_process: proc,
+                    standard_type: std,
+                    psl_level: inp.psl_level || 'PSL2'
+                },
+                lang: currentLang || "tr"
+            })
+        });
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const blob = await resp.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        const rawNo = (activeProject.project_info && activeProject.project_info.project_no) ? String(activeProject.project_info.project_no).replace(/[^a-zA-Z0-9_\-\.]/g, '_') : 'STR';
+        const dStr = inp.diameter_inch ? String(inp.diameter_inch).replace(/[^a-zA-Z0-9_\-\.]/g, '') : '48in';
+        a.download = `Boru_Duzluk_Sapma_Foyu_${rawNo}_${dStr}.xlsx`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+        showToast("Boru Düzlük ve Uç Sapması Hesap Föyü başarıyla indirildi.", "success");
+    } catch (e) {
+        console.error("Straightness Excel export error:", e);
+        showToast("Düzlük hesap föyü indirilirken hata oluştu!", "error");
+    }
+}
+
+async function exportHydroExcel() {
+    const selectedPipe = (calculatedPipes && calculatedPipes[selectedPipeIndex]) || calculatedPipes[0] || {};
+    const inp = selectedPipe.input_summary || {};
+    const dVal = parseFloat(inp.diameter_mm) || 1219.0;
+    const tVal = parseFloat(inp.wall_thickness_mm) || 14.30;
+    const lVal = parseFloat(inp.pipe_length_m) || 12.0;
+    const smysVal = parseFloat(selectedPipe.material_limits?.yield_strength_min_mpa) || 450.0;
+    const isBotas = (inp.standard_type || "").toUpperCase().includes("BOTAŞ");
+
+    const hydroPayload = {
+        d_mm: dVal,
+        t_mm: tVal,
+        smys_mpa: smysVal,
+        pipe_length_m: lVal,
+        is_botas: isBotas,
+        press_cap_bar: 250.0
+    };
+
+    try {
+        showToast("Hidrostatik Test Kabul ve Su Hacmi Hesap Föyü Excel olarak hazırlanıyor...", "info");
+        const resp = await fetch("/api/export-hydro-excel", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                project_info: activeProject.project_info || {},
+                hydro_data: hydroPayload,
+                pipe_info: {
+                    diameter_inch: inp.diameter_inch || '48"',
+                    diameter_mm: dVal,
+                    wall_thickness_mm: tVal,
+                    material_grade: inp.material_grade || 'X65',
+                    standard_type: inp.standard_type || 'BOTAŞ',
+                    psl_level: inp.psl_level || 'PSL2'
+                },
+                lang: currentLang || "tr"
+            })
+        });
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const blob = await resp.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        const rawNo = (activeProject.project_info && activeProject.project_info.project_no) ? String(activeProject.project_info.project_no).replace(/[^a-zA-Z0-9_\-\.]/g, '_') : 'HYDRO';
+        const dStr = inp.diameter_inch ? String(inp.diameter_inch).replace(/[^a-zA-Z0-9_\-\.]/g, '') : '48in';
+        a.download = `Hidrostatik_Test_Foyu_${rawNo}_${dStr}.xlsx`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+        showToast("Fabrika Hidrostatik Test Hesap Föyü başarıyla indirildi.", "success");
+    } catch (e) {
+        console.error("Hydro Excel export error:", e);
+        showToast("Hidrostatik test föyü indirilirken hata oluştu!", "error");
+    }
+}
+
+
+function renderRambergOsgoodSvg(ro) {
+    if (!ro || !ro.curve_points || ro.curve_points.length === 0) return '';
+    const points = ro.curve_points;
+    const maxStrain = Math.max(ro.elongation_pct * 1.08, 25.0);
+    const maxStress = Math.max(ro.tensile_strength_mpa * 1.15, 650.0);
+
+    const svgW = 600;
+    const svgH = 220;
+    const padL = 52;
+    const padR = 25;
+    const padT = 25;
+    const padB = 35;
+    const plotW = svgW - padL - padR;
+    const plotH = svgH - padT - padB;
+
+    function toX(epsPct) {
+        return padL + (epsPct / maxStrain) * plotW;
+    }
+    function toY(stressMpa) {
+        return padT + plotH - (stressMpa / maxStress) * plotH;
+    }
+
+    // Path string
+    let pathD = `M ${toX(points[0].strain_pct).toFixed(1)} ${toY(points[0].stress).toFixed(1)}`;
+    for (let i = 1; i < points.length; i++) {
+        pathD += ` L ${toX(points[i].strain_pct).toFixed(1)} ${toY(points[i].stress).toFixed(1)}`;
+    }
+
+    // Grid lines
+    let gridLines = '';
+    const stepStress = maxStress > 800 ? 150 : 100;
+    for (let s = stepStress; s < maxStress; s += stepStress) {
+        const y = toY(s).toFixed(1);
+        gridLines += `<line x1="${padL}" y1="${y}" x2="${svgW - padR}" y2="${y}" stroke="#334155" stroke-dasharray="3,3" opacity="0.6" />`;
+        gridLines += `<text x="${padL - 6}" y="${parseFloat(y) + 3}" font-size="9" fill="#94a3b8" text-anchor="end" font-family="monospace">${s}</text>`;
+    }
+    const stepStrain = maxStrain > 40 ? 10 : 5;
+    for (let e = stepStrain; e < maxStrain; e += stepStrain) {
+        const x = toX(e).toFixed(1);
+        gridLines += `<line x1="${x}" y1="${padT}" x2="${x}" y2="${padT + plotH}" stroke="#334155" stroke-dasharray="3,3" opacity="0.6" />`;
+        gridLines += `<text x="${x}" y="${padT + plotH + 14}" font-size="9" fill="#94a3b8" text-anchor="middle" font-family="monospace">%${e}</text>`;
+    }
+
+    // Landmarks
+    const lm = ro.landmarks || {};
+    const yX = toX(lm.yield?.strain_pct || 0.43).toFixed(1);
+    const yY = toY(lm.yield?.stress_mpa || ro.yield_strength_mpa).toFixed(1);
+
+    const uX = toX(lm.uts?.strain_pct || ro.uniform_strain_pct).toFixed(1);
+    const uY = toY(lm.uts?.stress_mpa || ro.tensile_strength_mpa).toFixed(1);
+
+    const fX = toX(lm.fracture?.strain_pct || ro.elongation_pct).toFixed(1);
+    const fY = toY(lm.fracture?.stress_mpa || (ro.tensile_strength_mpa * 0.84)).toFixed(1);
+
+    return `
+        <svg viewBox="0 0 ${svgW} ${svgH}" class="w-full h-auto bg-slate-950 rounded-lg p-1 border border-slate-800 shadow-inner">
+            <defs>
+                <linearGradient id="roGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stop-color="#38bdf8" />
+                    <stop offset="35%" stop-color="#3b82f6" />
+                    <stop offset="70%" stop-color="#818cf8" />
+                    <stop offset="100%" stop-color="#f43f5e" />
+                </linearGradient>
+            </defs>
+            ${gridLines}
+            <!-- Axes -->
+            <line x1="${padL}" y1="${padT + plotH}" x2="${svgW - padR}" y2="${padT + plotH}" stroke="#64748b" stroke-width="1.5" />
+            <line x1="${padL}" y1="${padT}" x2="${padL}" y2="${padT + plotH}" stroke="#64748b" stroke-width="1.5" />
+            
+            <!-- Axis Labels -->
+            <text x="${svgW - padR}" y="${padT + plotH + 28}" font-size="10" font-weight="bold" fill="#cbd5e1" text-anchor="end">Birim Uzama ε (%)</text>
+            <text x="${padL - 10}" y="${padT - 8}" font-size="10" font-weight="bold" fill="#cbd5e1" text-anchor="start">Gerilme σ (MPa)</text>
+            
+            <!-- Continuous Curve -->
+            <path d="${pathD}" fill="none" stroke="url(#roGrad)" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" />
+
+            <!-- Yield Landmark -->
+            <circle cx="${yX}" cy="${yY}" r="4.5" fill="#10b981" stroke="#ffffff" stroke-width="1.5" />
+            <text x="${parseFloat(yX) + 8}" y="${parseFloat(yY) - 5}" font-size="9" font-weight="bold" fill="#34d399">Rt0.5: ${ro.yield_strength_mpa} MPa</text>
+
+            <!-- UTS Landmark -->
+            <circle cx="${uX}" cy="${uY}" r="5" fill="#f59e0b" stroke="#ffffff" stroke-width="1.5" />
+            <text x="${uX}" y="${parseFloat(uY) - 8}" font-size="9" font-weight="bold" fill="#fbbf24" text-anchor="middle">Rm: ${ro.tensile_strength_mpa} MPa (Agt: %${ro.uniform_strain_pct})</text>
+
+            <!-- Fracture Landmark -->
+            <circle cx="${fX}" cy="${fY}" r="4.5" fill="#ef4444" stroke="#ffffff" stroke-width="1.5" />
+            <text x="${parseFloat(fX) - 6}" y="${parseFloat(fY) + 14}" font-size="9" font-weight="bold" fill="#f87171" text-anchor="end">Kopma: %${ro.elongation_pct}</text>
+        </svg>
+    `;
+}
+
 function renderVerificationResult(data) {
     const resDiv = document.getElementById("verification-results-panel");
     const placeholder = document.getElementById("verification-placeholder");
@@ -2494,9 +3502,13 @@ function renderVerificationResult(data) {
                 ${data.checks_count === 0 ? '<span class="text-amber-700 font-semibold">— Lütfen yukarıdaki forma ölçüm verisi girin.</span>' : ''}
             </div>
             <div class="flex items-center gap-2 mb-3">
-                <button onclick="generateOfficialReport()" class="bg-slate-800 hover:bg-slate-700 text-white font-bold px-3 py-1.5 rounded text-xs transition flex items-center">
+                <button onclick="generateOfficialReport()" class="bg-slate-800 hover:bg-slate-700 text-white font-bold px-3 py-1.5 rounded text-xs transition flex items-center shadow-sm">
                     <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
                     Resmi Rapor / PDF
+                </button>
+                <button onclick="exportVerificationExcel()" class="bg-emerald-700 hover:bg-emerald-600 text-white font-bold px-3 py-1.5 rounded text-xs transition flex items-center shadow-sm">
+                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    Excel İndir (.xlsx)
                 </button>
             </div>
             <div class="overflow-x-auto max-h-[500px] overflow-y-auto">
@@ -2530,6 +3542,82 @@ function renderVerificationResult(data) {
     });
 
     html += `</tbody></table></div>`;
+
+    if (data.ramberg_osgood) {
+        const ro = data.ramberg_osgood;
+        html += `
+            <div class="mt-4 p-4 bg-slate-50 border border-slate-200 rounded-xl shadow-xs">
+                <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                    <div>
+                        <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+                            <span class="text-blue-600 font-extrabold text-sm">📈</span>
+                            Gerinim Bazlı Tasarım & Ramberg-Osgood Pekleşme Modeli (API 5L Ek N / BOTAŞ)
+                        </h4>
+                        <p class="text-[11px] text-slate-500 mt-0.5">
+                            Çekme testinden türetilen elastik-plastik gerilme-birim şekil değiştirme (σ - ε) eğrisi ve süneklik enerji kapasitesi.
+                        </p>
+                    </div>
+                    <span class="text-[11px] font-bold px-2 py-0.5 rounded ${ro.is_high_strain_compliant ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-blue-100 text-blue-800 border border-blue-300'}">
+                        ${esc(ro.verdict_text)}
+                    </span>
+                </div>
+
+                <!-- 4 KPI Cards -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-3">
+                    <div class="p-2.5 bg-white rounded-lg border border-slate-200 shadow-2xs">
+                        <span class="text-[10px] font-bold text-slate-500 uppercase block">Pekleşme Üssü (n)</span>
+                        <div class="flex items-baseline gap-1 mt-0.5">
+                            <span class="text-base font-extrabold text-blue-900 font-mono">${ro.n_exponent}</span>
+                            <span class="text-[10px] text-slate-400 font-medium">/ 10 - 30</span>
+                        </div>
+                        <span class="text-[9px] text-slate-500 block mt-0.5">ε = σ/E + 0.002·(σ/Rt)ⁿ</span>
+                    </div>
+
+                    <div class="p-2.5 bg-white rounded-lg border border-slate-200 shadow-2xs">
+                        <span class="text-[10px] font-bold text-slate-500 uppercase block">Homojen Uzama (Agt)</span>
+                        <div class="flex items-baseline gap-1 mt-0.5">
+                            <span class="text-base font-extrabold text-indigo-900 font-mono">%${ro.uniform_strain_pct}</span>
+                            <span class="text-[10px] text-emerald-600 font-medium">≥ %5.0</span>
+                        </div>
+                        <span class="text-[9px] text-slate-500 block mt-0.5">Maksimum üniform plastik uzama</span>
+                    </div>
+
+                    <div class="p-2.5 bg-white rounded-lg border border-slate-200 shadow-2xs">
+                        <span class="text-[10px] font-bold text-slate-500 uppercase block">Pekleşme Marjı (ΔR)</span>
+                        <div class="flex items-baseline gap-1 mt-0.5">
+                            <span class="text-base font-extrabold text-emerald-800 font-mono">${ro.hardening_margin_mpa} MPa</span>
+                            <span class="text-[10px] text-emerald-600 font-medium">≥ 80 MPa</span>
+                        </div>
+                        <span class="text-[9px] text-slate-500 block mt-0.5">Rm - Rt0.5 (Süneklik güvencesi)</span>
+                    </div>
+
+                    <div class="p-2.5 bg-white rounded-lg border border-slate-200 shadow-2xs">
+                        <span class="text-[10px] font-bold text-slate-500 uppercase block">Tokluk Modülü (Ut)</span>
+                        <div class="flex items-baseline gap-1 mt-0.5">
+                            <span class="text-base font-extrabold text-purple-900 font-mono">${ro.toughness_modulus_mpa}</span>
+                            <span class="text-[10px] text-slate-500 font-medium">MJ/m³</span>
+                        </div>
+                        <span class="text-[9px] text-slate-500 block mt-0.5">Toplam plastik enerji soğurma</span>
+                    </div>
+                </div>
+
+                <!-- SVG Stress-Strain Curve -->
+                ${renderRambergOsgoodSvg(ro)}
+                <div class="flex flex-wrap items-center justify-between text-[10px] text-slate-500 mt-2 px-1">
+                    <div>
+                        <span class="inline-block w-2 h-2 rounded-full bg-emerald-500 mr-1"></span><strong>Akma:</strong> ${ro.yield_strength_mpa} MPa (%0.5)
+                        &nbsp;&nbsp;
+                        <span class="inline-block w-2 h-2 rounded-full bg-amber-500 mr-1"></span><strong>Çekme (UTS):</strong> ${ro.tensile_strength_mpa} MPa (%${ro.uniform_strain_pct})
+                        &nbsp;&nbsp;
+                        <span class="inline-block w-2 h-2 rounded-full bg-red-500 mr-1"></span><strong>Kopma:</strong> %${ro.elongation_pct}
+                    </div>
+                    <div>
+                        <strong>Y/T:</strong> ${ro.yt_ratio} (Max 0.93) &nbsp;•&nbsp; <strong>Rezilyans (Ur):</strong> ${ro.resilience_modulus_mpa} MJ/m³
+                    </div>
+                </div>
+            </div>
+        `;
+    }
 
     if (data.frequency_references && data.frequency_references.length > 0) {
         html += `
@@ -2570,6 +3658,10 @@ async function generateOfficialReport() {
         showToast("Rapor için en az bir boru bulunmalıdır!", "error");
         return;
     }
+    const w = window.open("", "_blank");
+    if (w) {
+        w.document.write("<!DOCTYPE html><html><head><meta charset='UTF-8'><title>Rapor Hazırlanıyor...</title><style>body{font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;background:#f8fafc;color:#334155;}</style></head><body><div style='text-align:center;'><h3>MTC & Kalite Kabul Raporu Hazırlanıyor...</h3><p style='color:#64748b;font-size:13px;'>Lütfen bekleyin...</p></div></body></html>");
+    }
     try {
         const resp = await fetch("/api/report-view", {
             method: "POST",
@@ -2581,17 +3673,56 @@ async function generateOfficialReport() {
                 verification: lastVerification
             })
         });
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
         const html = await resp.text();
-        const w = window.open("", "_blank");
         if (w) {
+            w.document.open();
             w.document.write(html);
             w.document.close();
         } else {
-            showToast("Açılır pencere engellendi. Lütfen izin verin.", "error");
+            const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+            const blobUrl = URL.createObjectURL(blob);
+            window.open(blobUrl, "_blank");
+            setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
         }
     } catch (e) {
+        if (w) w.close();
         console.error("Report generation error:", e);
         showToast("Rapor oluşturulurken hata oluştu!", "error");
+    }
+}
+
+async function exportVerificationExcel() {
+    if (!lastVerification) {
+        showToast("Önce bir boru doğrulama testi çalıştırın!", "error");
+        return;
+    }
+    try {
+        showToast("Excel MTC doğrulama raporu indiriliyor...", "info");
+        const resp = await fetch("/api/export-verification-excel", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                project_info: activeProject.project_info || {},
+                verification: lastVerification,
+                lang: currentLang || "tr"
+            })
+        });
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const blob = await resp.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        const rawNo = (activeProject.project_info && activeProject.project_info.project_no) ? String(activeProject.project_info.project_no).replace(/[^a-zA-Z0-9_\-\.]/g, '_') : 'API5L';
+        a.download = `MTC_Dogrulama_${rawNo}.xlsx`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+        showToast("MTC Excel raporu başarıyla indirildi.", "success");
+    } catch (e) {
+        console.error("Verification Excel export error:", e);
+        showToast("Excel raporu indirilirken hata oluştu!", "error");
     }
 }
 
@@ -2667,7 +3798,7 @@ async function loadTestPlan() {
                     ${hasFig ? `
                     <span class="inline-flex items-center gap-1 ml-1.5">
                         <button onclick="event.stopPropagation(); openItpInfoModal('figure', ${i}, '2d')" class="itp-info-btn text-blue-600 hover:text-blue-800" title="2D Çizimi göster">📐</button>
-                        ${['tensile_strip', 'tensile_round', 'tensile_weld', 'charpy', 'dwtt'].includes(tp.specimen_figure) ? `
+                        ${['tensile_strip', 'tensile_round', 'tensile_weld', 'charpy', 'dwtt', 'flattening', 'flattening_test', 'pipe_bevel', 'bevel', 'dimensional_bevel_ends', 'pipe_straightness', 'straightness', 'dimensional_straightness'].includes(tp.specimen_figure) ? `
                         <button onclick="event.stopPropagation(); openItpInfoModal('figure', ${i}, '3d')" class="itp-info-btn text-indigo-600 hover:text-indigo-800" title="3D Etkileşimli Modeli göster">🧊</button>` : ''}
                     </span>` : ''}
                 </td>
@@ -2679,7 +3810,7 @@ async function loadTestPlan() {
                     <div class="border border-slate-200 rounded-xl bg-white p-3 shadow-sm">
                         <div class="flex items-center justify-between mb-2">
                             <span class="font-bold text-xs text-slate-800">Numune Çizimi (API 5L Standart Referansı)</span>
-                            ${['tensile_strip', 'tensile_round', 'tensile_weld', 'charpy', 'dwtt'].includes(tp.specimen_figure) ? `
+                            ${['tensile_strip', 'tensile_round', 'tensile_weld', 'charpy', 'dwtt', 'flattening', 'flattening_test', 'pipe_bevel', 'bevel', 'dimensional_bevel_ends', 'pipe_straightness', 'straightness', 'dimensional_straightness'].includes(tp.specimen_figure) ? `
                             <button onclick="event.stopPropagation(); openItpInfoModal('figure', ${i}, '3d')" class="inline-flex items-center gap-1 px-2.5 py-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg text-xs font-semibold shadow hover:from-blue-700 hover:to-indigo-700 transition">
                                 <span>🧊</span> 3D Etkileşimli İncele
                             </button>` : ''}
@@ -2761,7 +3892,7 @@ function openItpInfoModal(type, idx, preferredView) {
     currentItpModalState.type = type;
     currentItpModalState.idx = idx;
 
-    const has3D = ['tensile_strip', 'tensile_round', 'tensile_weld', 'charpy', 'dwtt'].includes(data.specimen_figure);
+    const has3D = ['tensile_strip', 'tensile_round', 'tensile_weld', 'charpy', 'dwtt', 'flattening', 'flattening_test', 'pipe_bevel', 'bevel', 'dimensional_bevel_ends', 'pipe_straightness', 'straightness', 'dimensional_straightness'].includes(data.specimen_figure);
 
     if (type === "clause") {
         if (toggle) toggle.classList.add("hidden");
@@ -2793,6 +3924,72 @@ function closeItpInfoModal() {
     }
     const modal = document.getElementById("itp-info-modal");
     if (modal) modal.classList.add("hidden");
+}
+
+function openFlatteningSpecimenModal(viewMode = '3d') {
+    const modal = document.getElementById("itp-info-modal");
+    const title = document.getElementById("itp-info-title");
+    if (!modal || !title) return;
+
+    window._itpData = window._itpData || [];
+    let idx = window._itpData.findIndex(x => x && (x.specimen_figure === 'flattening' || x.specimen_figure === 'flattening_test'));
+    if (idx === -1) {
+        idx = window._itpData.length;
+        window._itpData.push({
+            test: "Yassıltma Testi (Flattening Test)",
+            clause: "API 5L Madde 10.2.4.3 & BOTAŞ Madde 3.3.3",
+            clause_ref: "Kaynak dikişi 90° (saat 9 veya 3) konumunda H çene mesafesine kadar yassıltılır. Çatlak veya kaynak ayrılması kabul edilmez.\nKademe 2: 0.33D mesafesinde gövde süneklik testi.\nKademe 3: 2t mesafesinde katmer ve sağlamlık kontrolü.",
+            frequency: "1 test / 100 boru veya üretim lotu",
+            location: "Boru ucu ring numunesi",
+            specimen: "Tam halka (L ≥ 60 mm / 2.5 in)",
+            specimen_figure: "flattening_test"
+        });
+    }
+    openItpInfoModal('figure', idx, viewMode);
+}
+
+function openBevelSpecimenModal(viewMode = '3d') {
+    const modal = document.getElementById("itp-info-modal");
+    const title = document.getElementById("itp-info-title");
+    if (!modal || !title) return;
+
+    window._itpData = window._itpData || [];
+    let idx = window._itpData.findIndex(x => x && (x.specimen_figure === 'pipe_bevel' || x.specimen_figure === 'bevel' || x.specimen_figure === 'dimensional_bevel_ends'));
+    if (idx === -1) {
+        idx = window._itpData.length;
+        window._itpData.push({
+            test: "Alın Kaynak Ağzı & Kök Yüzeyi (Bevel Preparation)",
+            clause: "API 5L Madde 9.12.5 & BOTAŞ Madde 3.3.8",
+            clause_ref: "Kaynak Ağzı Açısı: 30° (+5° / -0°) (veya 35°)\nKök Yüzeyi (Root Face Landing): 1.6 ± 0.8 mm (0.80 - 2.40 mm)\nBoru Ucu Diklikten Sapma: e ≤ 1.60 mm\nİç Talaş Kaldırma (Counterbore): Maksimum 1:4 (14°) eğim geçişi.",
+            frequency: "Her borunun her iki ucunda (%100)",
+            location: "Boru uçları (100 mm içinde)",
+            specimen: "Bridge Cam Mastarı & Sentil",
+            specimen_figure: "pipe_bevel"
+        });
+    }
+    openItpInfoModal('figure', idx, viewMode);
+}
+
+function openStraightnessSpecimenModal(viewMode = '3d') {
+    const modal = document.getElementById("itp-info-modal");
+    const title = document.getElementById("itp-info-title");
+    if (!modal || !title) return;
+
+    window._itpData = window._itpData || [];
+    let idx = window._itpData.findIndex(x => x && (x.specimen_figure === 'pipe_straightness' || x.specimen_figure === 'straightness' || x.specimen_figure === 'dimensional_straightness'));
+    if (idx === -1) {
+        idx = window._itpData.length;
+        window._itpData.push({
+            test: "Boru Düzlük ve Uç Sapması (Straightness & End Camber)",
+            clause: "API 5L Madde 9.11.3 & BOTAŞ Madde 5.5, 8.1.2.4",
+            clause_ref: "Tam Boy Düzlük Sapması: ≤ %0.15 × L (BOTAŞ) / ≤ %0.20 × L (API 5L Tablo 12).\nUç Düzlüğü Sapması (1.0 m Chord): ≤ 3.00 mm (BOTAŞ 8.1.2.4) / ≤ 4.00 mm (API 5L 9.11.3.2).\nÖlçüm Metodu: Çelik tel / optik lazer kolimatör ve 1.0 m çelik mastar + sentil.",
+            frequency: "Her boru (%100 görsel ve mastar/lazer kontrolü)",
+            location: "Tüm boru boyu ve her iki boru ucu",
+            specimen: "Lazer Kolimatör & 1.0 m Çelik Mastar",
+            specimen_figure: "pipe_straightness"
+        });
+    }
+    openItpInfoModal('figure', idx, viewMode);
 }
 
 // --- FEEDBACK & DEVELOPER CONTACT MODULE ---

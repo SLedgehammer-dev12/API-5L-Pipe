@@ -2296,6 +2296,1247 @@ class TestPipeQAQCSuite(unittest.TestCase):
                   'wall_thickness', 'weight', 'length', 'ndt'):
             self.assertTrue(rf.get(k), msg=f"row_frequency['{k}'] boş")
 
+    def test_44_dwtt_verification_checks(self):
+        """DWTT shear area >= 85% average and >= 60% single specimen compliance checks."""
+        from core.verification_engine import PipeVerificationEngine, applicable_parameter_keys
+
+        pipe_48 = {
+            'diameter_inch': '48"',
+            'diameter_mm': 1219.0,
+            'wall_thickness_mm': 14.30,
+            'material_grade': 'X65',
+            'manufacturing_process': 'SAWH',
+            'standard_type': 'BOTAŞ',
+            'psl_level': 'PSL2'
+        }
+
+        # 1. DWTT is applicable for 48" PSL2 welded pipe
+        limits = PipeQAQCEngine.calculate_pipe_qc(**pipe_48)
+        keys = applicable_parameter_keys(limits)
+        self.assertIn('dwtt', keys)
+
+        # 2. Passing DWTT (avg 92%, single 85%)
+        res_pass = PipeVerificationEngine.verify_pipe_test_results(pipe_48, {
+            'dwtt_shear_actual': 92.0,
+            'dwtt_shear_ind_actual': 85.0
+        })
+        dwtt_check = next(c for c in res_pass['checks'] if 'DWTT' in c['parameter'])
+        self.assertEqual(dwtt_check['status'], 'PASS')
+        self.assertEqual(res_pass['overall_status'], 'ACCEPTED')
+
+        # 3. Failing DWTT (avg 80% < 85%)
+        res_fail_avg = PipeVerificationEngine.verify_pipe_test_results(pipe_48, {
+            'dwtt_shear_actual': 80.0,
+            'dwtt_shear_ind_actual': 75.0
+        })
+        dwtt_check_avg = next(c for c in res_fail_avg['checks'] if 'DWTT' in c['parameter'])
+        self.assertEqual(dwtt_check_avg['status'], 'FAIL')
+        self.assertEqual(res_fail_avg['overall_status'], 'REJECTED')
+
+        # 4. Failing DWTT on single specimen (avg 88% >= 85% but single 55% < 60%)
+        res_fail_ind = PipeVerificationEngine.verify_pipe_test_results(pipe_48, {
+            'dwtt_shear_actual': 88.0,
+            'dwtt_shear_ind_actual': 55.0
+        })
+        dwtt_check_ind = next(c for c in res_fail_ind['checks'] if 'DWTT' in c['parameter'])
+        self.assertEqual(dwtt_check_ind['status'], 'FAIL')
+        self.assertIn("Tekil numune kırılma yüzeyi %60'ın altında", dwtt_check_ind['notes'])
+        self.assertEqual(res_fail_ind['overall_status'], 'REJECTED')
+
+        # 5. Non-applicable pipes (D < 508 mm, SMLS, PSL1)
+        pipe_12 = dict(pipe_48, diameter_inch='12"', diameter_mm=323.9)
+        keys_12 = applicable_parameter_keys(PipeQAQCEngine.calculate_pipe_qc(**pipe_12))
+        self.assertNotIn('dwtt', keys_12)
+
+        pipe_smls = dict(pipe_48, manufacturing_process='SMLS')
+        keys_smls = applicable_parameter_keys(PipeQAQCEngine.calculate_pipe_qc(**pipe_smls))
+        self.assertNotIn('dwtt', keys_smls)
+
+        pipe_psl1 = dict(pipe_48, psl_level='PSL1')
+        keys_psl1 = applicable_parameter_keys(PipeQAQCEngine.calculate_pipe_qc(**pipe_psl1))
+        self.assertNotIn('dwtt', keys_psl1)
+
+    def test_71_export_verification_excel(self):
+        """MTC inspection verification Excel export unit & API endpoint test."""
+        import io
+        import openpyxl
+        from core.excel_exporter import ExcelExporter
+        from core.verification_engine import PipeVerificationEngine
+
+        pipe_48 = {
+            'diameter_inch': '48"',
+            'diameter_mm': 1219.0,
+            'wall_thickness_mm': 14.30,
+            'material_grade': 'X65',
+            'manufacturing_process': 'SAWH',
+            'standard_type': 'BOTAŞ',
+            'psl_level': 'PSL2'
+        }
+        actual_data = {
+            'yield_strength_body_actual': 485.0,
+            'tensile_strength_body_actual': 580.0,
+            'elongation_actual': 26.5,
+            'cvn_body_actual': 120.0,
+            'dwtt_shear_actual': 90.0,
+            'dwtt_shear_ind_actual': 82.0,
+            'c_actual': 0.08,
+            'ce_pcm_actual': 0.16
+        }
+        res_verif = PipeVerificationEngine.verify_pipe_test_results(pipe_48, actual_data)
+        project_info = {
+            "project_name": "Test Doğrulama Projesi",
+            "project_no": "PRJ-2026-001",
+            "client": "BOTAŞ A.Ş.",
+            "contractor": "Borusan Mannesmann"
+        }
+
+        # 1. Direct engine export test
+        bio = ExcelExporter.export_verification_report(project_info, res_verif, lang="tr")
+        self.assertIsNotNone(bio)
+        wb = openpyxl.load_workbook(bio)
+        ws = wb.active
+        self.assertIn("MTC Doğrulama ve Kabul", ws.title)
+        self.assertIn("BORU MALZEME TEST SERTİFİKASI", ws.cell(1, 1).value)
+        self.assertIn("PRJ-2026-001", ws.cell(2, 1).value)
+        self.assertIn("GENEL FABRİKA KABUL KARARI", ws.cell(5, 1).value)
+
+        # 2. API Endpoint test
+        resp = self.client.post("/api/export-verification-excel", json={
+            "project_info": project_info,
+            "verification": res_verif,
+            "lang": "tr"
+        })
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(
+            resp.headers["content-type"],
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+        self.assertIn("attachment; filename=", resp.headers["content-disposition"])
+        self.assertIn("MTC_Dogrulama_PRJ-2026-001.xlsx", resp.headers["content-disposition"])
+
+        api_wb = openpyxl.load_workbook(io.BytesIO(resp.content))
+        self.assertIn("MTC Doğrulama ve Kabul", api_wb.active.title)
+
+    def test_72_weld_tensile_verification(self):
+        """Transverse weld tensile strength compliance checks (API 5L Tablo 18 / BOTAŞ 4.2)."""
+        from core.verification_engine import PipeVerificationEngine, applicable_parameter_keys
+
+        pipe_48 = {
+            'diameter_inch': '48"',
+            'diameter_mm': 1219.0,
+            'wall_thickness_mm': 14.30,
+            'material_grade': 'X65',
+            'manufacturing_process': 'SAWH',
+            'standard_type': 'BOTAŞ',
+            'psl_level': 'PSL2'
+        }
+
+        # 1. Weld tensile is applicable for welded pipe (SAWH), but NOT for seamless (SMLS)
+        limits_sawh = PipeQAQCEngine.calculate_pipe_qc(**pipe_48)
+        keys_sawh = applicable_parameter_keys(limits_sawh)
+        self.assertIn('weld_tensile', keys_sawh)
+
+        pipe_smls = dict(pipe_48, manufacturing_process='SMLS')
+        limits_smls = PipeQAQCEngine.calculate_pipe_qc(**pipe_smls)
+        keys_smls = applicable_parameter_keys(limits_smls)
+        self.assertNotIn('weld_tensile', keys_smls)
+
+        # 2. Passing Weld Tensile (X65 min tensile is 535 MPa -> 580 MPa >= 535 MPa)
+        res_pass = PipeVerificationEngine.verify_pipe_test_results(pipe_48, {
+            'yield_strength_actual': 485.0,
+            'tensile_strength_actual': 560.0,
+            'weld_tensile_actual': 580.0
+        })
+        weld_chk = next(c for c in res_pass['checks'] if 'Kaynak Çekme' in c['parameter'])
+        self.assertEqual(weld_chk['status'], 'PASS')
+        self.assertIn("Min 535.00 MPa", weld_chk['required_limit'])
+        self.assertEqual(res_pass['overall_status'], 'ACCEPTED')
+
+        # 3. Failing Weld Tensile (510 MPa < 535 MPa)
+        res_fail = PipeVerificationEngine.verify_pipe_test_results(pipe_48, {
+            'yield_strength_actual': 485.0,
+            'tensile_strength_actual': 560.0,
+            'weld_tensile_actual': 510.0
+        })
+        weld_chk_fail = next(c for c in res_fail['checks'] if 'Kaynak Çekme' in c['parameter'])
+        self.assertEqual(weld_chk_fail['status'], 'FAIL')
+        self.assertIn("minimum çekme sınırının (535.0 MPa) altında", weld_chk_fail['notes'])
+        self.assertEqual(res_fail['overall_status'], 'REJECTED')
+
+        # 4. SMLS pipe ignores weld_tensile_actual
+        res_smls = PipeVerificationEngine.verify_pipe_test_results(pipe_smls, {
+            'yield_strength_actual': 485.0,
+            'tensile_strength_actual': 560.0,
+            'weld_tensile_actual': 580.0
+        })
+        self.assertFalse(any('Kaynak Çekme' in c['parameter'] for c in res_smls['checks']))
+
+    def test_73_export_wall_thickness_excel(self):
+        """Pipe wall thickness engineering calculation sheet Excel export & API test."""
+        import io
+        import openpyxl
+        from core.excel_exporter import ExcelExporter
+        from core.wall_thickness_engine import WallThicknessEngine
+
+        calc_res = WallThicknessEngine.calculate_wall_thickness(
+            diameter_inch='48"',
+            material_grade='X65',
+            design_pressure_bar=75.0,
+            design_factor_f=0.72,
+            longitudinal_joint_factor_e=1.0,
+            temperature_derating_factor_t=1.0,
+            corrosion_allowance_mm=1.0,
+            location_type='Pipeline',
+            standard_code='BOTAŞ',
+            manufacturing_process='SAWH'
+        )
+        project_info = {
+            "project_name": "Doğalgaz Boru Hattı Genişletme Projesi",
+            "project_no": "PRJ-2026-WT",
+            "client": "BOTAŞ A.Ş."
+        }
+
+        # 1. Direct engine export test
+        bio = ExcelExporter.export_wall_thickness_report(calc_res, project_info, lang="tr")
+        self.assertIsNotNone(bio)
+        wb = openpyxl.load_workbook(bio)
+        ws = wb.active
+        self.assertIn("Et Kalınlığı Hesabı", ws.title)
+        self.assertIn("BORU HATTI & BASINÇLI BORULAMA ET KALINLIĞI", ws.cell(1, 1).value)
+        self.assertIn("PRJ-2026-WT", ws.cell(2, 1).value)
+        self.assertIn("GENEL DEĞERLENDİRME", ws.cell(4, 1).value)
+
+        # 2. API Endpoint test
+        resp = self.client.post("/api/export-wall-thickness-excel", json={
+            "project_info": project_info,
+            "calculation_data": calc_res,
+            "lang": "tr"
+        })
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(
+            resp.headers["content-type"],
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+        self.assertIn("attachment; filename=", resp.headers["content-disposition"])
+        self.assertIn("Et_Kalinligi_Hesabi_PRJ-2026-WT_48in.xlsx", resp.headers["content-disposition"])
+
+        api_wb = openpyxl.load_workbook(io.BytesIO(resp.content))
+        self.assertIn("Et Kalınlığı Hesabı", api_wb.active.title)
+
+    def test_74_bevel_angle_and_root_face_verification(self):
+        """Pipe end bevel angle (30° +5°/-0°) and root face (1.6±0.8 mm) compliance checks."""
+        from core.verification_engine import PipeVerificationEngine, applicable_parameter_keys
+
+        pipe_48 = {
+            'diameter_inch': '48"',
+            'diameter_mm': 1219.0,
+            'wall_thickness_mm': 14.30,
+            'material_grade': 'X65',
+            'manufacturing_process': 'SAWH',
+            'standard_type': 'BOTAŞ',
+            'psl_level': 'PSL2'
+        }
+
+        # 1. Bevel angle and root face applicable for standard pipe (t >= 3.2 mm)
+        limits_48 = PipeQAQCEngine.calculate_pipe_qc(**pipe_48)
+        keys_48 = applicable_parameter_keys(limits_48)
+        self.assertIn('bevel_angle', keys_48)
+        self.assertIn('root_face', keys_48)
+
+        # 2. Passing Bevel & Root face (32.5° and 1.6 mm)
+        res_pass = PipeVerificationEngine.verify_pipe_test_results(pipe_48, {
+            'bevel_angle_actual': 32.5,
+            'root_face_actual': 1.60
+        })
+        chk_ba = next(c for c in res_pass['checks'] if 'Kaynak Ağzı Açısı' in c['parameter'])
+        chk_rf = next(c for c in res_pass['checks'] if 'Kök Yüzeyi' in c['parameter'])
+        self.assertEqual(chk_ba['status'], 'PASS')
+        self.assertIn("30.0° - 35.0°", chk_ba['required_limit'])
+        self.assertEqual(chk_rf['status'], 'PASS')
+        self.assertIn("0.80 - 2.40 mm", chk_rf['required_limit'])
+        self.assertEqual(res_pass['overall_status'], 'ACCEPTED')
+
+        # 3. Failing Bevel Angle (too steep: 37.0° > 35.0°)
+        res_fail_ba = PipeVerificationEngine.verify_pipe_test_results(pipe_48, {
+            'bevel_angle_actual': 37.0,
+            'root_face_actual': 1.60
+        })
+        chk_ba_fail = next(c for c in res_fail_ba['checks'] if 'Kaynak Ağzı Açısı' in c['parameter'])
+        self.assertEqual(chk_ba_fail['status'], 'FAIL')
+        self.assertIn("30°-35° limitleri dışında", chk_ba_fail['notes'])
+        self.assertEqual(res_fail_ba['overall_status'], 'REJECTED')
+
+        # 4. Failing Root Face (too narrow: 0.50 mm < 0.80 mm)
+        res_fail_rf = PipeVerificationEngine.verify_pipe_test_results(pipe_48, {
+            'bevel_angle_actual': 32.0,
+            'root_face_actual': 0.50
+        })
+        chk_rf_fail = next(c for c in res_fail_rf['checks'] if 'Kök Yüzeyi' in c['parameter'])
+        self.assertEqual(chk_rf_fail['status'], 'FAIL')
+        self.assertIn("0.8-2.4 mm limitleri dışında", chk_rf_fail['notes'])
+        self.assertEqual(res_fail_rf['overall_status'], 'REJECTED')
+
+    def test_75_guided_bend_verification(self):
+        """API 5L 9.7 & Table 18 / BOTAŞ 3.3.4 Guided Bend Test (Kılavuzlu Bükme Testi: çatlak ≤ 3.2 mm)."""
+        from core.verification_engine import PipeVerificationEngine, applicable_parameter_keys
+
+        pipe_sawh = {
+            'diameter_inch': '48"',
+            'diameter_mm': 1219.0,
+            'wall_thickness_mm': 14.30,
+            'material_grade': 'X65',
+            'manufacturing_process': 'SAWH',
+            'standard_type': 'BOTAŞ',
+            'psl_level': 'PSL2'
+        }
+        pipe_smls = {
+            'diameter_inch': '12"',
+            'diameter_mm': 323.9,
+            'wall_thickness_mm': 9.53,
+            'material_grade': 'X52',
+            'manufacturing_process': 'SMLS',
+            'standard_type': 'API 5L',
+            'psl_level': 'PSL2'
+        }
+
+        # 1. Applicability: welded pipes require guided_bend, seamless pipes do not
+        limits_sawh = PipeQAQCEngine.calculate_pipe_qc(**pipe_sawh)
+        keys_sawh = applicable_parameter_keys(limits_sawh)
+        self.assertIn('guided_bend', keys_sawh)
+        self.assertIn('weld_tensile', keys_sawh)
+
+        limits_smls = PipeQAQCEngine.calculate_pipe_qc(**pipe_smls)
+        keys_smls = applicable_parameter_keys(limits_smls)
+        self.assertNotIn('guided_bend', keys_smls)
+        self.assertNotIn('weld_tensile', keys_smls)
+
+        # 2. Qualitative Pass: "Kusursuz (≤ 3.2 mm)"
+        res_pass_qual = PipeVerificationEngine.verify_pipe_test_results(pipe_sawh, {
+            'guided_bend_actual': 'Kusursuz (≤ 3.2 mm)'
+        })
+        chk_qual = next(c for c in res_pass_qual['checks'] if 'Kılavuzlu Bükme' in c['parameter'])
+        self.assertEqual(chk_qual['status'], 'PASS')
+        self.assertEqual(chk_qual['actual_value'], 'Kusursuz (Çatlak Yok)')
+        self.assertIn("3.2 mm", chk_qual['required_limit'])
+        self.assertEqual(res_pass_qual['overall_status'], 'ACCEPTED')
+
+        # 3. Qualitative Pass: "Uygun"
+        res_pass_uygun = PipeVerificationEngine.verify_pipe_test_results(pipe_sawh, {
+            'guided_bend_actual': 'Uygun'
+        })
+        chk_uygun = next(c for c in res_pass_uygun['checks'] if 'Kılavuzlu Bükme' in c['parameter'])
+        self.assertEqual(chk_uygun['status'], 'PASS')
+
+        # 4. Numeric Pass: 1.5 mm (<= 3.2 mm)
+        res_pass_num = PipeVerificationEngine.verify_pipe_test_results(pipe_sawh, {
+            'guided_bend_actual': 1.5
+        })
+        chk_num = next(c for c in res_pass_num['checks'] if 'Kılavuzlu Bükme' in c['parameter'])
+        self.assertEqual(chk_num['status'], 'PASS')
+        self.assertIn("1.5 mm", chk_num['actual_value'])
+        self.assertEqual(res_pass_num['overall_status'], 'ACCEPTED')
+
+        # 5. Numeric Fail: 4.5 mm (> 3.2 mm)
+        res_fail_num = PipeVerificationEngine.verify_pipe_test_results(pipe_sawh, {
+            'guided_bend_actual': 4.5
+        })
+        chk_fail_num = next(c for c in res_fail_num['checks'] if 'Kılavuzlu Bükme' in c['parameter'])
+        self.assertEqual(chk_fail_num['status'], 'FAIL')
+        self.assertIn("4.5 mm", chk_fail_num['actual_value'])
+        self.assertEqual(res_fail_num['overall_status'], 'REJECTED')
+
+        # 6. Qualitative Fail: "Red (Kırık)"
+        res_fail_qual = PipeVerificationEngine.verify_pipe_test_results(pipe_sawh, {
+            'guided_bend_actual': 'Red (Kırık)'
+        })
+        chk_fail_qual = next(c for c in res_fail_qual['checks'] if 'Kılavuzlu Bükme' in c['parameter'])
+        self.assertEqual(chk_fail_qual['status'], 'FAIL')
+        self.assertEqual(res_fail_qual['overall_status'], 'REJECTED')
+
+        # 7. SMLS pipe ignores guided_bend check
+        res_smls = PipeVerificationEngine.verify_pipe_test_results(pipe_smls, {
+            'guided_bend_actual': 5.0
+        })
+        self.assertFalse(any('Kılavuzlu Bükme' in c['parameter'] for c in res_smls['checks']))
+
+        # 8. Flask API /api/verify endpoint verification
+        api_res = self.client.post("/api/verify", json={
+            "pipe_config": pipe_sawh,
+            "actual_data": {
+                "guided_bend_actual": "Kusursuz (≤ 3.2 mm)"
+            }
+        })
+        self.assertEqual(api_res.status_code, 200)
+        api_json = api_res.json()
+        self.assertEqual(api_json["status"], "success")
+        self.assertTrue(any("Kılavuzlu Bükme" in c["parameter"] and c["status"] == "PASS" for c in api_json["verification"]["checks"]))
+
+    def test_76_tensile_strip_concave_specimen_geometry(self):
+        """ASTM A370 Fig 3 & API 5L 10.2.3.2.1 Tensile strip dog-bone specimen concave shoulder fillet (R >= 25 mm)."""
+        import pathlib
+
+        base_dir = pathlib.Path(__file__).resolve().parent.parent
+
+        # 1. Verify 2D SVG drawing in static/js/specimen_drawings.js
+        svg_js_path = base_dir / "static" / "js" / "specimen_drawings.js"
+        self.assertTrue(svg_js_path.exists())
+        svg_content = svg_js_path.read_text(encoding="utf-8")
+
+        # Must have concave transition (control points tangent to reduced width 74 / 122)
+        self.assertIn("Q 165 74, 185 74", svg_content)
+        self.assertIn("Q 455 74, 475 62", svg_content)
+        self.assertIn("Q 455 122, 435 122", svg_content)
+        self.assertIn("Q 165 122, 145 134", svg_content)
+
+        # Must not contain old convex shoulder path
+        self.assertNotIn("Q 165 62, 185 74", svg_content)
+        self.assertNotIn("Q 455 62, 480 62", svg_content)
+
+        # Must have concave fillet radius callout
+        self.assertIn("İçbükey Omuz Radyüsü", svg_content)
+
+        # 2. Verify 3D WebGL model in static/js/specimen_visualizer_3d.js
+        model_3d_path = base_dir / "static" / "js" / "specimen_visualizer_3d.js"
+        self.assertTrue(model_3d_path.exists())
+        model_3d_content = model_3d_path.read_text(encoding="utf-8")
+
+        # Must use concave quadratic curves tangent to halfW / -halfW
+        self.assertIn("shape.quadraticCurveTo(cpXLeft, halfW, -halfA, halfW)", model_3d_content)
+        self.assertIn("shape.quadraticCurveTo(cpXRight, halfW, xGrip, halfC)", model_3d_content)
+        self.assertIn("shape.quadraticCurveTo(cpXRight, -halfW, halfA, -halfW)", model_3d_content)
+        self.assertIn("shape.quadraticCurveTo(cpXLeft, -halfW, -xGrip, -halfC)", model_3d_content)
+
+        # Must not contain old convex shoulder bezierCurveTo
+        self.assertNotIn("shape.bezierCurveTo(-9.5, halfC", model_3d_content)
+        self.assertNotIn("shape.bezierCurveTo(7.5, halfW, 9.5, halfC", model_3d_content)
+
+        # Must have high smooth curveSegments
+        self.assertIn("curveSegments: 24", model_3d_content)
+        self.assertIn("İçbükey / Concave Omuz", model_3d_content)
+
+    def test_77_sawh_geometry_excel_export(self):
+        """SAWH forming geometry & coil strip procurement calculation sheet Excel export and endpoint test."""
+        import io
+        import openpyxl
+        from core.sawh_engine import compute_sawh_calc
+        from core.excel_exporter import ExcelExporter
+
+        # 1. Calculation Engine with procurement metrics
+        calc = compute_sawh_calc(
+            d_mm=1219.0,
+            t_mm=14.30,
+            helix_angle_deg=45.0,
+            edge_milling_allowance_mm=15.0
+        )
+        self.assertAlmostEqual(calc['d_mid_mm'], 1204.70, places=2)
+        self.assertAlmostEqual(calc['strip_width_mm'], 2676.17, places=1)
+        self.assertAlmostEqual(calc['strip_width_gross_mm'], 2691.17, places=1)
+        self.assertAlmostEqual(calc['strip_length_per_meter_pipe'], 1.4142, places=3)
+        self.assertAlmostEqual(calc['seam_stress_factor'], 0.75, places=3)
+        self.assertAlmostEqual(calc['seam_stress_reduction_percent'], 25.0, places=1)
+        self.assertTrue(calc['valid'])
+
+        # 2. Excel Exporter Workbook Generation
+        project_info = {
+            "project_name": "BOTAŞ Batı Karadeniz Faz-2",
+            "project_no": "PRJ-2026-SAWH",
+            "client": "BOTAŞ Genel Müdürlüğü",
+            "revision_date": "2026-10-09"
+        }
+        pipe_info = {
+            "diameter_inch": '48"',
+            "diameter_mm": 1219.0,
+            "wall_thickness_mm": 14.30,
+            "material_grade": "X65",
+            "standard_type": "BOTAŞ",
+            "psl_level": "PSL2"
+        }
+
+        excel_stream = ExcelExporter.export_sawh_geometry_report(
+            sawh_data=calc,
+            project_info=project_info,
+            pipe_info=pipe_info,
+            lang="tr"
+        )
+        self.assertIsInstance(excel_stream, io.BytesIO)
+        self.assertGreater(len(excel_stream.getvalue()), 5000)
+
+        wb = openpyxl.load_workbook(excel_stream)
+        ws = wb.active
+        self.assertEqual(ws.title, "SAWH İmalat Geometrisi")
+        self.assertIn("SAWH SPİRAL İMALAT GEOMETRİSİ", ws.cell(1, 1).value)
+        self.assertIn("PRJ-2026-SAWH", ws.cell(2, 1).value)
+        self.assertIn("GENEL İMALAT UYGUNLUK KARARI: UYGUN", ws.cell(4, 1).value)
+
+        # Check section contents
+        full_text = " ".join(str(cell.value) for row in ws.iter_rows() for cell in row if cell.value is not None)
+        self.assertIn("Boru Dış Çapı", full_text)
+        self.assertIn("Şekillendirme / Helis Açısı", full_text)
+        self.assertIn("Net Şerit Genişliği", full_text)
+        self.assertIn("Sipariş Brüt Bant Genişliği", full_text)
+        self.assertIn("Spiral Dikiş Normal Gerilme Çarpanı", full_text)
+        self.assertIn("API 5L Madde 8.10", full_text)
+        self.assertIn("HAZIRLAYAN", full_text)
+
+        # 3. FastAPI Endpoint /api/export-sawh-excel
+        api_res = self.client.post("/api/export-sawh-excel", json={
+            "project_info": project_info,
+            "sawh_data": {
+                "d_mm": 1219.0,
+                "t_mm": 14.30,
+                "strip_width_mm": 2676.17,
+                "helix_angle_deg": 45.0,
+                "edge_milling_allowance_mm": 15.0
+            },
+            "pipe_info": pipe_info,
+            "lang": "tr"
+        })
+        self.assertEqual(api_res.status_code, 200)
+        self.assertEqual(
+            api_res.headers["content-type"],
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+        self.assertIn("SAWH_Spiral_Geometri_PRJ-2026-SAWH_48in.xlsx", api_res.headers["content-disposition"])
+
+        wb_api = openpyxl.load_workbook(io.BytesIO(api_res.content))
+        self.assertEqual(wb_api.active.title, "SAWH İmalat Geometrisi")
+
+    def test_78_skelp_end_weld_distance_verification(self):
+        """API 5L 8.10 Skelp end weld (bobin uç kaynağı) safety margin (>= 300 mm) verification."""
+        import io
+        import math
+        import openpyxl
+        from core.sawh_engine import compute_sawh_calc
+        from core.excel_exporter import ExcelExporter
+
+        # Case 1: Standard Coil 800m, 12m pipe, alpha=45.0 deg -> SAFE (1685.4 mm > 300 mm)
+        safe_calc = compute_sawh_calc(
+            d_mm=1219.0,
+            t_mm=14.30,
+            helix_angle_deg=45.0,
+            coil_length_m=800.0,
+            pipe_length_m=12.0,
+            min_skelp_end_distance_mm=300.0
+        )
+        self.assertAlmostEqual(safe_calc["total_pipe_length_per_coil_m"], 565.69, places=1)
+        self.assertEqual(safe_calc["pipes_per_coil_count"], 47)
+        self.assertAlmostEqual(safe_calc["skelp_weld_distance_to_nearest_end_mm"], 1685.4, places=0)
+        self.assertTrue(safe_calc["skelp_weld_safe"])
+        self.assertEqual(safe_calc["skelp_weld_status"], "PASS")
+        self.assertIn("UYGUN", safe_calc["skelp_weld_note"])
+
+        # Case 2: Custom coil length engineered to yield distance < 300 mm -> REJECT_OR_CROP
+        # Total pipe length = 120.15 m -> 120.15 % 12.0 = 0.15 m = 150.0 mm (< 300 mm)
+        sin_45 = math.sin(math.radians(45.0))
+        crop_coil_len = 120.15 / sin_45
+        crop_calc = compute_sawh_calc(
+            d_mm=1219.0,
+            t_mm=14.30,
+            helix_angle_deg=45.0,
+            coil_length_m=crop_coil_len,
+            pipe_length_m=12.0,
+            min_skelp_end_distance_mm=300.0
+        )
+        self.assertAlmostEqual(crop_calc["skelp_weld_distance_to_nearest_end_mm"], 150.0, places=0)
+        self.assertFalse(crop_calc["skelp_weld_safe"])
+        self.assertEqual(crop_calc["skelp_weld_status"], "REJECT_OR_CROP")
+        self.assertIn("UYARI", crop_calc["skelp_weld_note"])
+
+        # Case 3: Excel report generation includes Section 5 Skelp End Weld Analysis
+        excel_stream = ExcelExporter.export_sawh_geometry_report(
+            sawh_data=safe_calc,
+            project_info={"project_no": "TEST-SKELP"},
+            pipe_info={"diameter_inch": '48"', "wall_thickness_mm": 14.30},
+            lang="tr"
+        )
+        wb = openpyxl.load_workbook(excel_stream)
+        ws = wb.active
+        all_text = " ".join(str(cell.value) for row in ws.iter_rows() for cell in row if cell.value is not None)
+        self.assertIn("BOBİN UÇ KAYNAĞI VE BORU UCUNA MESAFE KONTROLÜ", all_text)
+        self.assertIn("En Yakın Boru Alnına Olan Mesafe", all_text)
+        self.assertIn("1685.4", all_text)
+        self.assertIn("API 5L Madde 8.10 Emniyet Kararı", all_text)
+
+        # Case 4: API endpoint /api/sawh-strip returns skelp weld metrics
+        resp = self.client.post("/api/sawh-strip", json={
+            "diameter_mm": 1219.0,
+            "wall_thickness_mm": 14.30,
+            "helix_angle_deg": 45.0,
+            "coil_length_m": 800.0,
+            "pipe_length_m": 12.0,
+            "min_skelp_end_distance_mm": 300.0
+        })
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()["data"]
+        self.assertIn("skelp_weld_safe", data)
+        self.assertIn("skelp_weld_distance_to_nearest_end_mm", data)
+        self.assertEqual(data["skelp_weld_status"], "PASS")
+
+    def test_79_sawl_geometry_and_expansion_verification(self):
+        """SAWL pipe JCOE plate sizing, mechanical expansion (API 5L 8.9), and Excel export verification."""
+        import io
+        import openpyxl
+        from core.sawl_engine import compute_sawl_calc
+        from core.excel_exporter import ExcelExporter
+
+        # 1. Calculation Engine: Nominal 48" X65 14.30mm SAWL pipe
+        calc = compute_sawl_calc(
+            d_mm=1219.0,
+            t_mm=14.30,
+            pipe_length_m=12.0,
+            edge_milling_allowance_mm=30.0,
+            expansion_ratio_pct=1.0
+        )
+        self.assertAlmostEqual(calc["d_mid_mm"], 1204.70, places=2)
+        self.assertAlmostEqual(calc["plate_width_net_mm"], 3784.68, places=1)
+        self.assertAlmostEqual(calc["plate_width_gross_mm"], 3814.68, places=1)
+        self.assertGreater(calc["plate_weight_gross_kg"], 5000.0)
+        self.assertGreater(calc["plate_weight_net_kg"], 5000.0)
+        self.assertAlmostEqual(calc["delta_d_mm"], 12.07, delta=0.5)
+        self.assertTrue(calc["expansion_valid"])
+        self.assertEqual(calc["expansion_status"], "PASS")
+        self.assertIn("JCOE", calc["forming_method"])
+
+        # 2. Low and High Expansion Ratio checks
+        calc_low = compute_sawl_calc(1219.0, 14.30, expansion_ratio_pct=0.5)
+        self.assertFalse(calc_low["expansion_valid"])
+        self.assertEqual(calc_low["expansion_status"], "LOW_EXPANSION")
+
+        calc_high = compute_sawl_calc(1219.0, 14.30, expansion_ratio_pct=2.0)
+        self.assertFalse(calc_high["expansion_valid"])
+        self.assertEqual(calc_high["expansion_status"], "HIGH_EXPANSION")
+
+        # 3. Excel Export Workbook Generation
+        project_info = {
+            "project_name": "BOTAŞ SAWL Ana İletim Hattı",
+            "project_no": "PRJ-SAWL-2026",
+            "client": "BOTAŞ Genel Müdürlüğü",
+            "revision_date": "2026-10-09"
+        }
+        pipe_info = {
+            "diameter_inch": '48"',
+            "diameter_mm": 1219.0,
+            "wall_thickness_mm": 14.30,
+            "material_grade": "X65",
+            "standard_type": "BOTAŞ",
+            "psl_level": "PSL2"
+        }
+        excel_stream = ExcelExporter.export_sawl_geometry_report(
+            sawl_data=calc,
+            project_info=project_info,
+            pipe_info=pipe_info,
+            lang="tr"
+        )
+        self.assertIsInstance(excel_stream, io.BytesIO)
+        self.assertGreater(len(excel_stream.getvalue()), 5000)
+
+        wb = openpyxl.load_workbook(excel_stream)
+        ws = wb.active
+        self.assertEqual(ws.title, "SAWL İmalat Geometrisi")
+        all_text = " ".join(str(cell.value) for row in ws.iter_rows() for cell in row if cell.value is not None)
+        self.assertIn("SAWL BOYUNA KAYNAKLI BORU İMALAT GEOMETRİSİ", all_text)
+        self.assertIn("ÇELİK PLAKA TEDARİK VE SİPARİŞ ÖLÇÜLERİ", all_text)
+        self.assertIn("JCOE SOĞUK ŞEKİLLENDİRME ADIMLARI", all_text)
+        self.assertIn("MEKANİK GENİŞLETİCİ (EXPANDER)", all_text)
+        self.assertIn("UYGUN (PASS)", all_text)
+
+        # 4. FastAPI Endpoints
+        # 4a. /api/sawl-calc
+        resp_calc = self.client.post("/api/sawl-calc", json={
+            "diameter_mm": 1219.0,
+            "wall_thickness_mm": 14.30,
+            "pipe_length_m": 12.0,
+            "edge_milling_allowance_mm": 30.0,
+            "expansion_ratio_pct": 1.0
+        })
+        self.assertEqual(resp_calc.status_code, 200)
+        self.assertEqual(resp_calc.json()["status"], "success")
+        self.assertAlmostEqual(resp_calc.json()["data"]["plate_width_net_mm"], 3784.68, places=1)
+
+        # 4b. /api/export-sawl-excel
+        resp_exp = self.client.post("/api/export-sawl-excel", json={
+            "project_info": project_info,
+            "sawl_data": calc,
+            "pipe_info": pipe_info,
+            "lang": "tr"
+        })
+        self.assertEqual(resp_exp.status_code, 200)
+        self.assertIn("SAWL_Boyuna_Geometri_PRJ-SAWL-2026_48in.xlsx", resp_exp.headers["content-disposition"])
+
+    def test_80_hydrostatic_pressure_and_water_volume_verification(self):
+        """API 5L Equation 6 & BOTAŞ 8.4 hydrostatic test pressure, water volume, and Excel export verification."""
+        import io
+        import openpyxl
+        from core.hydrostatic_engine import compute_hydrostatic_calc
+        from core.excel_exporter import ExcelExporter
+
+        # 1. Calculation Engine: 48" X65 (SMYS 450 MPa) 14.30mm, 12m pipe
+        calc_botas = compute_hydrostatic_calc(
+            d_mm=1219.0,
+            t_mm=14.30,
+            smys_mpa=450.0,
+            pipe_length_m=12.0,
+            is_botas=True,
+            press_cap_bar=250.0
+        )
+        self.assertAlmostEqual(calc_botas["p_botas_100_smys_bar"], 105.6, places=1)
+        self.assertAlmostEqual(calc_botas["p_api_95_smys_bar"], 100.3, places=1)
+        self.assertAlmostEqual(calc_botas["target_test_pressure_bar"], 105.6, places=1)
+        self.assertAlmostEqual(calc_botas["min_acceptable_pressure_bar"], 103.6, places=1)
+        self.assertEqual(calc_botas["holding_time_sec"], 20)
+        self.assertAlmostEqual(calc_botas["water_volume_m3"], 13.355, delta=0.05)
+        self.assertGreater(calc_botas["additional_water_liters"], 10.0)
+        self.assertEqual(calc_botas["test_status"], "PASS")
+
+        # 1b. API 5L mode: 95% SMYS, 10s holding time
+        calc_api = compute_hydrostatic_calc(
+            d_mm=1219.0,
+            t_mm=14.30,
+            smys_mpa=450.0,
+            pipe_length_m=12.0,
+            is_botas=False,
+            press_cap_bar=250.0
+        )
+        self.assertAlmostEqual(calc_api["target_test_pressure_bar"], 100.3, places=1)
+        self.assertEqual(calc_api["holding_time_sec"], 10)
+
+        # 1c. Bench capacity limited check
+        calc_bench = compute_hydrostatic_calc(
+            d_mm=1219.0,
+            t_mm=14.30,
+            smys_mpa=450.0,
+            press_cap_bar=90.0
+        )
+        self.assertTrue(calc_bench["bench_limited"])
+        self.assertEqual(calc_bench["test_status"], "BENCH_LIMITED")
+
+        # 2. Excel Exporter
+        project_info = {
+            "project_name": "BOTAŞ Doğal Gaz Faz-2",
+            "project_no": "PRJ-HYDRO-2026",
+            "client": "BOTAŞ Genel Müdürlüğü",
+            "revision_date": "2026-10-09"
+        }
+        pipe_info = {
+            "diameter_inch": '48"',
+            "diameter_mm": 1219.0,
+            "wall_thickness_mm": 14.30,
+            "material_grade": "X65",
+            "standard_type": "BOTAŞ",
+            "psl_level": "PSL2"
+        }
+        excel_stream = ExcelExporter.export_hydrostatic_test_report(
+            hydro_data=calc_botas,
+            project_info=project_info,
+            pipe_info=pipe_info,
+            lang="tr"
+        )
+        self.assertIsInstance(excel_stream, io.BytesIO)
+        self.assertGreater(len(excel_stream.getvalue()), 5000)
+
+        wb = openpyxl.load_workbook(excel_stream)
+        ws = wb.active
+        self.assertEqual(ws.title, "Hidrostatik Test Föyü")
+        all_text = " ".join(str(cell.value) for row in ws.iter_rows() for cell in row if cell.value is not None)
+        self.assertIn("FABRİKA HİDROSTATİK BASINÇ TESTİ KABUL", all_text)
+        self.assertIn("HİDROSTATİK TEST BASINÇLARI VE ÇEVRESEL GERİLME", all_text)
+        self.assertIn("TEST SUYU DOLUM HACMİ VE TONAJI", all_text)
+        self.assertIn("BASINÇ ALTINDA ELASTİK GENLEŞME", all_text)
+        self.assertIn("BOTAŞ Madde 8.4", all_text)
+
+        # 3. FastAPI Endpoints
+        # 3a. /api/hydro-calc
+        resp_calc = self.client.post("/api/hydro-calc", json={
+            "diameter_mm": 1219.0,
+            "wall_thickness_mm": 14.30,
+            "smys_mpa": 450.0,
+            "pipe_length_m": 12.0,
+            "is_botas": True,
+            "press_cap_bar": 250.0
+        })
+        self.assertEqual(resp_calc.status_code, 200)
+        self.assertEqual(resp_calc.json()["status"], "success")
+        self.assertAlmostEqual(resp_calc.json()["data"]["p_botas_100_smys_bar"], 105.6, places=1)
+
+        # 3b. /api/export-hydro-excel
+        resp_exp = self.client.post("/api/export-hydro-excel", json={
+            "project_info": project_info,
+            "hydro_data": calc_botas,
+            "pipe_info": pipe_info,
+            "lang": "tr"
+        })
+        self.assertEqual(resp_exp.status_code, 200)
+        self.assertEqual(
+            resp_exp.headers["content-type"],
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+        self.assertIn("Hidrostatik_Test_Foyu_PRJ-HYDRO-2026_48in.xlsx", resp_exp.headers["content-disposition"])
+
+    def test_81_ramberg_osgood_stress_strain_and_hardening_verification(self):
+        """
+        Verifies Ramberg-Osgood elastic-plastic stress-strain (sigma - epsilon) modeling,
+        strain hardening exponent (n), uniform elongation (Agt), energy capacities (Ur, Ut),
+        MTC verification integration, Excel report section, and HTML report view.
+        """
+        from core.verification_engine import compute_ramberg_osgood_model, PipeVerificationEngine
+        from core.excel_exporter import ExcelExporter
+        import openpyxl
+
+        # 1. Direct Model Evaluation for X65 Pipeline Steel
+        # Rt0.5 = 480 MPa, Rm = 560 MPa, Af = 24.5%, E = 206,000 MPa
+        ro = compute_ramberg_osgood_model(
+            yield_strength_mpa=480.0,
+            tensile_strength_mpa=560.0,
+            elongation_percent=24.5,
+            elastic_modulus_mpa=206000.0
+        )
+
+        self.assertAlmostEqual(ro["yield_strength_mpa"], 480.0, places=1)
+        self.assertAlmostEqual(ro["tensile_strength_mpa"], 560.0, places=1)
+        self.assertAlmostEqual(ro["hardening_margin_mpa"], 80.0, places=1)
+        self.assertAlmostEqual(ro["yt_ratio"], 480.0 / 560.0, places=3)
+        self.assertTrue(15.0 <= ro["n_exponent"] <= 25.0)
+        self.assertTrue(ro["uniform_strain_pct"] >= 5.0)
+        self.assertAlmostEqual(ro["resilience_modulus_mpa"], (480.0**2) / (2.0 * 206000.0), places=3)
+        self.assertTrue(100.0 <= ro["toughness_modulus_mpa"] <= 150.0)
+        self.assertTrue(ro["is_high_strain_compliant"])
+        self.assertIn("Yüksek Süneklik", ro["verdict_text"])
+
+        # Check landmarks and curve points
+        self.assertIn("yield", ro["landmarks"])
+        self.assertIn("uts", ro["landmarks"])
+        self.assertIn("fracture", ro["landmarks"])
+        self.assertTrue(len(ro["curve_points"]) >= 60)
+        first_pt = ro["curve_points"][0]
+        self.assertEqual(first_pt["stress"], 0.0)
+        self.assertEqual(first_pt["strain"], 0.0)
+        last_pt = ro["curve_points"][-1]
+        self.assertAlmostEqual(last_pt["strain_pct"], 24.5, places=2)
+
+        # 2. Borderline / Low Hardening Steel Check
+        # Rt0.5 = 520 MPa, Rm = 540 MPa (delta_R = 20 MPa < 80 MPa)
+        ro_low = compute_ramberg_osgood_model(520.0, 540.0, 18.0)
+        self.assertFalse(ro_low["is_high_strain_compliant"])
+        self.assertIn("Standart Süneklik", ro_low["verdict_text"])
+
+        # 3. MTC Verification Engine Integration
+        pipe_config = {
+            "diameter_inch": '48"',
+            "diameter_mm": 1219.0,
+            "wall_thickness_mm": 14.30,
+            "material_grade": "X65",
+            "manufacturing_process": "SAWH",
+            "psl_level": "PSL2",
+            "standard_type": "BOTAŞ"
+        }
+        actual_data = {
+            "yield_strength_actual": 480.0,
+            "tensile_strength_actual": 560.0,
+            "elongation_actual": 24.5
+        }
+        ver_res = PipeVerificationEngine.verify_pipe_test_results(pipe_config, actual_data)
+        self.assertIn("ramberg_osgood", ver_res)
+        self.assertIsNotNone(ver_res["ramberg_osgood"])
+        self.assertEqual(ver_res["ramberg_osgood"]["hardening_margin_mpa"], 80.0)
+
+        # 4. Excel Exporter Verification
+        project_info = {
+            "project_name": "Trans-Anatolian Pipeline",
+            "project_no": "TANAP-RO-2026",
+            "client": "BOTAŞ",
+            "contractor": "Borusan Mannesmann",
+            "standard": "API 5L PSL2 & BOTAŞ",
+            "revision_date": "2026-10-09"
+        }
+        excel_buf = ExcelExporter.export_verification_report(project_info, ver_res, lang="tr")
+        wb = openpyxl.load_workbook(excel_buf, data_only=True)
+        ws = wb.active
+        all_text = " ".join(str(cell.value) for row in ws.iter_rows() for cell in row if cell.value is not None)
+        self.assertIn("GERİNİM BAZLI TASARIM & RAMBERG-OSGOOD PEKLEŞME MODELİ", all_text)
+        self.assertIn("Pekleşme Üssü (n)", all_text)
+        self.assertIn("Homojen Uzama (Agt %)", all_text)
+        self.assertIn("Pekleşme Marjı (ΔR)", all_text)
+        self.assertIn("Tokluk Modülü (Ut)", all_text)
+
+        # 5. HTML Report View Endpoint (/api/report-view)
+        resp_html = self.client.post("/api/report-view", json={
+            "project_info": project_info,
+            "pipes": [pipe_config],
+            "lang": "tr",
+            "verification": ver_res
+        })
+        self.assertEqual(resp_html.status_code, 200)
+        self.assertIn("text/html", resp_html.headers["content-type"])
+        self.assertIn("Ramberg-Osgood Pekleşme Modeli", resp_html.text)
+        self.assertIn("Pekleşme Üssü (n)", resp_html.text)
+        self.assertIn("Tokluk Modülü (Ut)", resp_html.text)
+
+    def test_82_erw_hfw_manufacturing_and_flattening_verification(self):
+        """ERW/HFW Pipe Manufacturing Geometry, Flash Trimming, Flattening Test & Excel Exporter Verification."""
+        import io
+        import openpyxl
+        from core.erw_engine import ErwEngine
+        from core.excel_exporter import ExcelExporter
+
+        # 1. Core Engine Verification - 12" X52 (t > 7.5 mm)
+        res_x52 = ErwEngine.calculate_erw_geometry(
+            diameter_mm=323.9,
+            wall_thickness_mm=9.53,
+            material_grade="X52",
+            pipe_length_m=12.0
+        )
+        self.assertAlmostEqual(res_x52["mean_diameter_mm"], 314.37, places=2)
+        self.assertTrue(995.0 <= res_x52["skelp_width_net_mm"] <= 1005.0)
+        self.assertAlmostEqual(res_x52["upset_allowance_mm"], 1.35 * 9.53, places=2)
+        self.assertEqual(res_x52["deformation_factor_e"], 0.07)
+        self.assertTrue(100.0 <= res_x52["flattening_h_mm"] <= 105.0)
+        self.assertAlmostEqual(res_x52["flattening_ductility_h_mm"], 0.33 * 323.9, places=2)
+        self.assertAlmostEqual(res_x52["flattening_soundness_h_mm"], 2.0 * 9.53, places=2)
+        self.assertEqual(res_x52["flash_outside_max_mm"], 0.0)
+        self.assertEqual(res_x52["flash_inside_max_mm"], 0.50)  # t > 7.5 mm
+        self.assertEqual(res_x52["normalizing_temp_min_c"], 720.0)
+
+        # 2. Core Engine Verification - 8" Grade B (t <= 7.5 mm)
+        res_b = ErwEngine.calculate_erw_geometry(
+            diameter_mm=219.1,
+            wall_thickness_mm=6.35,
+            material_grade="Grade B",
+            pipe_length_m=12.0
+        )
+        self.assertEqual(res_b["deformation_factor_e"], 0.08)
+        self.assertEqual(res_b["flash_inside_max_mm"], 0.38)  # t <= 7.5 mm
+        self.assertTrue(res_b["flattening_h_mm"] > 0)
+
+        # 3. API Endpoint /api/erw-calc Test
+        resp_calc = self.client.post("/api/erw-calc", json={
+            "diameter_mm": 323.9,
+            "wall_thickness_mm": 9.53,
+            "material_grade": "X52",
+            "pipe_length_m": 12.0
+        })
+        self.assertEqual(resp_calc.status_code, 200)
+        data_calc = resp_calc.json()
+        self.assertEqual(data_calc["status"], "success")
+        self.assertIn("skelp_width_net_mm", data_calc["data"])
+        self.assertIn("flattening_h_mm", data_calc["data"])
+        self.assertEqual(data_calc["data"]["flash_inside_max_mm"], 0.50)
+
+        # 4. Corporate Excel Exporter Direct Test
+        project_info = {
+            "project_name": "Doğal Gaz Dağıtım Şebekesi",
+            "project_no": "ERW-2026-DIST",
+            "client": "BOTAŞ A.Ş.",
+            "contractor": "Borusan Mannesmann Boru A.Ş.",
+            "standard": "API 5L PSL2 & BOTAŞ",
+            "revision_date": "2026-10-09"
+        }
+        pipe_info = {
+            "diameter_inch": '12"',
+            "diameter_mm": 323.9,
+            "wall_thickness_mm": 9.53,
+            "material_grade": "X52",
+            "standard_type": "BOTAŞ",
+            "psl_level": "PSL2"
+        }
+        excel_buf = ExcelExporter.export_erw_geometry_report(project_info, res_x52, pipe_info, lang="tr")
+        self.assertIsNotNone(excel_buf)
+        wb = openpyxl.load_workbook(excel_buf, data_only=True)
+        ws = wb.active
+        self.assertEqual(ws.title, "ERW İmalat & Yassıltma")
+        all_text = " ".join(str(cell.value) for row in ws.iter_rows() for cell in row if cell.value is not None)
+        self.assertIn("ERW & HFW BORU İMALAT GEOMETRİSİ", all_text)
+        self.assertIn("SKELP SIZING", all_text)
+        self.assertIn("FLASH TRIMMING", all_text)
+        self.assertIn("FLATTENING TEST", all_text)
+        self.assertIn("NORMALİZASYON", all_text)
+        self.assertIn("HAZIRLAYAN", all_text)
+
+        # 5. API Endpoint /api/export-erw-excel Test
+        resp_excel = self.client.post("/api/export-erw-excel", json={
+            "project_info": project_info,
+            "erw_data": {
+                "d_mm": 323.9,
+                "t_mm": 9.53,
+                "material_grade": "X52",
+                "pipe_length_m": 12.0
+            },
+            "pipe_info": pipe_info,
+            "lang": "tr"
+        })
+        self.assertEqual(resp_excel.status_code, 200)
+        self.assertEqual(
+            resp_excel.headers["content-type"],
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+        self.assertIn("attachment; filename=", resp_excel.headers["content-disposition"])
+
+    def test_83_bevel_and_end_prep_verification(self):
+        """Pipe End Geometry, Bevel Angle, Root Face, Squareness, Ovality & Excel Exporter Verification."""
+        import io
+        import openpyxl
+        from core.bevel_engine import BevelEngine
+        from core.excel_exporter import ExcelExporter
+
+        # 1. Nominal Calculation Verification (48" X65 BOTAŞ)
+        res_nom = BevelEngine.calculate_bevel_geometry(
+            diameter_mm=1219.0,
+            wall_thickness_mm=14.30,
+            material_grade="X65",
+            standard_code="BOTAŞ"
+        )
+        self.assertEqual(res_nom["bevel_angle_deg"], 30.0)
+        self.assertEqual(res_nom["bevel_angle_min_deg"], 30.0)
+        self.assertEqual(res_nom["bevel_angle_max_deg"], 35.0)
+        self.assertEqual(res_nom["root_face_mm"], 1.60)
+        self.assertEqual(res_nom["root_face_min_mm"], 0.80)
+        self.assertEqual(res_nom["root_face_max_mm"], 2.40)
+        self.assertAlmostEqual(res_nom["bevel_depth_mm"], 12.70, places=2)
+        self.assertAlmostEqual(res_nom["axial_cut_width_mm"], 12.70 * 0.57735, places=1)
+        self.assertEqual(res_nom["included_groove_angle_deg"], 60.0)
+        self.assertEqual(res_nom["squareness_max_limit_mm"], 1.60)
+        self.assertEqual(res_nom["end_ovality_max_limit_mm"], 3.50)
+        self.assertEqual(res_nom["end_dia_min_allowed_mm"], 1217.40)
+        self.assertEqual(res_nom["end_dia_max_allowed_mm"], 1220.60)
+
+        # 2. Compliant Actual Inspection Evaluation
+        res_pass = BevelEngine.calculate_bevel_geometry(
+            diameter_mm=1219.0,
+            wall_thickness_mm=14.30,
+            bevel_angle_actual=32.5,
+            root_face_actual=1.55,
+            out_of_squareness_actual=0.75,
+            end_diameter_min_actual=1218.5,
+            end_diameter_max_actual=1220.0
+        )
+        self.assertTrue(res_pass["is_compliant"])
+        self.assertEqual(res_pass["verdict"], "APPROVED (UYGUN / KABUL)")
+        self.assertTrue(all(c["status"] == "PASS" for c in res_pass["checks"]))
+
+        # 3. Non-Compliant Inspection Evaluation (Bevel angle too low < 30° & Squareness exceeded > 1.6 mm)
+        res_fail = BevelEngine.calculate_bevel_geometry(
+            diameter_mm=1219.0,
+            wall_thickness_mm=14.30,
+            bevel_angle_actual=27.5,      # Under 30.0°
+            root_face_actual=2.80,       # Over 2.40 mm
+            out_of_squareness_actual=2.1 # Over 1.60 mm
+        )
+        self.assertFalse(res_fail["is_compliant"])
+        self.assertEqual(res_fail["verdict"], "REJECTED (RED)")
+        failed_params = [c["parameter"] for c in res_fail["checks"] if c["status"] == "FAIL"]
+        self.assertEqual(len(failed_params), 3)
+
+        # 4. API Endpoint /api/bevel-calc Test
+        resp_calc = self.client.post("/api/bevel-calc", json={
+            "diameter_mm": 1219.0,
+            "wall_thickness_mm": 14.30,
+            "material_grade": "X65",
+            "bevel_angle_actual": 31.0,
+            "root_face_actual": 1.60,
+            "out_of_squareness_actual": 0.50
+        })
+        self.assertEqual(resp_calc.status_code, 200)
+        data_calc = resp_calc.json()
+        self.assertEqual(data_calc["status"], "success")
+        self.assertTrue(data_calc["data"]["is_compliant"])
+        self.assertEqual(data_calc["data"]["bevel_depth_mm"], 12.70)
+
+        # 5. Corporate Excel Exporter Direct Test
+        project_info = {
+            "project_name": "Trans-Anadolu Doğalgaz Boru Hattı",
+            "project_no": "TANAP-BEVEL-2026",
+            "client": "BOTAŞ A.Ş.",
+            "contractor": "Borusan Mannesmann Boru A.Ş.",
+            "standard": "API 5L PSL2 & BOTAŞ",
+            "revision_date": "2026-10-09"
+        }
+        pipe_info = {
+            "diameter_inch": '48"',
+            "diameter_mm": 1219.0,
+            "wall_thickness_mm": 14.30,
+            "material_grade": "X65",
+            "standard_type": "BOTAŞ",
+            "psl_level": "PSL2"
+        }
+        excel_buf = ExcelExporter.export_bevel_geometry_report(project_info, res_pass, pipe_info, lang="tr")
+        self.assertIsNotNone(excel_buf)
+        wb = openpyxl.load_workbook(excel_buf, data_only=True)
+        ws = wb.active
+        self.assertEqual(ws.title, "Kaynak Ağzı & Uç Geometrisi")
+        all_text = " ".join(str(cell.value) for row in ws.iter_rows() for cell in row if cell.value is not None)
+        self.assertIn("API 5L / BOTAŞ BORU UÇ GEOMETRİSİ", all_text)
+        self.assertIn("ALIN KAYNAK AĞZI & KÖK YÜZEYİ DETAYLARI", all_text)
+        self.assertIn("BORU UCU DİKLİKTEN SAPMA KONTROLÜ", all_text)
+        self.assertIn("OVALİTE", all_text)
+        self.assertIn("İÇ TALAŞ KALDIRMA", all_text)
+        self.assertIn("HAZIRLAYAN", all_text)
+
+        # 6. API Endpoint /api/export-bevel-excel Test
+        resp_excel = self.client.post("/api/export-bevel-excel", json={
+            "project_info": project_info,
+            "bevel_data": {
+                "diameter_mm": 1219.0,
+                "wall_thickness_mm": 14.30,
+                "bevel_angle_actual": 32.0,
+                "root_face_actual": 1.60,
+                "out_of_squareness_actual": 0.80
+            },
+            "pipe_info": pipe_info,
+            "lang": "tr"
+        })
+        self.assertEqual(resp_excel.status_code, 200)
+        self.assertEqual(
+            resp_excel.headers["content-type"],
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+        self.assertIn("attachment; filename=", resp_excel.headers["content-disposition"])
+
+    def test_84_straightness_and_end_camber_verification(self):
+        """
+        Tests API Spec 5L Clause 9.11.3 & Table 12 and BOTAŞ Clauses 5.5 & 8.1.2.4
+        straightness, full-length sweep/camber, and 1.0 m end straightness verification engine,
+        API calculation endpoints, and corporate Excel export.
+        """
+        from core.straightness_engine import StraightnessEngine
+        from core.excel_exporter import ExcelExporter
+        import openpyxl
+
+        # 1. BOTAŞ Limits Calculation (12.0 m pipe)
+        # BOTAŞ 5.5: Total deviation <= 0.15% * L = 18.00 mm
+        # BOTAŞ 8.1.2.4: 1.0 m end deviation <= 3.00 mm
+        res_botas = StraightnessEngine.calculate_straightness(
+            diameter_mm=1219.0,
+            wall_thickness_mm=14.30,
+            pipe_length_m=12.0,
+            standard_code="BOTAŞ"
+        )
+        self.assertEqual(res_botas["total_straightness_max_limit_mm"], 18.00)
+        self.assertEqual(res_botas["total_straightness_ratio_pct"], 0.15)
+        self.assertEqual(res_botas["end_straightness_max_limit_mm"], 3.00)
+        self.assertTrue(res_botas["is_botas"])
+        self.assertEqual(res_botas["verdict"], "NOMINAL (DENETİME HAZIR)")
+        self.assertEqual(len(res_botas["stations"]), 7)
+
+        # 2. API 5L Limits Calculation (12.0 m pipe)
+        # API 5L 9.11.3.1: Total deviation <= 0.20% * L = 24.00 mm
+        # API 5L 9.11.3.2: 1.0 m end deviation <= 4.00 mm
+        res_api = StraightnessEngine.calculate_straightness(
+            diameter_mm=1219.0,
+            wall_thickness_mm=14.30,
+            pipe_length_m=12.0,
+            standard_code="API 5L"
+        )
+        self.assertEqual(res_api["total_straightness_max_limit_mm"], 24.00)
+        self.assertEqual(res_api["total_straightness_ratio_pct"], 0.20)
+        self.assertEqual(res_api["end_straightness_max_limit_mm"], 4.00)
+        self.assertFalse(res_api["is_botas"])
+
+        # 3. Actual Measurements PASS Case
+        res_pass = StraightnessEngine.calculate_straightness(
+            diameter_mm=1219.0,
+            wall_thickness_mm=14.30,
+            pipe_length_m=12.0,
+            standard_code="BOTAŞ",
+            total_straightness_actual_mm=11.2,
+            end_straightness_left_actual_mm=1.5,
+            end_straightness_right_actual_mm=2.0
+        )
+        self.assertTrue(res_pass["is_compliant"])
+        self.assertEqual(res_pass["verdict"], "UYGUN (KABUL / PASS)")
+        for chk in res_pass["checks"]:
+            self.assertEqual(chk["status"], "PASS")
+
+        # 4. Actual Measurements FAIL Cases
+        # Total sweep exceeds 18.0 mm
+        res_fail_tot = StraightnessEngine.calculate_straightness(
+            diameter_mm=1219.0,
+            wall_thickness_mm=14.30,
+            pipe_length_m=12.0,
+            standard_code="BOTAŞ",
+            total_straightness_actual_mm=19.5,
+            end_straightness_left_actual_mm=1.5,
+            end_straightness_right_actual_mm=2.0
+        )
+        self.assertFalse(res_fail_tot["is_compliant"])
+        self.assertEqual(res_fail_tot["verdict"], "RED (UYGUNSUZ / REJECT)")
+        self.assertEqual(res_fail_tot["checks"][0]["status"], "FAIL")
+
+        # End chord exceeds 3.0 mm
+        res_fail_end = StraightnessEngine.calculate_straightness(
+            diameter_mm=1219.0,
+            wall_thickness_mm=14.30,
+            pipe_length_m=12.0,
+            standard_code="BOTAŞ",
+            total_straightness_actual_mm=12.0,
+            end_straightness_left_actual_mm=3.6,
+            end_straightness_right_actual_mm=1.8
+        )
+        self.assertFalse(res_fail_end["is_compliant"])
+        self.assertEqual(res_fail_end["verdict"], "RED (UYGUNSUZ / REJECT)")
+        self.assertEqual(res_fail_end["checks"][1]["status"], "FAIL")
+
+        # 5. API Endpoint /api/straightness-calc Test
+        resp_calc = self.client.post("/api/straightness-calc", json={
+            "diameter_mm": 1219.0,
+            "wall_thickness_mm": 14.30,
+            "pipe_length_m": 12.0,
+            "standard_code": "BOTAŞ",
+            "total_straightness_actual_mm": 9.5,
+            "end_straightness_left_actual_mm": 1.2,
+            "end_straightness_right_actual_mm": 1.5
+        })
+        self.assertEqual(resp_calc.status_code, 200)
+        data_calc = resp_calc.json()
+        self.assertEqual(data_calc["status"], "success")
+        self.assertTrue(data_calc["data"]["is_compliant"])
+        self.assertEqual(data_calc["data"]["total_straightness_max_limit_mm"], 18.0)
+
+        # 6. Corporate Excel Exporter Direct Test
+        project_info = {
+            "project_name": "BOTAŞ Batı Karadeniz Doğalgaz Boru Hattı",
+            "project_no": "STR-BOTAS-2026-001"
+        }
+        pipe_info = {
+            "diameter_inch": "48\"",
+            "diameter_mm": 1219.0,
+            "wall_thickness_mm": 14.30,
+            "material_grade": "X65",
+            "standard_type": "BOTAŞ",
+            "pipe_length_m": 12.0
+        }
+        excel_buf = ExcelExporter.export_straightness_report(project_info, res_pass, pipe_info, lang="tr")
+        self.assertIsNotNone(excel_buf)
+        wb = openpyxl.load_workbook(excel_buf, data_only=True)
+        ws = wb.active
+        self.assertEqual(ws.title, "Düzlük & Sapma Raporu")
+        all_text = " ".join(str(cell.value) for row in ws.iter_rows() for cell in row if cell.value is not None)
+        self.assertIn("API SPEC 5L & BOTAŞ BORU DÜZLÜK VE UÇ SAPMASI DOĞRULAMA RAPORU", all_text)
+        self.assertIn("DÜZLÜK KABUL KRİTERLERİ", all_text)
+        self.assertIn("BOYUNA LAZER / TEL ÖLÇÜM İSTASYONLARI", all_text)
+        self.assertIn("NİHAİ KALİTE GÜVENCE DEĞERLENDİRMESİ", all_text)
+        self.assertIn("UYGUN (KABUL / PASS)", all_text)
+        self.assertIn("HAZIRLAYAN", all_text)
+
+        # 7. API Endpoint /api/export-straightness-excel Test
+        resp_excel = self.client.post("/api/export-straightness-excel", json={
+            "project_info": project_info,
+            "straightness_data": {
+                "diameter_mm": 1219.0,
+                "wall_thickness_mm": 14.30,
+                "pipe_length_m": 12.0,
+                "total_straightness_actual_mm": 10.0,
+                "end_straightness_left_actual_mm": 1.2,
+                "end_straightness_right_actual_mm": 1.4
+            },
+            "pipe_info": pipe_info,
+            "lang": "tr"
+        })
+        self.assertEqual(resp_excel.status_code, 200)
+        self.assertEqual(
+            resp_excel.headers["content-type"],
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+        self.assertIn("attachment; filename=", resp_excel.headers["content-disposition"])
+
 
 if __name__ == '__main__':
     unittest.main()

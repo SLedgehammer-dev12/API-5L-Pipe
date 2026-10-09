@@ -234,6 +234,20 @@ class SpecimenVisualizer3D {
             case 'dwtt':
                 this.buildDWTT(this.pipeData);
                 break;
+            case 'flattening':
+            case 'flattening_test':
+                this.buildFlatteningTest3D(this.pipeData);
+                break;
+            case 'pipe_bevel':
+            case 'bevel':
+            case 'dimensional_bevel_ends':
+                this.buildPipeBevel3D(this.pipeData);
+                break;
+            case 'pipe_straightness':
+            case 'straightness':
+            case 'dimensional_straightness':
+                this.buildPipeStraightness3D(this.pipeData);
+                break;
             default:
                 this.buildGenericBlock(specimenKey);
                 break;
@@ -255,7 +269,7 @@ class SpecimenVisualizer3D {
 
         this.updateBadge(
             'Boru Gövdesi Çekme Şerit Numunesi (ASTM A370 Şekil 3)',
-            `Boru Gövdesi (Kaynaksız) • W = 38,1 mm • G = 50,0 mm • R ≥ 25 mm • t = ${t.toFixed(2)} mm • ${grade}`
+            `Boru Gövdesi (Kaynaksız) • W = 38,1 mm • G = 50,0 mm • R ≥ 25 mm (İçbükey / Concave Omuz) • t = ${t.toFixed(2)} mm • ${grade}`
         );
 
         // Materials
@@ -288,19 +302,25 @@ class SpecimenVisualizer3D {
         const xGrip = 58 * scaleL;        // 11.6
         const thk = Math.max(1.2, Math.min(5.5, t * scaleL));
 
-        // Construct 2D Dog-Bone profile in X-Y plane
+        // Construct 2D Dog-Bone profile in X-Y plane (concave fillet transition R >= 25 mm)
+        // Concave transition: control points are positioned at inner reduced width (halfW / -halfW)
+        // ensuring tangency with the gauge section and pure inward concave curvature (zero convex bulge)
+        const cpFrac = 0.55;
+        const cpXLeft = -halfA - (xGrip - halfA) * cpFrac;  // -9.08
+        const cpXRight = halfA + (xGrip - halfA) * cpFrac;   // 9.08
+
         const shape = new THREE.Shape();
         shape.moveTo(-halfL, halfC);
         shape.lineTo(-xGrip, halfC);
-        shape.bezierCurveTo(-9.5, halfC, -7.5, halfW, -halfA, halfW); // R >= 25 mm fillet
+        shape.quadraticCurveTo(cpXLeft, halfW, -halfA, halfW); // R >= 25 mm CONCAVE fillet
         shape.lineTo(halfA, halfW);
-        shape.bezierCurveTo(7.5, halfW, 9.5, halfC, xGrip, halfC);   // R >= 25 mm fillet
+        shape.quadraticCurveTo(cpXRight, halfW, xGrip, halfC);  // R >= 25 mm CONCAVE fillet
         shape.lineTo(halfL, halfC);
         shape.lineTo(halfL, -halfC);
         shape.lineTo(xGrip, -halfC);
-        shape.bezierCurveTo(9.5, -halfC, 7.5, -halfW, halfA, -halfW);
+        shape.quadraticCurveTo(cpXRight, -halfW, halfA, -halfW); // R >= 25 mm CONCAVE fillet
         shape.lineTo(-halfA, -halfW);
-        shape.bezierCurveTo(-7.5, -halfW, -9.5, -halfC, -xGrip, -halfC);
+        shape.quadraticCurveTo(cpXLeft, -halfW, -xGrip, -halfC); // R >= 25 mm CONCAVE fillet
         shape.lineTo(-halfL, -halfC);
         shape.closePath();
 
@@ -308,6 +328,7 @@ class SpecimenVisualizer3D {
             depth: thk,
             bevelEnabled: true,
             bevelSegments: 2,
+            curveSegments: 24,
             steps: 1,
             bevelSize: 0.1,
             bevelThickness: 0.1
@@ -872,6 +893,447 @@ class SpecimenVisualizer3D {
         head.rotateZ(Math.PI);
         head.position.set(x, yBottom, z);
         this.currentMeshGroup.add(head);
+    }
+
+    addCompressionArrows(x, yStart, yTarget, z, colorHex = 0xef4444) {
+        const arrowMat = new THREE.MeshStandardMaterial({
+            color: colorHex,
+            metalness: 0.8,
+            roughness: 0.25
+        });
+        const len = Math.abs(yStart - yTarget);
+        const dir = yTarget < yStart ? 1 : -1;
+        const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, len, 16), arrowMat);
+        shaft.position.set(x, (yStart + yTarget) / 2, z);
+        this.currentMeshGroup.add(shaft);
+
+        const head = new THREE.Mesh(new THREE.ConeGeometry(0.65, 1.3, 16), arrowMat);
+        if (dir > 0) head.rotateZ(Math.PI);
+        head.position.set(x, yTarget, z);
+        this.currentMeshGroup.add(head);
+    }
+
+    // -------------------------------------------------------------
+    // SPECIMEN 6: Flattening Test Bench (API 5L 10.2.4.3 & BOTAŞ 3.3.3)
+    // ERW / HFW Borularda İki Plaka Arası Ezme Testi (Plakalar, Halka, Kaynak)
+    // -------------------------------------------------------------
+    buildFlatteningTest3D(pd) {
+        const s = (pd && pd.input_summary) || {};
+        const d = parseFloat(s.diameter_mm) || 323.9;
+        const dInch = s.diameter_inch || '12"';
+        const t = parseFloat(s.wall_thickness_mm) || 9.53;
+        const grade = s.material_grade || 'X52';
+        const psl = s.psl_level || 'PSL2';
+
+        // e factor & H distance calculation
+        let e = 0.07;
+        const gUpper = String(grade).toUpperCase();
+        if (gUpper.includes('80')) e = 0.04;
+        else if (gUpper.includes('70')) e = 0.05;
+        else if (gUpper.includes('65') || gUpper.includes('60') || gUpper.includes('56')) e = 0.06;
+        else if (gUpper.includes('52') || gUpper.includes('46')) e = 0.07;
+        else if (gUpper.includes('42') || gUpper.includes('B') || gUpper.includes('245') || gUpper.includes('290')) e = 0.08;
+
+        const t_over_d = t / d;
+        const H = ((1.0 + e) * t) / (e + t_over_d);
+        const H_duct = 0.33 * d;
+        const H_sound = 2.0 * t;
+
+        this.updateBadge(
+            'ERW / HFW Boru Yassıltma Testi (API 5L 10.2.4.3 & BOTAŞ 3.3.3)',
+            `${dInch} (${d.toFixed(1)} mm) x ${t.toFixed(2)} mm • ${grade} (${psl}) • H = ${H.toFixed(2)} mm (Kaynak Testi) • 0.33D = ${H_duct.toFixed(1)} mm • 2t = ${H_sound.toFixed(1)} mm`
+        );
+
+        // Viewport scale
+        const sc = 26.0 / d;
+        const r0 = (d / 2.0) * sc;
+        const rY = (H / 2.0) * sc;
+        const rX = Math.sqrt(Math.max(rY * rY * 1.2, 2.0 * r0 * r0 - rY * rY));
+        const thk = Math.max(0.75, t * sc);
+        const ringDepth = Math.max(5.5, Math.min(10.0, 60.0 * sc));
+
+        // Materials
+        const steelMat = new THREE.MeshStandardMaterial({
+            color: 0x94a3b8,
+            metalness: 0.85,
+            roughness: 0.28
+        });
+
+        const platenMat = new THREE.MeshStandardMaterial({
+            color: 0x334155,
+            metalness: 0.9,
+            roughness: 0.35
+        });
+
+        const pistonMat = new THREE.MeshStandardMaterial({
+            color: 0x64748b,
+            metalness: 0.92,
+            roughness: 0.2
+        });
+
+        const weldMat = new THREE.MeshStandardMaterial({
+            color: 0xf59e0b,
+            emissive: 0x78350f,
+            metalness: 0.7,
+            roughness: 0.3
+        });
+
+        const indicatorMat = new THREE.MeshBasicMaterial({
+            color: 0x38bdf8
+        });
+
+        // 1. Deformed Hollow Elliptical Ring (Extruded along Z)
+        const outerEllipse = new THREE.Shape();
+        const ptsCount = 64;
+        for (let i = 0; i <= ptsCount; i++) {
+            const theta = (i / ptsCount) * Math.PI * 2;
+            const x = rX * Math.cos(theta);
+            const y = rY * Math.sin(theta);
+            if (i === 0) outerEllipse.moveTo(x, y);
+            else outerEllipse.lineTo(x, y);
+        }
+
+        const innerHole = new THREE.Path();
+        const rXIn = Math.max(0.5, rX - thk);
+        const rYIn = Math.max(0.5, rY - thk);
+        for (let i = ptsCount; i >= 0; i--) {
+            const theta = (i / ptsCount) * Math.PI * 2;
+            const x = rXIn * Math.cos(theta);
+            const y = rYIn * Math.sin(theta);
+            if (i === ptsCount) innerHole.moveTo(x, y);
+            else innerHole.lineTo(x, y);
+        }
+        outerEllipse.holes.push(innerHole);
+
+        const extrudeSettings = {
+            depth: ringDepth,
+            bevelEnabled: true,
+            bevelSegments: 2,
+            bevelSize: 0.12,
+            bevelThickness: 0.12
+        };
+        const ringGeom = new THREE.ExtrudeGeometry(outerEllipse, extrudeSettings);
+        ringGeom.translate(0, 0, -ringDepth / 2);
+        const ringMesh = new THREE.Mesh(ringGeom, steelMat);
+        ringMesh.castShadow = true;
+        ringMesh.receiveShadow = true;
+        this.currentMeshGroup.add(ringMesh);
+
+        // 2. ERW Weld Seam along ring side at 90° (Saat 9 konumu: x = -rX, y = 0)
+        const weldGeom = new THREE.CylinderGeometry(thk * 0.45, thk * 0.45, ringDepth, 16);
+        weldGeom.rotateX(Math.PI / 2);
+        const weldMesh = new THREE.Mesh(weldGeom, weldMat);
+        weldMesh.position.set(-rX + (thk * 0.2), 0, 0);
+        weldMesh.castShadow = true;
+        this.currentMeshGroup.add(weldMesh);
+
+        // 3. Upper Press Platen (Üst Pres Tablası) + Hydraulic Piston
+        const platenW = rX * 2.5;
+        const platenT = 2.2;
+        const platenD = ringDepth * 1.5;
+        const upperPlatenGeom = new THREE.BoxGeometry(platenW, platenT, platenD);
+        const upperPlaten = new THREE.Mesh(upperPlatenGeom, platenMat);
+        upperPlaten.position.set(0, rY + platenT / 2, 0);
+        upperPlaten.castShadow = true;
+        upperPlaten.receiveShadow = true;
+        this.currentMeshGroup.add(upperPlaten);
+
+        // Hydraulic Cylinder Piston
+        const pistonGeom = new THREE.CylinderGeometry(2.2, 2.2, 7.0, 24);
+        const piston = new THREE.Mesh(pistonGeom, pistonMat);
+        piston.position.set(0, rY + platenT + 3.5, 0);
+        piston.castShadow = true;
+        this.currentMeshGroup.add(piston);
+
+        // Force Arrows on Upper Platen
+        this.addCompressionArrows(-rX * 0.6, rY + platenT + 6.0, rY + platenT + 0.8, 0, 0xef4444);
+        this.addCompressionArrows(rX * 0.6, rY + platenT + 6.0, rY + platenT + 0.8, 0, 0xef4444);
+
+        // 4. Lower Stationary Platen (Alt Sabit Tabla)
+        const lowerPlatenGeom = new THREE.BoxGeometry(platenW * 1.08, platenT * 1.3, platenD * 1.15);
+        const lowerPlaten = new THREE.Mesh(lowerPlatenGeom, platenMat);
+        lowerPlaten.position.set(0, -rY - (platenT * 1.3) / 2, 0);
+        lowerPlaten.receiveShadow = true;
+        this.currentMeshGroup.add(lowerPlaten);
+
+        // Upward Reaction Arrows on Lower Platen
+        this.addCompressionArrows(-rX * 0.6, -rY - (platenT * 1.3) - 5.0, -rY - (platenT * 1.3) - 0.5, 0, 0x3b82f6);
+        this.addCompressionArrows(rX * 0.6, -rY - (platenT * 1.3) - 5.0, -rY - (platenT * 1.3) - 0.5, 0, 0x3b82f6);
+
+        // 5. Vertical Dimension Indicator Rods for H Distance (at x = rX + 3.5)
+        const dimRodX = rX + 3.5;
+        const rodGeom = new THREE.CylinderGeometry(0.12, 0.12, rY * 2, 12);
+        const rod = new THREE.Mesh(rodGeom, indicatorMat);
+        rod.position.set(dimRodX, 0, 0);
+        this.currentMeshGroup.add(rod);
+
+        const limitCapGeom = new THREE.BoxGeometry(1.6, 0.12, 1.6);
+        const capTop = new THREE.Mesh(limitCapGeom, indicatorMat);
+        capTop.position.set(dimRodX, rY, 0);
+        this.currentMeshGroup.add(capTop);
+
+        const capBottom = new THREE.Mesh(limitCapGeom, indicatorMat);
+        capBottom.position.set(dimRodX, -rY, 0);
+        this.currentMeshGroup.add(capBottom);
+
+        // Adjust camera for cinematic perspective
+        this.camera.position.set(34, 24, 38);
+        this.camera.lookAt(0, 0, 0);
+        if (this.controls) this.controls.target.set(0, 0, 0);
+    }
+
+    // -------------------------------------------------------------
+    // SPECIMEN 7: Pipe End Geometry & Bevel Preparation (API 5L 9.12.5 & BOTAŞ 3.3.8)
+    // 30° (+5°/-0°) Bevel Angle, 1.6 ± 0.8 mm Root Face, Out-of-Squareness e <= 1.6 mm
+    // -------------------------------------------------------------
+    buildPipeBevel3D(pd) {
+        const s = (pd && pd.input_summary) || {};
+        const d = parseFloat(s.diameter_mm) || 1219.0;
+        const dInch = s.diameter_inch || '48"';
+        const t = parseFloat(s.wall_thickness_mm) || 14.30;
+        const grade = s.material_grade || "X65";
+        const std = s.standard_type || "BOTAŞ";
+
+        this.updateBadge(
+            'Boru Uç Geometrisi & Kaynak Ağzı (API 5L 9.12.5 & BOTAŞ 3.3.8)',
+            `Pah Açısı: 30° (+5°/-0°) • Kök Yüzeyi: 1.6 ± 0.8 mm • Uç Dikliği e ≤ 1.6 mm • ${dInch} t=${t.toFixed(2)} mm • ${grade}`
+        );
+
+        // Materials
+        const steelPipeMat = new THREE.MeshStandardMaterial({
+            color: 0x475569,
+            metalness: 0.85,
+            roughness: 0.3
+        });
+
+        const machinedBevelMat = new THREE.MeshStandardMaterial({
+            color: 0xf59e0b,
+            metalness: 0.95,
+            roughness: 0.15,
+            emissive: 0x78350f,
+            emissiveIntensity: 0.35
+        });
+
+        const rootLandingMat = new THREE.MeshStandardMaterial({
+            color: 0xf43f5e,
+            metalness: 0.8,
+            roughness: 0.25,
+            emissive: 0x881337,
+            emissiveIntensity: 0.3
+        });
+
+        const guideLineMat = new THREE.LineBasicMaterial({
+            color: 0x38bdf8,
+            linewidth: 2
+        });
+
+        // 3D Geometry Scale
+        const R_out = 14.0;
+        const wallT = Math.min(3.2, Math.max(1.4, t * 0.18));
+        const R_in = R_out - wallT;
+        const rootC = 0.38; // root landing height ~ 1.6 mm scaled
+        const R_root = R_in + rootC;
+        const bevelDepth = wallT - rootC;
+        const axialBevelLen = bevelDepth * Math.tan(30 * Math.PI / 180); // ~ tan(30) * bevelDepth
+        const pipeLen = 14.0;
+
+        // 1. Pipe main body (Cylinder between -pipeLen and -axialBevelLen)
+        const outerBodyGeom = new THREE.CylinderGeometry(R_out, R_out, pipeLen - axialBevelLen, 64, 1, true);
+        const outerBody = new THREE.Mesh(outerBodyGeom, steelPipeMat);
+        outerBody.position.set(0, -(pipeLen + axialBevelLen) / 2, 0);
+        this.currentMeshGroup.add(outerBody);
+
+        const innerBodyGeom = new THREE.CylinderGeometry(R_in, R_in, pipeLen, 64, 1, true);
+        const innerBody = new THREE.Mesh(innerBodyGeom, steelPipeMat);
+        innerBody.position.set(0, -pipeLen / 2, 0);
+        this.currentMeshGroup.add(innerBody);
+
+        // 2. Machined Bevel Conical Frustum (Pah Yüzeyi - 30°)
+        const bevelGeom = new THREE.CylinderGeometry(R_root, R_out, axialBevelLen, 64, 1, true);
+        const bevelMesh = new THREE.Mesh(bevelGeom, machinedBevelMat);
+        bevelMesh.position.set(0, -axialBevelLen / 2, 0);
+        this.currentMeshGroup.add(bevelMesh);
+
+        // 3. Root Face Landing Ring (Düşey Alın Yüzeyi - 1.6 mm)
+        const ringGeom = new THREE.RingGeometry(R_in, R_root, 64);
+        const rootRing = new THREE.Mesh(ringGeom, rootLandingMat);
+        rootRing.rotation.x = -Math.PI / 2;
+        rootRing.position.set(0, 0, 0);
+        this.currentMeshGroup.add(rootRing);
+
+        // Back End Cap Ring (at -pipeLen)
+        const backRingGeom = new THREE.RingGeometry(R_in, R_out, 64);
+        const backRing = new THREE.Mesh(backRingGeom, steelPipeMat);
+        backRing.rotation.x = Math.PI / 2;
+        backRing.position.set(0, -pipeLen, 0);
+        this.currentMeshGroup.add(backRing);
+
+        // 4. Secondary Abutting Ghost Pipe End (Alın Alına V-Oluk Birleşimi)
+        const gapY = 0.5;
+        const ghostBevelGeom = new THREE.CylinderGeometry(R_out, R_root, axialBevelLen, 64, 1, true);
+        const ghostBevelMat = new THREE.MeshStandardMaterial({
+            color: 0x60a5fa,
+            metalness: 0.7,
+            roughness: 0.3,
+            transparent: true,
+            opacity: 0.45
+        });
+        const ghostBevel = new THREE.Mesh(ghostBevelGeom, ghostBevelMat);
+        ghostBevel.position.set(0, gapY + axialBevelLen / 2, 0);
+        this.currentMeshGroup.add(ghostBevel);
+
+        const ghostRootRing = new THREE.Mesh(ringGeom, rootLandingMat);
+        ghostRootRing.rotation.x = Math.PI / 2;
+        ghostRootRing.position.set(0, gapY, 0);
+        this.currentMeshGroup.add(ghostRootRing);
+
+        // 5. 3D Angle Indicator Arc & Dimension Rods
+        const sqPoints = [
+            new THREE.Vector3(R_out + 1.5, 0, 0),
+            new THREE.Vector3(R_out + 1.5, -axialBevelLen, 0),
+            new THREE.Vector3(R_out - 0.5, -axialBevelLen, 0)
+        ];
+        const sqGeom = new THREE.BufferGeometry().setFromPoints(sqPoints);
+        const sqLine = new THREE.Line(sqGeom, guideLineMat);
+        this.currentMeshGroup.add(sqLine);
+
+        // Circular bevel angle indicator rod
+        const arcGeom = new THREE.TorusGeometry(R_out + 0.2, 0.08, 8, 48, Math.PI / 4);
+        const arcMesh = new THREE.Mesh(arcGeom, machinedBevelMat);
+        arcMesh.rotation.x = Math.PI / 2;
+        arcMesh.position.set(0, -axialBevelLen, 0);
+        this.currentMeshGroup.add(arcMesh);
+
+        // Adjust camera for isometric rim view
+        this.camera.position.set(22, 16, 28);
+        this.camera.lookAt(0, -2, 0);
+        if (this.controls) this.controls.target.set(0, -2, 0);
+    }
+
+    // -------------------------------------------------------------
+    // SPECIMEN 10: Pipe Straightness, Camber & End Straightness (API 5L 9.11.3 & BOTAŞ 5.5, 8.1.2.4)
+    // -------------------------------------------------------------
+    buildPipeStraightness3D(pd) {
+        const s = (pd && pd.input_summary) || {};
+        const d = parseFloat(s.diameter_mm) || 1219.0;
+        const dInch = s.diameter_inch || '48"';
+        const t = parseFloat(s.wall_thickness_mm) || 14.30;
+        const l_m = parseFloat(s.pipe_length_m) || 12.0;
+        const grade = s.material_grade || 'X65';
+        const std = s.standard_type || 'BOTAŞ';
+        const isBotas = String(std).toUpperCase().includes('BOTAŞ') || String(std).toUpperCase().includes('BOTAS');
+
+        const ratioPct = isBotas ? 0.15 : 0.20;
+        const totLimitMm = ((ratioPct / 100.0) * l_m * 1000.0).toFixed(1);
+        const endLimitMm = isBotas ? 3.0 : 4.0;
+
+        this.updateBadge(
+            'Boru Düzlük ve Uç Sapması (API 5L 9.11.3 & BOTAŞ 5.5, 8.1.2.4)',
+            `${dInch} (OD ${d.toFixed(1)} mm) • t = ${t.toFixed(2)} mm • L = ${l_m.toFixed(1)} m • ${grade} • Maks. Sehim: ≤ ${totLimitMm} mm (%${ratioPct} × L) • Uç Sapma: ≤ ${endLimitMm.toFixed(1)} mm`
+        );
+
+        // Visual proportions
+        const L_viz = 34.0;
+        const R_out = 2.4;
+        const maxBowY = 1.6;
+
+        // 1. Deflected Pipe Body (Curved Tube Geometry)
+        const curvePoints = [];
+        const numSegments = 40;
+        for (let i = 0; i <= numSegments; i++) {
+            const u = i / numSegments;
+            const x = -L_viz / 2.0 + u * L_viz;
+            const y = 4.0 * maxBowY * u * (1.0 - u);
+            curvePoints.push(new THREE.Vector3(x, y, 0));
+        }
+        const pipeCurve = new THREE.CatmullRomCurve3(curvePoints);
+        const tubeGeom = new THREE.TubeGeometry(pipeCurve, 64, R_out, 32, false);
+
+        const steelPipeMat = new THREE.MeshStandardMaterial({
+            color: 0x475569,
+            metalness: 0.85,
+            roughness: 0.25,
+            side: THREE.DoubleSide
+        });
+        const pipeMesh = new THREE.Mesh(tubeGeom, steelPipeMat);
+        this.currentMeshGroup.add(pipeMesh);
+
+        // 2. Optical Laser Collimator / Taut Wire Reference Datum Beam
+        const laserGeom = new THREE.CylinderGeometry(0.12, 0.12, L_viz + 4.0, 16);
+        const laserMat = new THREE.MeshBasicMaterial({
+            color: 0x10b981,
+            transparent: true,
+            opacity: 0.95
+        });
+        const laserBeam = new THREE.Mesh(laserGeom, laserMat);
+        laserBeam.rotation.z = Math.PI / 2;
+        laserBeam.position.set(0, 0, 0);
+        this.currentMeshGroup.add(laserBeam);
+
+        // Laser emitters
+        const emitterGeom = new THREE.CylinderGeometry(0.6, 0.6, 1.2, 16);
+        const emitterMat = new THREE.MeshStandardMaterial({
+            color: 0x059669,
+            metalness: 0.9,
+            roughness: 0.2
+        });
+        const leftEmitter = new THREE.Mesh(emitterGeom, emitterMat);
+        leftEmitter.rotation.z = Math.PI / 2;
+        leftEmitter.position.set(-L_viz / 2 - 2, 0, 0);
+        this.currentMeshGroup.add(leftEmitter);
+
+        const rightEmitter = new THREE.Mesh(emitterGeom, emitterMat);
+        rightEmitter.rotation.z = Math.PI / 2;
+        rightEmitter.position.set(L_viz / 2 + 2, 0, 0);
+        this.currentMeshGroup.add(rightEmitter);
+
+        // 3. Mid-Span Sagitta Deflection Indicator Rod
+        const midRodGeom = new THREE.CylinderGeometry(0.15, 0.15, maxBowY, 16);
+        const midRodMat = new THREE.MeshBasicMaterial({ color: 0xef4444 });
+        const midRod = new THREE.Mesh(midRodGeom, midRodMat);
+        midRod.position.set(0, maxBowY / 2, 0);
+        this.currentMeshGroup.add(midRod);
+
+        const sphGeom = new THREE.SphereGeometry(0.3, 16, 16);
+        const apexSph = new THREE.Mesh(sphGeom, midRodMat);
+        apexSph.position.set(0, maxBowY, 0);
+        this.currentMeshGroup.add(apexSph);
+
+        // 4. End Chord Gauges (1.0 m Straight Edge - Hassas Çelik Mastarlar)
+        const chordLenViz = (1.0 / l_m) * L_viz;
+        const mastarGeom = new THREE.BoxGeometry(chordLenViz, 0.35, 0.6);
+        const mastarMat = new THREE.MeshStandardMaterial({
+            color: 0x0284c7,
+            metalness: 0.8,
+            roughness: 0.2
+        });
+
+        const leftMastar = new THREE.Mesh(mastarGeom, mastarMat);
+        leftMastar.position.set(-L_viz / 2 + chordLenViz / 2, R_out + 0.6, 0);
+        this.currentMeshGroup.add(leftMastar);
+
+        const rightMastar = new THREE.Mesh(mastarGeom, mastarMat);
+        rightMastar.position.set(L_viz / 2 - chordLenViz / 2, R_out + 0.6, 0);
+        this.currentMeshGroup.add(rightMastar);
+
+        // 5. 7 Inspection Station Marker Rings
+        const stationsU = [0.0, 1.0 / l_m, 0.25, 0.50, 0.75, (l_m - 1.0) / l_m, 1.0];
+        stationsU.forEach((u, idx) => {
+            const x = -L_viz / 2.0 + u * L_viz;
+            const y = 4.0 * maxBowY * u * (1.0 - u);
+            const stSphGeom = new THREE.SphereGeometry(idx === 3 ? 0.35 : 0.2, 12, 12);
+            const stSphMat = new THREE.MeshBasicMaterial({
+                color: idx === 3 ? 0xef4444 : (idx === 1 || idx === 5 ? 0x38bdf8 : 0x94a3b8)
+            });
+            const stMarker = new THREE.Mesh(stSphGeom, stSphMat);
+            stMarker.position.set(x, y + R_out + 0.1, 0);
+            this.currentMeshGroup.add(stMarker);
+        });
+
+        // Panoramic camera
+        this.camera.position.set(0, 12, 38);
+        this.camera.lookAt(0, maxBowY / 2, 0);
+        if (this.controls) this.controls.target.set(0, maxBowY / 2, 0);
     }
 
     buildGenericBlock(key) {

@@ -19,9 +19,22 @@ from core.project_manager import ProjectManager
 from core.schemas import (
     CalculateRequest,
     ExportRequest,
+    ExportVerificationRequest,
+    ExportWallThicknessRequest,
+    ExportSawhRequest,
+    ExportSawlRequest,
+    ExportHydroRequest,
+    ExportErwRequest,
+    ExportBevelRequest,
+    ExportStraightnessRequest,
     PipeInput,
     ReportRequest,
     SawhStripRequest,
+    SawlCalcRequest,
+    HydroCalcRequest,
+    ErwCalcRequest,
+    BevelCalcRequest,
+    StraightnessCalcRequest,
     VerificationRequest,
     WallThicknessRequest,
 )
@@ -255,6 +268,118 @@ async def export_excel(data: ExportRequest = Body(...)):
         headers=headers
     )
 
+@app.post("/api/export-verification-excel")
+async def export_verification_excel(data: ExportVerificationRequest = Body(...)):
+    """
+    Generates and streams formatted Excel report for MTC inspection verification results.
+    """
+    import re
+    project_info = data.project_info or {}
+    verification_data = data.verification or {}
+    lang = data.lang or "tr"
+
+    excel_file = ExcelExporter.export_verification_report(project_info, verification_data, lang=lang)
+
+    raw_no = str(project_info.get('project_no', 'API5L')).strip()
+    safe_no = re.sub(r'[^a-zA-Z0-9_\-\.]', '_', raw_no) if raw_no else 'API5L'
+    filename = f"MTC_Dogrulama_{safe_no}.xlsx"
+    headers = {
+        'Content-Disposition': f'attachment; filename="{filename}"'
+    }
+    return StreamingResponse(
+        excel_file,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers=headers
+    )
+
+@app.post("/api/export-wall-thickness-excel")
+async def export_wall_thickness_excel(data: ExportWallThicknessRequest = Body(...)):
+    """
+    Generates and streams formatted Excel engineering calculation sheet for pipe wall thickness.
+    """
+    import re
+    project_info = data.project_info or {}
+    calculation_data = data.calculation_data or {}
+    lang = data.lang or "tr"
+
+    excel_file = ExcelExporter.export_wall_thickness_report(calculation_data, project_info, lang=lang)
+
+    raw_no = str(project_info.get('project_no', 'CALC')).strip()
+    safe_no = re.sub(r'[^a-zA-Z0-9_\-\.]', '_', raw_no) if raw_no else 'CALC'
+    raw_dia = str(calculation_data.get('input_parameters', {}).get('diameter_inch', '48in')).replace('"', '').replace("'", "").strip()
+    safe_dia = re.sub(r'[^a-zA-Z0-9_\-\.]', '', raw_dia) if raw_dia else '48in'
+    if not safe_dia.endswith('in') and not safe_dia.endswith('mm'):
+        safe_dia = f"{safe_dia}in"
+    filename = f"Et_Kalinligi_Hesabi_{safe_no}_{safe_dia}.xlsx"
+    headers = {
+        'Content-Disposition': f'attachment; filename="{filename}"'
+    }
+    return StreamingResponse(
+        excel_file,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers=headers
+    )
+
+@app.post("/api/export-sawh-excel")
+async def export_sawh_excel(data: ExportSawhRequest = Body(...)):
+    """
+    Generates and streams formatted Excel engineering calculation sheet for SAWH spiral geometry and coil strip procurement.
+    """
+    import re
+    from core.sawh_engine import compute_sawh_calc
+
+    project_info = data.project_info or {}
+    sawh_data = data.sawh_data or {}
+    pipe_info = data.pipe_info or {}
+    lang = data.lang or "tr"
+
+    # Ensure all enriched manufacturing metrics are populated
+    d_v = float(sawh_data.get("d_mm") or pipe_info.get("diameter_mm") or 1219.0)
+    t_v = float(sawh_data.get("t_mm") or pipe_info.get("wall_thickness_mm") or 14.30)
+    b_v = float(sawh_data["strip_width_mm"]) if sawh_data.get("strip_width_mm") else None
+    a_v = float(sawh_data["helix_angle_deg"]) if (sawh_data.get("helix_angle_deg") and not b_v) else None
+    milling_v = float(sawh_data.get("edge_milling_allowance_mm", 15.0) or 15.0)
+    coil_len_v = float(sawh_data.get("coil_length_m", 800.0) or 800.0)
+    pipe_len_v = float(sawh_data.get("pipe_length_m", 12.0) or 12.0)
+    min_skelp_dist_v = float(sawh_data.get("min_skelp_end_distance_mm", 300.0) or 300.0)
+
+    # Re-compute to guarantee consistency of all metrics
+    computed = compute_sawh_calc(
+        d_mm=d_v,
+        t_mm=t_v,
+        strip_width_mm=b_v,
+        helix_angle_deg=a_v,
+        edge_milling_allowance_mm=milling_v,
+        coil_length_m=coil_len_v,
+        pipe_length_m=pipe_len_v,
+        min_skelp_end_distance_mm=min_skelp_dist_v,
+    )
+    # Merge existing metadata while using computed math
+    final_sawh_data = {**sawh_data, **computed}
+
+    excel_file = ExcelExporter.export_sawh_geometry_report(
+        final_sawh_data,
+        project_info,
+        pipe_info=pipe_info,
+        lang=lang
+    )
+
+    raw_no = str(project_info.get('project_no', 'SAWH')).strip()
+    safe_no = re.sub(r'[^a-zA-Z0-9_\-\.]', '_', raw_no) if raw_no else 'SAWH'
+    raw_dia = str(pipe_info.get('diameter_inch', f"{d_v:.0f}mm")).replace('"', '').replace("'", "").strip()
+    safe_dia = re.sub(r'[^a-zA-Z0-9_\-\.]', '', raw_dia) if raw_dia else '48in'
+    if not safe_dia.endswith('in') and not safe_dia.endswith('mm'):
+        safe_dia = f"{safe_dia}in"
+    filename = f"SAWH_Spiral_Geometri_{safe_no}_{safe_dia}.xlsx"
+    headers = {
+        'Content-Disposition': f'attachment; filename="{filename}"'
+    }
+    return StreamingResponse(
+        excel_file,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers=headers
+    )
+
 @app.post("/api/sawh-strip")
 async def sawh_strip(data: SawhStripRequest = Body(...)):
     """
@@ -275,8 +400,425 @@ async def sawh_strip(data: SawhStripRequest = Body(...)):
         float(data.wall_thickness_mm or 0.0),
         strip_width_mm=float(data.strip_width_mm) if data.strip_width_mm is not None else None,
         helix_angle_deg=float(data.helix_angle_deg) if data.helix_angle_deg is not None else None,
+        edge_milling_allowance_mm=float(data.edge_milling_allowance_mm if data.edge_milling_allowance_mm is not None else 15.0),
+        coil_length_m=float(data.coil_length_m if data.coil_length_m is not None else 800.0),
+        pipe_length_m=float(data.pipe_length_m if data.pipe_length_m is not None else 12.0),
+        min_skelp_end_distance_mm=float(data.min_skelp_end_distance_mm if data.min_skelp_end_distance_mm is not None else 300.0),
     )
     return JSONResponse(content={"status": "success", "data": res})
+
+@app.post("/api/export-sawl-excel")
+async def export_sawl_excel(data: ExportSawlRequest = Body(...)):
+    """
+    Generates and streams formatted Excel engineering calculation sheet for SAWL longitudinal pipe JCOE geometry,
+    heavy plate procurement, and API 5L 8.9 mechanical expansion.
+    """
+    import re
+    from core.sawl_engine import compute_sawl_calc
+
+    project_info = data.project_info or {}
+    sawl_data = data.sawl_data or {}
+    pipe_info = data.pipe_info or {}
+    lang = data.lang or "tr"
+
+    d_v = float(sawl_data.get("d_mm") or pipe_info.get("diameter_mm") or 1219.0)
+    t_v = float(sawl_data.get("t_mm") or pipe_info.get("wall_thickness_mm") or 14.30)
+    l_v = float(sawl_data.get("pipe_length_m") or 12.0)
+    milling_v = float(sawl_data.get("edge_milling_allowance_mm", 30.0) or 30.0)
+    er_v = float(sawl_data.get("expansion_ratio_pct", 1.0) or 1.0)
+
+    computed = compute_sawl_calc(
+        d_mm=d_v,
+        t_mm=t_v,
+        pipe_length_m=l_v,
+        edge_milling_allowance_mm=milling_v,
+        expansion_ratio_pct=er_v,
+    )
+    final_sawl_data = {**sawl_data, **computed}
+
+    excel_file = ExcelExporter.export_sawl_geometry_report(
+        final_sawl_data,
+        project_info,
+        pipe_info=pipe_info,
+        lang=lang
+    )
+
+    raw_no = str(project_info.get('project_no', 'SAWL')).strip()
+    safe_no = re.sub(r'[^a-zA-Z0-9_\-\.]', '_', raw_no) if raw_no else 'SAWL'
+    raw_dia = str(pipe_info.get('diameter_inch', f"{d_v:.0f}mm")).replace('"', '').replace("'", "").strip()
+    safe_dia = re.sub(r'[^a-zA-Z0-9_\-\.]', '', raw_dia) if raw_dia else '48in'
+    if not safe_dia.endswith('in') and not safe_dia.endswith('mm'):
+        safe_dia = f"{safe_dia}in"
+    filename = f"SAWL_Boyuna_Geometri_{safe_no}_{safe_dia}.xlsx"
+    headers = {
+        'Content-Disposition': f'attachment; filename="{filename}"'
+    }
+    return StreamingResponse(
+        excel_file,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers=headers
+    )
+
+@app.post("/api/sawl-calc")
+async def api_sawl_calc(data: SawlCalcRequest = Body(...)):
+    """
+    SAWL longitudinal pipe JCOE plate sizing and mechanical expansion calculation.
+    """
+    from core.sawl_engine import compute_sawl_calc
+
+    d_mm = data.diameter_mm
+    if d_mm is None and data.diameter_inch:
+        from core.database import get_pipe_size_by_inch
+        ps = get_pipe_size_by_inch(data.diameter_inch)
+        d_mm = ps['mm'] if ps else 1219.0
+    elif d_mm is None:
+        d_mm = 1219.0
+
+    res = compute_sawl_calc(
+        float(d_mm),
+        float(data.wall_thickness_mm or 14.30),
+        pipe_length_m=float(data.pipe_length_m or 12.0),
+        edge_milling_allowance_mm=float(data.edge_milling_allowance_mm if data.edge_milling_allowance_mm is not None else 30.0),
+        expansion_ratio_pct=float(data.expansion_ratio_pct if data.expansion_ratio_pct is not None else 1.0),
+    )
+    return JSONResponse(content={"status": "success", "data": res})
+
+@app.post("/api/export-hydro-excel")
+async def export_hydro_excel(data: ExportHydroRequest = Body(...)):
+    """
+    Generates and streams formatted Excel engineering calculation sheet for API 5L PSL2 & BOTAŞ
+    Mill Hydrostatic Test Pressure, Water Volume, and Inspection Acceptance.
+    """
+    import re
+    from core.hydrostatic_engine import compute_hydrostatic_calc
+
+    project_info = data.project_info or {}
+    hydro_data = data.hydro_data or {}
+    pipe_info = data.pipe_info or {}
+    lang = data.lang or "tr"
+
+    d_v = float(hydro_data.get("d_mm") or pipe_info.get("diameter_mm") or 1219.0)
+    t_v = float(hydro_data.get("t_mm") or pipe_info.get("wall_thickness_mm") or 14.30)
+    smys_v = float(hydro_data.get("smys_mpa") or 450.0)
+    l_v = float(hydro_data.get("pipe_length_m") or 12.0)
+    is_botas_v = bool(hydro_data.get("is_botas", True))
+    cap_v = float(hydro_data.get("press_cap_bar", 250.0) or 250.0)
+
+    computed = compute_hydrostatic_calc(
+        d_mm=d_v,
+        t_mm=t_v,
+        smys_mpa=smys_v,
+        pipe_length_m=l_v,
+        is_botas=is_botas_v,
+        press_cap_bar=cap_v,
+    )
+    final_hydro_data = {**hydro_data, **computed}
+
+    excel_file = ExcelExporter.export_hydrostatic_test_report(
+        final_hydro_data,
+        project_info,
+        pipe_info=pipe_info,
+        lang=lang
+    )
+
+    raw_no = str(project_info.get('project_no', 'HYDRO')).strip()
+    safe_no = re.sub(r'[^a-zA-Z0-9_\-\.]', '_', raw_no) if raw_no else 'HYDRO'
+    raw_dia = str(pipe_info.get('diameter_inch', f"{d_v:.0f}mm")).replace('"', '').replace("'", "").strip()
+    safe_dia = re.sub(r'[^a-zA-Z0-9_\-\.]', '', raw_dia) if raw_dia else '48in'
+    if not safe_dia.endswith('in') and not safe_dia.endswith('mm'):
+        safe_dia = f"{safe_dia}in"
+    filename = f"Hidrostatik_Test_Foyu_{safe_no}_{safe_dia}.xlsx"
+    headers = {
+        'Content-Disposition': f'attachment; filename="{filename}"'
+    }
+    return StreamingResponse(
+        excel_file,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers=headers
+    )
+
+@app.post("/api/hydro-calc")
+async def api_hydro_calc(data: HydroCalcRequest = Body(...)):
+    """
+    API 5L / BOTAŞ hydrostatic test pressure, water volume, and elastic expansion calculation.
+    """
+    from core.hydrostatic_engine import compute_hydrostatic_calc
+
+    d_mm = data.diameter_mm
+    if d_mm is None and data.diameter_inch:
+        from core.database import get_pipe_size_by_inch
+        ps = get_pipe_size_by_inch(data.diameter_inch)
+        d_mm = ps['mm'] if ps else 1219.0
+    elif d_mm is None:
+        d_mm = 1219.0
+
+    res = compute_hydrostatic_calc(
+        float(d_mm),
+        float(data.wall_thickness_mm or 14.30),
+        smys_mpa=float(data.smys_mpa or 450.0),
+        pipe_length_m=float(data.pipe_length_m or 12.0),
+        is_botas=bool(data.is_botas),
+        press_cap_bar=float(data.press_cap_bar or 250.0),
+    )
+    return JSONResponse(content={"status": "success", "data": res})
+
+
+@app.post("/api/export-erw-excel")
+async def export_erw_excel_endpoint(data: ExportErwRequest = Body(...)):
+    """
+    Exports official ERW/HFW Pipe Manufacturing Geometry, Skelp Sizing,
+    Flash Trimming Tolerances, and API 5L Clause 10.2.4.3 Flattening Test Report to Excel.
+    """
+    import re
+    from core.erw_engine import ErwEngine
+
+    project_info = data.project_info or {}
+    erw_data = data.erw_data or {}
+    pipe_info = data.pipe_info or {}
+    lang = data.lang or "tr"
+
+    d_val = float(pipe_info.get('diameter_mm') or erw_data.get('diameter_mm') or 323.9)
+    t_val = float(pipe_info.get('wall_thickness_mm') or erw_data.get('wall_thickness_mm') or 9.53)
+    grade_val = str(pipe_info.get('material_grade') or erw_data.get('material_grade') or 'X52')
+    psl_val = str(pipe_info.get('psl_level') or erw_data.get('psl_level') or 'PSL2')
+    len_val = float(pipe_info.get('pipe_length_m') or erw_data.get('pipe_length_m') or 12.0)
+
+    computed = ErwEngine.calculate_erw_geometry(
+        diameter_mm=d_val,
+        wall_thickness_mm=t_val,
+        material_grade=grade_val,
+        psl_level=psl_val,
+        pipe_length_m=len_val
+    )
+    final_erw_data = {**erw_data, **computed}
+
+    excel_file = ExcelExporter.export_erw_geometry_report(
+        project_info,
+        final_erw_data,
+        pipe_info=pipe_info,
+        lang=lang
+    )
+
+    raw_no = str(project_info.get('project_no', 'ERW')).strip()
+    safe_no = re.sub(r'[^a-zA-Z0-9_\-\.]', '_', raw_no) if raw_no else 'ERW'
+    raw_dia = str(pipe_info.get('diameter_inch', f"{d_val:.0f}mm")).replace('"', '').replace("'", "").strip()
+    safe_dia = re.sub(r'[^a-zA-Z0-9_\-\.]', '', raw_dia) if raw_dia else '12in'
+    if not safe_dia.endswith('in') and not safe_dia.endswith('mm'):
+        safe_dia = f"{safe_dia}in"
+    filename = f"ERW_Imalat_Yassiltma_Foyu_{safe_no}_{safe_dia}.xlsx"
+    headers = {
+        'Content-Disposition': f'attachment; filename="{filename}"'
+    }
+    return StreamingResponse(
+        excel_file,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers=headers
+    )
+
+
+@app.post("/api/erw-calc")
+async def api_erw_calc(data: ErwCalcRequest = Body(...)):
+    """
+    ERW / HFW skelp sizing, flash trimming, and API 5L Clause 10.2.4.3 flattening test heights.
+    """
+    from core.erw_engine import ErwEngine
+
+    d_mm = data.diameter_mm
+    if d_mm is None and data.diameter_inch:
+        from core.database import get_pipe_size_by_inch
+        ps = get_pipe_size_by_inch(data.diameter_inch)
+        d_mm = ps['mm'] if ps else 323.9
+    elif d_mm is None:
+        d_mm = 323.9
+
+    res = ErwEngine.calculate_erw_geometry(
+        diameter_mm=float(d_mm),
+        wall_thickness_mm=float(data.wall_thickness_mm or 9.53),
+        material_grade=str(data.material_grade or "X52"),
+        psl_level=str(data.psl_level or "PSL2"),
+        pipe_length_m=float(data.pipe_length_m or 12.0)
+    )
+    return JSONResponse(content={"status": "success", "data": res})
+
+
+@app.post("/api/bevel-calc")
+async def api_bevel_calc(data: BevelCalcRequest = Body(...)):
+    """
+    Calculates pipe end machining dimensions, bevel groove volume, tolerances,
+    out-of-squareness limits, end ovality thresholds, and verifies compliance.
+    """
+    from core.bevel_engine import BevelEngine
+
+    d_mm = data.diameter_mm
+    if d_mm is None and data.diameter_inch:
+        from core.database import get_pipe_size_by_inch
+        ps = get_pipe_size_by_inch(data.diameter_inch)
+        d_mm = ps['mm'] if ps else 1219.0
+    elif d_mm is None:
+        d_mm = 1219.0
+
+    res = BevelEngine.calculate_bevel_geometry(
+        diameter_mm=float(d_mm),
+        wall_thickness_mm=float(data.wall_thickness_mm or 14.30),
+        material_grade=str(data.material_grade or "X65"),
+        standard_code=str(data.standard_code or "BOTAŞ"),
+        end_type=str(data.end_type or "BEVEL"),
+        bevel_angle_actual=data.bevel_angle_actual,
+        root_face_actual=data.root_face_actual,
+        out_of_squareness_actual=data.out_of_squareness_actual,
+        end_diameter_min_actual=data.end_diameter_min_actual,
+        end_diameter_max_actual=data.end_diameter_max_actual,
+        pipe_length_m=float(data.pipe_length_m or 12.0)
+    )
+    return JSONResponse(content={"status": "success", "data": res})
+
+
+@app.post("/api/export-bevel-excel")
+async def export_bevel_excel_endpoint(data: ExportBevelRequest = Body(...)):
+    """
+    Exports official Pipe End Geometry, Bevel Preparation, Root Face,
+    Out-of-Squareness, and End Ovality Inspection Report to Excel.
+    """
+    import re
+    from core.bevel_engine import BevelEngine
+
+    project_info = data.project_info or {}
+    bevel_data = data.bevel_data or {}
+    pipe_info = data.pipe_info or {}
+    lang = data.lang or "tr"
+
+    d_val = float(pipe_info.get('diameter_mm') or bevel_data.get('diameter_mm') or 1219.0)
+    t_val = float(pipe_info.get('wall_thickness_mm') or bevel_data.get('wall_thickness_mm') or 14.30)
+    grade_val = str(pipe_info.get('material_grade') or bevel_data.get('material_grade') or 'X65')
+    std_val = str(pipe_info.get('standard_type') or bevel_data.get('standard_code') or 'BOTAŞ')
+    end_val = str(pipe_info.get('end_type') or bevel_data.get('end_type') or 'BEVEL')
+
+    computed = BevelEngine.calculate_bevel_geometry(
+        diameter_mm=d_val,
+        wall_thickness_mm=t_val,
+        material_grade=grade_val,
+        standard_code=std_val,
+        end_type=end_val,
+        bevel_angle_actual=bevel_data.get('bevel_angle_actual'),
+        root_face_actual=bevel_data.get('root_face_actual'),
+        out_of_squareness_actual=bevel_data.get('out_of_squareness_actual'),
+        end_diameter_min_actual=bevel_data.get('end_diameter_min_actual'),
+        end_diameter_max_actual=bevel_data.get('end_diameter_max_actual'),
+        pipe_length_m=float(bevel_data.get('pipe_length_m') or 12.0)
+    )
+    final_bevel_data = {**bevel_data, **computed}
+
+    excel_file = ExcelExporter.export_bevel_geometry_report(
+        project_info,
+        final_bevel_data,
+        pipe_info=pipe_info,
+        lang=lang
+    )
+
+    raw_no = str(project_info.get('project_no', 'BEVEL')).strip()
+    safe_no = re.sub(r'[^a-zA-Z0-9_\-\.]', '_', raw_no) if raw_no else 'BEVEL'
+    raw_dia = str(pipe_info.get('diameter_inch', f"{d_val:.0f}mm")).replace('"', '').replace("'", "").strip()
+    safe_dia = re.sub(r'[^a-zA-Z0-9_\-\.]', '', raw_dia) if raw_dia else '48in'
+    if not safe_dia.endswith('in') and not safe_dia.endswith('mm'):
+        safe_dia = f"{safe_dia}in"
+    filename = f"Boru_Uc_Kaynak_Agzi_Foyu_{safe_no}_{safe_dia}.xlsx"
+    headers = {
+        'Content-Disposition': f'attachment; filename="{filename}"'
+    }
+    return StreamingResponse(
+        excel_file,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers=headers
+    )
+
+
+@app.post("/api/straightness-calc")
+async def api_straightness_calc(data: StraightnessCalcRequest = Body(...)):
+    """
+    Calculates pipe straightness, full-length sweep/camber, and end straightness deviations
+    per API Spec 5L Clause 9.11.3 & Table 12 and BOTAŞ Clauses 5.5, 8.1.2.4.
+    """
+    from core.straightness_engine import StraightnessEngine
+
+    d_mm = data.diameter_mm
+    if d_mm is None and data.diameter_inch:
+        from core.database import get_pipe_size_by_inch
+        ps = get_pipe_size_by_inch(data.diameter_inch)
+        d_mm = ps['mm'] if ps else 1219.0
+    elif d_mm is None:
+        d_mm = 1219.0
+
+    res = StraightnessEngine.calculate_straightness(
+        diameter_mm=float(d_mm),
+        wall_thickness_mm=float(data.wall_thickness_mm or 14.30),
+        pipe_length_m=float(data.pipe_length_m or 12.0),
+        standard_code=str(data.standard_code or "BOTAŞ"),
+        material_grade=str(data.material_grade or "X65"),
+        manufacturing_process=str(data.manufacturing_process or "SAWH"),
+        total_straightness_actual_mm=data.total_straightness_actual_mm,
+        end_straightness_left_actual_mm=data.end_straightness_left_actual_mm,
+        end_straightness_right_actual_mm=data.end_straightness_right_actual_mm,
+    )
+    return JSONResponse(content={"status": "success", "data": res})
+
+
+@app.post("/api/export-straightness-excel")
+async def export_straightness_excel_endpoint(data: ExportStraightnessRequest = Body(...)):
+    """
+    Exports official Pipe Straightness, Full-Length Sweep / Camber, and End Straightness
+    Inspection Report to Excel.
+    """
+    import re
+    from core.straightness_engine import StraightnessEngine
+
+    project_info = data.project_info or {}
+    straightness_data = data.straightness_data or {}
+    pipe_info = data.pipe_info or {}
+    lang = data.lang or "tr"
+
+    d_val = float(pipe_info.get('diameter_mm') or straightness_data.get('diameter_mm') or 1219.0)
+    t_val = float(pipe_info.get('wall_thickness_mm') or straightness_data.get('wall_thickness_mm') or 14.30)
+    l_val = float(pipe_info.get('pipe_length_m') or straightness_data.get('pipe_length_m') or 12.0)
+    grade_val = str(pipe_info.get('material_grade') or straightness_data.get('material_grade') or 'X65')
+    proc_val = str(pipe_info.get('manufacturing_process') or straightness_data.get('manufacturing_process') or 'SAWH')
+    std_val = str(pipe_info.get('standard_type') or straightness_data.get('standard_code') or 'BOTAŞ')
+
+    computed = StraightnessEngine.calculate_straightness(
+        diameter_mm=d_val,
+        wall_thickness_mm=t_val,
+        pipe_length_m=l_val,
+        standard_code=std_val,
+        material_grade=grade_val,
+        manufacturing_process=proc_val,
+        total_straightness_actual_mm=straightness_data.get('total_straightness_actual_mm'),
+        end_straightness_left_actual_mm=straightness_data.get('end_straightness_left_actual_mm'),
+        end_straightness_right_actual_mm=straightness_data.get('end_straightness_right_actual_mm'),
+    )
+    final_straightness_data = {**straightness_data, **computed}
+
+    excel_file = ExcelExporter.export_straightness_report(
+        project_info,
+        final_straightness_data,
+        pipe_info=pipe_info,
+        lang=lang
+    )
+
+    raw_no = str(project_info.get('project_no', 'STR')).strip()
+    safe_no = re.sub(r'[^a-zA-Z0-9_\-\.]', '_', raw_no) if raw_no else 'STR'
+    raw_dia = str(pipe_info.get('diameter_inch', f"{d_val:.0f}mm")).replace('"', '').replace("'", "").strip()
+    safe_dia = re.sub(r'[^a-zA-Z0-9_\-\.]', '', raw_dia) if raw_dia else '48in'
+    if not safe_dia.endswith('in') and not safe_dia.endswith('mm'):
+        safe_dia = f"{safe_dia}in"
+    filename = f"Boru_Duzluk_Sapma_Foyu_{safe_no}_{safe_dia}.xlsx"
+    headers = {
+        'Content-Disposition': f'attachment; filename="{filename}"'
+    }
+    return StreamingResponse(
+        excel_file,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers=headers
+    )
+
 
 @app.post("/api/test-plan")
 async def api_get_test_plan(data: Dict[str, Any] = Body(...)):

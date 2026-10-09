@@ -111,11 +111,14 @@ SPECIMEN_FIGURES: Dict[str, Optional[str]] = {
     "Düzleştirme (Flattening)": "flattening",
     "DWTT (Drop Weight Tear Test)": "dwtt",
     "Sertlik Testi": "hardness",
+    "Alın Kaynak Ağzı Açısı ve Kök Yüzeyi": "pipe_bevel",
+    "Boru Uç Geometrisi & Kaynak Ağzı": "pipe_bevel",
 }
 
 VALID_FIGURES = {
     "sampling_location", "charpy", "tensile_strip", "tensile_round", "tensile_weld",
     "guided_bend", "flattening", "residual_stress_ring", "dwtt", "hardness",
+    "pipe_bevel", "bevel", "pipe_straightness", "straightness",
 }
 
 
@@ -419,9 +422,9 @@ def _table_frequency_rows(
     # --- 10. Diğer boyutsal testler (Tablo 18/17 #24) ---
     rows.append({
         "test": "Diğer Boyutsal Testler",
-        "clause": f"API 5L 10.2.8 / {table}",
-        "clause_ref": "API 5L Table 18 #24: diğer boyutsal testler; rastgele (üretici takdiri).",
-        "specimen_figure": None,
+        "clause": f"API 5L 10.2.8 & 9.12.5 / {table}",
+        "clause_ref": "API 5L Table 18 #24 & 9.12.5: boru uç geometrisi, alın kaynak ağzı (30° +5°/-0°), kök yüzeyi (1.6±0.8 mm) ve diklikten sapma (≤1.6 mm).",
+        "specimen_figure": "pipe_bevel",
         "frequency": "Rastgele (üretici takdiri)",
         "location": "Boru geometrisi",
         "specimen": "Mastar / şablon ölçümleri",
@@ -1502,6 +1505,7 @@ def get_comprehensive_itp_specification(pipe_config: Optional[Dict[str, Any]] = 
         "ndt_acceptance_level": "Açı 30° (+5°/-0°), Kök 1.6 ± 0.8 mm",
         "calculated_target_str": "Ağız Açısı: 30° (+5°/-0°), Kök Yüzeyi: 1.6 ± 0.8 mm",
         "calculated_targets": {"bevel_angle_deg": 30.0, "root_face_mm": 1.6, "root_face_tol_mm": 0.8},
+        "specimen_figure": "pipe_bevel",
         "is_mandatory": True,
     })
 

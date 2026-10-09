@@ -322,19 +322,19 @@ const SPECIMEN_DRAWINGS = {
       <text x="24" y="52" class="sd-lbl">A) Üst Görünüş: ASTM A370 İndirgenmiş Kesitli Şerit (Gövde Malzemesi — Kaynaksız)</text>
 
       <g filter="url(#sd-ts-shadow)">
-        <!-- Dog-Bone Specimen Outline -->
-        <!-- Grip Width = 72px (C ~ 50 mm), Gauge Width = 48px (W = 38.1 mm), Fillet R = 25 mm -->
+        <!-- Dog-Bone Specimen Outline (Concave Fillet Radius R >= 25 mm) -->
+        <!-- Grip Width = 72px (C ~ 50 mm), Gauge Width = 48px (W = 38.1 mm), Fillet R = 25 mm (İçbükey / Concave) -->
         <path d="M 50 62 
-                 L 140 62 
-                 Q 165 62, 185 74 
+                 L 145 62 
+                 Q 165 74, 185 74 
                  L 435 74 
-                 Q 455 62, 480 62 
+                 Q 455 74, 475 62 
                  L 570 62 
                  L 570 134 
-                 L 480 134 
-                 Q 455 134, 435 122 
+                 L 475 134 
+                 Q 455 122, 435 122 
                  L 185 122 
-                 Q 165 134, 140 134 
+                 Q 165 122, 145 134 
                  L 50 134 Z" 
               fill="url(#ts-steel-body)" stroke="#334155" stroke-width="1.8"/>
 
@@ -353,9 +353,9 @@ const SPECIMEN_DRAWINGS = {
       <text x="90" y="102" text-anchor="middle" class="sd-txt" font-weight="bold" fill="#0f172a">Çene (B ≥ 75)</text>
       <text x="530" y="102" text-anchor="middle" class="sd-txt" font-weight="bold" fill="#0f172a">Çene (B ≥ 75)</text>
 
-      <!-- Fillet Radius Callout (R >= 25 mm) -->
-      <path d="M 160 68 Q 170 70 176 74" fill="none" stroke="#2563eb" stroke-width="1.2"/>
-      <text x="175" y="62" class="sd-dimtxt">R ≥ 25 mm (Omuz Radyüsü)</text>
+      <!-- Fillet Radius Callout (R >= 25 mm - İçbükey / Concave) -->
+      <path d="M 160 52 L 170 60 L 174 72" fill="none" stroke="#2563eb" stroke-width="1.2" marker-end="url(#sd-arr-ts)"/>
+      <text x="165" y="48" class="sd-dimtxt">R ≥ 25 mm (İçbükey Omuz Radyüsü)</text>
 
       <!-- Gauge Marks & Gauge Length (G = 50.0 mm) -->
       <line x1="260" y1="66" x2="260" y2="130" stroke="#2563eb" stroke-width="1.6"/>
@@ -722,36 +722,436 @@ const SPECIMEN_DRAWINGS = {
     </div>`,
 
     // ------------------------------------------------------------------
-    // Flattening test (ring between plates) — H distance
     // ------------------------------------------------------------------
-    flattening: () => `
-    <svg viewBox="0 0 640 260" xmlns="http://www.w3.org/2000/svg" class="w-full h-auto max-h-[260px]">
-      <style>
-        .sd-line{stroke:#334155;stroke-width:1.5;fill:none}
-        .sd-dim{stroke:#3b82f6;stroke-width:1;stroke-dasharray:3,3}
-        .sd-txt{font-family:'JetBrains Mono',monospace;font-size:11px;fill:#0f172a}
-        .sd-lbl{font-family:'Inter',sans-serif;font-size:10.5px;font-weight:600;fill:#1e3a8a}
-        .sd-dimtxt{font-family:'JetBrains Mono',monospace;font-size:10px;fill:#2563eb}
-      </style>
-      <!-- top plate -->
-      <rect x="40" y="50" width="560" height="18" fill="#94a3b8" stroke="#334155" stroke-width="2"/>
-      <!-- bottom plate -->
-      <rect x="40" y="180" width="560" height="18" fill="#94a3b8" stroke="#334155" stroke-width="2"/>
-      <!-- flattened ring (ellipse = deformed pipe ring) -->
-      <ellipse cx="320" cy="124" rx="150" ry="46" fill="none" stroke="#ef4444" stroke-width="8"/>
-      <ellipse cx="320" cy="124" rx="130" ry="34" fill="none" stroke="#fca5a5" stroke-width="3"/>
-      <!-- weld mark on ring -->
-      <rect x="312" y="70" width="16" height="14" fill="#b91c1c"/>
-      <!-- H dimension between plates -->
-      <line x1="500" y1="68" x2="500" y2="180" class="sd-dim"/>
-      <line x1="496" y1="68" x2="504" y2="68" class="sd-dim"/>
-      <line x1="496" y1="180" x2="504" y2="180" class="sd-dim"/>
-      <text x="508" y="128" class="sd-dimtxt">H</text>
-      <!-- load arrows -->
-      <text x="320" y="30" text-anchor="middle" class="sd-lbl" fill="#b91c1c">▼ Yük (F)</text>
-      <text x="320" y="226" text-anchor="middle" class="sd-lbl" fill="#b91c1c">▲ Yük (F)</text>
-      <text x="320" y="248" text-anchor="middle" class="sd-txt" fill="#64748b" font-size="10">Plakalar arası mesafe H — kaynak belirtilen mesafeye ulaşmadan çatlamamalı</text>
-    </svg>`,
+    // Flattening test (ring between plates) — API 5L 10.2.4.3 & BOTAŞ 3.3.3
+    // Dynamic 2D SVG driven by diameter, wall thickness & steel grade
+    // ------------------------------------------------------------------
+    flattening: (pd) => {
+        const d = (pd && pd.input_summary && pd.input_summary.diameter_mm) || 323.9;
+        const dInch = (pd && pd.input_summary && pd.input_summary.diameter_inch) || '12"';
+        const t = (pd && pd.input_summary && pd.input_summary.wall_thickness_mm) || 9.53;
+        const grade = (pd && pd.input_summary && pd.input_summary.material_grade) || 'X52';
+        const psl = (pd && pd.input_summary && pd.input_summary.psl_level) || 'PSL2';
+
+        // Deformation factor e (API 5L 10.2.4.3)
+        let e = 0.07;
+        const gUpper = String(grade).toUpperCase();
+        if (gUpper.includes('80')) e = 0.04;
+        else if (gUpper.includes('70')) e = 0.05;
+        else if (gUpper.includes('65') || gUpper.includes('60') || gUpper.includes('56')) e = 0.06;
+        else if (gUpper.includes('52') || gUpper.includes('46')) e = 0.07;
+        else if (gUpper.includes('42') || gUpper.includes('B') || gUpper.includes('245') || gUpper.includes('290')) e = 0.08;
+
+        const t_over_d = t / d;
+        const H = ((1.0 + e) * t) / (e + t_over_d);
+        const H_duct = 0.33 * d;
+        const H_sound = 2.0 * t;
+
+        return `
+    <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm max-w-[720px] mx-auto">
+      <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-2 mb-2">
+        <div>
+          <span class="text-xs font-bold text-slate-900">API 5L Madde 10.2.4.3 & BOTAŞ 3.3.3 Yassıltma Testi (Flattening Test)</span>
+          <span class="text-[11px] text-slate-500 block">ERW / HFW Borularda Kaynak ve Gövde Süneklik Denetimi</span>
+        </div>
+        <div class="flex items-center gap-1.5 text-[11px] font-mono">
+          <span class="px-2 py-0.5 rounded bg-blue-50 text-blue-700 font-bold border border-blue-200">${dInch} (${d.toFixed(1)} mm) x ${t.toFixed(2)} mm</span>
+          <span class="px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 font-bold border border-indigo-200">${grade} (${psl})</span>
+        </div>
+      </div>
+
+      <svg viewBox="0 0 680 300" xmlns="http://www.w3.org/2000/svg" class="w-full h-auto bg-slate-950 rounded-lg border border-slate-800 shadow-inner">
+        <defs>
+          <marker id="fl-arr-down" markerWidth="6" markerHeight="6" refX="3" refY="6" orient="auto">
+            <path d="M0,0 L3,6 L6,0 Z" fill="#ef4444" />
+          </marker>
+          <marker id="fl-arr-up" markerWidth="6" markerHeight="6" refX="3" refY="0" orient="auto">
+            <path d="M0,6 L3,0 L6,6 Z" fill="#3b82f6" />
+          </marker>
+          <marker id="fl-dim-arr" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">
+            <path d="M0,1 L3,3 L0,5 Z" fill="#38bdf8" />
+          </marker>
+          <linearGradient id="fl-platen-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#475569" />
+            <stop offset="50%" stop-color="#334155" />
+            <stop offset="100%" stop-color="#1e293b" />
+          </linearGradient>
+        </defs>
+
+        <!-- Center Line -->
+        <line x1="270" y1="20" x2="270" y2="280" stroke="#334155" stroke-dasharray="4,4" stroke-width="1" />
+        <line x1="70" y1="150" x2="470" y2="150" stroke="#334155" stroke-dasharray="4,4" stroke-width="1" />
+
+        <!-- Original Circular Pipe Contour (Dashed Cyan) -->
+        <circle cx="270" cy="150" r="100" fill="none" stroke="#0ea5e9" stroke-dasharray="5,5" stroke-width="1.5" opacity="0.45" />
+        <text x="375" y="80" font-size="10" fill="#38bdf8" font-family="'JetBrains Mono', monospace" opacity="0.8">Başlangıç Çapı: D = ${d.toFixed(1)} mm</text>
+
+        <!-- Upper Press Platen (Hidrolik Pres Üst Tabla) -->
+        <rect x="70" y="60" width="400" height="22" rx="3" fill="url(#fl-platen-grad)" stroke="#64748b" stroke-width="1.5" />
+        <rect x="235" y="26" width="70" height="34" rx="2" fill="#334155" stroke="#475569" stroke-width="1.5" />
+        <text x="270" y="47" font-size="10" font-weight="bold" fill="#f8fafc" text-anchor="middle" font-family="sans-serif">HİDROLİK KOÇ</text>
+        <line x1="170" y1="42" x2="170" y2="58" stroke="#ef4444" stroke-width="2.5" marker-end="url(#fl-arr-down)" />
+        <line x1="370" y1="42" x2="370" y2="58" stroke="#ef4444" stroke-width="2.5" marker-end="url(#fl-arr-down)" />
+        <text x="170" y="34" font-size="9" font-weight="bold" fill="#f87171" text-anchor="middle">Bası Yükü (F)</text>
+        <text x="370" y="34" font-size="9" font-weight="bold" fill="#f87171" text-anchor="middle">Bası Yükü (F)</text>
+
+        <!-- Lower Stationary Platen (Sabit Alt Tabla) -->
+        <rect x="70" y="218" width="400" height="22" rx="3" fill="url(#fl-platen-grad)" stroke="#64748b" stroke-width="1.5" />
+        <line x1="170" y1="258" x2="170" y2="242" stroke="#3b82f6" stroke-width="2" marker-end="url(#fl-arr-up)" />
+        <line x1="370" y1="258" x2="370" y2="242" stroke="#3b82f6" stroke-width="2" marker-end="url(#fl-arr-up)" />
+        <text x="270" y="262" font-size="10" font-weight="bold" fill="#94a3b8" text-anchor="middle">SABİT REAKSİYON TABLASI</text>
+
+        <!-- Flattened Ring Specimen (Deformed Ellipse) -->
+        <ellipse cx="270" cy="150" rx="145" ry="68" fill="#1e293b" stroke="#38bdf8" stroke-width="2.5" />
+        <ellipse cx="270" cy="150" rx="131" ry="54" fill="#020617" stroke="#0ea5e9" stroke-width="1.5" />
+
+        <!-- ERW Weld Seam Symbol (at 90° - Saat 9 Pozisyonu) -->
+        <path d="M 119 136 L 131 164 M 131 136 L 119 164" stroke="#f59e0b" stroke-width="3" stroke-linecap="round" />
+        <circle cx="125" cy="150" r="5" fill="#f59e0b" stroke="#ffffff" stroke-width="1.5" />
+        
+        <!-- Weld Seam Callout Line -->
+        <line x1="125" y1="150" x2="65" y2="150" stroke="#f59e0b" stroke-width="1.5" />
+        <circle cx="65" cy="150" r="2.5" fill="#f59e0b" />
+        <text x="60" y="142" font-size="10" font-weight="bold" fill="#fbbf24" text-anchor="end">ERW Kaynak Dikişi</text>
+        <text x="60" y="156" font-size="9" fill="#fde68a" text-anchor="end">Saat 9 Konumu (90°)</text>
+        <text x="60" y="170" font-size="8.5" fill="#fca5a5" font-weight="bold" text-anchor="end">⚠️ Çatlak / Açılma YASAK</text>
+
+        <!-- Top & Bottom Crown Callouts (Saat 12 ve 6 noktaları) -->
+        <circle cx="270" cy="82" r="3" fill="#38bdf8" />
+        <circle cx="270" cy="218" r="3" fill="#38bdf8" />
+
+        <!-- Dimension: Platen Distance H (Right side) -->
+        <line x1="485" y1="82" x2="485" y2="218" stroke="#38bdf8" stroke-width="2" />
+        <line x1="475" y1="82" x2="495" y2="82" stroke="#38bdf8" stroke-width="1.5" />
+        <line x1="475" y1="218" x2="495" y2="218" stroke="#38bdf8" stroke-width="1.5" />
+        
+        <rect x="495" y="130" width="175" height="40" rx="4" fill="#0f172a" stroke="#0284c7" stroke-width="1" />
+        <text x="502" y="146" font-size="11" font-weight="bold" fill="#38bdf8" font-family="'JetBrains Mono', monospace">H = ${H.toFixed(2)} mm</text>
+        <text x="502" y="160" font-size="9" fill="#94a3b8" font-family="sans-serif">H = (1+e)·t / (e + t/D)</text>
+
+        <!-- Right Specs Panel -->
+        <rect x="495" y="26" width="175" height="95" rx="4" fill="#0f172a" stroke="#334155" stroke-width="1" />
+        <text x="502" y="42" font-size="9.5" font-weight="bold" fill="#e2e8f0">YASSILTMA KRİTERLERİ</text>
+        <text x="502" y="58" font-size="9" fill="#94a3b8">e Katsayısı: <tspan fill="#f8fafc" font-weight="bold">${e.toFixed(2)}</tspan></text>
+        <text x="502" y="73" font-size="9" fill="#94a3b8">1. Aşama (Kaynak): <tspan fill="#34d399" font-weight="bold">${H.toFixed(1)} mm</tspan></text>
+        <text x="502" y="88" font-size="9" fill="#94a3b8">2. Aşama (0.33D): <tspan fill="#60a5fa" font-weight="bold">${H_duct.toFixed(1)} mm</tspan></text>
+        <text x="502" y="103" font-size="9" fill="#94a3b8">3. Aşama (2t): <tspan fill="#f59e0b" font-weight="bold">${H_sound.toFixed(1)} mm</tspan></text>
+        <text x="502" y="116" font-size="8.5" fill="#cbd5e1">Numune: L ≥ 60 mm</text>
+
+        <!-- Bottom Legend -->
+        <text x="70" y="290" font-size="9" fill="#94a3b8" font-family="sans-serif">
+          API 5L 10.2.4.3: H mesafesine kadar kaynakta (saat 9/3) açılma olmamalı, 0.33D'ye kadar gövdede çatlak olmamalıdır.
+        </text>
+      </svg>
+    </div>`;
+    },
+    flattening_test: (pd) => SPECIMEN_DRAWINGS.flattening(pd),
+
+    // ------------------------------------------------------------------
+    // Pipe End Geometry & Bevel Preparation (API 5L 9.12.5 & BOTAŞ 3.3.8)
+    // 30° (+5°/-0°) Bevel Angle, 1.6 ± 0.8 mm Root Face, Out-of-Squareness e <= 1.6 mm
+    // ------------------------------------------------------------------
+    pipe_bevel: (pd) => {
+        const s = (pd && pd.input_summary) || {};
+        const d = parseFloat(s.diameter_mm) || 1219.0;
+        const dInch = s.diameter_inch || '48"';
+        const t = parseFloat(s.wall_thickness_mm) || 14.30;
+        const grade = s.material_grade || "X65";
+        const std = s.standard_type || "BOTAŞ";
+        const c_nom = 1.6;
+        const theta_nom = 30.0;
+        const h_bev = Math.max(0.0, t - c_nom);
+
+        return `
+    <div class="relative w-full overflow-hidden rounded-lg bg-slate-950 p-2 border border-slate-800 text-slate-200">
+      <svg viewBox="0 0 680 380" xmlns="http://www.w3.org/2000/svg" class="w-full h-auto">
+        <defs>
+          <linearGradient id="bev-steel-pipe" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#334155" />
+            <stop offset="30%" stop-color="#64748b" />
+            <stop offset="70%" stop-color="#475569" />
+            <stop offset="100%" stop-color="#1e293b" />
+          </linearGradient>
+          <linearGradient id="bev-chamfer-face" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#f59e0b" stop-opacity="0.8" />
+            <stop offset="50%" stop-color="#fbbf24" stop-opacity="0.9" />
+            <stop offset="100%" stop-color="#d97706" stop-opacity="0.8" />
+          </linearGradient>
+          <marker id="bev-arr" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+            <path d="M0,0 L6,3 L0,6 Z" fill="#38bdf8" />
+          </marker>
+          <marker id="bev-arr-amber" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+            <path d="M0,0 L6,3 L0,6 Z" fill="#f59e0b" />
+          </marker>
+          <marker id="bev-arr-rose" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+            <path d="M0,0 L6,3 L0,6 Z" fill="#f43f5e" />
+          </marker>
+        </defs>
+
+        <!-- Background & Title -->
+        <rect x="0" y="0" width="680" height="380" fill="#020617" />
+        <text x="20" y="24" font-size="12" font-weight="bold" fill="#f8fafc">
+          ALIN KAYNAK AĞZI, KÖK YÜZEYİ &amp; UÇ DİKLİK DETAYI (API 5L 9.12.5 &amp; BOTAŞ 3.3.8)
+        </text>
+        <text x="20" y="38" font-size="9.5" fill="#94a3b8">
+          Boru Ebadı: ${dInch} (OD ${d.toFixed(1)} mm) • Et Kalınlığı t = ${t.toFixed(2)} mm • Çelik: ${grade} (${std})
+        </text>
+
+        <!-- ================= LEFT PIPE WALL SECTION ================= -->
+        <path d="M 40 80 L 165 80 L 230 175 L 230 200 L 40 200 Z" fill="url(#bev-steel-pipe)" stroke="#64748b" stroke-width="1.8" />
+        <path d="M 165 80 L 230 175 L 230 200" stroke="#f59e0b" stroke-width="2.5" fill="none" />
+
+        <!-- Machined Bevel Face Glow Overlay -->
+        <line x1="165" y1="80" x2="230" y2="175" stroke="#fbbf24" stroke-width="3.5" stroke-linecap="round" />
+        <!-- Vertical Root Face (Landing) Line -->
+        <line x1="230" y1="175" x2="230" y2="200" stroke="#f43f5e" stroke-width="3.5" stroke-linecap="round" />
+
+        <!-- Reference Centerline / Abutting Axis at x = 245 -->
+        <line x1="245" y1="60" x2="245" y2="225" stroke="#475569" stroke-width="1.2" stroke-dasharray="6,4" />
+
+        <!-- ================= RIGHT PIPE WALL SECTION ================= -->
+        <path d="M 450 80 L 325 80 L 260 175 L 260 200 L 450 200 Z" fill="url(#bev-steel-pipe)" stroke="#64748b" stroke-width="1.8" />
+        <path d="M 325 80 L 260 175 L 260 200" stroke="#f59e0b" stroke-width="2.5" fill="none" />
+        <line x1="325" y1="80" x2="260" y2="175" stroke="#fbbf24" stroke-width="3.5" stroke-linecap="round" />
+        <line x1="260" y1="175" x2="260" y2="200" stroke="#f43f5e" stroke-width="3.5" stroke-linecap="round" />
+
+        <!-- ================= DIMENSIONS & CALLOUTS ================= -->
+        <!-- 1. Wall Thickness t Dimension -->
+        <line x1="25" y1="80" x2="25" y2="200" stroke="#38bdf8" stroke-width="1.5" marker-start="url(#bev-arr)" marker-end="url(#bev-arr)" />
+        <line x1="18" y1="80" x2="38" y2="80" stroke="#38bdf8" stroke-width="1" />
+        <line x1="18" y1="200" x2="38" y2="200" stroke="#38bdf8" stroke-width="1" />
+        <text x="20" y="145" font-size="10" font-weight="bold" fill="#38bdf8" text-anchor="end" font-family="'JetBrains Mono', monospace">t = ${t.toFixed(2)} mm</text>
+
+        <!-- 2. Vertical Root Face Landing (c = 1.6 mm) Callout -->
+        <line x1="238" y1="175" x2="238" y2="200" stroke="#f43f5e" stroke-width="1.5" marker-start="url(#bev-arr-rose)" marker-end="url(#bev-arr-rose)" />
+        <line x1="230" y1="175" x2="242" y2="175" stroke="#f43f5e" stroke-width="1" />
+        <line x1="230" y1="200" x2="242" y2="200" stroke="#f43f5e" stroke-width="1" />
+        <text x="210" y="222" font-size="9.5" font-weight="bold" fill="#fb7185">Kök Yüzeyi c = 1.6 ± 0.8 mm</text>
+
+        <!-- 3. Bevel Angle θ = 30° Arc Indicator -->
+        <line x1="230" y1="80" x2="230" y2="175" stroke="#cbd5e1" stroke-width="1" stroke-dasharray="3,3" />
+        <path d="M 230 115 A 60 60 0 0 0 205 125" fill="none" stroke="#f59e0b" stroke-width="1.8" marker-end="url(#bev-arr-amber)" />
+        <text x="215" y="108" font-size="10" font-weight="bold" fill="#fbbf24">θ = 30°</text>
+        <text x="215" y="120" font-size="8" fill="#fde68a">(+5° / -0°)</text>
+
+        <!-- 4. Total Included Groove Angle (2θ = 60°) Arc -->
+        <path d="M 210 95 A 45 45 0 0 1 280 95" fill="none" stroke="#f59e0b" stroke-width="1.8" marker-start="url(#bev-arr-amber)" marker-end="url(#bev-arr-amber)" />
+        <text x="245" y="88" font-size="10.5" font-weight="bold" fill="#f59e0b" text-anchor="middle">2θ = 60°</text>
+
+        <!-- 5. Root Gap Fit-up (b = 1.6 - 2.4 mm) -->
+        <line x1="230" y1="210" x2="260" y2="210" stroke="#38bdf8" stroke-width="1.2" marker-start="url(#bev-arr)" marker-end="url(#bev-arr)" />
+        <text x="245" y="224" font-size="8.5" fill="#38bdf8" text-anchor="middle">Kök Boşluğu: 1.6 - 2.4 mm</text>
+
+        <!-- 6. Out-of-Squareness (e <= 1.6 mm) Reference Box -->
+        <line x1="165" y1="65" x2="165" y2="95" stroke="#ef4444" stroke-width="1.2" stroke-dasharray="3,3" />
+        <text x="100" y="72" font-size="9" fill="#f87171">Uç Dikliği e ≤ 1.6 mm</text>
+
+        <!-- Surface Labels -->
+        <text x="60" y="96" font-size="8.5" fill="#94a3b8">Boru Dış Yüzeyi (OD)</text>
+        <text x="60" y="192" font-size="8.5" fill="#94a3b8">Boru İç Yüzeyi (ID)</text>
+        <text x="360" y="96" font-size="8.5" fill="#94a3b8">Boru Dış Yüzeyi (OD)</text>
+
+        <!-- ================= RIGHT SIDE CRITERIA PANEL ================= -->
+        <rect x="475" y="55" width="195" height="235" rx="6" fill="#0f172a" stroke="#334155" stroke-width="1" />
+        <text x="485" y="74" font-size="10" font-weight="bold" fill="#f8fafc">STANDART KABUL KRİTERLERİ</text>
+        <line x1="485" y1="80" x2="660" y2="80" stroke="#334155" stroke-width="1" />
+
+        <text x="485" y="96" font-size="9" fill="#94a3b8">Ağız Açısı (θ): <tspan fill="#fbbf24" font-weight="bold">30° (+5° / -0°)</tspan></text>
+        <text x="485" y="112" font-size="9" fill="#94a3b8">İzin Verilen Açı: <tspan fill="#f8fafc">30.0° - 35.0°</tspan></text>
+        
+        <text x="485" y="132" font-size="9" fill="#94a3b8">Kök Yüzeyi (c): <tspan fill="#f43f5e" font-weight="bold">1.60 ± 0.80 mm</tspan></text>
+        <text x="485" y="148" font-size="9" fill="#94a3b8">İzin Verilen Kök: <tspan fill="#f8fafc">0.80 - 2.40 mm</tspan></text>
+
+        <text x="485" y="168" font-size="9" fill="#94a3b8">Uç Diklik Sapması (e): <tspan fill="#38bdf8" font-weight="bold">≤ 1.60 mm</tspan></text>
+        
+        <text x="485" y="188" font-size="9" fill="#94a3b8">Boru Uç Ovalitesi: <tspan fill="#34d399" font-weight="bold">≤ 3.0 mm</tspan></text>
+        <text x="485" y="202" font-size="8.5" fill="#64748b">(D > 610 mm &amp; D/t ≤ 75 için)</text>
+
+        <text x="485" y="222" font-size="9" fill="#94a3b8">İç Talaş (Counterbore): <tspan fill="#a78bfa" font-weight="bold">Maks 1:4 (14°)</tspan></text>
+        <text x="485" y="238" font-size="8.5" fill="#64748b">ASME B31.8 Şekil I-4 kuralı</text>
+
+        <rect x="485" y="250" width="175" height="28" rx="4" fill="#022c22" stroke="#059669" stroke-width="1" />
+        <text x="572" y="268" font-size="9.5" font-weight="bold" fill="#34d399" text-anchor="middle">✓ API 5L &amp; BOTAŞ UYUMLU</text>
+
+        <!-- Bottom Explanatory Bar -->
+        <rect x="15" y="300" width="650" height="65" rx="4" fill="#0f172a" stroke="#1e293b" />
+        <text x="25" y="318" font-size="9" fill="#94a3b8">
+          ℹ️ <tspan fill="#f8fafc" font-weight="bold">Alın Kaynağı Prensibi (API 5L Madde 9.12.5):</tspan> Saha hattı kaynağında kök pasosunun (root pass) nüfuziyeti için kök yüzeyi 1.6 mm tutulur.
+        </text>
+        <text x="25" y="334" font-size="9" fill="#94a3b8">
+          Kök yüzeyinin 0.8 mm altına düşmesi delinmeye (burn-through), 2.4 mm'yi aşması ise yetersiz nüfuziyete (lack of penetration) neden olur.
+        </text>
+        <text x="25" y="350" font-size="8.5" fill="#64748b">
+          Boru ucu diklikten sapma (out-of-squareness e ≤ 1.6 mm) toleransı hassas çelik gönye ve sentil mastarı ile her iki uçta %100 doğrulanır.
+        </text>
+      </svg>
+    </div>`;
+    },
+    bevel: (pd) => SPECIMEN_DRAWINGS.pipe_bevel(pd),
+
+    // ------------------------------------------------------------------
+    // Pipe Straightness & End Camber Verification (API 5L 9.11.3 & BOTAŞ 5.5, 8.1.2.4)
+    // Full-Length Sweep / Camber (<= 0.15% or 0.20% L) & End Straightness (<= 3.0 or 4.0 mm)
+    // ------------------------------------------------------------------
+    pipe_straightness: (pd) => {
+        const s = (pd && pd.input_summary) || {};
+        const d = parseFloat(s.diameter_mm) || 1219.0;
+        const dInch = s.diameter_inch || '48"';
+        const t = parseFloat(s.wall_thickness_mm) || 14.30;
+        const l_m = parseFloat(s.pipe_length_m) || 12.0;
+        const grade = s.material_grade || "X65";
+        const std = s.standard_type || "BOTAŞ";
+        const isBotas = String(std).toUpperCase().includes("BOTAŞ") || String(std).toUpperCase().includes("BOTAS");
+
+        const ratioPct = isBotas ? 0.15 : 0.20;
+        const totLimitMm = ((ratioPct / 100.0) * l_m * 1000.0).toFixed(1);
+        const endLimitMm = isBotas ? 3.0 : 4.0;
+
+        return `
+    <div class="relative w-full overflow-hidden rounded-lg bg-slate-950 p-2 border border-slate-800 text-slate-200">
+      <svg viewBox="0 0 740 380" xmlns="http://www.w3.org/2000/svg" class="w-full h-auto">
+        <defs>
+          <linearGradient id="str-pipe-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#334155" />
+            <stop offset="40%" stop-color="#64748b" />
+            <stop offset="70%" stop-color="#475569" />
+            <stop offset="100%" stop-color="#1e293b" />
+          </linearGradient>
+          <marker id="str-arr" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+            <path d="M0,0 L6,3 L0,6 Z" fill="#38bdf8" />
+          </marker>
+          <marker id="str-arr-green" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+            <path d="M0,0 L6,3 L0,6 Z" fill="#10b981" />
+          </marker>
+          <marker id="str-arr-rose" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+            <path d="M0,0 L6,3 L0,6 Z" fill="#f43f5e" />
+          </marker>
+          <marker id="str-arr-amber" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+            <path d="M0,0 L6,3 L0,6 Z" fill="#f59e0b" />
+          </marker>
+          <filter id="str-glow" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="2" result="blur" />
+            <feComposite in="SourceGraphic" in2="blur" operator="over" />
+          </filter>
+        </defs>
+
+        <!-- Canvas Background -->
+        <rect x="0" y="0" width="740" height="380" fill="#020617" />
+
+        <!-- Title & Spec Header -->
+        <text x="24" y="24" font-size="12.5" font-weight="bold" fill="#f8fafc">
+          BORU DÜZLÜK VE UÇ SAPMASI (STRAIGHTNESS &amp; END CAMBER) DENETİM ŞEMASI
+        </text>
+        <text x="24" y="40" font-size="9.5" fill="#94a3b8">
+          Standart: ${isBotas ? 'BOTAŞ Madde 5.5 &amp; 8.1.2.4' : 'API Spec 5L Madde 9.11.3 &amp; Tablo 12'} • L = ${l_m.toFixed(1)} m • ${dInch} (OD ${d.toFixed(1)} mm) • t = ${t.toFixed(2)} mm • ${grade}
+        </text>
+
+        <!-- 1. STRAIGHT REFERENCE DATUM LINE (Taut Wire / Laser Beam) -->
+        <line x1="50" y1="100" x2="690" y2="100" stroke="#10b981" stroke-width="2" stroke-dasharray="8,4" filter="url(#str-glow)" />
+        <circle cx="60" cy="100" r="4" fill="#10b981" />
+        <circle cx="680" cy="100" r="4" fill="#10b981" />
+        <text x="70" y="92" font-size="9" font-weight="bold" fill="#34d399">
+          REFERANS HİZALAMA HATTI (Piyano Teli / Lazer Kolimatör Datum Ekseni)
+        </text>
+
+        <!-- 2. DEFLECTED PIPE BODY (Boru Gövdesi Sehim / Yaylanma Eğrisi) -->
+        <path d="M 60 100 Q 370 148 680 100 L 680 134 Q 370 182 60 134 Z"
+              fill="url(#str-pipe-grad)" stroke="#64748b" stroke-width="1.8" />
+
+        <path d="M 60 106 Q 370 154 680 106" stroke="#475569" stroke-width="1.2" stroke-dasharray="4,4" fill="none" />
+        <path d="M 60 128 Q 370 176 680 128" stroke="#475569" stroke-width="1.2" stroke-dasharray="4,4" fill="none" />
+        <path d="M 60 100 Q 370 148 680 100" stroke="#f59e0b" stroke-width="2.2" fill="none" />
+
+        <!-- 3. PIPE END CHORD GAUGES (1.0 m Hassas Çelik Mastar Bölgeleri) -->
+        <rect x="58" y="78" width="94" height="6" rx="2" fill="#38bdf8" opacity="0.9" />
+        <text x="105" y="72" font-size="8.5" font-weight="bold" fill="#38bdf8" text-anchor="middle">
+          1.0 m Çelik Mastar
+        </text>
+        <line x1="60" y1="78" x2="60" y2="100" stroke="#38bdf8" stroke-width="1" stroke-dasharray="2,2" />
+        <line x1="152" y1="78" x2="152" y2="107" stroke="#38bdf8" stroke-width="1" stroke-dasharray="2,2" />
+        <line x1="105" y1="84" x2="105" y2="104" stroke="#f43f5e" stroke-width="1.5" marker-start="url(#str-arr-rose)" marker-end="url(#str-arr-rose)" />
+        <text x="110" y="96" font-size="8" font-weight="bold" fill="#f43f5e">
+          f_sol ≤ ${endLimitMm.toFixed(1)} mm
+        </text>
+
+        <rect x="588" y="78" width="94" height="6" rx="2" fill="#38bdf8" opacity="0.9" />
+        <text x="635" y="72" font-size="8.5" font-weight="bold" fill="#38bdf8" text-anchor="middle">
+          1.0 m Çelik Mastar
+        </text>
+        <line x1="588" y1="78" x2="588" y2="107" stroke="#38bdf8" stroke-width="1" stroke-dasharray="2,2" />
+        <line x1="680" y1="78" x2="680" y2="100" stroke="#38bdf8" stroke-width="1" stroke-dasharray="2,2" />
+        <line x1="635" y1="84" x2="635" y2="104" stroke="#f43f5e" stroke-width="1.5" marker-start="url(#str-arr-rose)" marker-end="url(#str-arr-rose)" />
+        <text x="640" y="96" font-size="8" font-weight="bold" fill="#f43f5e">
+          f_sağ ≤ ${endLimitMm.toFixed(1)} mm
+        </text>
+
+        <!-- 4. MID-SPAN MAXIMUM SAGITTA / DEFLECTION (f_max) -->
+        <line x1="370" y1="100" x2="370" y2="148" stroke="#ef4444" stroke-width="2.2" marker-start="url(#str-arr-rose)" marker-end="url(#str-arr-rose)" />
+        <text x="380" y="128" font-size="10.5" font-weight="bold" fill="#f87171">
+          f_toplam ≤ ${totLimitMm} mm (Maksimum Sehim L/2)
+        </text>
+
+        <!-- 5. FULL LENGTH L DIMENSION LINE -->
+        <line x1="60" y1="210" x2="680" y2="210" stroke="#38bdf8" stroke-width="1.5" marker-start="url(#str-arr)" marker-end="url(#str-arr)" />
+        <line x1="60" y1="134" x2="60" y2="218" stroke="#38bdf8" stroke-width="1" stroke-dasharray="3,3" />
+        <line x1="680" y1="134" x2="680" y2="218" stroke="#38bdf8" stroke-width="1" stroke-dasharray="3,3" />
+        <text x="370" y="204" font-size="10" font-weight="bold" fill="#38bdf8" text-anchor="middle">
+          Tam Boru Boyu: L = ${l_m.toFixed(2)} m (${(l_m*1000).toFixed(0)} mm)
+        </text>
+
+        <!-- 6. 7 QA/QC INSPECTION STATIONS -->
+        <line x1="60" y1="236" x2="680" y2="236" stroke="#475569" stroke-width="1" />
+        <g font-size="8" font-family="'JetBrains Mono', monospace" fill="#94a3b8" text-anchor="middle">
+          <circle cx="60" cy="236" r="3" fill="#38bdf8" />
+          <text x="60" y="250">0.0 m</text>
+          <text x="60" y="260" font-size="7.5" fill="#64748b">Sol Uç</text>
+
+          <circle cx="152" cy="236" r="3" fill="#38bdf8" />
+          <text x="152" y="250">1.0 m</text>
+          <text x="152" y="260" font-size="7.5" fill="#64748b">Mastar</text>
+
+          <circle cx="215" cy="236" r="3" fill="#64748b" />
+          <text x="215" y="250">${(l_m*0.25).toFixed(1)} m</text>
+          <text x="215" y="260" font-size="7.5" fill="#64748b">L/4</text>
+
+          <circle cx="370" cy="236" r="3" fill="#ef4444" />
+          <text x="370" y="250" font-weight="bold" fill="#f87171">${(l_m*0.50).toFixed(1)} m</text>
+          <text x="370" y="260" font-size="7.5" fill="#f87171">L/2 (Zirve)</text>
+
+          <circle cx="525" cy="236" r="3" fill="#64748b" />
+          <text x="525" y="250">${(l_m*0.75).toFixed(1)} m</text>
+          <text x="525" y="260" font-size="7.5" fill="#64748b">3L/4</text>
+
+          <circle cx="588" cy="236" r="3" fill="#38bdf8" />
+          <text x="588" y="250">${(l_m-1.0).toFixed(1)} m</text>
+          <text x="588" y="260" font-size="7.5" fill="#64748b">Mastar</text>
+
+          <circle cx="680" cy="236" r="3" fill="#38bdf8" />
+          <text x="680" y="250">${l_m.toFixed(1)} m</text>
+          <text x="680" y="260" font-size="7.5" fill="#64748b">Sağ Uç</text>
+        </g>
+
+        <!-- 7. ENGINEERING CRITERIA & QA/QC COMPLIANCE SUMMARY CARD -->
+        <rect x="24" y="278" width="692" height="88" rx="6" fill="#0f172a" stroke="#334155" stroke-width="1.2" />
+        
+        <text x="40" y="298" font-size="10" font-weight="bold" fill="#38bdf8">
+          KABUL VE DENETİM KRİTERLERİ (QA/QC INSPECTION CRITERIA):
+        </text>
+
+        <text x="40" y="316" font-size="9" fill="#e2e8f0">
+          • <tspan font-weight="bold" fill="#fbbf24">Tam Boy Düzlük Sapması (Total Sweep/Camber):</tspan> ${isBotas ? 'BOTAŞ Madde 5.5 (≤ %0.15 × L)' : 'API 5L Tablo 12 (≤ %0.20 × L)'} → <tspan font-weight="bold" fill="#34d399">Maks. ${totLimitMm} mm</tspan>
+        </text>
+        <text x="40" y="332" font-size="9" fill="#e2e8f0">
+          • <tspan font-weight="bold" fill="#fbbf24">Boru Uç Düzlük Sapması (End Straightness):</tspan> Her iki uçta 1.0 m mastar boyunca → <tspan font-weight="bold" fill="#34d399">Maks. ${endLimitMm.toFixed(1)} mm</tspan> ${isBotas ? '(BOTAŞ 8.1.2.4)' : '(API 5L 9.11.3.2)'}
+        </text>
+        <text x="40" y="348" font-size="8.5" fill="#94a3b8">
+          • <tspan fill="#cbd5e1">Ölçüm Metodu:</tspan> Boru eksenine paralel gerdirilmiş çelik tel veya lazer optik hiza düzlemi ve uçlarda 1.0 m hassas çelik mastar + sentil mastarı.
+        </text>
+      </svg>
+    </div>`;
+    },
+    straightness: (pd) => SPECIMEN_DRAWINGS.pipe_straightness(pd),
+
 
     // ------------------------------------------------------------------
     // Residual Stress Ring Test (BOTAŞ Madde 3.3.9) — 150 mm ring cut +

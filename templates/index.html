@@ -141,7 +141,10 @@
                 </div>
                 <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
                     <div class="bg-slate-50 p-3 rounded-lg border border-slate-200">
-                        <span class="text-[11px] text-slate-500 font-semibold block" data-i18n="kpi_hydro_press">Maks. Fabrika Test Basıncı</span>
+                        <div class="flex items-center justify-between">
+                            <span class="text-[11px] text-slate-500 font-semibold block" data-i18n="kpi_hydro_press">Maks. Fabrika Test Basıncı</span>
+                            <button type="button" onclick="exportHydroExcel()" class="text-[10px] text-blue-600 hover:text-blue-800 font-bold bg-blue-50 hover:bg-blue-100 px-1.5 py-0.5 rounded border border-blue-200 transition flex items-center gap-0.5 shadow-2xs" title="Fabrika Hidrostatik Basınç Testi ve Su Hacmi Hesap Föyünü Excel (.xlsx) olarak indir">📊 Föy İndir</button>
+                        </div>
                         <span id="kpi-hydro-val" class="text-base font-extrabold text-blue-700 block">--</span>
                         <span id="kpi-hydro-sub" class="text-[10px] text-slate-400 block mt-0.5">Barlow Formülü (SMYS %90-%95)</span>
                     </div>
@@ -304,6 +307,10 @@
                             <button type="button" id="sawh-view-split-btn" class="px-2.5 py-1 rounded-md text-slate-600 hover:text-slate-900 transition">◫ İkili Görünüm</button>
                         </div>
                         <span id="sawh-badge" class="text-xs font-bold px-3 py-1 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200"></span>
+                        <button type="button" id="sawh-btn-export-excel" onclick="exportSawhExcel()" class="bg-emerald-700 hover:bg-emerald-600 text-white font-bold px-3 py-1 rounded text-xs transition flex items-center shadow-xs" title="SAWH Spiral İmalat Geometrisi ve Rulo Sac Tedarik Hesap Föyünü Excel (.xlsx) olarak indir">
+                            <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            <span>Hesap Föyü İndir (.xlsx)</span>
+                        </button>
                     </div>
                 </div>
 
@@ -373,6 +380,22 @@
                                 <div>
                                     <span class="text-slate-400 block text-[10px]">Önerilen Aralık (30°-65°):</span>
                                     <span id="sawh-range" class="font-bold text-slate-800 text-xs"></span> mm
+                                </div>
+                                <div>
+                                    <span class="text-slate-400 block text-[10px]" title="Kenar frezeleme payı (+15 mm) dahil HRC rulo sac sipariş genişliği">Sipariş Brüt Bant (B_brüt):</span>
+                                    <span id="sawh-bgross" class="font-bold text-indigo-700 text-xs"></span> mm
+                                </div>
+                                <div>
+                                    <span class="text-slate-400 block text-[10px]" title="Düz dikişe kıyasla spiral dikiş üzerindeki normal gerilme azalması: 1 - 0.5·cos²(α)">Dikiş Gerilme Kazancı:</span>
+                                    <span id="sawh-stressreduct" class="font-bold text-emerald-700 text-xs"></span>
+                                </div>
+                                <div>
+                                    <span class="text-slate-400 block text-[10px]" title="API 5L 8.10: Bobin uç kaynağının en yakın boru alnına olan mesafesi (min 300 mm)">Bobin Uç Kaynağı Mesafesi:</span>
+                                    <span id="sawh-skelp-dist" class="font-bold text-slate-800 text-xs"></span> mm
+                                </div>
+                                <div>
+                                    <span class="text-slate-400 block text-[10px]" title="API 5L 8.10 Bobin Uç Kaynağı Emniyet Kontrolü">API 5L 8.10 Uç Kaynak:</span>
+                                    <span id="sawh-skelp-status" class="inline-block px-1.5 py-0.2 rounded text-[10px] font-bold"></span>
                                 </div>
                             </div>
                         </div>
@@ -481,6 +504,10 @@
                             <button type="button" id="sawl-view-2d-btn" class="px-2.5 py-1 rounded-md text-slate-600 hover:text-slate-900 transition">📐 2D Açınım</button>
                         </div>
                         <span id="sawl-badge" class="text-xs font-bold px-3 py-1 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200">Boyuna Dikiş</span>
+                        <button type="button" id="sawl-btn-export-excel" onclick="exportSawlExcel()" class="bg-indigo-700 hover:bg-indigo-600 text-white font-bold px-3 py-1 rounded text-xs transition flex items-center shadow-xs" title="SAWL Boyuna İmalat Geometrisi ve Plaka Tedarik Hesap Föyünü Excel (.xlsx) olarak indir">
+                            <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            <span>Hesap Föyü İndir (.xlsx)</span>
+                        </button>
                     </div>
                 </div>
 
@@ -511,12 +538,34 @@
                             </div>
                         </div>
 
-                        <div class="bg-white p-3 rounded-lg border border-slate-200 shadow-2xs space-y-1">
+                        <div class="bg-white p-3 rounded-lg border border-slate-200 shadow-2xs space-y-2">
                             <div class="flex items-center justify-between">
-                                <span class="font-bold text-slate-700">Plaka / Dikiş Boyu</span>
+                                <span class="font-bold text-slate-700">Net Plaka Genişliği (W_net):</span>
                                 <span class="font-black text-indigo-700"><span id="sawl-plate">3784</span> mm</span>
                             </div>
-                            <p class="text-[11px] text-slate-500">Tek plaka silindire bükülür; açık kenarlar tek bir boyuna dikişte çift taraflı tozaltı ark kaynağıyla birleştirilir.</p>
+                            <div class="flex items-center justify-between pt-1 border-t border-slate-100">
+                                <span class="font-bold text-slate-700">Boyuna Kaynak Dikiş Boyu (L_kaynak):</span>
+                                <span class="font-black text-amber-700"><span id="sawl-weld-len">12.00</span> m (12000 mm)</span>
+                            </div>
+                            <p class="text-[11px] text-slate-500">Plaka eni (3784 mm) bükülerek boru çevresini oluşturur. Kaynak dikişi ise boru ekseni (12.0 m) boyunca boydan boya uzanır.</p>
+                            <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100 text-[11px]">
+                                <div>
+                                    <span class="text-slate-400 block text-[10px]" title="Kenar freze payı (+30 mm) dahil brüt plaka sipariş eni">Brüt Plaka Eni (W_brüt):</span>
+                                    <span id="sawl-wgross" class="font-bold text-indigo-800 text-xs">3814</span> mm
+                                </div>
+                                <div>
+                                    <span class="text-slate-400 block text-[10px]" title="12 m tek plaka sipariş tonajı">Tek Plaka Ağırlığı:</span>
+                                    <span id="sawl-mgross" class="font-bold text-slate-800 text-xs">5136</span> kg
+                                </div>
+                                <div>
+                                    <span class="text-slate-400 block text-[10px]" title="API 5L 8.9: Mekanik kalibratör kalıcı genleşme oranı (Hedef %0.8 - %1.5)">Mekanik Genişletme (ER):</span>
+                                    <span id="sawl-er" class="font-bold text-slate-800 text-xs">%1.00</span>
+                                </div>
+                                <div>
+                                    <span class="text-slate-400 block text-[10px]" title="API 5L Madde 8.9 Expander Sınır Kontrolü">API 5L 8.9 Durumu:</span>
+                                    <span id="sawl-er-status" class="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">✓ UYGUN (PASS)</span>
+                                </div>
+                            </div>
                         </div>
 
                         <div class="bg-white p-3 rounded-lg border border-slate-200 shadow-2xs space-y-2.5">
@@ -589,6 +638,130 @@
                 ⚠️ <span>Bu simülasyon yalnız SAWL / LSAW (boyuna dikişli tozaltı) borular içindir</span> (seçili boru: <span id="sawl-na-process" class="font-semibold"></span>).
             </div>
 
+            <!-- ERW / HFW Pipe Manufacturing, Flash Trimming & Flattening Test Card -->
+            <div id="erw-card" class="mt-6 bg-white p-5 rounded-xl border border-slate-200 shadow-sm hidden">
+                <div class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-100 mb-4">
+                    <div class="flex items-center gap-2">
+                        <span class="p-1.5 bg-amber-50 text-amber-600 rounded-lg text-base">⚡</span>
+                        <div>
+                            <h3 class="text-sm font-bold text-slate-800">ERW &amp; HFW İmalat Geometrisi, Çapak Alma &amp; Yassıltma Testi (Flattening)</h3>
+                            <p class="text-xs text-slate-500 mt-0.5">API 5L Madde 10.2.4.3 • Table 16 / 9.11.3.2 • BOTAŞ Madde 3.3.3 &amp; 3.2.1</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button type="button" id="erw-open-3d-btn" onclick="openFlatteningSpecimenModal('3d')" class="px-2.5 py-1 text-xs font-bold bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-lg shadow-sm transition flex items-center gap-1">
+                            <span>🧊</span> Yassıltma Testi 3D
+                        </button>
+                        <button type="button" id="erw-open-2d-btn" onclick="openFlatteningSpecimenModal('2d')" class="px-2.5 py-1 text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg border border-slate-200 transition flex items-center gap-1">
+                            <span>📐</span> 2D Çizim
+                        </button>
+                        <button type="button" id="erw-export-excel-btn" onclick="exportErwExcel()" class="px-2.5 py-1 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow-sm transition flex items-center gap-1">
+                            <span>📊</span> ERW Hesap Föyü (.xlsx)
+                        </button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+                    <!-- Left: Technical Parameters & KPIs -->
+                    <div class="lg:col-span-6 space-y-3">
+                        <!-- Skelp & Sizing KPI Card -->
+                        <div class="bg-slate-50 p-3.5 rounded-lg border border-slate-200 space-y-2">
+                            <span class="text-xs font-bold text-slate-700 block flex items-center gap-1.5">
+                                <span>📏</span> Rulo Sac (Skelp) Ebatları &amp; Yığma Kaybı
+                            </span>
+                            <div class="grid grid-cols-2 gap-2 text-[11px]">
+                                <div>
+                                    <span class="text-slate-400 block text-[10px]">Net Sac Eni (W_skelp):</span>
+                                    <span id="erw-wskelp" class="font-bold text-indigo-700 text-xs">—</span> mm
+                                </div>
+                                <div>
+                                    <span class="text-slate-400 block text-[10px]">Yığma/Erime Kaybı (ΔW_upset):</span>
+                                    <span id="erw-wupset" class="font-bold text-amber-700 text-xs">—</span> mm
+                                </div>
+                                <div>
+                                    <span class="text-slate-400 block text-[10px]">Brüt Sac Sipariş Eni (W_brüt):</span>
+                                    <span id="erw-wgross" class="font-bold text-slate-800 text-xs">—</span> mm
+                                </div>
+                                <div>
+                                    <span class="text-slate-400 block text-[10px]">Kenar Kesme Fire Oranı:</span>
+                                    <span id="erw-scrap" class="font-bold text-slate-800 text-xs">—</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Flash Trimming KPI Card -->
+                        <div class="bg-slate-50 p-3.5 rounded-lg border border-slate-200 space-y-2">
+                            <span class="text-xs font-bold text-slate-700 block flex items-center gap-1.5">
+                                <span>✂️</span> İç &amp; Dış Çapak Alma (Flash Trimming - API 5L Tablo 16)
+                            </span>
+                            <div class="grid grid-cols-2 gap-2 text-[11px]">
+                                <div>
+                                    <span class="text-slate-400 block text-[10px]">Dış Çapak Kriteri (h_out):</span>
+                                    <span id="erw-hout" class="font-bold text-emerald-700 text-xs">≤ 0.00 mm (Sıfır)</span>
+                                </div>
+                                <div>
+                                    <span class="text-slate-400 block text-[10px]">İç Çapak Kriteri (h_in):</span>
+                                    <span id="erw-hin" class="font-bold text-indigo-700 text-xs">—</span>
+                                </div>
+                                <div class="col-span-2">
+                                    <span class="text-slate-400 block text-[10px]">Çapak Alma Durumu:</span>
+                                    <span id="erw-flash-status" class="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">✓ UYGUN (PASS)</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Flattening Test Formulas & Stages -->
+                        <div class="bg-slate-50 p-3.5 rounded-lg border border-slate-200 space-y-2">
+                            <span class="text-xs font-bold text-slate-700 block flex items-center gap-1.5">
+                                <span>🔨</span> Yassıltma Testi Kriterleri (API 5L 10.2.4.3 &amp; BOTAŞ 3.3.3)
+                            </span>
+                            <div class="grid grid-cols-2 gap-2 text-[11px]">
+                                <div>
+                                    <span class="text-slate-400 block text-[10px]">Şekil Değiştirme Faktörü (e):</span>
+                                    <span id="erw-factor-e" class="font-bold text-blue-700 text-xs">—</span>
+                                </div>
+                                <div>
+                                    <span class="text-slate-400 block text-[10px]">Kademe 1 Çene Mesafesi (H):</span>
+                                    <span id="erw-h-dist" class="font-bold text-rose-700 text-xs font-mono">—</span>
+                                </div>
+                                <div>
+                                    <span class="text-slate-400 block text-[10px]">Kademe 2 Süneklik (0.33×D):</span>
+                                    <span id="erw-h-duct" class="font-bold text-slate-800 text-xs font-mono">—</span>
+                                </div>
+                                <div>
+                                    <span class="text-slate-400 block text-[10px]">Kademe 3 Katmer Testi (2×t):</span>
+                                    <span id="erw-h-sound" class="font-bold text-slate-800 text-xs font-mono">—</span>
+                                </div>
+                            </div>
+                            <div class="pt-1.5 border-t border-slate-200 text-[10px] text-slate-500">
+                                Kaynak dikişi pres çenelerine dik (saat 9 veya 3) konumlandırılır. H çene mesafesine kadar kaynakta çatlak/açılma kabul edilmez.
+                            </div>
+                        </div>
+
+                        <!-- Seam Annealing / Heat Treatment -->
+                        <div class="bg-slate-50 p-3 rounded-lg border border-slate-200 text-[11px]">
+                            <span class="text-slate-400 block text-[10px]">Dikiş Normalizasyon Isıl İşlemi (API 5L 10.2.5.3 &amp; BOTAŞ 3.2.1):</span>
+                            <span id="erw-temp" class="font-bold text-amber-700 text-xs">—</span>
+                            <div id="erw-microstructure" class="text-[10px] text-slate-600 mt-0.5 font-medium">—</div>
+                        </div>
+                    </div>
+
+                    <!-- Right: Dynamic 2D SVG Interactive Preview -->
+                    <div class="lg:col-span-6 flex flex-col justify-between">
+                        <div class="border border-slate-200 rounded-xl overflow-hidden shadow-inner bg-slate-950 p-2 flex items-center justify-center min-h-[360px]" id="erw-2d-preview-container">
+                            <!-- Populated with Flattening Test dynamic SVG -->
+                        </div>
+                        <div class="mt-2 text-center">
+                            <span class="text-[11px] text-slate-500">💡 3D üç boyutlu pres deformasyon simülasyonunu incelemek için üstteki <strong>"Yassıltma Testi 3D"</strong> butonuna tıklayınız.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="erw-not-applicable" class="mt-6 bg-white p-5 rounded-xl border border-slate-200 shadow-sm text-sm text-slate-500 hidden">
+                ⚠️ <span>Bu hesap ve simülasyon yalnız ERW / HFW (Elektrik Direnç Kaynaklı) borular içindir</span> (seçili boru: <span id="erw-na-process" class="font-semibold"></span>).
+            </div>
+
             <!-- Residual Stress Ring-Cut Test Animation (spiral/SAW pipes) -->
             <div id="residual-stress-card" class="mt-6 bg-white p-5 rounded-xl border border-slate-200 shadow-sm hidden">
                 <div class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-100 mb-4">
@@ -608,15 +781,275 @@
             <div id="residual-stress-na" class="mt-6 bg-white p-5 rounded-xl border border-slate-200 shadow-sm text-sm text-slate-500 hidden">
                 ⚠️ Artık Stres (Ring Kesme) Testi spiral/düz dikişli ark kaynaklı (SAWH/SAWL/LSAW) borular için geçerlidir (seçili boru: <span id="residual-stress-na-process" class="font-semibold"></span>).
             </div>
+
+            <!-- Pipe End Geometry, Bevel Preparation & Ovality Card -->
+            <div id="bevel-card" class="mt-6 bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                <div class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-100 mb-4">
+                    <div class="flex items-center gap-2">
+                        <span class="p-1.5 bg-sky-50 text-sky-600 rounded-lg text-base">📐</span>
+                        <div>
+                            <h3 class="text-sm font-bold text-slate-800">Boru Uç Geometrisi, Alın Kaynak Ağzı &amp; Ovalite Doğrulama (Bevel &amp; End Prep)</h3>
+                            <p class="text-xs text-slate-500 mt-0.5">API 5L Madde 9.12.5 • Tablo 10 &amp; 11 • BOTAŞ Madde 3.3.8, 5.5 &amp; 8.1.2.4</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button type="button" id="bev-open-3d-btn" onclick="openBevelSpecimenModal('3d')" class="px-2.5 py-1 text-xs font-bold bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-lg shadow-sm transition flex items-center gap-1">
+                            <span>🧊</span> Kaynak Ağzı 3D
+                        </button>
+                        <button type="button" id="bev-open-2d-btn" onclick="openBevelSpecimenModal('2d')" class="px-2.5 py-1 text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg border border-slate-200 transition flex items-center gap-1">
+                            <span>📐</span> 2D Kesit
+                        </button>
+                        <button type="button" id="bev-export-excel-btn" onclick="exportBevelExcel()" class="px-2.5 py-1 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow-sm transition flex items-center gap-1">
+                            <span>📊</span> Kaynak Ağzı Föyü (.xlsx)
+                        </button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+                    <!-- Left: Technical Parameters & Live Checks -->
+                    <div class="lg:col-span-6 space-y-3">
+                        <!-- Bevel Geometry KPI Card -->
+                        <div class="bg-slate-50 p-3.5 rounded-lg border border-slate-200 space-y-2">
+                            <span class="text-xs font-bold text-slate-700 block flex items-center gap-1.5">
+                                <span>✂️</span> Alın Kaynak Ağzı Açısı &amp; Kök Yüzeyi (Landing)
+                            </span>
+                            <div class="grid grid-cols-2 gap-2 text-[11px]">
+                                <div>
+                                    <span class="text-slate-400 block text-[10px]">Ağız Açısı (θ):</span>
+                                    <span id="bev-angle-val" class="font-bold text-amber-700 text-xs">30.0°</span> (+5° / -0°)
+                                </div>
+                                <div>
+                                    <span class="text-slate-400 block text-[10px]">Kök Yüzeyi (c):</span>
+                                    <span id="bev-root-val" class="font-bold text-rose-700 text-xs">1.60</span> ± 0.80 mm
+                                </div>
+                                <div>
+                                    <span class="text-slate-400 block text-[10px]">Ağız Derinliği (h = t − c):</span>
+                                    <span id="bev-depth-val" class="font-bold text-slate-800 text-xs">—</span> mm
+                                </div>
+                                <div>
+                                    <span class="text-slate-400 block text-[10px]">Eksenel Açılma (X):</span>
+                                    <span id="bev-axial-val" class="font-bold text-slate-800 text-xs">—</span> mm
+                                </div>
+                                <div>
+                                    <span class="text-slate-400 block text-[10px]">V-Oluk Toplam Tepe Açısı:</span>
+                                    <span id="bev-v-angle-val" class="font-bold text-indigo-700 text-xs">60.0°</span>
+                                </div>
+                                <div>
+                                    <span class="text-slate-400 block text-[10px]">V-Oluk Kesit Alanı:</span>
+                                    <span id="bev-groove-area-val" class="font-bold text-indigo-700 text-xs">—</span> mm²
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tolerances & Limits Card -->
+                        <div class="bg-slate-50 p-3.5 rounded-lg border border-slate-200 space-y-2">
+                            <span class="text-xs font-bold text-slate-700 block flex items-center gap-1.5">
+                                <span>📐</span> Uç Dikliği, Çap &amp; Ovalite Toleransları
+                            </span>
+                            <div class="grid grid-cols-2 gap-2 text-[11px]">
+                                <div>
+                                    <span class="text-slate-400 block text-[10px]">Diklikten Sapma (Squareness):</span>
+                                    <span class="font-bold text-emerald-700 text-xs">e ≤ 1.60 mm</span> (API 5L 9.12.5.1)
+                                </div>
+                                <div>
+                                    <span class="text-slate-400 block text-[10px]">Boru Uç Ovalite Limiti:</span>
+                                    <span id="bev-ovality-limit" class="font-bold text-slate-800 text-xs">—</span> mm
+                                </div>
+                                <div>
+                                    <span class="text-slate-400 block text-[10px]">Uç Çap Tolerans Bandı:</span>
+                                    <span id="bev-dia-tol" class="font-bold text-slate-800 text-xs">—</span> mm
+                                </div>
+                                <div>
+                                    <span class="text-slate-400 block text-[10px]">İç Talaş / Taper Eğimi:</span>
+                                    <span class="font-bold text-indigo-700 text-xs">Maks 1:4 (14.0°)</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Quick Verification Inputs -->
+                        <div class="bg-white p-3 rounded-lg border border-slate-200 shadow-2xs space-y-2">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-bold text-slate-700">🔬 Mastar Ölçüm Doğrulama (Saha / Fabrika Kontrolü)</span>
+                                <span id="bev-verdict-badge" class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">✓ UYGUN (PASS)</span>
+                            </div>
+                            <div class="grid grid-cols-3 gap-2 text-[11px]">
+                                <div>
+                                    <label class="text-slate-400 block text-[10px]">Ölçülen Açı (°):</label>
+                                    <input id="bev-in-angle" type="number" step="0.1" value="31.5" oninput="calculateBevelFromInputs()" class="w-full px-2 py-1 border border-slate-300 rounded font-bold text-slate-800 text-xs">
+                                </div>
+                                <div>
+                                    <label class="text-slate-400 block text-[10px]">Ölçülen Kök (mm):</label>
+                                    <input id="bev-in-root" type="number" step="0.1" value="1.6" oninput="calculateBevelFromInputs()" class="w-full px-2 py-1 border border-slate-300 rounded font-bold text-slate-800 text-xs">
+                                </div>
+                                <div>
+                                    <label class="text-slate-400 block text-[10px]">Ölçülen Diklik (mm):</label>
+                                    <input id="bev-in-sq" type="number" step="0.1" value="0.8" oninput="calculateBevelFromInputs()" class="w-full px-2 py-1 border border-slate-300 rounded font-bold text-slate-800 text-xs">
+                                </div>
+                            </div>
+                            <div id="bev-input-msg" class="text-[10px] text-emerald-700 font-medium">✓ Açı (30.0° - 35.0°), Kök (0.8 - 2.4 mm) ve Diklik (≤1.6 mm) sınırları içerisinde.</div>
+                        </div>
+                    </div>
+
+                    <!-- Right: Dynamic 2D SVG Interactive Preview -->
+                    <div class="lg:col-span-6 flex flex-col justify-between">
+                        <div class="border border-slate-200 rounded-xl overflow-hidden shadow-inner bg-slate-950 p-2 flex items-center justify-center min-h-[360px]" id="bevel-2d-preview-container">
+                            <!-- Populated with Bevel dynamic SVG -->
+                        </div>
+                        <div class="mt-2 text-center">
+                            <span class="text-[11px] text-slate-500">💡 Boru ucu 3D üç boyutlu V-ağız modelini döndürerek incelemek için <strong>"Kaynak Ağzı 3D"</strong> butonuna tıklayınız.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pipe Straightness, Camber & End Straightness Card -->
+            <div id="straightness-card" class="mt-6 bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                <div class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-100 mb-4">
+                    <div class="flex items-center gap-2">
+                        <span class="p-1.5 bg-emerald-50 text-emerald-600 rounded-lg text-base">📏</span>
+                        <div>
+                            <h3 class="text-sm font-bold text-slate-800">Boru Düzlük ve Uç Sapması Doğrulama (Straightness &amp; End Camber)</h3>
+                            <p class="text-xs text-slate-500">API Spec 5L 47. Baskı Madde 9.11.3 &amp; BOTAŞ Şartnamesi Madde 5.5, 8.1.2.4 — Tam Boy Lazer/Tel Sehim &amp; 1.0 m Uç Mastar Denetimi</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="openStraightnessSpecimenModal('3d')" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold shadow-xs flex items-center gap-1.5 transition-all">
+                            <span>🧊</span> Düzlük 3D Model
+                        </button>
+                        <button onclick="openStraightnessSpecimenModal('2d')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold border border-slate-300 flex items-center gap-1.5 transition-all">
+                            <span>📐</span> 2D Çizim
+                        </button>
+                        <button onclick="exportStraightnessExcel()" class="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg text-xs font-semibold border border-emerald-200 flex items-center gap-1.5 transition-all">
+                            <span>📊</span> Düzlük Excel Föyü
+                        </button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    <!-- Left: Metrics, Tolerances & Live Inputs -->
+                    <div class="lg:col-span-6 space-y-4">
+                        <!-- KPI Metric Cards -->
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                            <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-100 text-center">
+                                <span class="text-slate-400 block text-[10px] uppercase font-bold tracking-wider">Tam Boy Sehim</span>
+                                <span id="str-kpi-total-limit" class="text-sm font-black text-emerald-700 font-mono">—</span>
+                                <span class="text-[9px] text-slate-500 block">Maks. İzin</span>
+                            </div>
+                            <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-100 text-center">
+                                <span class="text-slate-400 block text-[10px] uppercase font-bold tracking-wider">1.0 m Uç Sapması</span>
+                                <span id="str-kpi-end-limit" class="text-sm font-black text-blue-700 font-mono">—</span>
+                                <span class="text-[9px] text-slate-500 block">Maks. İzin</span>
+                            </div>
+                            <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-100 text-center">
+                                <span class="text-slate-400 block text-[10px] uppercase font-bold tracking-wider">Mastar Boyu</span>
+                                <span class="text-sm font-black text-indigo-700 font-mono">1.00 m</span>
+                                <span class="text-[9px] text-slate-500 block">1000 mm Chord</span>
+                            </div>
+                            <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-100 text-center">
+                                <span class="text-slate-400 block text-[10px] uppercase font-bold tracking-wider">Sehim Oranı</span>
+                                <span id="str-kpi-ratio" class="text-sm font-black text-amber-700 font-mono">—</span>
+                                <span class="text-[9px] text-slate-500 block">× L (Boru Boyu)</span>
+                            </div>
+                        </div>
+
+                        <!-- Technical Parameter Rows -->
+                        <div class="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                            <h4 class="text-xs font-bold text-slate-700 mb-2 flex items-center gap-1.5">
+                                <span>📋</span> Standart ve Geometrik Kriterler
+                            </h4>
+                            <div class="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
+                                <div>
+                                    <span class="text-slate-400 block text-[10px]">Tam Boy Düzlük Oranı:</span>
+                                    <span id="str-param-ratio-desc" class="font-bold text-emerald-800 text-xs">≤ %0.15 × L (BOTAŞ 5.5)</span>
+                                </div>
+                                <div>
+                                    <span class="text-slate-400 block text-[10px]">Boru Uç Sapma Kriteri:</span>
+                                    <span id="str-param-end-desc" class="font-bold text-blue-800 text-xs">≤ 3.00 mm (BOTAŞ 8.1.2.4)</span>
+                                </div>
+                                <div>
+                                    <span class="text-slate-400 block text-[10px]">Boru Boyu (L):</span>
+                                    <span id="str-param-len" class="font-bold text-slate-800 text-xs">12.00 m (12000 mm)</span>
+                                </div>
+                                <div>
+                                    <span class="text-slate-400 block text-[10px]">Ölçüm Yöntemi:</span>
+                                    <span class="font-bold text-slate-700 text-xs">Lazer Kolimatör &amp; Çelik Mastar</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Quick Verification Inputs -->
+                        <div class="bg-white p-3 rounded-lg border border-slate-200 shadow-2xs space-y-2">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-bold text-slate-700">🔬 Saha / Fabrika Ölçüm Doğrulama</span>
+                                <span id="str-verdict-badge" class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">✓ UYGUN (PASS)</span>
+                            </div>
+                            <div class="grid grid-cols-3 gap-2 text-[11px]">
+                                <div>
+                                    <label class="text-slate-400 block text-[10px]">Tam Boy Sehim (mm):</label>
+                                    <input id="str-in-total" type="number" step="0.1" value="8.5" oninput="calculateStraightnessFromInputs()" class="w-full px-2 py-1 border border-slate-300 rounded font-bold text-slate-800 text-xs">
+                                </div>
+                                <div>
+                                    <label class="text-slate-400 block text-[10px]">Sol Uç 1m (mm):</label>
+                                    <input id="str-in-left" type="number" step="0.1" value="1.2" oninput="calculateStraightnessFromInputs()" class="w-full px-2 py-1 border border-slate-300 rounded font-bold text-slate-800 text-xs">
+                                </div>
+                                <div>
+                                    <label class="text-slate-400 block text-[10px]">Sağ Uç 1m (mm):</label>
+                                    <input id="str-in-right" type="number" step="0.1" value="1.4" oninput="calculateStraightnessFromInputs()" class="w-full px-2 py-1 border border-slate-300 rounded font-bold text-slate-800 text-xs">
+                                </div>
+                            </div>
+                            <div id="str-input-msg" class="text-[10px] text-emerald-700 font-medium">✓ Tam boy sehim ve uç sapması BOTAŞ / API 5L limitleri dahilinde.</div>
+                        </div>
+                    </div>
+
+                    <!-- Right: Dynamic 2D SVG Interactive Preview -->
+                    <div class="lg:col-span-6 flex flex-col justify-between">
+                        <div class="border border-slate-200 rounded-xl overflow-hidden shadow-inner bg-slate-950 p-2 flex items-center justify-center min-h-[360px]" id="straightness-2d-preview-container">
+                            <!-- Populated with Straightness dynamic SVG -->
+                        </div>
+                        <div class="mt-2 text-center">
+                            <span class="text-[11px] text-slate-500">💡 3 Boyutlu lazer hizalama ve sehim modelini döndürerek incelemek için <strong>"Düzlük 3D Model"</strong> butonuna tıklayınız.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- TAB 3: VERIFICATION (PASS/FAIL ANALYSIS) -->
         <div id="verify-tab" class="tab-content hidden">
+            <!-- Active Pipe Selector Bar for Verification -->
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm mb-6 flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center gap-2.5">
+                    <span class="p-2 bg-blue-50 text-blue-600 rounded-lg text-lg">🔬</span>
+                    <div>
+                        <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Doğrulanan Aktif Boru:</div>
+                        <div id="verify-active-pipe-title" class="text-sm font-extrabold text-blue-950 mt-0.5">—</div>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="text-xs font-bold text-slate-500 uppercase tracking-wider hidden sm:inline">Boru Değiştir:</span>
+                    <div id="verify-pipe-chips" class="flex items-center space-x-1.5 overflow-x-auto pb-0.5">
+                        <!-- Populated dynamically with pipe chips -->
+                    </div>
+                </div>
+            </div>
+
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <!-- Input Form Card -->
                 <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm lg:col-span-1 max-h-[800px] overflow-y-auto">
-                    <h3 class="text-base font-bold text-slate-900 mb-1">Fabrika Test Verilerini Girin</h3>
-                    <p class="text-xs text-slate-500 mb-4">40+ parametre bazında sahadan veya laboratuvardan gelen ölçümleri denetleyin.</p>
+                    <div class="flex flex-wrap items-center justify-between gap-2 mb-3 pb-2 border-b border-slate-100">
+                        <div>
+                            <h3 class="text-base font-bold text-slate-900">Fabrika Test Verilerini Girin</h3>
+                            <p class="text-xs text-slate-500">40+ parametre bazında ölçümleri denetleyin.</p>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <button type="button" onclick="fillSampleVerificationData()" class="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg text-xs font-semibold flex items-center transition shadow-sm" title="Standartlara uygun geçerli örnek fabrika test verilerini otomatik doldur">
+                                ⚡ Örnek Doldur
+                            </button>
+                            <button type="button" onclick="clearVerificationForm()" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200 rounded-lg text-xs font-semibold transition" title="Formu temizle">
+                                Temizle
+                            </button>
+                        </div>
+                    </div>
 
                     <form id="pipe-verification-form" class="space-y-4 text-xs">
                         <!-- 1. Kimyasal Analiz -->
@@ -690,15 +1123,9 @@
                                     <input type="number" step="0.0001" name="B" placeholder="0.0003" class="w-full border border-slate-300 rounded p-1.5">
                                 </div>
                             </div>
-                            <div class="grid grid-cols-2 gap-2 mt-2">
-                                <div>
-                                    <label class="font-semibold text-slate-600 block mb-0.5">CE (IIW) — otomatik veya elle</label>
-                                    <input type="number" step="0.01" name="CE_IIW" placeholder="0.38" class="w-full border border-slate-300 rounded p-1.5">
-                                </div>
-                                <div>
-                                    <label class="font-semibold text-slate-600 block mb-0.5">CVN Tek Değer (Gövde)</label>
-                                    <input type="number" step="1" name="cvn_mat_ind_actual" placeholder="40" class="w-full border border-slate-300 rounded p-1.5">
-                                </div>
+                            <div class="mt-2">
+                                <label class="font-semibold text-slate-600 block mb-0.5">CE (IIW) — otomatik veya elle</label>
+                                <input type="number" step="0.01" name="CE_IIW" placeholder="0.38" class="w-full border border-slate-300 rounded p-1.5">
                             </div>
                         </div>
 
@@ -729,7 +1156,7 @@
                                     <input type="number" step="0.1" name="ovality_body_actual" placeholder="4.1" class="w-full border border-slate-300 rounded p-1.5">
                                 </div>
                             </div>
-                            <div class="grid grid-cols-2 gap-2">
+                            <div class="grid grid-cols-2 gap-2 mb-2">
                                 <div>
                                     <label class="font-semibold text-slate-600 block mb-0.5">Peaking (mm)</label>
                                     <input type="number" step="0.1" name="pipe_end_peaking_actual" placeholder="1.8" class="w-full border border-slate-300 rounded p-1.5">
@@ -737,6 +1164,16 @@
                                 <div>
                                     <label class="font-semibold text-slate-600 block mb-0.5">Squareness (mm)</label>
                                     <input type="number" step="0.1" name="pipe_end_squareness_actual" placeholder="1.2" class="w-full border border-slate-300 rounded p-1.5">
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-200">
+                                <div>
+                                    <label class="font-semibold text-slate-600 block mb-0.5" title="API 5L 9.11.3.4 / BOTAŞ 8.8.2: 30° (+5°/-0°)">Ağız Açısı (°)</label>
+                                    <input type="number" step="0.1" name="bevel_angle_actual" placeholder="32.0" class="w-full border border-slate-300 rounded p-1.5" title="Alın Kaynak Ağzı Açısı (30° - 35°)">
+                                </div>
+                                <div>
+                                    <label class="font-semibold text-slate-600 block mb-0.5" title="API 5L 9.11.3.4 / BOTAŞ 8.8.2: 1.6 ± 0.8 mm">Kök Yüzü (mm)</label>
+                                    <input type="number" step="0.1" name="root_face_actual" placeholder="1.6" class="w-full border border-slate-300 rounded p-1.5" title="Kök Yüzeyi / Kütük (0.8 - 2.4 mm)">
                                 </div>
                             </div>
                         </div>
@@ -754,18 +1191,44 @@
                                     <input type="number" step="0.1" name="tensile_strength_actual" placeholder="560.0" class="w-full border border-slate-300 rounded p-1.5">
                                 </div>
                             </div>
-                            <div class="mb-2">
-                                <label class="font-semibold text-slate-600 block mb-0.5">Minimum Uzama (% e)</label>
-                                <input type="number" step="0.1" name="elongation_actual" placeholder="24.5" class="w-full border border-slate-300 rounded p-1.5">
+                            <div class="grid grid-cols-2 gap-2 mb-2">
+                                <div>
+                                    <label class="font-semibold text-slate-600 block mb-0.5">Min. Uzama (% e)</label>
+                                    <input type="number" step="0.1" name="elongation_actual" placeholder="24.5" class="w-full border border-slate-300 rounded p-1.5">
+                                </div>
+                                <div id="verify-weld-tensile-container">
+                                    <label class="font-semibold text-slate-600 block mb-0.5">Kaynak Çekme (MPa)</label>
+                                    <input type="number" step="0.1" name="weld_tensile_actual" placeholder="575.0" class="w-full border border-slate-300 rounded p-1.5" title="API 5L Tablo 18 / BOTAŞ Madde 4.2 Kaynak Dikişi Enine Çekme Dayanımı">
+                                </div>
                             </div>
                             <div class="grid grid-cols-2 gap-2 mb-2">
                                 <div>
-                                    <label class="font-semibold text-slate-600 block mb-0.5">CVN Gövde (J)</label>
+                                    <label class="font-semibold text-slate-600 block mb-0.5">CVN Gövde Ort. (J)</label>
                                     <input type="number" step="1" name="cvn_mat_actual" placeholder="85" class="w-full border border-slate-300 rounded p-1.5">
                                 </div>
                                 <div>
-                                    <label class="font-semibold text-slate-600 block mb-0.5">CVN Kaynak (J)</label>
+                                    <label class="font-semibold text-slate-600 block mb-0.5">CVN Kaynak Ort. (J)</label>
                                     <input type="number" step="1" name="cvn_weld_actual" placeholder="65" class="w-full border border-slate-300 rounded p-1.5">
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2 mb-2">
+                                <div>
+                                    <label class="font-semibold text-slate-600 block mb-0.5">CVN Gövde Tekil (J)</label>
+                                    <input type="number" step="1" name="cvn_mat_ind_actual" placeholder="70" class="w-full border border-slate-300 rounded p-1.5">
+                                </div>
+                                <div>
+                                    <label class="font-semibold text-slate-600 block mb-0.5">CVN Kaynak Tekil (J)</label>
+                                    <input type="number" step="1" name="cvn_weld_ind_actual" placeholder="55" class="w-full border border-slate-300 rounded p-1.5">
+                                </div>
+                            </div>
+                            <div id="verify-dwtt-container" class="grid grid-cols-2 gap-2 mb-2 pt-1 border-t border-slate-200">
+                                <div>
+                                    <label class="font-semibold text-slate-600 block mb-0.5">DWTT Ortalama (% Shear)</label>
+                                    <input type="number" step="1" name="dwtt_shear_actual" placeholder="90" class="w-full border border-slate-300 rounded p-1.5">
+                                </div>
+                                <div>
+                                    <label class="font-semibold text-slate-600 block mb-0.5">DWTT Tekil (% Shear)</label>
+                                    <input type="number" step="1" name="dwtt_shear_ind_actual" placeholder="85" class="w-full border border-slate-300 rounded p-1.5">
                                 </div>
                             </div>
                             <div class="grid grid-cols-2 gap-2">
@@ -777,6 +1240,10 @@
                                     <label class="font-semibold text-slate-600 block mb-0.5">Sertlik (HV10)</label>
                                     <input type="number" step="1" name="hardness_actual" placeholder="220" class="w-full border border-slate-300 rounded p-1.5">
                                 </div>
+                            </div>
+                            <div id="verify-guided-bend-container" class="mt-2 pt-2 border-t border-slate-200">
+                                <label class="font-semibold text-slate-600 block mb-0.5" title="API 5L 9.7 / BOTAŞ 3.3.4: 180° Kök/Kapak Bükme (Çatlak ≤ 3.2 mm)">Kılavuzlu Bükme (Guided Bend)</label>
+                                <input type="text" name="guided_bend_actual" placeholder="Kusursuz (≤ 3.2 mm)" class="w-full border border-slate-300 rounded p-1.5" title="Kök/Kapak Bükme: Kusursuz veya çatlak boyutu (mm)">
                             </div>
                         </div>
 
@@ -1729,17 +2196,41 @@
             if (tabId === "schematic-tab") {
                 setTimeout(() => {
                     if (visualizer3DInstance) {
-                        visualizer3DInstance.onResize();
+                        visualizer3DInstance.resume();
                         if (calculatedPipes.length > 0) {
                             visualizer3DInstance.renderPipe(calculatedPipes[selectedPipeIndex] || calculatedPipes[0]);
                         }
                     }
                     if (typeof sawhSimulatorInstance !== 'undefined' && sawhSimulatorInstance) {
+                        sawhSimulatorInstance.resume();
                         sawhSimulatorInstance.resize();
                     }
-                }, 150);
+                    if (typeof sawlSimulatorInstance !== 'undefined' && sawlSimulatorInstance) {
+                        sawlSimulatorInstance.resume();
+                        sawlSimulatorInstance.resize();
+                    }
+                }, 100);
+            } else {
+                // Pause background WebGL and Canvas animations to conserve CPU/GPU
+                if (visualizer3DInstance?.pause) visualizer3DInstance.pause();
+                if (sawhSimulatorInstance?.pause) sawhSimulatorInstance.pause();
+                if (sawlSimulatorInstance?.pause) sawlSimulatorInstance.pause();
             }
         }
+
+        // Pause all 3D/canvas animations when browser tab is inactive (Page Visibility API)
+        document.addEventListener("visibilitychange", () => {
+            const isSchematicActive = !document.getElementById("schematic-tab")?.classList.contains("hidden");
+            if (document.hidden) {
+                if (visualizer3DInstance?.pause) visualizer3DInstance.pause();
+                if (sawhSimulatorInstance?.pause) sawhSimulatorInstance.pause();
+                if (sawlSimulatorInstance?.pause) sawlSimulatorInstance.pause();
+            } else if (isSchematicActive) {
+                if (visualizer3DInstance?.resume) visualizer3DInstance.resume();
+                if (sawhSimulatorInstance?.resume) sawhSimulatorInstance.resume();
+                if (sawlSimulatorInstance?.resume) sawlSimulatorInstance.resume();
+            }
+        });
 
         function clearAllPipes() {
             if (confirm("Matristeki tüm boru sütunlarını temizlemek istediğinize emin misiniz?")) {

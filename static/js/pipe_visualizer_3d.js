@@ -19,6 +19,7 @@ class PipeVisualizer3D {
         this.isRotating = true;
         this.isDark = true;
         this.currentPipeData = null;
+        this.isActive = true;
     }
 
     init() {
@@ -95,15 +96,37 @@ class PipeVisualizer3D {
         this.renderer.setSize(width, height);
     }
 
+    disposeMesh(mesh) {
+        if (!mesh) return;
+        if (mesh.geometry) {
+            mesh.geometry.dispose();
+        }
+        if (mesh.material) {
+            if (Array.isArray(mesh.material)) {
+                mesh.material.forEach(m => { if (m && typeof m.dispose === 'function') m.dispose(); });
+            } else if (typeof mesh.material.dispose === 'function') {
+                mesh.material.dispose();
+            }
+        }
+    }
+
     renderPipe(pipeData) {
         if (!pipeData) return;
         this.currentPipeData = pipeData;
         if (!this.scene) this.init();
         if (!this.scene) return;
 
-        // Remove old pipe & weld
-        if (this.pipeMesh) this.scene.remove(this.pipeMesh);
-        if (this.weldMesh) this.scene.remove(this.weldMesh);
+        // Safely dispose old pipe & weld GPU geometries and materials to avoid memory leaks
+        if (this.pipeMesh) {
+            this.scene.remove(this.pipeMesh);
+            this.disposeMesh(this.pipeMesh);
+            this.pipeMesh = null;
+        }
+        if (this.weldMesh) {
+            this.scene.remove(this.weldMesh);
+            this.disposeMesh(this.weldMesh);
+            this.weldMesh = null;
+        }
 
         const d_mm = pipeData.input_summary.diameter_mm || 1219.0;
         const t_mm = pipeData.input_summary.wall_thickness_mm || 14.30;
@@ -283,7 +306,23 @@ class PipeVisualizer3D {
         document.body.removeChild(a);
     }
 
+    pause() {
+        this.isActive = false;
+        if (this.animationFrameId) {
+            cancelAnimationFrame(this.animationFrameId);
+            this.animationFrameId = null;
+        }
+    }
+
+    resume() {
+        if (this.isActive) return;
+        this.isActive = true;
+        this.onResize();
+        this.animate();
+    }
+
     animate() {
+        if (!this.isActive) return;
         this.animationFrameId = requestAnimationFrame(() => this.animate());
 
         if (this.controls) this.controls.update();
