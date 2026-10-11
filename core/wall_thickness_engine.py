@@ -87,6 +87,31 @@ class WallThicknessEngine:
         Calculates required wall thickness across BOTAŞ, ASME B31.8/B31.4, or ASME B31.3,
         and selects the appropriate nominal schedule from ASME B36.10M or ASME B36.19M.
         """
+        try:
+            _p = float(design_pressure_bar)
+            _f = float(design_factor_f)
+            _e = float(longitudinal_joint_factor_e)
+            _t = float(temperature_derating_factor_t)
+            _c = float(corrosion_allowance_mm)
+            _m = None if manual_negative_tolerance_percent is None else float(manual_negative_tolerance_percent)
+        except (TypeError, ValueError):
+            raise ValueError("Wall thickness inputs must be numeric.")
+        if not _p > 0.0:
+            raise ValueError("design_pressure_bar must be > 0.")
+        if not 0.0 < _f <= 1.0:
+            raise ValueError("design_factor_f must be in (0, 1].")
+        if not 0.0 < _e <= 1.0:
+            raise ValueError("longitudinal_joint_factor_e must be in (0, 1].")
+        if not 0.0 < _t <= 1.0:
+            raise ValueError("temperature_derating_factor_t must be in (0, 1].")
+        if not _c >= 0.0:
+            raise ValueError("corrosion_allowance_mm must be >= 0.")
+        if _m is not None and not 0.0 <= _m <= 100.0:
+            raise ValueError("manual_negative_tolerance_percent must be in [0, 100].")
+        design_pressure_bar, design_factor_f = _p, _f
+        longitudinal_joint_factor_e, temperature_derating_factor_t = _e, _t
+        corrosion_allowance_mm = _c
+        manual_negative_tolerance_percent = _m
         inch_clean = str(diameter_inch).replace('\\', '').replace('"', '').replace("'", '').strip()
         pipe_size = get_pipe_size_by_inch(inch_clean)
         if pipe_size:
@@ -260,7 +285,7 @@ class WallThicknessEngine:
 
         if effective_apply_tolerance and tolerance_percent_used > 0:
             neg_tolerance_val = round(selected_thk * (1.0 - (tolerance_percent_used / 100.0)), 2)
-            is_safe = neg_tolerance_val >= t_req or selected_thk >= t_req
+            is_safe = neg_tolerance_val >= t_req
         else:
             neg_tolerance_val = selected_thk
             is_safe = selected_thk >= t_req

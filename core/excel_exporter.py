@@ -12,6 +12,8 @@ import openpyxl
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 
+from core._excel_style import base_styles, styled_cell
+
 
 class ExcelExporter:
     @staticmethod
@@ -1230,36 +1232,30 @@ class ExcelExporter:
         ws.title = "SAWH İmalat Geometrisi" if lang == "tr" else "SAWH Forming Geometry"
         ws.views.sheetView[0].showGridLines = True
 
-        # Typography
-        font_title = Font(name="Arial", size=13, bold=True, color="0F172A")
-        font_sec = Font(name="Arial", size=10, bold=True, color="1E3A8A")
-        font_info = Font(name="Arial", size=9, color="334155")
-        font_header = Font(name="Arial", size=9, bold=True, color="FFFFFF")
-        font_regular = Font(name="Arial", size=9, color="000000")
-        font_mono = Font(name="Consolas", size=9, color="000000")
-        font_mono_bold = Font(name="Consolas", size=9, bold=True, color="000000")
-        font_bold = Font(name="Arial", size=9, bold=True, color="000000")
-        font_badge_pass = Font(name="Arial", size=10, bold=True, color="065F46")
-        font_badge_warn = Font(name="Arial", size=10, bold=True, color="92400E")
-        font_badge_fail = Font(name="Arial", size=10, bold=True, color="991B1B")
-
-        # Color Fills
-        fill_header = PatternFill(start_color="1E3A8A", end_color="1E3A8A", fill_type="solid")
-        fill_sec = PatternFill(start_color="F1F5F9", end_color="F1F5F9", fill_type="solid")
-        fill_pass = PatternFill(start_color="D1FAE5", end_color="D1FAE5", fill_type="solid")
-        fill_warn = PatternFill(start_color="FEF3C7", end_color="FEF3C7", fill_type="solid")
-        fill_fail = PatternFill(start_color="FEE2E2", end_color="FEE2E2", fill_type="solid")
-        fill_zebra = PatternFill(start_color="F8FAFC", end_color="F8FAFC", fill_type="solid")
-        fill_highlight = PatternFill(start_color="E0F2FE", end_color="E0F2FE", fill_type="solid")
-
-        # Borders
-        border_thin = Side(border_style="thin", color="CBD5E1")
-        border_all = Border(left=border_thin, right=border_thin, top=border_thin, bottom=border_thin)
-
-        # Alignments
-        align_center = Alignment(horizontal="center", vertical="center", wrap_text=True)
-        align_left = Alignment(horizontal="left", vertical="center", wrap_text=True)
-        align_right = Alignment(horizontal="right", vertical="center", wrap_text=True)
+        # Shared corporate style palette (single source of truth: core._excel_style)
+        st = base_styles()
+        font_title = st["font_title"]
+        font_sec = st["font_sec"]
+        font_info = st["font_info"]
+        font_header = st["font_header"]
+        font_regular = st["font_regular"]
+        font_mono = st["font_mono"]
+        font_mono_bold = st["font_mono_bold"]
+        font_bold = st["font_bold"]
+        font_badge_pass = st["font_badge_pass"]
+        font_badge_warn = st["font_badge_warn"]
+        font_badge_fail = st["font_badge_fail"]
+        fill_header = st["fill_header"]
+        fill_sec = st["fill_sec"]
+        fill_pass = st["fill_pass"]
+        fill_warn = st["fill_warn"]
+        fill_fail = st["fill_fail"]
+        fill_zebra = st["fill_zebra"]
+        fill_highlight = st["fill_highlight"]
+        border_all = st["border_all"]
+        align_center = st["align_center"]
+        align_left = st["align_left"]
+        align_right = st["align_right"]
 
         # -------------------------------------------------------------
         # Row 1: Document Title Header
@@ -1271,8 +1267,7 @@ class ExcelExporter:
             else "SAWH SPIRAL FORMING GEOMETRY & COIL STRIP SPECIFICATION SHEET"
         )
         ws.merge_cells("A1:E1")
-        ws.cell(1, 1, title_text).font = font_title
-        ws.cell(1, 1).alignment = align_left
+        styled_cell(ws, 1, 1, title_text, font=font_title, alignment=align_left)
 
         # Row 2: Subtitle & Standards
         p_name = project_info.get("project_name", "Doğal Gaz / Petrol Boru Hattı Projesi")
@@ -1286,8 +1281,7 @@ class ExcelExporter:
         meta_str = f"Proje: {p_name} ({p_no}) | Standart: {std_type} | Çelik Kalitesi: {grade} ({d_inch}) | Müşteri: {p_client} | Tarih: {p_date}"
         ws.row_dimensions[2].height = 18
         ws.merge_cells("A2:E2")
-        ws.cell(2, 1, meta_str).font = font_info
-        ws.cell(2, 1).alignment = align_left
+        styled_cell(ws, 2, 1, meta_str, font=font_info, alignment=align_left)
 
         # Row 4: Status Verdict Banner
         ws.row_dimensions[4].height = 28
@@ -1312,10 +1306,7 @@ class ExcelExporter:
             v_fill = fill_warn
 
         ws.merge_cells("A4:E4")
-        c_verdict = ws.cell(4, 1, f"  {status_text}")
-        c_verdict.font = v_font
-        c_verdict.fill = v_fill
-        c_verdict.alignment = align_left
+        c_verdict = styled_cell(ws, 4, 1, f"  {status_text}", font=v_font, fill=v_fill, alignment=align_left)
         for col in range(1, 6):
             ws.cell(4, col).border = border_all
 
@@ -1323,21 +1314,15 @@ class ExcelExporter:
         def write_section_header(row_num: int, text: str):
             ws.row_dimensions[row_num].height = 20
             ws.merge_cells(f"A{row_num}:E{row_num}")
-            cell = ws.cell(row_num, 1, f"  {text}")
-            cell.font = font_sec
-            cell.fill = fill_sec
-            cell.alignment = align_left
+            cell = styled_cell(ws, row_num, 1, f"  {text}", font=font_sec, fill=fill_sec, alignment=align_left)
             for c_idx in range(1, 6):
                 ws.cell(row_num, c_idx).border = border_all
 
         def write_table_header(row_num: int, col_titles: list):
             ws.row_dimensions[row_num].height = 22
             for idx, title in enumerate(col_titles, 1):
-                cell = ws.cell(row_num, idx, title)
-                cell.font = font_header
-                cell.fill = fill_header
-                cell.alignment = align_center if idx in (2, 3, 4) else align_left
-                cell.border = border_all
+                cell = styled_cell(ws, row_num, idx, title, font=font_header, fill=fill_header,
+                                   alignment=align_center if idx in (2, 3, 4) else align_left, border=border_all)
 
         # Data extraction
         d_val = float(sawh_data.get("d_mm", 1219.0) or 1219.0)
@@ -1381,11 +1366,11 @@ class ExcelExporter:
             ws.row_dimensions[r_curr].height = 20
             c_fill = fill_zebra if i % 2 == 1 else None
 
-            c1 = ws.cell(r_curr, 1, param); c1.font = font_bold; c1.alignment = align_left
-            c2 = ws.cell(r_curr, 2, val); c2.font = font_mono_bold; c2.alignment = align_center
-            c3 = ws.cell(r_curr, 3, unit); c3.font = font_regular; c3.alignment = align_center
-            c4 = ws.cell(r_curr, 4, req); c4.font = font_info; c4.alignment = align_center
-            c5 = ws.cell(r_curr, 5, notes); c5.font = font_info; c5.alignment = align_left
+            c1 = styled_cell(ws, r_curr, 1, param, font=font_bold, alignment=align_left)
+            c2 = styled_cell(ws, r_curr, 2, val, font=font_mono_bold, alignment=align_center)
+            c3 = styled_cell(ws, r_curr, 3, unit, font=font_regular, alignment=align_center)
+            c4 = styled_cell(ws, r_curr, 4, req, font=font_info, alignment=align_center)
+            c5 = styled_cell(ws, r_curr, 5, notes, font=font_info, alignment=align_left)
 
             for col in range(1, 6):
                 cell = ws.cell(r_curr, col)
@@ -1413,8 +1398,8 @@ class ExcelExporter:
             ws.row_dimensions[r_curr].height = 20
             c_fill = fill_zebra if i % 2 == 1 else None
 
-            c1 = ws.cell(r_curr, 1, param); c1.font = font_bold; c1.alignment = align_left
-            c2 = ws.cell(r_curr, 2, val); c2.font = font_mono_bold; c2.alignment = align_center
+            c1 = styled_cell(ws, r_curr, 1, param, font=font_bold, alignment=align_left)
+            c2 = styled_cell(ws, r_curr, 2, val, font=font_mono_bold, alignment=align_center)
             if param.startswith("Şekillendirme Uygunluk"):
                 c2.fill = fill_pass if is_valid else fill_warn
                 c2.font = font_badge_pass if is_valid else font_badge_warn
@@ -1452,11 +1437,11 @@ class ExcelExporter:
             ws.row_dimensions[r_curr].height = 20
             c_fill = fill_highlight if "Sipariş Brüt Bant" in param else (fill_zebra if i % 2 == 1 else None)
 
-            c1 = ws.cell(r_curr, 1, param); c1.font = font_bold; c1.alignment = align_left
-            c2 = ws.cell(r_curr, 2, val); c2.font = font_mono_bold; c2.alignment = align_center
-            c3 = ws.cell(r_curr, 3, unit); c3.font = font_regular; c3.alignment = align_center
-            c4 = ws.cell(r_curr, 4, req); c4.font = font_info; c4.alignment = align_center
-            c5 = ws.cell(r_curr, 5, notes); c5.font = font_info; c5.alignment = align_left
+            c1 = styled_cell(ws, r_curr, 1, param, font=font_bold, alignment=align_left)
+            c2 = styled_cell(ws, r_curr, 2, val, font=font_mono_bold, alignment=align_center)
+            c3 = styled_cell(ws, r_curr, 3, unit, font=font_regular, alignment=align_center)
+            c4 = styled_cell(ws, r_curr, 4, req, font=font_info, alignment=align_center)
+            c5 = styled_cell(ws, r_curr, 5, notes, font=font_info, alignment=align_left)
 
             for col in range(1, 6):
                 cell = ws.cell(r_curr, col)
@@ -1483,11 +1468,11 @@ class ExcelExporter:
             ws.row_dimensions[r_curr].height = 20
             c_fill = fill_pass if "Gerilme İndirgemesi" in param else (fill_zebra if i % 2 == 1 else None)
 
-            c1 = ws.cell(r_curr, 1, param); c1.font = font_bold; c1.alignment = align_left
-            c2 = ws.cell(r_curr, 2, val); c2.font = font_mono_bold; c2.alignment = align_center
-            c3 = ws.cell(r_curr, 3, unit); c3.font = font_regular; c3.alignment = align_center
-            c4 = ws.cell(r_curr, 4, req); c4.font = font_info; c4.alignment = align_center
-            c5 = ws.cell(r_curr, 5, notes); c5.font = font_info; c5.alignment = align_left
+            c1 = styled_cell(ws, r_curr, 1, param, font=font_bold, alignment=align_left)
+            c2 = styled_cell(ws, r_curr, 2, val, font=font_mono_bold, alignment=align_center)
+            c3 = styled_cell(ws, r_curr, 3, unit, font=font_regular, alignment=align_center)
+            c4 = styled_cell(ws, r_curr, 4, req, font=font_info, alignment=align_center)
+            c5 = styled_cell(ws, r_curr, 5, notes, font=font_info, alignment=align_left)
 
             for col in range(1, 6):
                 cell = ws.cell(r_curr, col)
@@ -1530,8 +1515,8 @@ class ExcelExporter:
             ws.row_dimensions[r_curr].height = 20
             c_fill = (fill_pass if skelp_safe else fill_fail) if "Emniyet Kararı" in param else (fill_zebra if i % 2 == 1 else None)
 
-            c1 = ws.cell(r_curr, 1, param); c1.font = font_bold; c1.alignment = align_left
-            c2 = ws.cell(r_curr, 2, val); c2.font = font_mono_bold; c2.alignment = align_center
+            c1 = styled_cell(ws, r_curr, 1, param, font=font_bold, alignment=align_left)
+            c2 = styled_cell(ws, r_curr, 2, val, font=font_mono_bold, alignment=align_center)
             if "Emniyet Kararı" in param:
                 c2.fill = fill_pass if skelp_safe else fill_fail
                 c2.font = font_badge_pass if skelp_safe else font_badge_fail
@@ -1562,14 +1547,10 @@ class ExcelExporter:
 
         for p_title, p_desc in prov_rows:
             ws.row_dimensions[r_curr].height = 24
-            ws.cell(r_curr, 1, p_title).font = font_bold
-            ws.cell(r_curr, 1).alignment = align_left
-            ws.cell(r_curr, 1).border = border_all
+            styled_cell(ws, r_curr, 1, p_title, font=font_bold, alignment=align_left, border=border_all)
 
             ws.merge_cells(f"B{r_curr}:E{r_curr}")
-            c_desc = ws.cell(r_curr, 2, f"  {p_desc}")
-            c_desc.font = font_info
-            c_desc.alignment = align_left
+            c_desc = styled_cell(ws, r_curr, 2, f"  {p_desc}", font=font_info, alignment=align_left)
             for col in range(2, 6):
                 ws.cell(r_curr, col).border = border_all
             r_curr += 1
@@ -1579,16 +1560,14 @@ class ExcelExporter:
         # -------------------------------------------------------------
         r_curr += 2
         ws.row_dimensions[r_curr].height = 20
-        ws.cell(r_curr, 1, "HAZIRLAYAN (İmalat Mühendisi)").font = font_bold
-        ws.cell(r_curr, 3, "KONTROL EDEN (Kalite Güvence / Kaynak Şefi)").font = font_bold
-        ws.cell(r_curr, 5, "ONAYLAYAN (Fabrika Müdürü / İdare Temsilcisi)").font = font_bold
+        styled_cell(ws, r_curr, 1, "HAZIRLAYAN (İmalat Mühendisi)", font=font_bold)
+        styled_cell(ws, r_curr, 3, "KONTROL EDEN (Kalite Güvence / Kaynak Şefi)", font=font_bold)
+        styled_cell(ws, r_curr, 5, "ONAYLAYAN (Fabrika Müdürü / İdare Temsilcisi)", font=font_bold)
 
         r_curr += 1
         ws.row_dimensions[r_curr].height = 32
         for col in (1, 3, 5):
-            c = ws.cell(r_curr, col, "İmza / Kaşe / Tarih: ____________________")
-            c.font = font_info
-            c.alignment = align_left
+            c = styled_cell(ws, r_curr, col, "İmza / Kaşe / Tarih: ____________________", font=font_info, alignment=align_left)
 
         # Column widths
         widths = [42, 18, 14, 24, 52]
@@ -3055,8 +3034,8 @@ class ExcelExporter:
         c.font = font_sec; c.fill = fill_sec; c.alignment = align_left
         r_curr += 1
 
-        total_limit_mm = straightness_data.get("total_straightness_max_limit_mm", 18.0)
-        total_ratio_pct = straightness_data.get("total_straightness_ratio_pct", 0.15)
+        total_limit_mm = straightness_data.get("total_straightness_max_limit_mm", 12.0)
+        total_ratio_pct = straightness_data.get("total_straightness_ratio_pct", 0.10)
         end_limit_mm = straightness_data.get("end_straightness_max_limit_mm", 3.0)
         end_chord_m = straightness_data.get("end_chord_length_m", 1.0)
 

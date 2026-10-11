@@ -197,16 +197,16 @@ class WallThicknessRequest(BaseModel):
     model_config = ConfigDict(extra="allow")
     diameter_inch: str = '4"'
     material_grade: str = "X65"
-    design_pressure_bar: float = 75.0
-    design_factor_f: float = 0.72
-    longitudinal_joint_factor_e: float = 1.0
-    temperature_derating_factor_t: float = 1.0
-    corrosion_allowance_mm: float = 0.0
+    design_pressure_bar: float = Field(default=75.0, gt=0.0)
+    design_factor_f: float = Field(default=0.72, gt=0.0, le=1.0)
+    longitudinal_joint_factor_e: float = Field(default=1.0, gt=0.0, le=1.0)
+    temperature_derating_factor_t: float = Field(default=1.0, gt=0.0, le=1.0)
+    corrosion_allowance_mm: float = Field(default=0.0, ge=0.0)
     location_type: str = "Pipeline"
     standard_code: str = "BOTAŞ"
     manufacturing_process: str = "SAWH"
     apply_negative_tolerance: bool = True
-    manual_negative_tolerance_percent: Optional[float] = None
+    manual_negative_tolerance_percent: Optional[float] = Field(default=None, ge=0.0, le=100.0)
     psl_level: str = "PSL2"
 
 
@@ -255,13 +255,13 @@ class SawlCalcRequest(BaseModel):
 
 class HydroCalcRequest(BaseModel):
     model_config = ConfigDict(extra="allow")
-    diameter_mm: Optional[float] = None
+    diameter_mm: Optional[float] = Field(default=None, gt=0.0)
     diameter_inch: Optional[str] = None
-    wall_thickness_mm: Optional[float] = 14.30
-    smys_mpa: Optional[float] = 450.0
-    pipe_length_m: Optional[float] = 12.0
+    wall_thickness_mm: Optional[float] = Field(default=14.30, gt=0.0)
+    smys_mpa: Optional[float] = Field(default=450.0, gt=0.0)
+    pipe_length_m: Optional[float] = Field(default=12.0, gt=0.0)
     is_botas: bool = True
-    press_cap_bar: Optional[float] = 250.0
+    press_cap_bar: Optional[float] = Field(default=250.0, gt=0.0)
 
 
 class ErwCalcRequest(BaseModel):
@@ -276,9 +276,9 @@ class ErwCalcRequest(BaseModel):
 
 class BevelCalcRequest(BaseModel):
     model_config = ConfigDict(extra="allow")
-    diameter_mm: Optional[float] = None
+    diameter_mm: Optional[float] = Field(default=None, gt=0.0)
     diameter_inch: Optional[str] = None
-    wall_thickness_mm: Optional[float] = 14.30
+    wall_thickness_mm: Optional[float] = Field(default=14.30, gt=0.0)
     material_grade: Optional[str] = "X65"
     standard_code: Optional[str] = "BOTAŞ"
     end_type: Optional[str] = "BEVEL"
@@ -287,15 +287,15 @@ class BevelCalcRequest(BaseModel):
     out_of_squareness_actual: Optional[float] = None
     end_diameter_min_actual: Optional[float] = None
     end_diameter_max_actual: Optional[float] = None
-    pipe_length_m: Optional[float] = 12.0
+    pipe_length_m: Optional[float] = Field(default=12.0, gt=0.0)
 
 
 class StraightnessCalcRequest(BaseModel):
     model_config = ConfigDict(extra="allow")
-    diameter_mm: Optional[float] = None
+    diameter_mm: Optional[float] = Field(default=None, gt=0.0)
     diameter_inch: Optional[str] = None
-    wall_thickness_mm: Optional[float] = 14.30
-    pipe_length_m: Optional[float] = 12.0
+    wall_thickness_mm: Optional[float] = Field(default=14.30, gt=0.0)
+    pipe_length_m: Optional[float] = Field(default=12.0, gt=0.0)
     material_grade: Optional[str] = "X65"
     manufacturing_process: Optional[str] = "SAWH"
     standard_code: Optional[str] = "BOTAŞ"
@@ -306,18 +306,18 @@ class StraightnessCalcRequest(BaseModel):
 
 class DeratingCalcRequest(BaseModel):
     model_config = ConfigDict(extra="allow")
-    diameter_mm: Optional[float] = None
+    diameter_mm: Optional[float] = Field(default=None, gt=0.0)
     diameter_inch: Optional[str] = None
-    wall_thickness_mm: Optional[float] = 14.30
+    wall_thickness_mm: Optional[float] = Field(default=14.30, gt=0.0)
     material_grade: Optional[str] = "X65"
     manufacturing_process: Optional[str] = "SAWH"
     standard_code: Optional[str] = "BOTAŞ"
-    design_factor_f: Optional[float] = 0.72
-    corrosion_allowance_mm: Optional[float] = 0.0
-    smys_mpa: Optional[float] = None
-    design_pressure_bar: Optional[float] = None
-    hydro_test_pressure_bar: Optional[float] = None
-    pipe_length_m: Optional[float] = 12.0
-    actual_measured_thickness_mm: Optional[float] = None
+    design_factor_f: Optional[float] = Field(default=0.72, gt=0.0, le=1.0)
+    corrosion_allowance_mm: Optional[float] = Field(default=0.0, ge=0.0)
+    smys_mpa: Optional[float] = Field(default=None, gt=0.0)
+    design_pressure_bar: Optional[float] = Field(default=None, gt=0.0)
+    hydro_test_pressure_bar: Optional[float] = Field(default=None, gt=0.0)
+    pipe_length_m: Optional[float] = Field(default=12.0, gt=0.0)
+    actual_measured_thickness_mm: Optional[float] = Field(default=None, gt=0.0)
 
 

@@ -1139,7 +1139,7 @@ const SPECIMEN_DRAWINGS = {
         </text>
 
         <text x="40" y="316" font-size="9" fill="#e2e8f0">
-          • <tspan font-weight="bold" fill="#fbbf24">Tam Boy Düzlük Sapması (Total Sweep/Camber):</tspan> ${isBotas ? 'BOTAŞ Madde 5.5 (≤ %0.15 × L)' : 'API 5L Tablo 12 (≤ %0.20 × L)'} → <tspan font-weight="bold" fill="#34d399">Maks. ${totLimitMm} mm</tspan>
+          • <tspan font-weight="bold" fill="#fbbf24">Tam Boy Düzlük Sapması (Total Sweep/Camber):</tspan> ${isBotas ? 'BOTAŞ Madde 5.5 (≤ %0.10 × L)' : 'API 5L Tablo 12 (≤ %0.20 × L)'} → <tspan font-weight="bold" fill="#34d399">Maks. ${totLimitMm} mm</tspan>
         </text>
         <text x="40" y="332" font-size="9" fill="#e2e8f0">
           • <tspan font-weight="bold" fill="#fbbf24">Boru Uç Düzlük Sapması (End Straightness):</tspan> Her iki uçta 1.0 m mastar boyunca → <tspan font-weight="bold" fill="#34d399">Maks. ${endLimitMm.toFixed(1)} mm</tspan> ${isBotas ? '(BOTAŞ 8.1.2.4)' : '(API 5L 9.11.3.2)'}

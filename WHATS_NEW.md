@@ -1,3 +1,28 @@
+# What's New in API 5L Pipe QA/QC & Wall Thickness Suite (v2.12.0)
+## Yenilikler ve Sürüm Özeti - v2.12.0 (2026-10-11)
+
+---
+
+### 🇹🇷 Türkçe Özet (v2.12.0)
+
+API 5L Pipe QA/QC Suite **v2.12.0** sürümü ile **güvenlik kritik düzeltmeler**, **fail-fast girdi doğrulaması**, **performans iyileştirmeleri** ve **matris PDF kapsam tamamlama** entegre edilmiştir:
+
+#### 1. 🛡️ Güvenlik Kritik Düzeltmeler
+- **BOTAŞ Düzlük Limiti (%0.10):** 5120 R7 Madde 5.5'e uygun; yanlış kabul kapatıldı.
+- **Et Kalınlığı Güvenlik Bayrağı:** Tolerans-altı minimuma göre; ölü koşul kaldırıldı.
+- **Girdi Doğrulaması:** 5 hesaplama modülünde anlamsız girdiler 422/400 ile reddediliyor.
+- **Boru Değişiminde Sıfırlama:** Eski doğrulama verisiyle yanlış rapor ihracı engellendi.
+
+#### 2. ⚡ Performans & 🎨 UX
+- ITP OCR ve 13 export işlemi arka plan thread'lerinde; verify/et-kalınlığı formlarında yükleniyor + hata bildirimleri.
+
+#### 3. 📄 Matris PDF & 🧰 Altyapı
+- TEST FREKANSI bölümü + ~23 eksik satır eklendi (ekran/Excel ile aynı kapsam).
+- Ortak Excel stil modülü (`core/_excel_style.py`); tek-nokta iyileştirme ajanları (`.opencode/`).
+- Pytest **103 passed, 2 skipped**; golden master yeşil.
+
+---
+
 # What's New in API 5L Pipe QA/QC & Wall Thickness Suite (v2.11.0)
 ## Yenilikler ve Sürüm Özeti - v2.11.0 (2026-10-09)
 

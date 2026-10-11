@@ -1,3 +1,29 @@
+# Sürüm Notları / Release Notes - v2.12.0
+
+## 🛡️ API 5L PSL1/PSL2 & BOTAŞ Boru Kalite Güvence Süiti (v2.12.0)
+
+Bu sürüm (**v2.12.0**), **güvenlik kritik düzeltmeler**, **uçtan uca girdi doğrulaması**, **performans iyileştirmeleri** ve **matris PDF kapsam tamamlama** içerir. Tüm değişiklikler 103 test + golden master ile doğrulanmıştır.
+
+---
+
+### 🌟 v2.12.0 ile Gelen Başlıca Yenilikler ve Düzeltmeler
+
+1. **🛡️ Güvenlik Kritik Düzeltmeler:**
+   - **BOTAŞ Düzlük Limiti:** BOTAŞ 5120 R7 Madde 5.5'e göre `%0.10 × L` (12 m boruda 12 mm). Önceki `%0.15` değeri uygunsuz boruyu UYGUN gösteriyordu.
+   - **Et Kalınlığı Güvenlik Bayrağı:** Tolerans-altı minimum esas alınıyor; ölü koşul kaldırıldı.
+   - **Fail-Fast Girdi Doğrulaması:** Et kalınlığı, derating, bevel, hidrostatik ve düzlük hesaplarında fiziksel anlamsız girdiler (negatif basınç/çap/cidar, `F=72`, 0 bar test) 422/400 ile reddediliyor.
+   - **Boru Değişiminde Sıfırlama:** Yanlış boruya ait doğrulama raporu ihracı engellendi.
+
+2. **⚡ Performans:** ITP OCR ve tüm Excel/PDF export işlemleri arka plan thread'lerine taşındı; ağır işlemler sırasında arayüz donmuyor.
+
+3. **🎨 UX:** Verify ve et kalınlığı formlarında yükleniyor durumu, hata bildirimleri ve çift gönderim engeli.
+
+4. **📄 Matris PDF:** TEST FREKANSI bölümü ve eksik ~23 satır (DWTT, sertlik, mandrel, flattening, çevre toleransları vb.) eklendi; ekran/Excel ile aynı kapsam.
+
+5. **🤖 Altyapı:** Tek-nokta iyileştirme döngüsü ajanları (`.opencode/`) ve ortak Excel stil modülü (`core/_excel_style.py`).
+
+---
+
 # Sürüm Notları / Release Notes - v2.11.0
 
 ## 🚀 API 5L PSL1/PSL2 & BOTAŞ Boru Kalite Güvence, Et Kalınlığı Tasarım ve Akıllı ITP Denetim Süiti (v2.11.0)

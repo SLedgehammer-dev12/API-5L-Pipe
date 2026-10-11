@@ -3,6 +3,30 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.12.0] - 2026-10-11 (Güvenlik Kritik Düzeltmeler, Girdi Doğrulama, Performans ve Matris PDF Tamamlama)
+
+### 🛡️ Kritik Düzeltmeler (Critical Fixes)
+- **BOTAŞ Düzlük Limiti (%0.15 → %0.10):** `core/straightness_engine.py` BOTAŞ 5120 R7 Madde 5.5'e göre düzeltildi (12 m boruda 18 mm → 12 mm). Yanlış kabul (false accept) veren tolerans kapatıldı; ilgili test beklentileri güncellendi.
+- **Et Kalınlığı Güvenlik Bayrağı:** `is_nominal_sufficient` tolerans-altı minimuma göre hesaplanıyor (`core/wall_thickness_engine.py`); ölü `or` kolu kaldırıldı.
+- **Girdi Alanı Doğrulaması (Fail-Fast):** Et kalınlığı, derating, bevel, hidrostatik ve düzlük isteklerine Pydantic sınırları (`gt/ge/le`) + motor seviyesinde `ValueError` korumaları eklendi. Fiziksel anlamsız girdiler (negatif basınç, `F=72`, negatif çap/cidar, 0 bar test) artık 422/400 ile reddediliyor; sessiz kırpma (`max/min`) kaldırıldı.
+- **Boru Değişiminde Doğrulama Sıfırlama:** Farklı boruya geçince eski ölçüm formu, PASS/FAIL paneli ve rapor verisi temizleniyor; yanlış boruya rapor ihracı engellendi.
+
+### ⚡ Performans (Performance)
+- **Event-Loop Blokajı Kaldırıldı:** ITP OCR/audit ve 13 Excel/PDF export çağrısı `run_in_threadpool` ile worker thread'lere taşındı (`app.py`); ağır export sırasında arayüz yanıt vermeye devam ediyor.
+
+### 🎨 Kullanıcı Deneyimi (UX)
+- **Verify / Et Kalınlığı Geri Bildirimi:** Gönderim butonlarında spinner + "Doğrulanıyor…/Hesaplanıyor…" durumu, başarı/hata toast bildirimleri ve çift gönderim engeli.
+
+### 📄 Raporlama (Reporting)
+- **Matris PDF Tamamlama:** `export_matrix_pdf` ekran/Excel kapsamına çıkarıldı — 6. TEST FREKANSI bölümü (22 test), çevre toleransları, misalignment, peaking, squareness, DWTT, sertlik, mandrel, flattening, hydro alt sınır ve İşletme/SMYS satırları eklendi (37 → ~60 satır); BOTAŞ düzlük satırı boruya göre hesaplanıyor.
+- **Excel Stil Paylaşımı:** Yeni `core/_excel_style.py` ortak stil modülü; SAWH raporu desene çevrildi, hücre-hücre birebir çıktı doğrulandı (560/560).
+
+### 🤖 Geliştirici Altyapısı (Developer Tooling)
+- Tek.Nokta iyileştirme döngüsü için `.opencode/` ajanları (`improver`, `qa-auditor`, `perf-analyst`, `ux-reviewer`, `feature-scout`, `refactor-architect`, `verifier`), `improvement-loop` skili, `/improve` + `/next` komutları ve `AGENTS.md` eklendi.
+
+### ✅ Doğrulama (Verification)
+- `pytest -q`: **103 passed, 2 skipped** (yeni regresyon testleri: `test_09b`, `test_09c`, `test_80b`, `test_83b`, `test_84b`, `test_85b`); golden master testleri yeşil; yeni lint hatası yok.
+
 ## [2.11.0] - 2026-10-09 (Boru Kalite Güvence ve Kabul Matrisi PDF Raporu, Et Kalınlığı Underflow & Barlow Derating Motoru)
 
 ### 🚀 Yeni Özellikler (New Features)

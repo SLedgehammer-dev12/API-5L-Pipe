@@ -30,9 +30,18 @@ class StraightnessEngine:
         and pipe end chord deviation (within 1.0 m) per API 5L Clause 9.11.3 and BOTAŞ 8.1.2.4.
         Verifies actual measurements and produces station profiles for 2D/3D visualization and QA/QC reporting.
         """
-        D = float(max(21.3, diameter_mm))
-        t = float(max(1.5, wall_thickness_mm))
-        L = float(max(3.0, min(24.0, pipe_length_m)))
+        try:
+            D = float(diameter_mm)
+            t = float(wall_thickness_mm)
+            L = float(pipe_length_m)
+        except (TypeError, ValueError):
+            raise ValueError("Straightness inputs D, t and L must be numeric.")
+        if not D > 0.0:
+            raise ValueError("diameter_mm must be > 0.")
+        if not t > 0.0:
+            raise ValueError("wall_thickness_mm must be > 0.")
+        if not L > 0.0:
+            raise ValueError("pipe_length_m must be > 0.")
         L_mm = L * 1000.0
         grade = str(material_grade or "X65").upper().strip()
         proc = str(manufacturing_process or "SAWH").upper().strip()
@@ -43,11 +52,11 @@ class StraightnessEngine:
         # 1. Full-Length Total Straightness Deviation (API 5L 9.11.3.1 & BOTAŞ 5.5)
         # ---------------------------------------------------------------------
         # API 5L Clause 9.11.3.1: Total deviation <= 0.2 % of pipe length (0.002 * L)
-        # BOTAŞ Clause 5.5 & 8.1.2.4: Tightened limit <= 0.15 % of pipe length (0.0015 * L)
+        # BOTAŞ 5120 R7 Clause 5.5: Tightened limit <= 0.1 % of pipe length (0.0010 * L)
         if is_botas:
-            total_ratio = 0.0015  # 0.15%
-            total_ratio_pct = 0.15
-            total_std_ref = "BOTAŞ 5.5 / 8.1.2.4 (≤ %0,15 × L)"
+            total_ratio = 0.0010  # 0.10%
+            total_ratio_pct = 0.10
+            total_std_ref = "BOTAŞ 5.5 / 8.1.2.4 (≤ %0,10 × L)"
         else:
             total_ratio = 0.0020  # 0.20%
             total_ratio_pct = 0.20

@@ -8,6 +8,7 @@ from fastapi import Body, FastAPI, File, Form, Request, UploadFile
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from starlette.concurrency import run_in_threadpool
 
 from core.database import API_5L_SMYS_TABLE, PIPE_SIZES_TABLE, normalize_design_factor
 from core.excel_exporter import ExcelExporter
@@ -256,7 +257,7 @@ async def export_excel(data: ExportRequest = Body(...)):
     lang = data.lang
 
     pipes_calculated = _calculate_pipes(data.pipes)
-    excel_file = ExcelExporter.export_matrix_to_excel(project_info, pipes_calculated, lang=lang)
+    excel_file = await run_in_threadpool(ExcelExporter.export_matrix_to_excel, project_info, pipes_calculated, lang=lang)
     
     raw_no = str(project_info.get('project_no', 'API5L')).strip()
     safe_no = re.sub(r'[^a-zA-Z0-9_\-\.]', '_', raw_no)
@@ -281,7 +282,7 @@ async def export_matrix_pdf_endpoint(data: ExportRequest = Body(...)):
     lang = data.lang or "tr"
     pipes_calculated = _calculate_pipes(data.pipes)
 
-    pdf_stream = PDFExporter.export_matrix_pdf(project_info, pipes_calculated, lang=lang)
+    pdf_stream = await run_in_threadpool(PDFExporter.export_matrix_pdf, project_info, pipes_calculated, lang=lang)
 
     raw_no = str(project_info.get("project_no", "API5L")).strip()
     safe_no = re.sub(r"[^a-zA-Z0-9_\-\.]", "_", raw_no)
@@ -303,7 +304,7 @@ async def export_verification_excel(data: ExportVerificationRequest = Body(...))
     verification_data = data.verification or {}
     lang = data.lang or "tr"
 
-    excel_file = ExcelExporter.export_verification_report(project_info, verification_data, lang=lang)
+    excel_file = await run_in_threadpool(ExcelExporter.export_verification_report, project_info, verification_data, lang=lang)
 
     raw_no = str(project_info.get('project_no', 'API5L')).strip()
     safe_no = re.sub(r'[^a-zA-Z0-9_\-\.]', '_', raw_no) if raw_no else 'API5L'
@@ -327,7 +328,7 @@ async def export_wall_thickness_excel(data: ExportWallThicknessRequest = Body(..
     calculation_data = data.calculation_data or {}
     lang = data.lang or "tr"
 
-    excel_file = ExcelExporter.export_wall_thickness_report(calculation_data, project_info, lang=lang)
+    excel_file = await run_in_threadpool(ExcelExporter.export_wall_thickness_report, calculation_data, project_info, lang=lang)
 
     raw_no = str(project_info.get('project_no', 'CALC')).strip()
     safe_no = re.sub(r'[^a-zA-Z0-9_\-\.]', '_', raw_no) if raw_no else 'CALC'
@@ -382,7 +383,8 @@ async def export_sawh_excel(data: ExportSawhRequest = Body(...)):
     # Merge existing metadata while using computed math
     final_sawh_data = {**sawh_data, **computed}
 
-    excel_file = ExcelExporter.export_sawh_geometry_report(
+    excel_file = await run_in_threadpool(
+        ExcelExporter.export_sawh_geometry_report,
         final_sawh_data,
         project_info,
         pipe_info=pipe_info,
@@ -461,7 +463,8 @@ async def export_sawl_excel(data: ExportSawlRequest = Body(...)):
     )
     final_sawl_data = {**sawl_data, **computed}
 
-    excel_file = ExcelExporter.export_sawl_geometry_report(
+    excel_file = await run_in_threadpool(
+        ExcelExporter.export_sawl_geometry_report,
         final_sawl_data,
         project_info,
         pipe_info=pipe_info,
@@ -529,17 +532,21 @@ async def export_hydro_excel(data: ExportHydroRequest = Body(...)):
     is_botas_v = bool(hydro_data.get("is_botas", True))
     cap_v = float(hydro_data.get("press_cap_bar", 250.0) or 250.0)
 
-    computed = compute_hydrostatic_calc(
-        d_mm=d_v,
-        t_mm=t_v,
-        smys_mpa=smys_v,
-        pipe_length_m=l_v,
-        is_botas=is_botas_v,
-        press_cap_bar=cap_v,
-    )
+    try:
+        computed = compute_hydrostatic_calc(
+            d_mm=d_v,
+            t_mm=t_v,
+            smys_mpa=smys_v,
+            pipe_length_m=l_v,
+            is_botas=is_botas_v,
+            press_cap_bar=cap_v,
+        )
+    except ValueError as e:
+        return JSONResponse(status_code=400, content={"status": "error", "message": str(e)})
     final_hydro_data = {**hydro_data, **computed}
 
-    excel_file = ExcelExporter.export_hydrostatic_test_report(
+    excel_file = await run_in_threadpool(
+        ExcelExporter.export_hydrostatic_test_report,
         final_hydro_data,
         project_info,
         pipe_info=pipe_info,
@@ -617,7 +624,8 @@ async def export_erw_excel_endpoint(data: ExportErwRequest = Body(...)):
     )
     final_erw_data = {**erw_data, **computed}
 
-    excel_file = ExcelExporter.export_erw_geometry_report(
+    excel_file = await run_in_threadpool(
+        ExcelExporter.export_erw_geometry_report,
         project_info,
         final_erw_data,
         pipe_info=pipe_info,
@@ -733,7 +741,8 @@ async def export_bevel_excel_endpoint(data: ExportBevelRequest = Body(...)):
     )
     final_bevel_data = {**bevel_data, **computed}
 
-    excel_file = ExcelExporter.export_bevel_geometry_report(
+    excel_file = await run_in_threadpool(
+        ExcelExporter.export_bevel_geometry_report,
         project_info,
         final_bevel_data,
         pipe_info=pipe_info,
@@ -808,20 +817,24 @@ async def export_straightness_excel_endpoint(data: ExportStraightnessRequest = B
     proc_val = str(pipe_info.get('manufacturing_process') or straightness_data.get('manufacturing_process') or 'SAWH')
     std_val = str(pipe_info.get('standard_type') or straightness_data.get('standard_code') or 'BOTAŞ')
 
-    computed = StraightnessEngine.calculate_straightness(
-        diameter_mm=d_val,
-        wall_thickness_mm=t_val,
-        pipe_length_m=l_val,
-        standard_code=std_val,
-        material_grade=grade_val,
-        manufacturing_process=proc_val,
-        total_straightness_actual_mm=straightness_data.get('total_straightness_actual_mm'),
-        end_straightness_left_actual_mm=straightness_data.get('end_straightness_left_actual_mm'),
-        end_straightness_right_actual_mm=straightness_data.get('end_straightness_right_actual_mm'),
-    )
+    try:
+        computed = StraightnessEngine.calculate_straightness(
+            diameter_mm=d_val,
+            wall_thickness_mm=t_val,
+            pipe_length_m=l_val,
+            standard_code=std_val,
+            material_grade=grade_val,
+            manufacturing_process=proc_val,
+            total_straightness_actual_mm=straightness_data.get('total_straightness_actual_mm'),
+            end_straightness_left_actual_mm=straightness_data.get('end_straightness_left_actual_mm'),
+            end_straightness_right_actual_mm=straightness_data.get('end_straightness_right_actual_mm'),
+        )
+    except ValueError as e:
+        return JSONResponse(status_code=400, content={"status": "error", "message": str(e)})
     final_straightness_data = {**straightness_data, **computed}
 
-    excel_file = ExcelExporter.export_straightness_report(
+    excel_file = await run_in_threadpool(
+        ExcelExporter.export_straightness_report,
         project_info,
         final_straightness_data,
         pipe_info=pipe_info,
@@ -917,7 +930,8 @@ async def export_derating_excel_endpoint(data: ExportDeratingRequest = Body(...)
     )
     final_derating_data = {**derating_data, **computed}
 
-    excel_file = ExcelExporter.export_derating_report(
+    excel_file = await run_in_threadpool(
+        ExcelExporter.export_derating_report,
         project_info,
         final_derating_data,
         pipe_info=pipe_info,
@@ -1040,7 +1054,7 @@ async def upload_and_audit_itp(
             content={"status": "error", "message": f"Dosya boyutu çok büyük (Max: {MAX_ITP_UPLOAD_SIZE // (1024*1024)} MB)."}
         )
 
-    parse_result = UnlimitedOCREngine.parse_pdf_or_image(content_bytes, filename)
+    parse_result = await run_in_threadpool(UnlimitedOCREngine.parse_pdf_or_image, content_bytes, filename)
     extracted_items = parse_result.get("items", [])
     detected_meta = parse_result.get("detected_metadata", {})
 
@@ -1080,12 +1094,12 @@ async def upload_and_audit_itp(
             var_cfg["diameter_inch"] = var.get("diameter_inch", effective_config.get("diameter_inch"))
             var_cfg["wall_thickness_mm"] = var.get("wall_thickness_mm", effective_config.get("wall_thickness_mm"))
             var_cfg["material_grade"] = var.get("material_grade", effective_config.get("material_grade"))
-            var_audit = ITPAuditEngine.audit_itp(extracted_items, var_cfg)
+            var_audit = await run_in_threadpool(ITPAuditEngine.audit_itp, extracted_items, var_cfg)
             variant_audits.append({"pipe_config": var_cfg, "audit_result": var_audit})
         # Primary audit remains first variant for backward compat
-        audit_res = variant_audits[0]["audit_result"] if variant_audits else ITPAuditEngine.audit_itp(extracted_items, effective_config)
+        audit_res = variant_audits[0]["audit_result"] if variant_audits else await run_in_threadpool(ITPAuditEngine.audit_itp, extracted_items, effective_config)
     else:
-        audit_res = ITPAuditEngine.audit_itp(extracted_items, effective_config)
+        audit_res = await run_in_threadpool(ITPAuditEngine.audit_itp, extracted_items, effective_config)
 
     # Persist in current project state if available
     try:
@@ -1133,7 +1147,7 @@ async def export_itp_audit_report(data: Dict[str, Any] = Body(...)):
     """
     audit_data = data.get("audit_result", {})
     lang = data.get("lang", "tr")
-    excel_stream = ExcelExporter.export_itp_audit_report(audit_data, lang)
+    excel_stream = await run_in_threadpool(ExcelExporter.export_itp_audit_report, audit_data, lang)
 
     pipe = audit_data.get("pipe_summary", {})
     d_inch = str(pipe.get("diameter_inch", "48in")).replace('"', '').replace("'", "").strip()
@@ -1153,7 +1167,7 @@ async def export_itp_audit_pdf(data: Dict[str, Any] = Body(...)):
     """
     audit_data = data.get("audit_result", {})
     lang = data.get("lang", "tr")
-    pdf_stream = PDFExporter.export_itp_audit_pdf(audit_data, lang)
+    pdf_stream = await run_in_threadpool(PDFExporter.export_itp_audit_pdf, audit_data, lang)
 
     pipe = audit_data.get("pipe_summary", {})
     d_inch = str(pipe.get("diameter_inch", "48in")).replace('"', '').replace("'", "").strip()

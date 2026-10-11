@@ -264,6 +264,73 @@ class TestPipeQAQCSuite(unittest.TestCase):
         self.assertEqual(res_botas_custom['calculation_results']['selected_nominal_thickness_asme_b36_10_mm'], 17.48)
         self.assertEqual(res_botas_custom['calculation_results']['negative_tolerance_min_mm'], 17.48)
 
+    def test_09b_wall_thickness_tolerance_safety_flag(self):
+        """Guards the is_nominal_sufficient flag: tolerance-adjusted minimum (not nominal) decides safety."""
+        # High pressure pushes t_req beyond the schedule table; the dynamically
+        # appended nominal satisfies t_req nominally but NOT after mill under-tolerance.
+        res_unsafe = WallThicknessEngine.calculate_wall_thickness(
+            '48"', 'X70', design_pressure_bar=200.0, design_factor_f=0.72,
+            standard_code='ASME B31.8 / ASME B31.4', manufacturing_process='SAWL',
+            location_type='Pipeline'
+        )
+        calc = res_unsafe['calculation_results']
+        self.assertGreater(calc['tolerance_percent_used'], 0.0)
+        self.assertGreaterEqual(calc['selected_nominal_thickness_asme_b36_10_mm'], calc['t_required_asme_b31_8_mm'])
+        self.assertLess(calc['negative_tolerance_min_mm'], calc['t_required_asme_b31_8_mm'])
+        self.assertFalse(calc['is_nominal_sufficient'])
+
+        # Sane scenario: tolerance-adjusted minimum still covers t_req -> flag stays True.
+        res_safe = WallThicknessEngine.calculate_wall_thickness(
+            '48"', 'X65', design_pressure_bar=150.0, design_factor_f=0.72,
+            standard_code='ASME B31.8 / ASME B31.4', manufacturing_process='SAWL',
+            location_type='Pipeline'
+        )
+        calc_safe = res_safe['calculation_results']
+        self.assertGreaterEqual(calc_safe['negative_tolerance_min_mm'], calc_safe['t_required_asme_b31_8_mm'])
+        self.assertTrue(calc_safe['is_nominal_sufficient'])
+
+    def test_09c_wall_thickness_input_domain_enforcement(self):
+        """Out-of-domain design inputs must fail fast instead of producing a 'sufficient' design."""
+        bad_kwargs = [
+            {"design_factor_f": 72.0},
+            {"design_factor_f": 0.0},
+            {"design_pressure_bar": -75.0},
+            {"design_pressure_bar": 0.0},
+            {"longitudinal_joint_factor_e": 5.0},
+            {"temperature_derating_factor_t": 0.0},
+            {"corrosion_allowance_mm": -1.0},
+            {"manual_negative_tolerance_percent": 150.0},
+        ]
+        for kw in bad_kwargs:
+            with self.assertRaises(ValueError, msg=str(kw)):
+                WallThicknessEngine.calculate_wall_thickness(
+                    '48"', 'X65',
+                    standard_code='ASME B31.8 / ASME B31.4', manufacturing_process='SAWL',
+                    location_type='Pipeline', **kw
+                )
+
+        # API layer must reject the same inputs with 422 (Pydantic bounds).
+        base_payload = {
+            'diameter_inch': '48"',
+            'material_grade': 'X65',
+            'standard_code': 'ASME B31.8 / ASME B31.4',
+            'manufacturing_process': 'SAWL',
+            'design_pressure_bar': 75.0,
+            'design_factor_f': 0.72,
+            'longitudinal_joint_factor_e': 1.0,
+            'temperature_derating_factor_t': 1.0,
+            'corrosion_allowance_mm': 0.0,
+            'location_type': 'Pipeline',
+            'psl_level': 'PSL2',
+        }
+        for key, bad in (("design_factor_f", 72.0), ("design_pressure_bar", -75.0),
+                         ("longitudinal_joint_factor_e", 5.0), ("temperature_derating_factor_t", 0.0)):
+            payload = dict(base_payload, **{key: bad})
+            r = self.client.post('/api/wall-thickness', json=payload)
+            self.assertEqual(r.status_code, 422, msg=key)
+        r_ok = self.client.post('/api/wall-thickness', json=base_payload)
+        self.assertEqual(r_ok.status_code, 200)
+
     def test_10_comprehensive_40_parameter_verification(self):
         """Verifies PipeVerificationEngine evaluates chemical, mechanical, dimensional, weld, and test data."""
         pipe_cfg = {
@@ -3072,6 +3139,43 @@ class TestPipeQAQCSuite(unittest.TestCase):
         )
         self.assertIn("Hidrostatik_Test_Foyu_PRJ-HYDRO-2026_48in.xlsx", resp_exp.headers["content-disposition"])
 
+    def test_80b_hydrostatic_input_domain_enforcement(self):
+        """Out-of-domain hydrostatic inputs must fail fast instead of certifying garbage pressures."""
+        from core.hydrostatic_engine import compute_hydrostatic_calc
+        bad_kwargs = [
+            {"d_mm": -100.0},
+            {"d_mm": 0.0},
+            {"t_mm": -5.0},
+            {"t_mm": 0.0},
+            {"smys_mpa": -100.0},
+            {"pipe_length_m": 0.0},
+            {"press_cap_bar": -50.0},
+        ]
+        for kw in bad_kwargs:
+            with self.assertRaises(ValueError, msg=str(kw)):
+                compute_hydrostatic_calc(
+                    **{**{"d_mm": 1219.0, "t_mm": 14.30}, **kw}
+                )
+
+        # API layer must reject the same inputs with 422 (Pydantic bounds).
+        base_payload = {
+            "diameter_mm": 1219.0,
+            "wall_thickness_mm": 14.30,
+            "smys_mpa": 450.0,
+            "pipe_length_m": 12.0,
+            "is_botas": True,
+            "press_cap_bar": 250.0,
+        }
+        for key, bad in (("diameter_mm", -100.0), ("wall_thickness_mm", -5.0),
+                         ("wall_thickness_mm", 0.0), ("pipe_length_m", 0.0),
+                         ("press_cap_bar", -50.0)):
+            payload = dict(base_payload, **{key: bad})
+            r = self.client.post('/api/hydro-calc', json=payload)
+            self.assertEqual(r.status_code, 422, msg=key)
+        r_ok = self.client.post('/api/hydro-calc', json=base_payload)
+        self.assertEqual(r_ok.status_code, 200)
+        self.assertAlmostEqual(r_ok.json()["data"]["target_test_pressure_bar"], 105.6, places=1)
+
     def test_81_ramberg_osgood_stress_strain_and_hardening_verification(self):
         """
         Verifies Ramberg-Osgood elastic-plastic stress-strain (sigma - epsilon) modeling,
@@ -3390,6 +3494,38 @@ class TestPipeQAQCSuite(unittest.TestCase):
         )
         self.assertIn("attachment; filename=", resp_excel.headers["content-disposition"])
 
+    def test_83b_bevel_input_domain_enforcement(self):
+        """Out-of-domain bevel geometry inputs must fail fast instead of being silently clamped."""
+        from core.bevel_engine import BevelEngine
+        bad_kwargs = [
+            {"diameter_mm": -100.0},
+            {"diameter_mm": 0.0},
+            {"wall_thickness_mm": -5.0},
+            {"pipe_length_m": 0.0},
+        ]
+        for kw in bad_kwargs:
+            with self.assertRaises(ValueError, msg=str(kw)):
+                BevelEngine.calculate_bevel_geometry(
+                    **{**{"diameter_mm": 1219.0, "wall_thickness_mm": 14.30}, **kw}
+                )
+
+        # API layer must reject the same inputs with 422 (Pydantic bounds).
+        base_payload = {
+            "diameter_mm": 1219.0,
+            "wall_thickness_mm": 14.30,
+            "material_grade": "X65",
+            "bevel_angle_actual": 31.0,
+            "root_face_actual": 1.60,
+            "out_of_squareness_actual": 0.50,
+        }
+        for key, bad in (("diameter_mm", -100.0), ("wall_thickness_mm", -5.0),
+                         ("pipe_length_m", 0.0)):
+            payload = dict(base_payload, **{key: bad})
+            r = self.client.post('/api/bevel-calc', json=payload)
+            self.assertEqual(r.status_code, 422, msg=key)
+        r_ok = self.client.post('/api/bevel-calc', json=base_payload)
+        self.assertEqual(r_ok.status_code, 200)
+
     def test_84_straightness_and_end_camber_verification(self):
         """
         Tests API Spec 5L Clause 9.11.3 & Table 12 and BOTAŞ Clauses 5.5 & 8.1.2.4
@@ -3401,7 +3537,7 @@ class TestPipeQAQCSuite(unittest.TestCase):
         import openpyxl
 
         # 1. BOTAŞ Limits Calculation (12.0 m pipe)
-        # BOTAŞ 5.5: Total deviation <= 0.15% * L = 18.00 mm
+        # BOTAŞ 5120 R7 5.5: Total deviation <= 0.10% * L = 12.00 mm
         # BOTAŞ 8.1.2.4: 1.0 m end deviation <= 3.00 mm
         res_botas = StraightnessEngine.calculate_straightness(
             diameter_mm=1219.0,
@@ -3409,8 +3545,8 @@ class TestPipeQAQCSuite(unittest.TestCase):
             pipe_length_m=12.0,
             standard_code="BOTAŞ"
         )
-        self.assertEqual(res_botas["total_straightness_max_limit_mm"], 18.00)
-        self.assertEqual(res_botas["total_straightness_ratio_pct"], 0.15)
+        self.assertEqual(res_botas["total_straightness_max_limit_mm"], 12.00)
+        self.assertEqual(res_botas["total_straightness_ratio_pct"], 0.10)
         self.assertEqual(res_botas["end_straightness_max_limit_mm"], 3.00)
         self.assertTrue(res_botas["is_botas"])
         self.assertEqual(res_botas["verdict"], "NOMINAL (DENETİME HAZIR)")
@@ -3446,7 +3582,7 @@ class TestPipeQAQCSuite(unittest.TestCase):
             self.assertEqual(chk["status"], "PASS")
 
         # 4. Actual Measurements FAIL Cases
-        # Total sweep exceeds 18.0 mm
+        # Total sweep exceeds 12.0 mm
         res_fail_tot = StraightnessEngine.calculate_straightness(
             diameter_mm=1219.0,
             wall_thickness_mm=14.30,
@@ -3488,7 +3624,7 @@ class TestPipeQAQCSuite(unittest.TestCase):
         data_calc = resp_calc.json()
         self.assertEqual(data_calc["status"], "success")
         self.assertTrue(data_calc["data"]["is_compliant"])
-        self.assertEqual(data_calc["data"]["total_straightness_max_limit_mm"], 18.0)
+        self.assertEqual(data_calc["data"]["total_straightness_max_limit_mm"], 12.0)
 
         # 6. Corporate Excel Exporter Direct Test
         project_info = {
@@ -3536,6 +3672,55 @@ class TestPipeQAQCSuite(unittest.TestCase):
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
         self.assertIn("attachment; filename=", resp_excel.headers["content-disposition"])
+
+    def test_84b_straightness_input_domain_enforcement(self):
+        """Out-of-domain straightness geometry must fail fast instead of being silently clamped."""
+        from core.straightness_engine import StraightnessEngine
+        bad_kwargs = [
+            {"diameter_mm": -100.0},
+            {"wall_thickness_mm": -5.0},
+            {"pipe_length_m": -5.0},
+            {"pipe_length_m": 0.0},
+        ]
+        for kw in bad_kwargs:
+            with self.assertRaises(ValueError, msg=str(kw)):
+                StraightnessEngine.calculate_straightness(
+                    **{**{"diameter_mm": 1219.0, "wall_thickness_mm": 14.30,
+                          "pipe_length_m": 12.0}, **kw}
+                )
+
+        # Short pup: true BOTAŞ limit is ratio x real L (no clamping).
+        res_pup = StraightnessEngine.calculate_straightness(
+            diameter_mm=1219.0,
+            wall_thickness_mm=14.30,
+            pipe_length_m=2.0,
+            standard_code="BOTAŞ",
+            total_straightness_actual_mm=2.5,
+            end_straightness_left_actual_mm=1.0,
+            end_straightness_right_actual_mm=1.0
+        )
+        self.assertEqual(res_pup["total_straightness_max_limit_mm"], 2.0)
+        self.assertFalse(res_pup["is_compliant"])
+        self.assertEqual(res_pup["verdict"], "RED (UYGUNSUZ / REJECT)")
+
+        # API layer must reject the same inputs with 422 (Pydantic bounds).
+        base_payload = {
+            "diameter_mm": 1219.0,
+            "wall_thickness_mm": 14.30,
+            "pipe_length_m": 12.0,
+            "standard_code": "BOTAŞ",
+            "total_straightness_actual_mm": 9.5,
+            "end_straightness_left_actual_mm": 1.2,
+            "end_straightness_right_actual_mm": 1.5,
+        }
+        for key, bad in (("pipe_length_m", -5.0), ("pipe_length_m", 0.0),
+                         ("diameter_mm", -100.0), ("wall_thickness_mm", -5.0)):
+            payload = dict(base_payload, **{key: bad})
+            r = self.client.post('/api/straightness-calc', json=payload)
+            self.assertEqual(r.status_code, 422, msg=key)
+        r_ok = self.client.post('/api/straightness-calc', json=base_payload)
+        self.assertEqual(r_ok.status_code, 200)
+        self.assertEqual(r_ok.json()["data"]["total_straightness_max_limit_mm"], 12.0)
 
     def test_85_wall_thickness_underflow_and_derating_verification(self):
         """
@@ -3658,6 +3843,40 @@ class TestPipeQAQCSuite(unittest.TestCase):
         )
         self.assertIn("attachment; filename=", resp_excel.headers["content-disposition"])
 
+    def test_85b_derating_input_domain_enforcement(self):
+        """Out-of-domain derating inputs must fail fast instead of being silently clamped."""
+        from core.derating_engine import DeratingEngine
+        bad_kwargs = [
+            {"diameter_mm": -100.0},
+            {"diameter_mm": 0.0},
+            {"wall_thickness_mm": -5.0},
+            {"design_factor_f": 72.0},
+            {"corrosion_allowance_mm": -1.0},
+            {"pipe_length_m": 0.0},
+            {"actual_measured_thickness_mm": -2.0},
+        ]
+        for kw in bad_kwargs:
+            with self.assertRaises(ValueError, msg=str(kw)):
+                DeratingEngine.calculate_derating(
+                    **{**{"diameter_mm": 1219.0, "wall_thickness_mm": 14.30}, **kw}
+                )
+
+        # API layer must reject the same inputs with 422 (Pydantic bounds).
+        base_payload = {
+            "diameter_mm": 1219.0,
+            "wall_thickness_mm": 14.30,
+            "material_grade": "X65",
+            "standard_code": "BOTAŞ",
+            "design_factor_f": 0.72,
+        }
+        for key, bad in (("diameter_mm", -100.0), ("wall_thickness_mm", -5.0),
+                         ("design_factor_f", 72.0), ("pipe_length_m", 0.0)):
+            payload = dict(base_payload, **{key: bad})
+            r = self.client.post('/api/derating-calc', json=payload)
+            self.assertEqual(r.status_code, 422, msg=key)
+        r_ok = self.client.post('/api/derating-calc', json=base_payload)
+        self.assertEqual(r_ok.status_code, 200)
+
     def test_86_matrix_pdf_export_verification(self):
         """
         Tests API Spec 5L 47th Ed. & BOTAŞ Quality Assurance, Factory Acceptance
@@ -3714,6 +3933,14 @@ class TestPipeQAQCSuite(unittest.TestCase):
         self.assertGreaterEqual(len(reader.pages), 1)
         self.assertAlmostEqual(float(reader.pages[0].mediabox.width), 841.89, places=1)
         self.assertAlmostEqual(float(reader.pages[0].mediabox.height), 595.28, places=1)
+
+        # 1b. Matrix PDF content completeness: frequency section + extended rows
+        pdf_text = "\n".join((pg.extract_text() or "") for pg in reader.pages)
+        for probe in ("TEST FREKANSI", "DWTT", "Mandrel", "Misalignment", "Sertlik",
+                      "Flattening", "Hidrostatik Test Alt", "SMYS"):
+            self.assertIn(probe, pdf_text)
+        # BOTAŞ straightness row must use the tightened 0.10% limit (12 m default)
+        self.assertIn("12.00 mm", pdf_text)
 
         # 2. API Endpoint /api/export-matrix-pdf Test
         resp_pdf_api = self.client.post("/api/export-matrix-pdf", json={

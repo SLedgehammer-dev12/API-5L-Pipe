@@ -31,9 +31,18 @@ class BevelEngine:
         Calculates pipe end machining dimensions, bevel groove volume, tolerances,
         out-of-squareness limits, end ovality thresholds, and verifies compliance.
         """
-        D = float(max(21.3, diameter_mm))
-        t = float(max(1.5, wall_thickness_mm))
-        L = float(max(1.0, pipe_length_m))
+        try:
+            D = float(diameter_mm)
+            t = float(wall_thickness_mm)
+            L = float(pipe_length_m)
+        except (TypeError, ValueError):
+            raise ValueError("Bevel inputs D, t and L must be numeric.")
+        if not D > 0.0:
+            raise ValueError("diameter_mm must be > 0.")
+        if not t > 0.0:
+            raise ValueError("wall_thickness_mm must be > 0.")
+        if not L > 0.0:
+            raise ValueError("pipe_length_m must be > 0.")
         grade = str(material_grade or "X65").upper().strip()
         std = str(standard_code or "BOTAŞ").upper().strip()
         is_botas = "BOTAŞ" in std or "BOTAS" in std

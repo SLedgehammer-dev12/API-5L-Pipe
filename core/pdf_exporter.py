@@ -689,6 +689,14 @@ class PDFExporter:
                 return f"{s_min}{u_str}"
             return f"[{s_min} — {s_max}]{u_str}"
 
+        first_pipe = pipes_data[0] if pipes_data else {}
+
+        def _exp(pipe, key):
+            exp = (pipe.get('explanations') or {}).get(key) or {}
+            if isinstance(exp, dict):
+                return exp.get(lang) or exp.get('tr') or ""
+            return str(exp)
+
         def add_param(name, unit, val_fn, crit_text):
             row_idx = len(matrix_rows)
             row = [
@@ -720,11 +728,16 @@ class PDFExporter:
         add_param("Boru Ucu Dış Çap Toleransı (OD_end)", "mm", lambda p: _fmt_range(p.get('dimensional_tolerances', {}).get('diameter_end_min_mm'), p.get('dimensional_tolerances', {}).get('diameter_end_max_mm'), 2, "mm"), "API 5L Tablo 10 (±1.6 mm / BOTAŞ ±1.0 mm)")
         add_param("Boru Gövdesi Ovallik Sınırı", "mm", lambda p: _fmt_val(p.get('dimensional_tolerances', {}).get('ovality_body_mm'), 2, prefix="≤ ", suffix=" mm"), "API 5L Tablo 10 (D_max - D_min ≤ %1.0 D)")
         add_param("Boru Ucu Ovallik Sınırı", "mm", lambda p: _fmt_val(p.get('dimensional_tolerances', {}).get('ovality_end_mm'), 2, prefix="≤ ", suffix=" mm"), "API 5L Tablo 10 (≤%1.0 D maks 10.0 mm / BOTAŞ 0.6% D)")
-        add_param("Toplam Boy Düzlük Sapması", "mm", lambda p: "≤ 24.0 mm", "API 5L Tablo 12 (Chord ≤ %0.2 L, maks 24 mm)")
+        add_param("Toplam Boy Düzlük Sapması", "mm", lambda p: "≤ 12.00 mm" if "BOTAŞ" in str(p.get('input_summary', {}).get('standard_type', '')) else "≤ 24.00 mm", "BOTAŞ 5.5 (≤ %0.10 × L) / API 5L Tablo 12 (≤ %0.20 × L) — L=12 m varsayılan")
         add_param("Boru Ucu Düzlük Sapması (1.0 m)", "mm", lambda p: "≤ 3.0 mm" if "BOTAŞ" in str(p.get('input_summary', {}).get('standard_type', '')) else "≤ 4.0 mm", "API 5L Tablo 12 (≤ 4.0 mm / BOTAŞ Madde 8.1.2 ≤ 3.0 mm)")
         add_param("İç Kaynak Dikiş Fazlalığı", "mm", lambda p: _fmt_val(p.get('weld_and_geometry', {}).get('weld_height_inside_mm', 3.5), 2, prefix="≤ ", suffix=" mm"), "API 5L Tablo 13 (Tozaltı SAW iç kaynak yüksekliği)")
         add_param("Dış Kaynak Dikiş Fazlalığı", "mm", lambda p: _fmt_val(p.get('weld_and_geometry', {}).get('weld_height_outside_mm', 3.5), 2, prefix="≤ ", suffix=" mm"), "API 5L Tablo 13 (Tozaltı SAW dış kaynak yüksekliği)")
         add_param("Radyal Basamaklanma (Radial Offset)", "mm", lambda p: _fmt_val(p.get('weld_and_geometry', {}).get('radial_offset_max_mm', 1.5), 2, prefix="≤ ", suffix=" mm"), "API 5L Tablo 14 (Kenar basamaklanma maks 1.5 mm)")
+        add_param("Boru Çevre Toleransı — Uç (C_end)", "mm", lambda p: _fmt_range(p.get('dimensional_tolerances', {}).get('circ_end_min_mm'), p.get('dimensional_tolerances', {}).get('circ_end_max_mm'), 2, "mm"), _exp(first_pipe, 'circumference_tol'))
+        add_param("Boru Çevre Toleransı — Gövde (C_body)", "mm", lambda p: _fmt_range(p.get('dimensional_tolerances', {}).get('circ_body_min_mm'), p.get('dimensional_tolerances', {}).get('circ_body_max_mm'), 2, "mm"), _exp(first_pipe, 'circumference_tol'))
+        add_param("Eksenel Kaçıklık (Misalignment)", "mm", lambda p: _fmt_val(p.get('weld_and_geometry', {}).get('misalignment_max_mm'), 2, prefix="≤ ", suffix=" mm"), _exp(first_pipe, 'misalignment'))
+        add_param("Boru Ucu Çatılaşması (Peaking)", "mm", lambda p: _fmt_val(p.get('dimensional_tolerances', {}).get('pipe_end_peaking_max_mm'), 1, prefix="≤ ", suffix=" mm"), _exp(first_pipe, 'peaking'))
+        add_param("Boru Ucu Dikliği (Squareness)", "mm", lambda p: _fmt_val(p.get('dimensional_tolerances', {}).get('pipe_end_squareness_max_mm'), 1, prefix="≤ ", suffix=" mm"), _exp(first_pipe, 'squareness'))
 
         # --- Section 3: KİMYASAL BİLEŞİM & KARBON EŞDEĞERİ ---
         add_section("3. KİMYASAL BİLEŞİM & KARBON EŞDEĞERİ (API 5L TABLO 5 & BOTAŞ ÇİZELGE 2)")
@@ -745,15 +758,40 @@ class PDFExporter:
         add_param("Gövde Charpy V-Notch (CVN)", "J", lambda p: _fmt_val(p.get('toughness_and_tests', {}).get('notch_impact_mat_j', 60), 0, prefix="≥ ", suffix=" J"), "API 5L Tablo 8 / BOTAŞ Çizelge 4 (0°C / -20°C)")
         add_param("Kaynak Dikişi Charpy (CVN)", "J", lambda p: _fmt_val(p.get('toughness_and_tests', {}).get('notch_impact_weld_j', 40), 0, prefix="≥ ", suffix=" J"), "API 5L Tablo 8 / BOTAŞ Çizelge 4 (Kaynak ve ITAB)")
         add_param("Kalan Gerilme Halka Açıklığı (Δ)", "mm", lambda p: _fmt_val(p.get('toughness_and_tests', {}).get('residual_stress_max_mm', 1.5), 1, prefix="≤ ", suffix=" mm"), "BOTAŞ Madde 3.3.9 (150 mm halka kesme testi)")
+        add_param("Kopma Uzaması — Kaynak (Af_weld)", "%", lambda p: _fmt_val(p.get('toughness_and_tests', {}).get('elongation_weld_min_percent', 10.0), 1, prefix="≥ %"), _exp(first_pipe, 'elongation'))
+        add_param("Yırtılma Testi (DWTT)", "—", lambda p: str(p.get('toughness_and_tests', {}).get('dwtt_test', '—')), _exp(first_pipe, 'dwtt'))
+        add_param("Sertlik Sınırı (Hardness)", "HV10", lambda p: str(p.get('toughness_and_tests', {}).get('hardness_test_max', '—')), _exp(first_pipe, 'hardness'))
+        add_param("Mandrel Çapı / Çene Açıklığı", "mm", lambda p: f"{_fmt_val(p.get('toughness_and_tests', {}).get('mandrel_dia_max_mm'), 1)} / {_fmt_val(p.get('toughness_and_tests', {}).get('jaw_opening_max_mm'), 1)}", _exp(first_pipe, 'mandrel_jaw'))
+        add_param("Yassıltma (Flattening) — Kaynak / Çatlak", "—", lambda p: f"{p.get('flattening', {}).get('weld_opening_height_mm', '—')} / {p.get('flattening', {}).get('material_crack_height_mm', '—')}", _exp(first_pipe, 'flattening'))
 
         # --- Section 5: FABRİKA HİDROSTATİK TESTİ & TASARIM GÜVENLİĞİ ---
         add_section("5. FABRİKA HİDROSTATİK TESTİ & ASME B31.8 TASARIM EMNİYETİ")
         add_param("Fabrika Hidrostatik Test Basıncı", "bar", lambda p: _fmt_val(p.get('hydrostatic_test', {}).get('hydro_test_max_bar', 100), 1, suffix=" bar"), "API 5L 10.2.6.7 (Çeper gerilmesi %90 - %95 SMYS)")
         add_param("API 5L Standart Test Basıncı", "bar", lambda p: _fmt_val(p.get('hydrostatic_test', {}).get('api_5l_std_test_bar', 95), 1, suffix=" bar"), "API 5L Madde 10.2.6.7 Standart Test Hesabı")
+        add_param("Fabrika Hidrostatik Test Alt Sınırı", "bar", lambda p: _fmt_val(p.get('hydrostatic_test', {}).get('hydro_test_min_bar'), 1, suffix=" bar"), _exp(first_pipe, 'hydro_test'))
+        add_param("İşletme Basıncı / SMYS", "%", lambda p: str(p.get('weights_and_safety', {}).get('operating_press_over_smys_percent', '—')), "İşletme Gerilmesi / SMYS Oranı")
         add_param("Doğrusal Çelik Kütlesi (Nominal)", "kg/m", lambda p: _fmt_val(p.get('weights_and_safety', {}).get('weight_nominal_kg_m', 425), 1, suffix=" kg/m"), "API 5L 9.11.3 (w = 0.0246615 * (D-t) * t)")
         add_param("Ağırlık Tolerans Aralığı (Tek Boru)", "kg/m", lambda p: _fmt_range(p.get('weights_and_safety', {}).get('weight_min_kg_m', 410), p.get('weights_and_safety', {}).get('weight_max_kg_m', 467), 1, "kg/m"), "API 5L Tablo 11 (-%3.5 / +%10.0)")
         add_param("Çap / Cidar Oranı (D/t)", "—", lambda p: _fmt_val(p.get('weights_and_safety', {}).get('d_over_t', 85), 1), "ASME B31.8 Section 841.1.1 Emniyet Katsayısı")
         add_param("Kırılma Yayılma Kontrol Kriteri", "—", lambda p: str(p.get('weights_and_safety', {}).get('fracture_control_asme_841_1_2', 'Normal Emniyet')), "ASME B31.8 Section 841.1.2 (Annex G Zorunlu / Normal)")
+
+        # --- Section 6: TEST FREKANSI (diameter + grade + PSL + process driven) ---
+        freq_test_names: list = []
+        for pipe in pipes_data:
+            for f in (pipe.get('test_frequency') or []):
+                if f.get('test') and f['test'] not in freq_test_names:
+                    freq_test_names.append(f['test'])
+        if freq_test_names:
+            add_section("6. TEST FREKANSI — SIKLIK / NUMUNE SAYISI (TEST FREQUENCY)")
+            first_freq = first_pipe.get('test_frequency') or []
+            for test_name in freq_test_names:
+                first_entry = next((f for f in first_freq if f.get('test') == test_name), None)
+                freq_crit = (first_entry or {}).get('clause') or "Çap, malzeme kalitesi, PSL seviyesi ve imalat yöntemine göre şartname sıklığı"
+                add_param(
+                    test_name, "—",
+                    lambda p, tn=test_name: next((f.get('frequency', '—') for f in (p.get('test_frequency') or []) if f.get('test') == tn), '—'),
+                    freq_crit
+                )
 
         t_matrix = Table(matrix_rows, colWidths=col_widths, repeatRows=1)
         t_matrix.setStyle(TableStyle(table_style_commands))

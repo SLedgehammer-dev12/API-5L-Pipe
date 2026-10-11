@@ -28,11 +28,25 @@ def compute_hydrostatic_calc(
     Computes hydrostatic test pressures, hoop stresses, test water volume,
     fill tonnage, pressure-induced elastic expansion, and holding time specifications.
     """
-    d = float(d_mm)
-    t = float(t_mm if t_mm is not None else 0.0)
-    smys = float(smys_mpa if smys_mpa and smys_mpa > 0 else 450.0)
-    l_pipe = float(pipe_length_m if pipe_length_m and pipe_length_m > 0 else 12.0)
-    cap_bar = float(press_cap_bar if press_cap_bar and press_cap_bar > 0 else 250.0)
+    try:
+        d = float(d_mm)
+        t = float(t_mm)
+        _smys_in = None if smys_mpa is None else float(smys_mpa)
+        l_pipe = float(pipe_length_m)
+        cap_bar = float(press_cap_bar)
+    except (TypeError, ValueError):
+        raise ValueError("Hydrostatic inputs must be numeric.")
+    if not d > 0.0:
+        raise ValueError("d_mm must be > 0.")
+    if not t > 0.0:
+        raise ValueError("t_mm must be > 0.")
+    if _smys_in is not None and not _smys_in > 0.0:
+        raise ValueError("smys_mpa must be > 0 when supplied.")
+    if not l_pipe > 0.0:
+        raise ValueError("pipe_length_m must be > 0.")
+    if not cap_bar > 0.0:
+        raise ValueError("press_cap_bar must be > 0.")
+    smys = _smys_in if _smys_in is not None else 450.0
 
     din_mm = max(0.0, d - 2.0 * t)
     din_m = din_mm / 1000.0

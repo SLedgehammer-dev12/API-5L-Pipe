@@ -35,6 +35,7 @@ let calculatedPipes = [];
 let selectedPipeIndex = 0;
 let visualizer3DInstance = null;
 let lastVerification = null;
+let lastVerificationPipeIndex = null;
 let lastWallThicknessCalc = null;
 
 // HTML-escape helper to prevent XSS via user-supplied strings injected into innerHTML.
@@ -820,6 +821,17 @@ function renderPipesManagementList() {
 function selectPipe(idx) {
     if (idx < 0 || idx >= calculatedPipes.length) return;
     selectedPipeIndex = idx;
+    if (lastVerification !== null && idx !== lastVerificationPipeIndex) {
+        const verFormEl = document.getElementById("pipe-verification-form");
+        if (verFormEl) verFormEl.reset();
+        lastVerification = null;
+        lastVerificationPipeIndex = null;
+        const resPanel = document.getElementById("verification-results-panel");
+        const placeholder = document.getElementById("verification-placeholder");
+        if (resPanel) resPanel.classList.add("hidden");
+        if (placeholder) placeholder.classList.remove("hidden");
+        showToast("Boru değişti — doğrulama sıfırlandı, lütfen yeniden doğrulayın.", "info");
+    }
     renderMatrixTable();
     renderPipesManagementList();
     render3DPipeChips();
@@ -2872,14 +2884,32 @@ function setupEventListeners() {
                 location_type: formData.get("location_type")
             };
 
-            const resp = await fetch("/api/wall-thickness", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(reqData)
-            });
-            const res = await resp.json();
-            if (res.status === "success") {
-                renderWallThicknessResult(res.data);
+            const wtSubmitBtn = wtForm.querySelector('button[type="submit"]');
+            const wtOrigBtnHtml = wtSubmitBtn ? wtSubmitBtn.innerHTML : "";
+            if (wtSubmitBtn) {
+                wtSubmitBtn.disabled = true;
+                wtSubmitBtn.innerHTML = '<svg class="w-4 h-4 mr-1.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path></svg> Hesaplanıyor…';
+            }
+            try {
+                const resp = await fetch("/api/wall-thickness", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(reqData)
+                });
+                const res = await resp.json();
+                if (res.status === "success") {
+                    renderWallThicknessResult(res.data);
+                    showToast("Et kalınlığı hesaplandı!", "success");
+                } else {
+                    showToast("Hesaplama hatası: " + (res.message || "Bilinmeyen hata"), "error");
+                }
+            } catch (err) {
+                showToast("Hesaplama hatası: " + err.message, "error");
+            } finally {
+                if (wtSubmitBtn) {
+                    wtSubmitBtn.disabled = false;
+                    wtSubmitBtn.innerHTML = wtOrigBtnHtml;
+                }
             }
         });
     }
@@ -2904,18 +2934,37 @@ function setupEventListeners() {
                 }
             });
 
-            const resp = await fetch("/api/verify", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    pipe_config: selectedPipe,
-                    actual_data: actualData
-                })
-            });
-            const res = await resp.json();
-            if (res.status === "success") {
-                lastVerification = res.verification;
-                renderVerificationResult(res.verification);
+            const verSubmitBtn = verForm.querySelector('button[type="submit"]');
+            const verOrigBtnHtml = verSubmitBtn ? verSubmitBtn.innerHTML : "";
+            if (verSubmitBtn) {
+                verSubmitBtn.disabled = true;
+                verSubmitBtn.innerHTML = '<svg class="w-4 h-4 mr-1.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path></svg> Doğrulanıyor…';
+            }
+            try {
+                const resp = await fetch("/api/verify", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        pipe_config: selectedPipe,
+                        actual_data: actualData
+                    })
+                });
+                const res = await resp.json();
+                if (res.status === "success") {
+                    lastVerification = res.verification;
+                    lastVerificationPipeIndex = (selectedPipeIndex >= 0 && selectedPipeIndex < activeProject.pipes.length) ? selectedPipeIndex : 0;
+                    renderVerificationResult(res.verification);
+                    showToast("Doğrulama tamamlandı!", "success");
+                } else {
+                    showToast("Doğrulama hatası: " + (res.message || "Bilinmeyen hata"), "error");
+                }
+            } catch (err) {
+                showToast("Doğrulama hatası: " + err.message, "error");
+            } finally {
+                if (verSubmitBtn) {
+                    verSubmitBtn.disabled = false;
+                    verSubmitBtn.innerHTML = verOrigBtnHtml;
+                }
             }
         });
     }
@@ -4209,7 +4258,7 @@ function openStraightnessSpecimenModal(viewMode = '3d') {
         window._itpData.push({
             test: "Boru Düzlük ve Uç Sapması (Straightness & End Camber)",
             clause: "API 5L Madde 9.11.3 & BOTAŞ Madde 5.5, 8.1.2.4",
-            clause_ref: "Tam Boy Düzlük Sapması: ≤ %0.15 × L (BOTAŞ) / ≤ %0.20 × L (API 5L Tablo 12).\nUç Düzlüğü Sapması (1.0 m Chord): ≤ 3.00 mm (BOTAŞ 8.1.2.4) / ≤ 4.00 mm (API 5L 9.11.3.2).\nÖlçüm Metodu: Çelik tel / optik lazer kolimatör ve 1.0 m çelik mastar + sentil.",
+            clause_ref: "Tam Boy Düzlük Sapması: ≤ %0.10 × L (BOTAŞ) / ≤ %0.20 × L (API 5L Tablo 12).\nUç Düzlüğü Sapması (1.0 m Chord): ≤ 3.00 mm (BOTAŞ 8.1.2.4) / ≤ 4.00 mm (API 5L 9.11.3.2).\nÖlçüm Metodu: Çelik tel / optik lazer kolimatör ve 1.0 m çelik mastar + sentil.",
             frequency: "Her boru (%100 görsel ve mastar/lazer kontrolü)",
             location: "Tüm boru boyu ve her iki boru ucu",
             specimen: "Lazer Kolimatör & 1.0 m Çelik Mastar",

@@ -100,15 +100,42 @@ class DeratingEngine:
         hydrostatic hoop stress jump at minimum allowable thickness, linear mass variance,
         and assesses safety margin compliance.
         """
-        D = float(max(21.3, diameter_mm))
-        t = float(max(1.5, wall_thickness_mm))
+        try:
+            D = float(diameter_mm)
+            t = float(wall_thickness_mm)
+            F = float(design_factor_f)
+            CA = float(corrosion_allowance_mm)
+            L = float(pipe_length_m)
+        except (TypeError, ValueError):
+            raise ValueError("Derating inputs D, t, F, corrosion allowance and L must be numeric.")
+        if not D > 0.0:
+            raise ValueError("diameter_mm must be > 0.")
+        if not t > 0.0:
+            raise ValueError("wall_thickness_mm must be > 0.")
+        if not 0.0 < F <= 1.0:
+            raise ValueError("design_factor_f must be in (0, 1].")
+        if not CA >= 0.0:
+            raise ValueError("corrosion_allowance_mm must be >= 0.")
+        if not L > 0.0:
+            raise ValueError("pipe_length_m must be > 0.")
+        for _lbl, _v in (
+            ("smys_mpa", smys_mpa),
+            ("design_pressure_bar", design_pressure_bar),
+            ("hydro_test_pressure_bar", hydro_test_pressure_bar),
+            ("actual_measured_thickness_mm", actual_measured_thickness_mm),
+        ):
+            if _v is None:
+                continue
+            try:
+                _fv = float(_v)
+            except (TypeError, ValueError):
+                raise ValueError(f"{_lbl} must be numeric.")
+            if not _fv > 0.0:
+                raise ValueError(f"{_lbl} must be > 0 when supplied.")
         grade = str(material_grade or "X65").upper().strip()
         proc = str(manufacturing_process or "SAWH").upper().strip()
         std = str(standard_code or "BOTAŞ").upper().strip()
         is_botas = "BOTAŞ" in std or "BOTAS" in std
-        F = float(max(0.3, min(0.8, design_factor_f)))
-        CA = float(max(0.0, corrosion_allowance_mm))
-        L = float(max(1.0, pipe_length_m))
 
         # Default SMYS from grade if not supplied
         if smys_mpa is None or smys_mpa <= 0:
