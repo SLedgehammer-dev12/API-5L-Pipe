@@ -7,7 +7,7 @@ water compressibility, and hydrostatic test pressure-time cycle modeling.
 """
 
 import math
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 
 # Constants
 STEEL_E_MPA = 206000.0          # Young's modulus of carbon steel (MPa)
@@ -50,8 +50,8 @@ def compute_hydrostatic_calc(
 
     din_mm = max(0.0, d - 2.0 * t)
     din_m = din_mm / 1000.0
-    d_m = d / 1000.0
-    t_m = t / 1000.0
+    d / 1000.0
+    t / 1000.0
 
     # 1. API 5L Equation 6 Hydrostatic Test Pressure (P = 2 * S * t / D)
     # S = Fiber stress:

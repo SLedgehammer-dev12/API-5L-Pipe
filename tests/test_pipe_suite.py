@@ -2889,7 +2889,6 @@ class TestPipeQAQCSuite(unittest.TestCase):
 
     def test_78_skelp_end_weld_distance_verification(self):
         """API 5L 8.10 Skelp end weld (bobin uç kaynağı) safety margin (>= 300 mm) verification."""
-        import io
         import math
         import openpyxl
         from core.sawh_engine import compute_sawh_calc
@@ -3296,7 +3295,6 @@ class TestPipeQAQCSuite(unittest.TestCase):
 
     def test_82_erw_hfw_manufacturing_and_flattening_verification(self):
         """ERW/HFW Pipe Manufacturing Geometry, Flash Trimming, Flattening Test & Excel Exporter Verification."""
-        import io
         import openpyxl
         from core.erw_engine import ErwEngine
         from core.excel_exporter import ExcelExporter
@@ -3395,7 +3393,6 @@ class TestPipeQAQCSuite(unittest.TestCase):
 
     def test_83_bevel_and_end_prep_verification(self):
         """Pipe End Geometry, Bevel Angle, Root Face, Squareness, Ovality & Excel Exporter Verification."""
-        import io
         import openpyxl
         from core.bevel_engine import BevelEngine
         from core.excel_exporter import ExcelExporter

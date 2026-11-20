@@ -121,7 +121,6 @@ class BevelEngine:
         # 5. Verification Checks (Actual vs Limits)
         # ---------------------------------------------------------------------
         checks = []
-        overall_pass = True
 
         # Check A: Bevel Angle
         ba_stat = "NOT_EVALUATED"
@@ -131,7 +130,6 @@ class BevelEngine:
                 ba_stat = "PASS"
             else:
                 ba_stat = "FAIL"
-                overall_pass = False
         checks.append({
             "parameter": "Alın Kaynak Ağzı Açısı (Bevel Angle)",
             "nominal": bevel_angle_nom,
@@ -152,7 +150,6 @@ class BevelEngine:
                 rf_stat = "PASS"
             else:
                 rf_stat = "FAIL"
-                overall_pass = False
         checks.append({
             "parameter": "Kök Yüzeyi / Küt Burun (Root Face Landing)",
             "nominal": root_face_nom,
@@ -173,7 +170,6 @@ class BevelEngine:
                 sq_stat = "PASS"
             else:
                 sq_stat = "FAIL"
-                overall_pass = False
         checks.append({
             "parameter": "Boru Ucu Diklikten Sapma (Out-of-Squareness)",
             "nominal": 0.00,
@@ -198,7 +194,6 @@ class BevelEngine:
                 ov_stat = "PASS"
             else:
                 ov_stat = "FAIL"
-                overall_pass = False
 
         checks.append({
             "parameter": "Boru Ucu Dairesellikten Sapma / Ovalite (End Out-of-Roundness)",

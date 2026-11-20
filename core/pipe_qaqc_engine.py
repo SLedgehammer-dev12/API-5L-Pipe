@@ -777,7 +777,7 @@ class PipeQAQCEngine:
             return None
 
         # Dimensional & weld geometry recommended frequencies
-        is_welded_pipe = not ("SMLS" in (manufacturing_process or "").upper())
+        is_welded_pipe = "SMLS" not in (manufacturing_process or "").upper()
         if is_welded_pipe:
             freq_radial_offset = (
                 "D ≥ 20\" için %100 dikiş boyunca; D < 20\" vardiyada en az 4 saatte bir + her bobin/plaka ekinde"

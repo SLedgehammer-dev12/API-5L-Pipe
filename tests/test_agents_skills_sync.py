@@ -2,7 +2,6 @@
 
 import os
 import json
-import pytest
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 AGENTS_DIR = os.path.join(ROOT_DIR, ".agents")

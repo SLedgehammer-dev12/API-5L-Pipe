@@ -5,7 +5,7 @@ heavy steel plate order sizing, edge planing allowances, and forming force estim
 """
 
 import math
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 
 # API 5L Clause 8.9 / Table E.1 standard mechanical expansion ratio range (%)
 DEFAULT_EXPANSION_RATIO = 1.0     # Nominal %1.0 expansion

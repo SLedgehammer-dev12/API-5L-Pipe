@@ -10,7 +10,7 @@ import datetime
 import io
 import os
 import re
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 from xml.sax.saxutils import escape as _xml_escape
 
 from reportlab import rl_config
@@ -660,7 +660,6 @@ class PDFExporter:
         elements.append(HRFlowable(width="100%", thickness=1.5, color=colors.HexColor("#2563EB"), spaceBefore=3, spaceAfter=5))
 
         # 2. Multi-Pipe Matrix Table Calculation & Columns
-        total_w = 782.0
         num_p = max(1, len(pipes_data))
         param_w = 175.0
         unit_w = 48.0

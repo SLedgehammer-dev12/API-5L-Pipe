@@ -8,7 +8,7 @@ Conforms to:
 """
 
 import math
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 
 def get_erw_deformation_factor(material_grade: str) -> float:

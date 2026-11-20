@@ -1252,7 +1252,7 @@ class ExcelExporter:
         font_info = st["font_info"]
         font_header = st["font_header"]
         font_regular = st["font_regular"]
-        font_mono = st["font_mono"]
+        st["font_mono"]
         font_mono_bold = st["font_mono_bold"]
         font_bold = st["font_bold"]
         font_badge_pass = st["font_badge_pass"]
@@ -1268,7 +1268,7 @@ class ExcelExporter:
         border_all = st["border_all"]
         align_center = st["align_center"]
         align_left = st["align_left"]
-        align_right = st["align_right"]
+        st["align_right"]
 
         # -------------------------------------------------------------
         # Row 1: Document Title Header
@@ -1319,7 +1319,7 @@ class ExcelExporter:
             v_fill = fill_warn
 
         ws.merge_cells("A4:E4")
-        c_verdict = styled_cell(ws, 4, 1, f"  {status_text}", font=v_font, fill=v_fill, alignment=align_left)
+        styled_cell(ws, 4, 1, f"  {status_text}", font=v_font, fill=v_fill, alignment=align_left)
         for col in range(1, 6):
             ws.cell(4, col).border = border_all
 
@@ -1327,14 +1327,14 @@ class ExcelExporter:
         def write_section_header(row_num: int, text: str):
             ws.row_dimensions[row_num].height = 20
             ws.merge_cells(f"A{row_num}:E{row_num}")
-            cell = styled_cell(ws, row_num, 1, f"  {text}", font=font_sec, fill=fill_sec, alignment=align_left)
+            styled_cell(ws, row_num, 1, f"  {text}", font=font_sec, fill=fill_sec, alignment=align_left)
             for c_idx in range(1, 6):
                 ws.cell(row_num, c_idx).border = border_all
 
         def write_table_header(row_num: int, col_titles: list):
             ws.row_dimensions[row_num].height = 22
             for idx, title in enumerate(col_titles, 1):
-                cell = styled_cell(ws, row_num, idx, title, font=font_header, fill=fill_header,
+                styled_cell(ws, row_num, idx, title, font=font_header, fill=fill_header,
                                    alignment=align_center if idx in (2, 3, 4) else align_left, border=border_all)
 
         # Data extraction
@@ -1379,7 +1379,7 @@ class ExcelExporter:
             ws.row_dimensions[r_curr].height = 20
             c_fill = fill_zebra if i % 2 == 1 else None
 
-            c1 = styled_cell(ws, r_curr, 1, param, font=font_bold, alignment=align_left)
+            styled_cell(ws, r_curr, 1, param, font=font_bold, alignment=align_left)
             c2 = styled_cell(ws, r_curr, 2, val, font=font_mono_bold, alignment=align_center)
             c3 = styled_cell(ws, r_curr, 3, unit, font=font_regular, alignment=align_center)
             c4 = styled_cell(ws, r_curr, 4, req, font=font_info, alignment=align_center)
@@ -1388,7 +1388,8 @@ class ExcelExporter:
             for col in range(1, 6):
                 cell = ws.cell(r_curr, col)
                 cell.border = border_all
-                if c_fill: cell.fill = c_fill
+                if c_fill:
+                    cell.fill = c_fill
             r_curr += 1
 
         # -------------------------------------------------------------
@@ -1411,20 +1412,27 @@ class ExcelExporter:
             ws.row_dimensions[r_curr].height = 20
             c_fill = fill_zebra if i % 2 == 1 else None
 
-            c1 = styled_cell(ws, r_curr, 1, param, font=font_bold, alignment=align_left)
+            styled_cell(ws, r_curr, 1, param, font=font_bold, alignment=align_left)
             c2 = styled_cell(ws, r_curr, 2, val, font=font_mono_bold, alignment=align_center)
             if param.startswith("Şekillendirme Uygunluk"):
                 c2.fill = fill_pass if is_valid else fill_warn
                 c2.font = font_badge_pass if is_valid else font_badge_warn
 
-            c3 = ws.cell(r_curr, 3, unit); c3.font = font_regular; c3.alignment = align_center
-            c4 = ws.cell(r_curr, 4, req); c4.font = font_info; c4.alignment = align_center
-            c5 = ws.cell(r_curr, 5, notes); c5.font = font_info; c5.alignment = align_left
+            c3 = ws.cell(r_curr, 3, unit)
+            c3.font = font_regular
+            c3.alignment = align_center
+            c4 = ws.cell(r_curr, 4, req)
+            c4.font = font_info
+            c4.alignment = align_center
+            c5 = ws.cell(r_curr, 5, notes)
+            c5.font = font_info
+            c5.alignment = align_left
 
             for col in range(1, 6):
                 cell = ws.cell(r_curr, col)
                 cell.border = border_all
-                if c_fill and not cell.fill.start_color.rgb: cell.fill = c_fill
+                if c_fill and not cell.fill.start_color.rgb:
+                    cell.fill = c_fill
             r_curr += 1
 
         # -------------------------------------------------------------
@@ -1450,7 +1458,7 @@ class ExcelExporter:
             ws.row_dimensions[r_curr].height = 20
             c_fill = fill_highlight if "Sipariş Brüt Bant" in param else (fill_zebra if i % 2 == 1 else None)
 
-            c1 = styled_cell(ws, r_curr, 1, param, font=font_bold, alignment=align_left)
+            styled_cell(ws, r_curr, 1, param, font=font_bold, alignment=align_left)
             c2 = styled_cell(ws, r_curr, 2, val, font=font_mono_bold, alignment=align_center)
             c3 = styled_cell(ws, r_curr, 3, unit, font=font_regular, alignment=align_center)
             c4 = styled_cell(ws, r_curr, 4, req, font=font_info, alignment=align_center)
@@ -1459,7 +1467,8 @@ class ExcelExporter:
             for col in range(1, 6):
                 cell = ws.cell(r_curr, col)
                 cell.border = border_all
-                if c_fill: cell.fill = c_fill
+                if c_fill:
+                    cell.fill = c_fill
             r_curr += 1
 
         # -------------------------------------------------------------
@@ -1481,7 +1490,7 @@ class ExcelExporter:
             ws.row_dimensions[r_curr].height = 20
             c_fill = fill_pass if "Gerilme İndirgemesi" in param else (fill_zebra if i % 2 == 1 else None)
 
-            c1 = styled_cell(ws, r_curr, 1, param, font=font_bold, alignment=align_left)
+            styled_cell(ws, r_curr, 1, param, font=font_bold, alignment=align_left)
             c2 = styled_cell(ws, r_curr, 2, val, font=font_mono_bold, alignment=align_center)
             c3 = styled_cell(ws, r_curr, 3, unit, font=font_regular, alignment=align_center)
             c4 = styled_cell(ws, r_curr, 4, req, font=font_info, alignment=align_center)
@@ -1490,7 +1499,8 @@ class ExcelExporter:
             for col in range(1, 6):
                 cell = ws.cell(r_curr, col)
                 cell.border = border_all
-                if c_fill: cell.fill = c_fill
+                if c_fill:
+                    cell.fill = c_fill
             r_curr += 1
 
         # -------------------------------------------------------------
@@ -1505,7 +1515,7 @@ class ExcelExporter:
         skelp_axial_span_val = float(sawh_data.get("skelp_weld_axial_span_mm", 0.0) or 0.0)
         min_skelp_dist_val = float(sawh_data.get("min_skelp_end_distance_mm", 300.0) or 300.0)
         skelp_safe = bool(sawh_data.get("skelp_weld_safe", True))
-        skelp_status = str(sawh_data.get("skelp_weld_status", "PASS"))
+        str(sawh_data.get("skelp_weld_status", "PASS"))
         skelp_note = str(sawh_data.get("skelp_weld_note", ""))
 
         r_curr += 1
@@ -1528,20 +1538,27 @@ class ExcelExporter:
             ws.row_dimensions[r_curr].height = 20
             c_fill = (fill_pass if skelp_safe else fill_fail) if "Emniyet Kararı" in param else (fill_zebra if i % 2 == 1 else None)
 
-            c1 = styled_cell(ws, r_curr, 1, param, font=font_bold, alignment=align_left)
+            styled_cell(ws, r_curr, 1, param, font=font_bold, alignment=align_left)
             c2 = styled_cell(ws, r_curr, 2, val, font=font_mono_bold, alignment=align_center)
             if "Emniyet Kararı" in param:
                 c2.fill = fill_pass if skelp_safe else fill_fail
                 c2.font = font_badge_pass if skelp_safe else font_badge_fail
 
-            c3 = ws.cell(r_curr, 3, unit); c3.font = font_regular; c3.alignment = align_center
-            c4 = ws.cell(r_curr, 4, req); c4.font = font_info; c4.alignment = align_center
-            c5 = ws.cell(r_curr, 5, notes); c5.font = font_info; c5.alignment = align_left
+            c3 = ws.cell(r_curr, 3, unit)
+            c3.font = font_regular
+            c3.alignment = align_center
+            c4 = ws.cell(r_curr, 4, req)
+            c4.font = font_info
+            c4.alignment = align_center
+            c5 = ws.cell(r_curr, 5, notes)
+            c5.font = font_info
+            c5.alignment = align_left
 
             for col in range(1, 6):
                 cell = ws.cell(r_curr, col)
                 cell.border = border_all
-                if c_fill and not cell.fill.start_color.rgb: cell.fill = c_fill
+                if c_fill and not cell.fill.start_color.rgb:
+                    cell.fill = c_fill
             r_curr += 1
 
         # -------------------------------------------------------------
@@ -1563,7 +1580,7 @@ class ExcelExporter:
             styled_cell(ws, r_curr, 1, p_title, font=font_bold, alignment=align_left, border=border_all)
 
             ws.merge_cells(f"B{r_curr}:E{r_curr}")
-            c_desc = styled_cell(ws, r_curr, 2, f"  {p_desc}", font=font_info, alignment=align_left)
+            styled_cell(ws, r_curr, 2, f"  {p_desc}", font=font_info, alignment=align_left)
             for col in range(2, 6):
                 ws.cell(r_curr, col).border = border_all
             r_curr += 1
@@ -1580,7 +1597,7 @@ class ExcelExporter:
         r_curr += 1
         ws.row_dimensions[r_curr].height = 32
         for col in (1, 3, 5):
-            c = styled_cell(ws, r_curr, col, "İmza / Kaşe / Tarih: ____________________", font=font_info, alignment=align_left)
+            styled_cell(ws, r_curr, col, "İmza / Kaşe / Tarih: ____________________", font=font_info, alignment=align_left)
 
         # Column widths
         widths = [42, 18, 14, 24, 52]
@@ -1775,14 +1792,26 @@ class ExcelExporter:
         for i, (param, val, unit, req, notes) in enumerate(sec1_rows):
             ws.row_dimensions[r_curr].height = 20
             c_fill = fill_zebra if i % 2 == 1 else None
-            c1 = ws.cell(r_curr, 1, param); c1.font = font_bold; c1.alignment = align_left
-            c2 = ws.cell(r_curr, 2, val); c2.font = font_mono_bold; c2.alignment = align_center
-            c3 = ws.cell(r_curr, 3, unit); c3.font = font_regular; c3.alignment = align_center
-            c4 = ws.cell(r_curr, 4, req); c4.font = font_info; c4.alignment = align_center
-            c5 = ws.cell(r_curr, 5, notes); c5.font = font_info; c5.alignment = align_left
+            c1 = ws.cell(r_curr, 1, param)
+            c1.font = font_bold
+            c1.alignment = align_left
+            c2 = ws.cell(r_curr, 2, val)
+            c2.font = font_mono_bold
+            c2.alignment = align_center
+            c3 = ws.cell(r_curr, 3, unit)
+            c3.font = font_regular
+            c3.alignment = align_center
+            c4 = ws.cell(r_curr, 4, req)
+            c4.font = font_info
+            c4.alignment = align_center
+            c5 = ws.cell(r_curr, 5, notes)
+            c5.font = font_info
+            c5.alignment = align_left
             for col in range(1, 6):
-                cell = ws.cell(r_curr, col); cell.border = border_all
-                if c_fill: cell.fill = c_fill
+                cell = ws.cell(r_curr, col)
+                cell.border = border_all
+                if c_fill:
+                    cell.fill = c_fill
             r_curr += 1
 
         # -------------------------------------------------------------
@@ -1808,14 +1837,26 @@ class ExcelExporter:
         for i, (param, val, unit, req, notes) in enumerate(sec2_rows):
             ws.row_dimensions[r_curr].height = 20
             c_fill = fill_highlight if "Sipariş Brüt Plaka" in param else (fill_zebra if i % 2 == 1 else None)
-            c1 = ws.cell(r_curr, 1, param); c1.font = font_bold; c1.alignment = align_left
-            c2 = ws.cell(r_curr, 2, val); c2.font = font_mono_bold; c2.alignment = align_center
-            c3 = ws.cell(r_curr, 3, unit); c3.font = font_regular; c3.alignment = align_center
-            c4 = ws.cell(r_curr, 4, req); c4.font = font_info; c4.alignment = align_center
-            c5 = ws.cell(r_curr, 5, notes); c5.font = font_info; c5.alignment = align_left
+            c1 = ws.cell(r_curr, 1, param)
+            c1.font = font_bold
+            c1.alignment = align_left
+            c2 = ws.cell(r_curr, 2, val)
+            c2.font = font_mono_bold
+            c2.alignment = align_center
+            c3 = ws.cell(r_curr, 3, unit)
+            c3.font = font_regular
+            c3.alignment = align_center
+            c4 = ws.cell(r_curr, 4, req)
+            c4.font = font_info
+            c4.alignment = align_center
+            c5 = ws.cell(r_curr, 5, notes)
+            c5.font = font_info
+            c5.alignment = align_left
             for col in range(1, 6):
-                cell = ws.cell(r_curr, col); cell.border = border_all
-                if c_fill: cell.fill = c_fill
+                cell = ws.cell(r_curr, col)
+                cell.border = border_all
+                if c_fill:
+                    cell.fill = c_fill
             r_curr += 1
 
         # -------------------------------------------------------------
@@ -1840,14 +1881,26 @@ class ExcelExporter:
         for i, (param, val, unit, req, notes) in enumerate(sec3_rows):
             ws.row_dimensions[r_curr].height = 20
             c_fill = fill_zebra if i % 2 == 1 else None
-            c1 = ws.cell(r_curr, 1, param); c1.font = font_bold; c1.alignment = align_left
-            c2 = ws.cell(r_curr, 2, val); c2.font = font_mono_bold; c2.alignment = align_center
-            c3 = ws.cell(r_curr, 3, unit); c3.font = font_regular; c3.alignment = align_center
-            c4 = ws.cell(r_curr, 4, req); c4.font = font_info; c4.alignment = align_center
-            c5 = ws.cell(r_curr, 5, notes); c5.font = font_info; c5.alignment = align_left
+            c1 = ws.cell(r_curr, 1, param)
+            c1.font = font_bold
+            c1.alignment = align_left
+            c2 = ws.cell(r_curr, 2, val)
+            c2.font = font_mono_bold
+            c2.alignment = align_center
+            c3 = ws.cell(r_curr, 3, unit)
+            c3.font = font_regular
+            c3.alignment = align_center
+            c4 = ws.cell(r_curr, 4, req)
+            c4.font = font_info
+            c4.alignment = align_center
+            c5 = ws.cell(r_curr, 5, notes)
+            c5.font = font_info
+            c5.alignment = align_left
             for col in range(1, 6):
-                cell = ws.cell(r_curr, col); cell.border = border_all
-                if c_fill: cell.fill = c_fill
+                cell = ws.cell(r_curr, col)
+                cell.border = border_all
+                if c_fill:
+                    cell.fill = c_fill
             r_curr += 1
 
         # -------------------------------------------------------------
@@ -1872,17 +1925,29 @@ class ExcelExporter:
         for i, (param, val, unit, req, notes) in enumerate(sec4_rows):
             ws.row_dimensions[r_curr].height = 20
             c_fill = (fill_pass if er_valid else fill_warn) if "Uygunluk Kararı" in param else (fill_zebra if i % 2 == 1 else None)
-            c1 = ws.cell(r_curr, 1, param); c1.font = font_bold; c1.alignment = align_left
-            c2 = ws.cell(r_curr, 2, val); c2.font = font_mono_bold; c2.alignment = align_center
+            c1 = ws.cell(r_curr, 1, param)
+            c1.font = font_bold
+            c1.alignment = align_left
+            c2 = ws.cell(r_curr, 2, val)
+            c2.font = font_mono_bold
+            c2.alignment = align_center
             if "Uygunluk Kararı" in param:
                 c2.fill = fill_pass if er_valid else fill_warn
                 c2.font = font_badge_pass if er_valid else font_badge_warn
-            c3 = ws.cell(r_curr, 3, unit); c3.font = font_regular; c3.alignment = align_center
-            c4 = ws.cell(r_curr, 4, req); c4.font = font_info; c4.alignment = align_center
-            c5 = ws.cell(r_curr, 5, notes); c5.font = font_info; c5.alignment = align_left
+            c3 = ws.cell(r_curr, 3, unit)
+            c3.font = font_regular
+            c3.alignment = align_center
+            c4 = ws.cell(r_curr, 4, req)
+            c4.font = font_info
+            c4.alignment = align_center
+            c5 = ws.cell(r_curr, 5, notes)
+            c5.font = font_info
+            c5.alignment = align_left
             for col in range(1, 6):
-                cell = ws.cell(r_curr, col); cell.border = border_all
-                if c_fill and not cell.fill.start_color.rgb: cell.fill = c_fill
+                cell = ws.cell(r_curr, col)
+                cell.border = border_all
+                if c_fill and not cell.fill.start_color.rgb:
+                    cell.fill = c_fill
             r_curr += 1
 
         # -------------------------------------------------------------
@@ -2032,9 +2097,9 @@ class ExcelExporter:
             v_fill = fill_pass
         else:
             status_text = (
-                f"HİDROSTATİK TEST KABUL KARARI: PRES SINIRI (UYARI) — Test Basıncı Pres Tezgah Kapasitesi Nedeniyle Sınırlandırılmıştır"
+                "HİDROSTATİK TEST KABUL KARARI: PRES SINIRI (UYARI) — Test Basıncı Pres Tezgah Kapasitesi Nedeniyle Sınırlandırılmıştır"
                 if lang == "tr"
-                else f"HYDROSTATIC ACCEPTANCE VERDICT: WARNING — Pressure limited by bench capacity"
+                else "HYDROSTATIC ACCEPTANCE VERDICT: WARNING — Pressure limited by bench capacity"
             )
             v_font = font_badge_warn
             v_fill = fill_warn
@@ -2115,14 +2180,26 @@ class ExcelExporter:
         for i, (param, val, unit, req, notes) in enumerate(sec1_rows):
             ws.row_dimensions[r_curr].height = 20
             c_fill = fill_zebra if i % 2 == 1 else None
-            c1 = ws.cell(r_curr, 1, param); c1.font = font_bold; c1.alignment = align_left
-            c2 = ws.cell(r_curr, 2, val); c2.font = font_mono_bold; c2.alignment = align_center
-            c3 = ws.cell(r_curr, 3, unit); c3.font = font_regular; c3.alignment = align_center
-            c4 = ws.cell(r_curr, 4, req); c4.font = font_info; c4.alignment = align_center
-            c5 = ws.cell(r_curr, 5, notes); c5.font = font_info; c5.alignment = align_left
+            c1 = ws.cell(r_curr, 1, param)
+            c1.font = font_bold
+            c1.alignment = align_left
+            c2 = ws.cell(r_curr, 2, val)
+            c2.font = font_mono_bold
+            c2.alignment = align_center
+            c3 = ws.cell(r_curr, 3, unit)
+            c3.font = font_regular
+            c3.alignment = align_center
+            c4 = ws.cell(r_curr, 4, req)
+            c4.font = font_info
+            c4.alignment = align_center
+            c5 = ws.cell(r_curr, 5, notes)
+            c5.font = font_info
+            c5.alignment = align_left
             for col in range(1, 6):
-                cell = ws.cell(r_curr, col); cell.border = border_all
-                if c_fill: cell.fill = c_fill
+                cell = ws.cell(r_curr, col)
+                cell.border = border_all
+                if c_fill:
+                    cell.fill = c_fill
             r_curr += 1
 
         # -------------------------------------------------------------
@@ -2146,14 +2223,26 @@ class ExcelExporter:
         for i, (param, val, unit, req, notes) in enumerate(sec2_rows):
             ws.row_dimensions[r_curr].height = 20
             c_fill = fill_highlight if "Hedef Fabrika Test" in param else (fill_zebra if i % 2 == 1 else None)
-            c1 = ws.cell(r_curr, 1, param); c1.font = font_bold; c1.alignment = align_left
-            c2 = ws.cell(r_curr, 2, val); c2.font = font_mono_bold; c2.alignment = align_center
-            c3 = ws.cell(r_curr, 3, unit); c3.font = font_regular; c3.alignment = align_center
-            c4 = ws.cell(r_curr, 4, req); c4.font = font_info; c4.alignment = align_center
-            c5 = ws.cell(r_curr, 5, notes); c5.font = font_info; c5.alignment = align_left
+            c1 = ws.cell(r_curr, 1, param)
+            c1.font = font_bold
+            c1.alignment = align_left
+            c2 = ws.cell(r_curr, 2, val)
+            c2.font = font_mono_bold
+            c2.alignment = align_center
+            c3 = ws.cell(r_curr, 3, unit)
+            c3.font = font_regular
+            c3.alignment = align_center
+            c4 = ws.cell(r_curr, 4, req)
+            c4.font = font_info
+            c4.alignment = align_center
+            c5 = ws.cell(r_curr, 5, notes)
+            c5.font = font_info
+            c5.alignment = align_left
             for col in range(1, 6):
-                cell = ws.cell(r_curr, col); cell.border = border_all
-                if c_fill: cell.fill = c_fill
+                cell = ws.cell(r_curr, col)
+                cell.border = border_all
+                if c_fill:
+                    cell.fill = c_fill
             r_curr += 1
 
         # -------------------------------------------------------------
@@ -2175,14 +2264,26 @@ class ExcelExporter:
         for i, (param, val, unit, req, notes) in enumerate(sec3_rows):
             ws.row_dimensions[r_curr].height = 20
             c_fill = fill_zebra if i % 2 == 1 else None
-            c1 = ws.cell(r_curr, 1, param); c1.font = font_bold; c1.alignment = align_left
-            c2 = ws.cell(r_curr, 2, val); c2.font = font_mono_bold; c2.alignment = align_center
-            c3 = ws.cell(r_curr, 3, unit); c3.font = font_regular; c3.alignment = align_center
-            c4 = ws.cell(r_curr, 4, req); c4.font = font_info; c4.alignment = align_center
-            c5 = ws.cell(r_curr, 5, notes); c5.font = font_info; c5.alignment = align_left
+            c1 = ws.cell(r_curr, 1, param)
+            c1.font = font_bold
+            c1.alignment = align_left
+            c2 = ws.cell(r_curr, 2, val)
+            c2.font = font_mono_bold
+            c2.alignment = align_center
+            c3 = ws.cell(r_curr, 3, unit)
+            c3.font = font_regular
+            c3.alignment = align_center
+            c4 = ws.cell(r_curr, 4, req)
+            c4.font = font_info
+            c4.alignment = align_center
+            c5 = ws.cell(r_curr, 5, notes)
+            c5.font = font_info
+            c5.alignment = align_left
             for col in range(1, 6):
-                cell = ws.cell(r_curr, col); cell.border = border_all
-                if c_fill: cell.fill = c_fill
+                cell = ws.cell(r_curr, col)
+                cell.border = border_all
+                if c_fill:
+                    cell.fill = c_fill
             r_curr += 1
 
         # -------------------------------------------------------------
@@ -2203,14 +2304,26 @@ class ExcelExporter:
         for i, (param, val, unit, req, notes) in enumerate(sec4_rows):
             ws.row_dimensions[r_curr].height = 20
             c_fill = fill_zebra if i % 2 == 1 else None
-            c1 = ws.cell(r_curr, 1, param); c1.font = font_bold; c1.alignment = align_left
-            c2 = ws.cell(r_curr, 2, val); c2.font = font_mono_bold; c2.alignment = align_center
-            c3 = ws.cell(r_curr, 3, unit); c3.font = font_regular; c3.alignment = align_center
-            c4 = ws.cell(r_curr, 4, req); c4.font = font_info; c4.alignment = align_center
-            c5 = ws.cell(r_curr, 5, notes); c5.font = font_info; c5.alignment = align_left
+            c1 = ws.cell(r_curr, 1, param)
+            c1.font = font_bold
+            c1.alignment = align_left
+            c2 = ws.cell(r_curr, 2, val)
+            c2.font = font_mono_bold
+            c2.alignment = align_center
+            c3 = ws.cell(r_curr, 3, unit)
+            c3.font = font_regular
+            c3.alignment = align_center
+            c4 = ws.cell(r_curr, 4, req)
+            c4.font = font_info
+            c4.alignment = align_center
+            c5 = ws.cell(r_curr, 5, notes)
+            c5.font = font_info
+            c5.alignment = align_left
             for col in range(1, 6):
-                cell = ws.cell(r_curr, col); cell.border = border_all
-                if c_fill: cell.fill = c_fill
+                cell = ws.cell(r_curr, col)
+                cell.border = border_all
+                if c_fill:
+                    cell.fill = c_fill
             r_curr += 1
 
         # -------------------------------------------------------------
@@ -2234,14 +2347,26 @@ class ExcelExporter:
         for i, (param, val, unit, req, notes) in enumerate(sec5_rows):
             ws.row_dimensions[r_curr].height = 20
             c_fill = fill_zebra if i % 2 == 1 else None
-            c1 = ws.cell(r_curr, 1, param); c1.font = font_bold; c1.alignment = align_left
-            c2 = ws.cell(r_curr, 2, val); c2.font = font_mono_bold; c2.alignment = align_center
-            c3 = ws.cell(r_curr, 3, unit); c3.font = font_regular; c3.alignment = align_center
-            c4 = ws.cell(r_curr, 4, req); c4.font = font_info; c4.alignment = align_center
-            c5 = ws.cell(r_curr, 5, notes); c5.font = font_info; c5.alignment = align_left
+            c1 = ws.cell(r_curr, 1, param)
+            c1.font = font_bold
+            c1.alignment = align_left
+            c2 = ws.cell(r_curr, 2, val)
+            c2.font = font_mono_bold
+            c2.alignment = align_center
+            c3 = ws.cell(r_curr, 3, unit)
+            c3.font = font_regular
+            c3.alignment = align_center
+            c4 = ws.cell(r_curr, 4, req)
+            c4.font = font_info
+            c4.alignment = align_center
+            c5 = ws.cell(r_curr, 5, notes)
+            c5.font = font_info
+            c5.alignment = align_left
             for col in range(1, 6):
-                cell = ws.cell(r_curr, col); cell.border = border_all
-                if c_fill: cell.fill = c_fill
+                cell = ws.cell(r_curr, col)
+                cell.border = border_all
+                if c_fill:
+                    cell.fill = c_fill
             r_curr += 1
 
         # -------------------------------------------------------------
@@ -2322,17 +2447,17 @@ class ExcelExporter:
         font_tbl_hdr = Font(name="Arial", size=9, bold=True, color="FFFFFF")
         font_bold = Font(name="Arial", size=9, bold=True, color="0F172A")
         font_regular = Font(name="Arial", size=9, color="1E293B")
-        font_mono = Font(name="Consolas", size=9, color="0F172A")
+        Font(name="Consolas", size=9, color="0F172A")
         font_mono_bold = Font(name="Consolas", size=9, bold=True, color="0F172A")
         font_info = Font(name="Arial", size=8.5, color="475569")
-        font_badge_pass = Font(name="Arial", size=9, bold=True, color="065F46")
+        Font(name="Arial", size=9, bold=True, color="065F46")
 
         # Fills
         fill_sec_hdr = PatternFill(start_color="1E3A8A", end_color="1E3A8A", fill_type="solid")
         fill_tbl_hdr = PatternFill(start_color="334155", end_color="334155", fill_type="solid")
         fill_zebra = PatternFill(start_color="F8FAFC", end_color="F8FAFC", fill_type="solid")
         fill_highlight = PatternFill(start_color="EFF6FF", end_color="EFF6FF", fill_type="solid")
-        fill_badge_pass = PatternFill(start_color="D1FAE5", end_color="D1FAE5", fill_type="solid")
+        PatternFill(start_color="D1FAE5", end_color="D1FAE5", fill_type="solid")
 
         # Borders
         border_thin = Side(border_style="thin", color="CBD5E1")
@@ -2423,14 +2548,26 @@ class ExcelExporter:
         for i, (param, val, unit, req, notes) in enumerate(sec1_rows):
             ws.row_dimensions[r_curr].height = 20
             c_fill = fill_zebra if i % 2 == 1 else None
-            c1 = ws.cell(r_curr, 1, param); c1.font = font_bold; c1.alignment = align_left
-            c2 = ws.cell(r_curr, 2, val); c2.font = font_mono_bold; c2.alignment = align_center
-            c3 = ws.cell(r_curr, 3, unit); c3.font = font_regular; c3.alignment = align_center
-            c4 = ws.cell(r_curr, 4, req); c4.font = font_info; c4.alignment = align_center
-            c5 = ws.cell(r_curr, 5, notes); c5.font = font_info; c5.alignment = align_left
+            c1 = ws.cell(r_curr, 1, param)
+            c1.font = font_bold
+            c1.alignment = align_left
+            c2 = ws.cell(r_curr, 2, val)
+            c2.font = font_mono_bold
+            c2.alignment = align_center
+            c3 = ws.cell(r_curr, 3, unit)
+            c3.font = font_regular
+            c3.alignment = align_center
+            c4 = ws.cell(r_curr, 4, req)
+            c4.font = font_info
+            c4.alignment = align_center
+            c5 = ws.cell(r_curr, 5, notes)
+            c5.font = font_info
+            c5.alignment = align_left
             for col in range(1, 6):
-                cell = ws.cell(r_curr, col); cell.border = border_all
-                if c_fill: cell.fill = c_fill
+                cell = ws.cell(r_curr, col)
+                cell.border = border_all
+                if c_fill:
+                    cell.fill = c_fill
             r_curr += 1
 
         # -------------------------------------------------------------
@@ -2464,14 +2601,26 @@ class ExcelExporter:
         for i, (param, val, unit, req, notes) in enumerate(sec2_rows):
             ws.row_dimensions[r_curr].height = 20
             c_fill = fill_highlight if "Net Şerit Sac" in param else (fill_zebra if i % 2 == 1 else None)
-            c1 = ws.cell(r_curr, 1, param); c1.font = font_bold; c1.alignment = align_left
-            c2 = ws.cell(r_curr, 2, val); c2.font = font_mono_bold; c2.alignment = align_center
-            c3 = ws.cell(r_curr, 3, unit); c3.font = font_regular; c3.alignment = align_center
-            c4 = ws.cell(r_curr, 4, req); c4.font = font_info; c4.alignment = align_center
-            c5 = ws.cell(r_curr, 5, notes); c5.font = font_info; c5.alignment = align_left
+            c1 = ws.cell(r_curr, 1, param)
+            c1.font = font_bold
+            c1.alignment = align_left
+            c2 = ws.cell(r_curr, 2, val)
+            c2.font = font_mono_bold
+            c2.alignment = align_center
+            c3 = ws.cell(r_curr, 3, unit)
+            c3.font = font_regular
+            c3.alignment = align_center
+            c4 = ws.cell(r_curr, 4, req)
+            c4.font = font_info
+            c4.alignment = align_center
+            c5 = ws.cell(r_curr, 5, notes)
+            c5.font = font_info
+            c5.alignment = align_left
             for col in range(1, 6):
-                cell = ws.cell(r_curr, col); cell.border = border_all
-                if c_fill: cell.fill = c_fill
+                cell = ws.cell(r_curr, col)
+                cell.border = border_all
+                if c_fill:
+                    cell.fill = c_fill
             r_curr += 1
 
         # -------------------------------------------------------------
@@ -2493,14 +2642,26 @@ class ExcelExporter:
         for i, (param, val, unit, req, notes) in enumerate(sec3_rows):
             ws.row_dimensions[r_curr].height = 20
             c_fill = fill_zebra if i % 2 == 1 else None
-            c1 = ws.cell(r_curr, 1, param); c1.font = font_bold; c1.alignment = align_left
-            c2 = ws.cell(r_curr, 2, val); c2.font = font_mono_bold; c2.alignment = align_center
-            c3 = ws.cell(r_curr, 3, unit); c3.font = font_regular; c3.alignment = align_center
-            c4 = ws.cell(r_curr, 4, req); c4.font = font_info; c4.alignment = align_center
-            c5 = ws.cell(r_curr, 5, notes); c5.font = font_info; c5.alignment = align_left
+            c1 = ws.cell(r_curr, 1, param)
+            c1.font = font_bold
+            c1.alignment = align_left
+            c2 = ws.cell(r_curr, 2, val)
+            c2.font = font_mono_bold
+            c2.alignment = align_center
+            c3 = ws.cell(r_curr, 3, unit)
+            c3.font = font_regular
+            c3.alignment = align_center
+            c4 = ws.cell(r_curr, 4, req)
+            c4.font = font_info
+            c4.alignment = align_center
+            c5 = ws.cell(r_curr, 5, notes)
+            c5.font = font_info
+            c5.alignment = align_left
             for col in range(1, 6):
-                cell = ws.cell(r_curr, col); cell.border = border_all
-                if c_fill: cell.fill = c_fill
+                cell = ws.cell(r_curr, col)
+                cell.border = border_all
+                if c_fill:
+                    cell.fill = c_fill
             r_curr += 1
 
         # -------------------------------------------------------------
@@ -2530,14 +2691,26 @@ class ExcelExporter:
         for i, (param, val, unit, req, notes) in enumerate(sec4_rows):
             ws.row_dimensions[r_curr].height = 20
             c_fill = fill_highlight if "Kaynak Açılma" in param else (fill_zebra if i % 2 == 1 else None)
-            c1 = ws.cell(r_curr, 1, param); c1.font = font_bold; c1.alignment = align_left
-            c2 = ws.cell(r_curr, 2, val); c2.font = font_mono_bold; c2.alignment = align_center
-            c3 = ws.cell(r_curr, 3, unit); c3.font = font_regular; c3.alignment = align_center
-            c4 = ws.cell(r_curr, 4, req); c4.font = font_info; c4.alignment = align_center
-            c5 = ws.cell(r_curr, 5, notes); c5.font = font_info; c5.alignment = align_left
+            c1 = ws.cell(r_curr, 1, param)
+            c1.font = font_bold
+            c1.alignment = align_left
+            c2 = ws.cell(r_curr, 2, val)
+            c2.font = font_mono_bold
+            c2.alignment = align_center
+            c3 = ws.cell(r_curr, 3, unit)
+            c3.font = font_regular
+            c3.alignment = align_center
+            c4 = ws.cell(r_curr, 4, req)
+            c4.font = font_info
+            c4.alignment = align_center
+            c5 = ws.cell(r_curr, 5, notes)
+            c5.font = font_info
+            c5.alignment = align_left
             for col in range(1, 6):
-                cell = ws.cell(r_curr, col); cell.border = border_all
-                if c_fill: cell.fill = c_fill
+                cell = ws.cell(r_curr, col)
+                cell.border = border_all
+                if c_fill:
+                    cell.fill = c_fill
             r_curr += 1
 
         # -------------------------------------------------------------
@@ -2560,14 +2733,26 @@ class ExcelExporter:
         for i, (param, val, unit, req, notes) in enumerate(sec5_rows):
             ws.row_dimensions[r_curr].height = 20
             c_fill = fill_zebra if i % 2 == 1 else None
-            c1 = ws.cell(r_curr, 1, param); c1.font = font_bold; c1.alignment = align_left
-            c2 = ws.cell(r_curr, 2, val); c2.font = font_mono_bold; c2.alignment = align_center
-            c3 = ws.cell(r_curr, 3, unit); c3.font = font_regular; c3.alignment = align_center
-            c4 = ws.cell(r_curr, 4, req); c4.font = font_info; c4.alignment = align_center
-            c5 = ws.cell(r_curr, 5, notes); c5.font = font_info; c5.alignment = align_left
+            c1 = ws.cell(r_curr, 1, param)
+            c1.font = font_bold
+            c1.alignment = align_left
+            c2 = ws.cell(r_curr, 2, val)
+            c2.font = font_mono_bold
+            c2.alignment = align_center
+            c3 = ws.cell(r_curr, 3, unit)
+            c3.font = font_regular
+            c3.alignment = align_center
+            c4 = ws.cell(r_curr, 4, req)
+            c4.font = font_info
+            c4.alignment = align_center
+            c5 = ws.cell(r_curr, 5, notes)
+            c5.font = font_info
+            c5.alignment = align_left
             for col in range(1, 6):
-                cell = ws.cell(r_curr, col); cell.border = border_all
-                if c_fill: cell.fill = c_fill
+                cell = ws.cell(r_curr, col)
+                cell.border = border_all
+                if c_fill:
+                    cell.fill = c_fill
             r_curr += 1
 
         # -------------------------------------------------------------
@@ -2622,11 +2807,8 @@ class ExcelExporter:
         # Colors & Fonts
         navy_dark = "1E3A8A"
         teal_hdr = "0F766E"
-        blue_hdr = "1D4ED8"
         slate_hdr = "334155"
         zebra_bg = "F8FAFC"
-        pass_green = "059669"
-        fail_red = "DC2626"
 
         font_title = Font(name="Calibri", size=15, bold=True, color="FFFFFF")
         font_sub = Font(name="Calibri", size=9.5, italic=True, color="CBD5E1")
@@ -2651,7 +2833,7 @@ class ExcelExporter:
 
         align_center = Alignment(horizontal="center", vertical="center")
         align_left = Alignment(horizontal="left", vertical="center")
-        align_right = Alignment(horizontal="right", vertical="center")
+        Alignment(horizontal="right", vertical="center")
 
         d_mm = float(p_extra.get("diameter_mm") or bevel_data.get("diameter_mm") or 1219.0)
         t_mm = float(p_extra.get("wall_thickness_mm") or bevel_data.get("wall_thickness_mm") or 14.30)
@@ -2735,14 +2917,26 @@ class ExcelExporter:
         for i, (param, val, unit, req, notes) in enumerate(sec1_rows):
             ws.row_dimensions[r_curr].height = 20
             c_fill = fill_zebra if i % 2 == 1 else None
-            c1 = ws.cell(r_curr, 1, param); c1.font = font_bold; c1.alignment = align_left
-            c2 = ws.cell(r_curr, 2, val); c2.font = font_mono_bold; c2.alignment = align_center
-            c3 = ws.cell(r_curr, 3, unit); c3.font = font_regular; c3.alignment = align_center
-            c4 = ws.cell(r_curr, 4, req); c4.font = font_info; c4.alignment = align_center
-            c5 = ws.cell(r_curr, 5, notes); c5.font = font_info; c5.alignment = align_left
+            c1 = ws.cell(r_curr, 1, param)
+            c1.font = font_bold
+            c1.alignment = align_left
+            c2 = ws.cell(r_curr, 2, val)
+            c2.font = font_mono_bold
+            c2.alignment = align_center
+            c3 = ws.cell(r_curr, 3, unit)
+            c3.font = font_regular
+            c3.alignment = align_center
+            c4 = ws.cell(r_curr, 4, req)
+            c4.font = font_info
+            c4.alignment = align_center
+            c5 = ws.cell(r_curr, 5, notes)
+            c5.font = font_info
+            c5.alignment = align_left
             for col in range(1, 6):
-                cell = ws.cell(r_curr, col); cell.border = border_all
-                if c_fill: cell.fill = c_fill
+                cell = ws.cell(r_curr, col)
+                cell.border = border_all
+                if c_fill:
+                    cell.fill = c_fill
             r_curr += 1
 
         # -------------------------------------------------------------
@@ -2782,14 +2976,26 @@ class ExcelExporter:
         for i, (param, val, unit, req, notes) in enumerate(sec2_rows):
             ws.row_dimensions[r_curr].height = 20
             c_fill = fill_zebra if i % 2 == 1 else None
-            c1 = ws.cell(r_curr, 1, param); c1.font = font_bold; c1.alignment = align_left
-            c2 = ws.cell(r_curr, 2, val); c2.font = font_mono_bold; c2.alignment = align_center
-            c3 = ws.cell(r_curr, 3, unit); c3.font = font_regular; c3.alignment = align_center
-            c4 = ws.cell(r_curr, 4, req); c4.font = font_info; c4.alignment = align_center
-            c5 = ws.cell(r_curr, 5, notes); c5.font = font_info; c5.alignment = align_left
+            c1 = ws.cell(r_curr, 1, param)
+            c1.font = font_bold
+            c1.alignment = align_left
+            c2 = ws.cell(r_curr, 2, val)
+            c2.font = font_mono_bold
+            c2.alignment = align_center
+            c3 = ws.cell(r_curr, 3, unit)
+            c3.font = font_regular
+            c3.alignment = align_center
+            c4 = ws.cell(r_curr, 4, req)
+            c4.font = font_info
+            c4.alignment = align_center
+            c5 = ws.cell(r_curr, 5, notes)
+            c5.font = font_info
+            c5.alignment = align_left
             for col in range(1, 6):
-                cell = ws.cell(r_curr, col); cell.border = border_all
-                if c_fill: cell.fill = c_fill
+                cell = ws.cell(r_curr, col)
+                cell.border = border_all
+                if c_fill:
+                    cell.fill = c_fill
             r_curr += 1
 
         # -------------------------------------------------------------
@@ -2814,16 +3020,32 @@ class ExcelExporter:
         for i, (param, val, unit, req, notes) in enumerate(sec3_rows):
             ws.row_dimensions[r_curr].height = 20
             c_fill = fill_zebra if i % 2 == 1 else None
-            c1 = ws.cell(r_curr, 1, param); c1.font = font_bold; c1.alignment = align_left
-            c2 = ws.cell(r_curr, 2, val); c2.font = font_mono_bold; c2.alignment = align_center
-            if "PASS" in val: c2.font = font_pass; c2.fill = fill_pass
-            elif "FAIL" in val: c2.font = font_fail; c2.fill = fill_fail
-            c3 = ws.cell(r_curr, 3, unit); c3.font = font_regular; c3.alignment = align_center
-            c4 = ws.cell(r_curr, 4, req); c4.font = font_info; c4.alignment = align_center
-            c5 = ws.cell(r_curr, 5, notes); c5.font = font_info; c5.alignment = align_left
+            c1 = ws.cell(r_curr, 1, param)
+            c1.font = font_bold
+            c1.alignment = align_left
+            c2 = ws.cell(r_curr, 2, val)
+            c2.font = font_mono_bold
+            c2.alignment = align_center
+            if "PASS" in val:
+                c2.font = font_pass
+                c2.fill = fill_pass
+            elif "FAIL" in val:
+                c2.font = font_fail
+                c2.fill = fill_fail
+            c3 = ws.cell(r_curr, 3, unit)
+            c3.font = font_regular
+            c3.alignment = align_center
+            c4 = ws.cell(r_curr, 4, req)
+            c4.font = font_info
+            c4.alignment = align_center
+            c5 = ws.cell(r_curr, 5, notes)
+            c5.font = font_info
+            c5.alignment = align_left
             for col in range(1, 6):
-                cell = ws.cell(r_curr, col); cell.border = border_all
-                if c_fill and cell.fill == PatternFill(): cell.fill = c_fill
+                cell = ws.cell(r_curr, col)
+                cell.border = border_all
+                if c_fill and cell.fill == PatternFill():
+                    cell.fill = c_fill
             r_curr += 1
 
         # -------------------------------------------------------------
@@ -2851,16 +3073,32 @@ class ExcelExporter:
         for i, (param, val, unit, req, notes) in enumerate(sec4_rows):
             ws.row_dimensions[r_curr].height = 20
             c_fill = fill_zebra if i % 2 == 1 else None
-            c1 = ws.cell(r_curr, 1, param); c1.font = font_bold; c1.alignment = align_left
-            c2 = ws.cell(r_curr, 2, val); c2.font = font_mono_bold; c2.alignment = align_center
-            if "UYGUN" in val: c2.font = font_pass; c2.fill = fill_pass
-            elif "RED" in val: c2.font = font_fail; c2.fill = fill_fail
-            c3 = ws.cell(r_curr, 3, unit); c3.font = font_regular; c3.alignment = align_center
-            c4 = ws.cell(r_curr, 4, req); c4.font = font_info; c4.alignment = align_center
-            c5 = ws.cell(r_curr, 5, notes); c5.font = font_info; c5.alignment = align_left
+            c1 = ws.cell(r_curr, 1, param)
+            c1.font = font_bold
+            c1.alignment = align_left
+            c2 = ws.cell(r_curr, 2, val)
+            c2.font = font_mono_bold
+            c2.alignment = align_center
+            if "UYGUN" in val:
+                c2.font = font_pass
+                c2.fill = fill_pass
+            elif "RED" in val:
+                c2.font = font_fail
+                c2.fill = fill_fail
+            c3 = ws.cell(r_curr, 3, unit)
+            c3.font = font_regular
+            c3.alignment = align_center
+            c4 = ws.cell(r_curr, 4, req)
+            c4.font = font_info
+            c4.alignment = align_center
+            c5 = ws.cell(r_curr, 5, notes)
+            c5.font = font_info
+            c5.alignment = align_left
             for col in range(1, 6):
-                cell = ws.cell(r_curr, col); cell.border = border_all
-                if c_fill and cell.fill == PatternFill(): cell.fill = c_fill
+                cell = ws.cell(r_curr, col)
+                cell.border = border_all
+                if c_fill and cell.fill == PatternFill():
+                    cell.fill = c_fill
             r_curr += 1
 
         # -------------------------------------------------------------
@@ -2881,14 +3119,26 @@ class ExcelExporter:
         for i, (param, val, unit, req, notes) in enumerate(sec5_rows):
             ws.row_dimensions[r_curr].height = 20
             c_fill = fill_zebra if i % 2 == 1 else None
-            c1 = ws.cell(r_curr, 1, param); c1.font = font_bold; c1.alignment = align_left
-            c2 = ws.cell(r_curr, 2, val); c2.font = font_mono_bold; c2.alignment = align_center
-            c3 = ws.cell(r_curr, 3, unit); c3.font = font_regular; c3.alignment = align_center
-            c4 = ws.cell(r_curr, 4, req); c4.font = font_info; c4.alignment = align_center
-            c5 = ws.cell(r_curr, 5, notes); c5.font = font_info; c5.alignment = align_left
+            c1 = ws.cell(r_curr, 1, param)
+            c1.font = font_bold
+            c1.alignment = align_left
+            c2 = ws.cell(r_curr, 2, val)
+            c2.font = font_mono_bold
+            c2.alignment = align_center
+            c3 = ws.cell(r_curr, 3, unit)
+            c3.font = font_regular
+            c3.alignment = align_center
+            c4 = ws.cell(r_curr, 4, req)
+            c4.font = font_info
+            c4.alignment = align_center
+            c5 = ws.cell(r_curr, 5, notes)
+            c5.font = font_info
+            c5.alignment = align_left
             for col in range(1, 6):
-                cell = ws.cell(r_curr, col); cell.border = border_all
-                if c_fill: cell.fill = c_fill
+                cell = ws.cell(r_curr, col)
+                cell.border = border_all
+                if c_fill:
+                    cell.fill = c_fill
             r_curr += 1
 
         # -------------------------------------------------------------
@@ -2897,14 +3147,17 @@ class ExcelExporter:
         r_curr += 2
         ws.merge_cells(f"A{r_curr}:B{r_curr}")
         c = ws.cell(r_curr, 1, "HAZIRLAYAN (Boru Üretim & Kaynak Müh.)")
-        c.font = font_bold; c.alignment = align_left
+        c.font = font_bold
+        c.alignment = align_left
 
         ws.merge_cells(f"C{r_curr}:D{r_curr}")
         c = ws.cell(r_curr, 3, "KONTROL EDEN (QA/QC Şefi)")
-        c.font = font_bold; c.alignment = align_left
+        c.font = font_bold
+        c.alignment = align_left
 
         c = ws.cell(r_curr, 5, "ONAYLAYAN (Baş Denetçi / TPI / İdare)")
-        c.font = font_bold; c.alignment = align_left
+        c.font = font_bold
+        c.alignment = align_left
         ws.row_dimensions[r_curr].height = 20
 
         r_curr += 1
@@ -2953,8 +3206,6 @@ class ExcelExporter:
         blue_hdr = "1D4ED8"
         slate_hdr = "334155"
         zebra_bg = "F8FAFC"
-        pass_green = "059669"
-        fail_red = "DC2626"
 
         font_title = Font(name="Calibri", size=15, bold=True, color="FFFFFF")
         font_sub = Font(name="Calibri", size=9.5, italic=True, color="CBD5E1")
@@ -2979,7 +3230,7 @@ class ExcelExporter:
 
         align_center = Alignment(horizontal="center", vertical="center")
         align_left = Alignment(horizontal="left", vertical="center")
-        align_right = Alignment(horizontal="right", vertical="center")
+        Alignment(horizontal="right", vertical="center")
 
         # -------------------------------------------------------------
         # Header Block
@@ -2987,12 +3238,16 @@ class ExcelExporter:
         ws.merge_cells("A1:E1")
         ws.row_dimensions[1].height = 28
         c = ws.cell(1, 1, "API SPEC 5L & BOTAŞ BORU DÜZLÜK VE UÇ SAPMASI DOĞRULAMA RAPORU")
-        c.font = font_title; c.fill = fill_title; c.alignment = align_center
+        c.font = font_title
+        c.fill = fill_title
+        c.alignment = align_center
 
         ws.merge_cells("A2:E2")
         ws.row_dimensions[2].height = 20
         c = ws.cell(2, 1, "API Spec 5L 47. Baskı Madde 9.11.3 & BOTAŞ Şartnamesi Madde 5.5, 8.1.2.4 — Tam Boy Sehim & Uç Sapması Muayene Raporu")
-        c.font = font_sub; c.fill = fill_title; c.alignment = align_center
+        c.font = font_sub
+        c.fill = fill_title
+        c.alignment = align_center
 
         ws.row_dimensions[3].height = 10
 
@@ -3004,7 +3259,9 @@ class ExcelExporter:
         ws.merge_cells(f"A{r_curr}:E{r_curr}")
         ws.row_dimensions[r_curr].height = 22
         c = ws.cell(r_curr, 1, "1. PROJE VE BORU TANIMLAMA BİLGİLERİ")
-        c.font = font_sec; c.fill = fill_sec; c.alignment = align_left
+        c.font = font_sec
+        c.fill = fill_sec
+        c.alignment = align_left
         r_curr += 1
 
         d_mm = straightness_data.get("diameter_mm") or p_extra.get("diameter_mm") or 1219.0
@@ -3028,11 +3285,21 @@ class ExcelExporter:
 
         for r_data in info_rows:
             ws.row_dimensions[r_curr].height = 20
-            c = ws.cell(r_curr, 1, r_data[0]); c.font = font_bold; c.fill = fill_zebra; c.border = border_all
-            c = ws.cell(r_curr, 2, r_data[1]); c.font = font_regular; c.border = border_all
-            c = ws.cell(r_curr, 3, r_data[2]); c.font = font_bold; c.fill = fill_zebra; c.border = border_all
+            c = ws.cell(r_curr, 1, r_data[0])
+            c.font = font_bold
+            c.fill = fill_zebra
+            c.border = border_all
+            c = ws.cell(r_curr, 2, r_data[1])
+            c.font = font_regular
+            c.border = border_all
+            c = ws.cell(r_curr, 3, r_data[2])
+            c.font = font_bold
+            c.fill = fill_zebra
+            c.border = border_all
             ws.merge_cells(f"D{r_curr}:E{r_curr}")
-            c = ws.cell(r_curr, 4, r_data[3]); c.font = font_regular; c.border = border_all
+            c = ws.cell(r_curr, 4, r_data[3])
+            c.font = font_regular
+            c.border = border_all
             ws.cell(r_curr, 5).border = border_all
             r_curr += 1
 
@@ -3044,7 +3311,9 @@ class ExcelExporter:
         ws.merge_cells(f"A{r_curr}:E{r_curr}")
         ws.row_dimensions[r_curr].height = 22
         c = ws.cell(r_curr, 1, "2. DÜZLÜK KABUL KRİTERLERİ VE STANDART LİMİTLERİ")
-        c.font = font_sec; c.fill = fill_sec; c.alignment = align_left
+        c.font = font_sec
+        c.fill = fill_sec
+        c.alignment = align_left
         r_curr += 1
 
         total_limit_mm = straightness_data.get("total_straightness_max_limit_mm", 12.0)
@@ -3066,11 +3335,18 @@ class ExcelExporter:
         for p_label, p_val, p_desc in param_rows:
             ws.row_dimensions[r_curr].height = 20
             ws.merge_cells(f"A{r_curr}:B{r_curr}")
-            c = ws.cell(r_curr, 1, p_label); c.font = font_bold; c.border = border_all
+            c = ws.cell(r_curr, 1, p_label)
+            c.font = font_bold
+            c.border = border_all
             ws.cell(r_curr, 2).border = border_all
-            c = ws.cell(r_curr, 3, p_val); c.font = font_mono_bold; c.alignment = align_center; c.border = border_all
+            c = ws.cell(r_curr, 3, p_val)
+            c.font = font_mono_bold
+            c.alignment = align_center
+            c.border = border_all
             ws.merge_cells(f"D{r_curr}:E{r_curr}")
-            c = ws.cell(r_curr, 4, p_desc); c.font = font_info; c.border = border_all
+            c = ws.cell(r_curr, 4, p_desc)
+            c.font = font_info
+            c.border = border_all
             ws.cell(r_curr, 5).border = border_all
             r_curr += 1
 
@@ -3082,14 +3358,19 @@ class ExcelExporter:
         ws.merge_cells(f"A{r_curr}:E{r_curr}")
         ws.row_dimensions[r_curr].height = 22
         c = ws.cell(r_curr, 1, "3. DÜZLÜK VE UÇ SAPMASI DOĞRULAMA (INSPECTION CHECKS)")
-        c.font = font_sec; c.fill = fill_sec; c.alignment = align_left
+        c.font = font_sec
+        c.fill = fill_sec
+        c.alignment = align_left
         r_curr += 1
 
         tbl_headers = ["Denetim Parametresi", "Nominal / Hedef", "İzin Verilen Limit", "Ölçülen Değer", "Durum & Standart"]
         ws.row_dimensions[r_curr].height = 24
         for idx, h_text in enumerate(tbl_headers, 1):
             c = ws.cell(r_curr, idx, h_text)
-            c.font = font_tbl_hdr; c.fill = fill_tbl_hdr; c.alignment = align_center; c.border = border_all
+            c.font = font_tbl_hdr
+            c.fill = fill_tbl_hdr
+            c.alignment = align_center
+            c.border = border_all
         r_curr += 1
 
         checks = straightness_data.get("checks", [])
@@ -3103,19 +3384,34 @@ class ExcelExporter:
             status = chk.get("status", "NOT_EVALUATED")
             clause = chk.get("clause", "")
 
-            c = ws.cell(r_curr, 1, p_name); c.font = font_bold; c.border = border_all
-            c = ws.cell(r_curr, 2, nom_str); c.font = font_regular; c.alignment = align_center; c.border = border_all
-            c = ws.cell(r_curr, 3, crit_str); c.font = font_mono_bold; c.alignment = align_center; c.border = border_all
-            c = ws.cell(r_curr, 4, act_str); c.font = font_mono_bold; c.alignment = align_center; c.border = border_all
+            c = ws.cell(r_curr, 1, p_name)
+            c.font = font_bold
+            c.border = border_all
+            c = ws.cell(r_curr, 2, nom_str)
+            c.font = font_regular
+            c.alignment = align_center
+            c.border = border_all
+            c = ws.cell(r_curr, 3, crit_str)
+            c.font = font_mono_bold
+            c.alignment = align_center
+            c.border = border_all
+            c = ws.cell(r_curr, 4, act_str)
+            c.font = font_mono_bold
+            c.alignment = align_center
+            c.border = border_all
 
             c = ws.cell(r_curr, 5, f"{status} — {clause}")
             if status == "PASS":
-                c.font = font_pass; c.fill = fill_pass
+                c.font = font_pass
+                c.fill = fill_pass
             elif status == "FAIL":
-                c.font = font_fail; c.fill = fill_fail
+                c.font = font_fail
+                c.fill = fill_fail
             else:
-                c.font = font_regular; c.fill = fill_zebra
-            c.alignment = align_left; c.border = border_all
+                c.font = font_regular
+                c.fill = fill_zebra
+            c.alignment = align_left
+            c.border = border_all
             r_curr += 1
 
         r_curr += 1
@@ -3126,15 +3422,19 @@ class ExcelExporter:
         ws.merge_cells(f"A{r_curr}:E{r_curr}")
         ws.row_dimensions[r_curr].height = 22
         c = ws.cell(r_curr, 1, "4. BOYUNA LAZER / TEL ÖLÇÜM İSTASYONLARI VE SEHİM PROFİLİ")
-        c.font = font_sec; c.fill = fill_sec; c.alignment = align_left
+        c.font = font_sec
+        c.fill = fill_sec
+        c.alignment = align_left
         r_curr += 1
 
         st_headers = ["İstasyon Tanımı", "Eksenel Konum x (m)", "Maks. İzin Verilen Sehim (mm)", "Ölçülen / Model Değeri (mm)", "Denetim Notu"]
         ws.row_dimensions[r_curr].height = 22
         for idx, h_text in enumerate(st_headers, 1):
             c = ws.cell(r_curr, idx, h_text)
-            c.font = font_tbl_hdr; c.fill = PatternFill(start_color=blue_hdr, end_color=blue_hdr, fill_type="solid")
-            c.alignment = align_center; c.border = border_all
+            c.font = font_tbl_hdr
+            c.fill = PatternFill(start_color=blue_hdr, end_color=blue_hdr, fill_type="solid")
+            c.alignment = align_center
+            c.border = border_all
         r_curr += 1
 
         stations = straightness_data.get("stations", [])
@@ -3155,11 +3455,24 @@ class ExcelExporter:
             else:
                 note = "Ara gövde lazer okuma noktası"
 
-            c = ws.cell(r_curr, 1, s_name); c.font = font_bold; c.border = border_all
-            c = ws.cell(r_curr, 2, f"{s_x:.2f} m"); c.font = font_mono_bold; c.alignment = align_center; c.border = border_all
-            c = ws.cell(r_curr, 3, f"≤ {s_lim:.2f} mm"); c.font = font_regular; c.alignment = align_center; c.border = border_all
-            c = ws.cell(r_curr, 4, f"{s_sim:.2f} mm"); c.font = font_mono_bold; c.alignment = align_center; c.border = border_all
-            c = ws.cell(r_curr, 5, note); c.font = font_info; c.border = border_all
+            c = ws.cell(r_curr, 1, s_name)
+            c.font = font_bold
+            c.border = border_all
+            c = ws.cell(r_curr, 2, f"{s_x:.2f} m")
+            c.font = font_mono_bold
+            c.alignment = align_center
+            c.border = border_all
+            c = ws.cell(r_curr, 3, f"≤ {s_lim:.2f} mm")
+            c.font = font_regular
+            c.alignment = align_center
+            c.border = border_all
+            c = ws.cell(r_curr, 4, f"{s_sim:.2f} mm")
+            c.font = font_mono_bold
+            c.alignment = align_center
+            c.border = border_all
+            c = ws.cell(r_curr, 5, note)
+            c.font = font_info
+            c.border = border_all
             r_curr += 1
 
         r_curr += 1
@@ -3170,14 +3483,18 @@ class ExcelExporter:
         ws.merge_cells(f"A{r_curr}:E{r_curr}")
         ws.row_dimensions[r_curr].height = 22
         c = ws.cell(r_curr, 1, "5. NİHAİ KALİTE GÜVENCE DEĞERLENDİRMESİ")
-        c.font = font_sec; c.fill = fill_sec; c.alignment = align_left
+        c.font = font_sec
+        c.fill = fill_sec
+        c.alignment = align_left
         r_curr += 1
 
         verdict = straightness_data.get("verdict", "NOMINAL (DENETİME HAZIR)")
         is_compliant = straightness_data.get("is_compliant", True)
 
         ws.merge_cells(f"A{r_curr}:B{r_curr}")
-        c = ws.cell(r_curr, 1, "NİHAİ UYGUNLUK KARARI"); c.font = font_bold; c.border = border_all
+        c = ws.cell(r_curr, 1, "NİHAİ UYGUNLUK KARARI")
+        c.font = font_bold
+        c.border = border_all
         ws.cell(r_curr, 2).border = border_all
 
         ws.merge_cells(f"C{r_curr}:E{r_curr}")
@@ -3191,7 +3508,8 @@ class ExcelExporter:
         else:
             c.font = Font(name="Calibri", size=13, bold=True, color="1D4ED8")
             c.fill = fill_zebra
-        c.alignment = align_center; c.border = border_all
+        c.alignment = align_center
+        c.border = border_all
         ws.cell(r_curr, 4).border = border_all
         ws.cell(r_curr, 5).border = border_all
         ws.row_dimensions[r_curr].height = 30
@@ -3202,7 +3520,8 @@ class ExcelExporter:
         ws.merge_cells(f"A{r_curr}:E{r_curr}")
         ws.row_dimensions[r_curr].height = 40
         c = ws.cell(r_curr, 1, methodology)
-        c.font = font_info; c.alignment = Alignment(horizontal="left", vertical="center", wrap_text=True)
+        c.font = font_info
+        c.alignment = Alignment(horizontal="left", vertical="center", wrap_text=True)
         c.border = border_all
         for col_idx in range(2, 6):
             ws.cell(r_curr, col_idx).border = border_all
@@ -3214,18 +3533,23 @@ class ExcelExporter:
         ws.merge_cells(f"A{r_curr}:E{r_curr}")
         ws.row_dimensions[r_curr].height = 20
         c = ws.cell(r_curr, 1, "6. MÜHENDİSLİK KONTROL VE ONAY İMZALARI")
-        c.font = font_sec; c.fill = fill_sec; c.alignment = align_left
+        c.font = font_sec
+        c.fill = fill_sec
+        c.alignment = align_left
         r_curr += 1
 
         ws.row_dimensions[r_curr].height = 24
         c = ws.cell(r_curr, 1, "HAZIRLAYAN (Boyutsal Kontrol Denetçisi)")
-        c.font = font_bold; c.alignment = align_left
+        c.font = font_bold
+        c.alignment = align_left
 
         c = ws.cell(r_curr, 3, "KONTROL EDEN (QA/QC Şefi)")
-        c.font = font_bold; c.alignment = align_left
+        c.font = font_bold
+        c.alignment = align_left
 
         c = ws.cell(r_curr, 5, "ONAYLAYAN (Baş Denetçi / TPI / İdare)")
-        c.font = font_bold; c.alignment = align_left
+        c.font = font_bold
+        c.alignment = align_left
         r_curr += 1
 
         ws.row_dimensions[r_curr].height = 32
@@ -3270,12 +3594,8 @@ class ExcelExporter:
         # Colors & Fonts
         navy_dark = "1E3A8A"
         teal_hdr = "0F766E"
-        blue_hdr = "1D4ED8"
         slate_hdr = "334155"
-        amber_hdr = "B45309"
         zebra_bg = "F8FAFC"
-        pass_green = "059669"
-        fail_red = "DC2626"
 
         font_title = Font(name="Calibri", size=14, bold=True, color="FFFFFF")
         font_sub = Font(name="Calibri", size=9.5, italic=True, color="CBD5E1")
@@ -3285,7 +3605,7 @@ class ExcelExporter:
         font_regular = Font(name="Calibri", size=9.5, color="1E293B")
         font_mono_bold = Font(name="Consolas", size=10, bold=True, color="0F172A")
         font_info = Font(name="Calibri", size=9, color="475569")
-        font_pass = Font(name="Calibri", size=10, bold=True, color="047857")
+        Font(name="Calibri", size=10, bold=True, color="047857")
         font_fail = Font(name="Calibri", size=10, bold=True, color="B91C1C")
 
         fill_title = PatternFill(start_color=navy_dark, end_color=navy_dark, fill_type="solid")
@@ -3300,7 +3620,7 @@ class ExcelExporter:
 
         align_center = Alignment(horizontal="center", vertical="center")
         align_left = Alignment(horizontal="left", vertical="center")
-        align_right = Alignment(horizontal="right", vertical="center")
+        Alignment(horizontal="right", vertical="center")
 
         # -------------------------------------------------------------
         # Header Block
@@ -3308,12 +3628,16 @@ class ExcelExporter:
         ws.merge_cells("A1:E1")
         ws.row_dimensions[1].height = 28
         c = ws.cell(1, 1, "API SPEC 5L & ASME B31.8 ET KALINLIĞI TOLERANS ALTI & BASINÇ İNDİRGEME RAPORU")
-        c.font = font_title; c.fill = fill_title; c.alignment = align_center
+        c.font = font_title
+        c.fill = fill_title
+        c.alignment = align_center
 
         ws.merge_cells("A2:E2")
         ws.row_dimensions[2].height = 20
         c = ws.cell(2, 1, "API Spec 5L Çizelge 11 & ASME B31.8 Madde 841.1 — Eksi Tolerans, Barlow Basınç Kaybı & Hidro Gerilme Sıçraması")
-        c.font = font_sub; c.fill = fill_title; c.alignment = align_center
+        c.font = font_sub
+        c.fill = fill_title
+        c.alignment = align_center
 
         ws.row_dimensions[3].height = 10
         r_curr = 4
@@ -3324,7 +3648,9 @@ class ExcelExporter:
         ws.merge_cells(f"A{r_curr}:E{r_curr}")
         ws.row_dimensions[r_curr].height = 22
         c = ws.cell(r_curr, 1, "1. PROJE VE BORU TANIMLAMA BİLGİLERİ")
-        c.font = font_sec; c.fill = fill_sec; c.alignment = align_left
+        c.font = font_sec
+        c.fill = fill_sec
+        c.alignment = align_left
         r_curr += 1
 
         d_mm = derating_data.get("diameter_mm") or p_extra.get("diameter_mm") or 1219.0
@@ -3351,11 +3677,21 @@ class ExcelExporter:
 
         for r_data in info_rows:
             ws.row_dimensions[r_curr].height = 20
-            c = ws.cell(r_curr, 1, r_data[0]); c.font = font_bold; c.fill = fill_zebra; c.border = border_all
-            c = ws.cell(r_curr, 2, r_data[1]); c.font = font_regular; c.border = border_all
-            c = ws.cell(r_curr, 3, r_data[2]); c.font = font_bold; c.fill = fill_zebra; c.border = border_all
+            c = ws.cell(r_curr, 1, r_data[0])
+            c.font = font_bold
+            c.fill = fill_zebra
+            c.border = border_all
+            c = ws.cell(r_curr, 2, r_data[1])
+            c.font = font_regular
+            c.border = border_all
+            c = ws.cell(r_curr, 3, r_data[2])
+            c.font = font_bold
+            c.fill = fill_zebra
+            c.border = border_all
             ws.merge_cells(f"D{r_curr}:E{r_curr}")
-            c = ws.cell(r_curr, 4, r_data[3]); c.font = font_regular; c.border = border_all
+            c = ws.cell(r_curr, 4, r_data[3])
+            c.font = font_regular
+            c.border = border_all
             ws.cell(r_curr, 5).border = border_all
             r_curr += 1
 
@@ -3367,7 +3703,9 @@ class ExcelExporter:
         ws.merge_cells(f"A{r_curr}:E{r_curr}")
         ws.row_dimensions[r_curr].height = 22
         c = ws.cell(r_curr, 1, "2. ET KALINLIĞI İMALAT TOLERANSLARI (API 5L ÇİZELGE 11 & BOTAŞ)")
-        c.font = font_sec; c.fill = fill_sec; c.alignment = align_left
+        c.font = font_sec
+        c.fill = fill_sec
+        c.alignment = align_left
         r_curr += 1
 
         tol_pos_pct = derating_data.get("tol_pos_pct", 10.0)
@@ -3386,11 +3724,18 @@ class ExcelExporter:
         for t_label, t_val, t_desc in tol_rows:
             ws.row_dimensions[r_curr].height = 20
             ws.merge_cells(f"A{r_curr}:B{r_curr}")
-            c = ws.cell(r_curr, 1, t_label); c.font = font_bold; c.border = border_all
+            c = ws.cell(r_curr, 1, t_label)
+            c.font = font_bold
+            c.border = border_all
             ws.cell(r_curr, 2).border = border_all
-            c = ws.cell(r_curr, 3, t_val); c.font = font_mono_bold; c.alignment = align_center; c.border = border_all
+            c = ws.cell(r_curr, 3, t_val)
+            c.font = font_mono_bold
+            c.alignment = align_center
+            c.border = border_all
             ws.merge_cells(f"D{r_curr}:E{r_curr}")
-            c = ws.cell(r_curr, 4, t_desc); c.font = font_info; c.border = border_all
+            c = ws.cell(r_curr, 4, t_desc)
+            c.font = font_info
+            c.border = border_all
             ws.cell(r_curr, 5).border = border_all
             r_curr += 1
 
@@ -3402,14 +3747,19 @@ class ExcelExporter:
         ws.merge_cells(f"A{r_curr}:E{r_curr}")
         ws.row_dimensions[r_curr].height = 22
         c = ws.cell(r_curr, 1, "3. BARLOW TASARIM BASINCI VE GÜVENLİK MARJI İNDİRGEMESİ (DERATING)")
-        c.font = font_sec; c.fill = fill_sec; c.alignment = align_left
+        c.font = font_sec
+        c.fill = fill_sec
+        c.alignment = align_left
         r_curr += 1
 
         ws.row_dimensions[r_curr].height = 24
         tbl_headers = ["Performans Parametresi", "Nominal Kalınlık (t_nom)", "Alt Sınır (t_min)", "Fark / Değişim (Δ)", "Mühendislik Yorumu"]
         for idx, h_text in enumerate(tbl_headers, 1):
             c = ws.cell(r_curr, idx, h_text)
-            c.font = font_tbl_hdr; c.fill = fill_tbl_hdr; c.alignment = align_center; c.border = border_all
+            c.font = font_tbl_hdr
+            c.fill = fill_tbl_hdr
+            c.alignment = align_center
+            c.border = border_all
         r_curr += 1
 
         p_nom = derating_data.get("p_des_nom_bar", 76.0)
@@ -3431,11 +3781,24 @@ class ExcelExporter:
 
         for p_name, v_nom, v_min, v_diff, v_comm in comp_rows:
             ws.row_dimensions[r_curr].height = 22
-            c = ws.cell(r_curr, 1, p_name); c.font = font_bold; c.border = border_all
-            c = ws.cell(r_curr, 2, v_nom); c.font = font_mono_bold; c.alignment = align_center; c.border = border_all
-            c = ws.cell(r_curr, 3, v_min); c.font = font_mono_bold; c.alignment = align_center; c.border = border_all
-            c = ws.cell(r_curr, 4, v_diff); c.font = Font(name="Consolas", size=10, bold=True, color="B91C1C"); c.alignment = align_center; c.border = border_all
-            c = ws.cell(r_curr, 5, v_comm); c.font = font_info; c.border = border_all
+            c = ws.cell(r_curr, 1, p_name)
+            c.font = font_bold
+            c.border = border_all
+            c = ws.cell(r_curr, 2, v_nom)
+            c.font = font_mono_bold
+            c.alignment = align_center
+            c.border = border_all
+            c = ws.cell(r_curr, 3, v_min)
+            c.font = font_mono_bold
+            c.alignment = align_center
+            c.border = border_all
+            c = ws.cell(r_curr, 4, v_diff)
+            c.font = Font(name="Consolas", size=10, bold=True, color="B91C1C")
+            c.alignment = align_center
+            c.border = border_all
+            c = ws.cell(r_curr, 5, v_comm)
+            c.font = font_info
+            c.border = border_all
             r_curr += 1
 
         r_curr += 1
@@ -3446,7 +3809,9 @@ class ExcelExporter:
         ws.merge_cells(f"A{r_curr}:E{r_curr}")
         ws.row_dimensions[r_curr].height = 22
         c = ws.cell(r_curr, 1, "4. FABRİKA HİDROSTATİK TEST GERİLME SIÇRAMASI (API 5L 10.2.6.7)")
-        c.font = font_sec; c.fill = fill_sec; c.alignment = align_left
+        c.font = font_sec
+        c.fill = fill_sec
+        c.alignment = align_left
         r_curr += 1
 
         p_hydro = derating_data.get("hydro_test_pressure_bar", 100.0)
@@ -3465,16 +3830,22 @@ class ExcelExporter:
         for h_label, h_val, h_desc in hydro_rows:
             ws.row_dimensions[r_curr].height = 20
             ws.merge_cells(f"A{r_curr}:B{r_curr}")
-            c = ws.cell(r_curr, 1, h_label); c.font = font_bold; c.border = border_all
+            c = ws.cell(r_curr, 1, h_label)
+            c.font = font_bold
+            c.border = border_all
             ws.cell(r_curr, 2).border = border_all
             c = ws.cell(r_curr, 3, h_val)
             if "Alt Sınırda" in h_label and is_crit:
-                c.font = font_fail; c.fill = fill_fail
+                c.font = font_fail
+                c.fill = fill_fail
             else:
                 c.font = font_mono_bold
-            c.alignment = align_center; c.border = border_all
+            c.alignment = align_center
+            c.border = border_all
             ws.merge_cells(f"D{r_curr}:E{r_curr}")
-            c = ws.cell(r_curr, 4, h_desc); c.font = font_info; c.border = border_all
+            c = ws.cell(r_curr, 4, h_desc)
+            c.font = font_info
+            c.border = border_all
             ws.cell(r_curr, 5).border = border_all
             r_curr += 1
 
@@ -3486,7 +3857,9 @@ class ExcelExporter:
         ws.merge_cells(f"A{r_curr}:E{r_curr}")
         ws.row_dimensions[r_curr].height = 22
         c = ws.cell(r_curr, 1, "5. ÇELİK KÜTLESİ VE AĞIRLIK DEĞİŞİMİ (API 5L 9.11.3 FORMÜLÜ)")
-        c.font = font_sec; c.fill = fill_sec; c.alignment = align_left
+        c.font = font_sec
+        c.fill = fill_sec
+        c.alignment = align_left
         r_curr += 1
 
         m_nom_m = derating_data.get("mass_nom_kg_m", 425.0)
@@ -3504,11 +3877,22 @@ class ExcelExporter:
         for m_label, m_v1, m_v2, m_v3 in mass_rows:
             ws.row_dimensions[r_curr].height = 20
             ws.merge_cells(f"A{r_curr}:B{r_curr}")
-            c = ws.cell(r_curr, 1, m_label); c.font = font_bold; c.border = border_all
+            c = ws.cell(r_curr, 1, m_label)
+            c.font = font_bold
+            c.border = border_all
             ws.cell(r_curr, 2).border = border_all
-            c = ws.cell(r_curr, 3, m_v1); c.font = font_mono_bold; c.alignment = align_center; c.border = border_all
-            c = ws.cell(r_curr, 4, m_v2); c.font = font_mono_bold; c.alignment = align_center; c.border = border_all
-            c = ws.cell(r_curr, 5, m_v3); c.font = font_bold; c.alignment = align_center; c.border = border_all
+            c = ws.cell(r_curr, 3, m_v1)
+            c.font = font_mono_bold
+            c.alignment = align_center
+            c.border = border_all
+            c = ws.cell(r_curr, 4, m_v2)
+            c.font = font_mono_bold
+            c.alignment = align_center
+            c.border = border_all
+            c = ws.cell(r_curr, 5, m_v3)
+            c.font = font_bold
+            c.alignment = align_center
+            c.border = border_all
             r_curr += 1
 
         r_curr += 1
@@ -3519,14 +3903,18 @@ class ExcelExporter:
         ws.merge_cells(f"A{r_curr}:E{r_curr}")
         ws.row_dimensions[r_curr].height = 22
         c = ws.cell(r_curr, 1, "6. NİHAİ KALİTE GÜVENCE VE EMNİYET KARARI")
-        c.font = font_sec; c.fill = fill_sec; c.alignment = align_left
+        c.font = font_sec
+        c.fill = fill_sec
+        c.alignment = align_left
         r_curr += 1
 
         verdict = derating_data.get("verdict", "NOMINAL (DENETİME HAZIR)")
         is_compliant = derating_data.get("is_compliant", True)
 
         ws.merge_cells(f"A{r_curr}:B{r_curr}")
-        c = ws.cell(r_curr, 1, "NİHAİ UYGUNLUK KARARI"); c.font = font_bold; c.border = border_all
+        c = ws.cell(r_curr, 1, "NİHAİ UYGUNLUK KARARI")
+        c.font = font_bold
+        c.border = border_all
         ws.cell(r_curr, 2).border = border_all
 
         ws.merge_cells(f"C{r_curr}:E{r_curr}")
@@ -3540,7 +3928,8 @@ class ExcelExporter:
         else:
             c.font = Font(name="Calibri", size=13, bold=True, color="1D4ED8")
             c.fill = fill_zebra
-        c.alignment = align_center; c.border = border_all
+        c.alignment = align_center
+        c.border = border_all
         ws.cell(r_curr, 4).border = border_all
         ws.cell(r_curr, 5).border = border_all
         ws.row_dimensions[r_curr].height = 30
@@ -3551,7 +3940,8 @@ class ExcelExporter:
         ws.merge_cells(f"A{r_curr}:E{r_curr}")
         ws.row_dimensions[r_curr].height = 42
         c = ws.cell(r_curr, 1, methodology)
-        c.font = font_info; c.alignment = Alignment(horizontal="left", vertical="center", wrap_text=True)
+        c.font = font_info
+        c.alignment = Alignment(horizontal="left", vertical="center", wrap_text=True)
         c.border = border_all
         for col_idx in range(2, 6):
             ws.cell(r_curr, col_idx).border = border_all
@@ -3563,18 +3953,23 @@ class ExcelExporter:
         ws.merge_cells(f"A{r_curr}:E{r_curr}")
         ws.row_dimensions[r_curr].height = 20
         c = ws.cell(r_curr, 1, "7. MÜHENDİSLİK KONTROL VE ONAY İMZALARI")
-        c.font = font_sec; c.fill = fill_sec; c.alignment = align_left
+        c.font = font_sec
+        c.fill = fill_sec
+        c.alignment = align_left
         r_curr += 1
 
         ws.row_dimensions[r_curr].height = 24
         c = ws.cell(r_curr, 1, "HAZIRLAYAN (Boru Tasarım Mühendisi)")
-        c.font = font_bold; c.alignment = align_left
+        c.font = font_bold
+        c.alignment = align_left
 
         c = ws.cell(r_curr, 3, "KONTROL EDEN (QA/QC Şefi)")
-        c.font = font_bold; c.alignment = align_left
+        c.font = font_bold
+        c.alignment = align_left
 
         c = ws.cell(r_curr, 5, "ONAYLAYAN (Baş Denetçi / TPI / İdare)")
-        c.font = font_bold; c.alignment = align_left
+        c.font = font_bold
+        c.alignment = align_left
         r_curr += 1
 
         ws.row_dimensions[r_curr].height = 32

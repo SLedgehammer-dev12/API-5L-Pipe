@@ -9,7 +9,6 @@ Conforms to:
 - BOTAŞ Petroleum Pipeline Corporation Specification Clauses 3.3.7, 5.5, 8.1.2.4
 """
 
-import math
 from typing import Any, Dict, List, Optional
 
 from core.wall_thickness_engine import WallThicknessEngine
@@ -27,7 +26,7 @@ class DeratingEngine:
         Determines the positive and negative wall thickness tolerances (% and mm)
         per API Spec 5L Table 11 and BOTAŞ Specification.
         """
-        D = float(max(21.3, diameter_mm))
+        float(max(21.3, diameter_mm))
         t = float(max(1.5, wall_thickness_mm))
         proc = str(manufacturing_process or "SAWH").upper().strip()
         is_smls = "SMLS" in proc or "SEAMLESS" in proc
@@ -182,7 +181,6 @@ class DeratingEngine:
         hydro_stress_jump_pct = round(hydro_smys_min_pct - hydro_smys_nom_pct, 2)
 
         # Hydrotest limit: API 5L 10.2.6.7 max 95% (standard) or 100% (alternative)
-        hydro_max_allowed_smys_pct = 95.0 if is_botas else 90.0
         is_hydro_stress_critical = hydro_smys_min_pct > 100.0
 
         # ---------------------------------------------------------------------
