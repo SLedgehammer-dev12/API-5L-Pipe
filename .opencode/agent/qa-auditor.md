@@ -1,7 +1,8 @@
 ---
+name: qa-auditor
 description: Read-only bug hunter for the API 5L Pipe app. Use to find the single most critical bug (wrong math, crashes, unhandled input, data loss, security) with file_path:line evidence. Trigger: analyze, audit, bug, crash, error, wrong result.
 mode: subagent
-color: red
+color: "#EF4444"
 permission:
   edit: deny
   bash:

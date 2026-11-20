@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import re
 import sys
 from typing import Any, Dict, Optional
 
@@ -1000,6 +1001,12 @@ async def generate_html_report(request: Request, data: ReportRequest = Body(...)
 MAX_ITP_UPLOAD_SIZE = 25 * 1024 * 1024  # 25 MB max limit (DoS protection)
 ALLOWED_ITP_EXTENSIONS = (".pdf", ".png", ".jpg", ".jpeg")
 
+
+def _safe_filename_part(val: Any, default: str, max_len: int = 24) -> str:
+    raw = str(val or "").replace('"', "").replace("'", "").strip()
+    cleaned = re.sub(r"[^a-zA-Z0-9_\-\.]", "_", raw).strip("._")
+    return cleaned[:max_len] if cleaned else default
+
 @app.post("/api/itp/upload-and-audit")
 async def upload_and_audit_itp(
     file: Optional[UploadFile] = File(None),
@@ -1013,52 +1020,109 @@ async def upload_and_audit_itp(
     try:
         pipe_config = json.loads(pipe_config_json) if pipe_config_json else {}
     except Exception:
-        pipe_config = {}
+        return JSONResponse(status_code=400, content={"status": "error", "message": "Geçersiz pipe_config_json formatı."})
+    if not isinstance(pipe_config, dict):
+        return JSONResponse(status_code=400, content={"status": "error", "message": "Geçersiz pipe_config_json formatı."})
 
-    if not pipe_config:
-        pipe_config = {
-            "diameter_mm": 1219.0,
-            "diameter_inch": '48"',
-            "wall_thickness_mm": 14.30,
-            "material_grade": "X65",
-            "manufacturing_process": "SAWH",
-            "psl_level": "PSL2",
-            "standard_type": "API"
-        }
+    default_pipe_config = {
+        "diameter_mm": 1219.0,
+        "diameter_inch": '48"',
+        "wall_thickness_mm": 14.30,
+        "material_grade": "X65",
+        "manufacturing_process": "SAWH",
+        "psl_level": "PSL2",
+        "standard_type": "API",
+    }
 
     if use_demo or file is None:
+        demo_config = {**default_pipe_config, **pipe_config}
         extracted = UnlimitedOCREngine._heuristic_extract_fallback("demo")
         demo_meta = UnlimitedOCREngine.detect_itp_metadata("", extracted, "Demo_BOTAŞ_ITP.pdf")
-        audit_res = ITPAuditEngine.audit_itp(extracted, pipe_config)
+        audit_res = ITPAuditEngine.audit_itp(extracted, demo_config)
         return JSONResponse(content={
             "status": "success",
             "is_fallback": False,
             "source": "Demo ITP Sample Data",
             "extracted_items": extracted,
             "detected_metadata": demo_meta,
-            "effective_config": pipe_config,
+            "effective_config": demo_config,
             "audit_result": audit_res
         })
 
-    filename = file.filename or "itp_doc.pdf"
-    if not any(filename.lower().endswith(ext) for ext in ALLOWED_ITP_EXTENSIONS):
+    filename = os.path.basename(file.filename or "itp_doc.pdf")
+    fn_lower = filename.lower()
+    if not any(fn_lower.endswith(ext) for ext in ALLOWED_ITP_EXTENSIONS):
         return JSONResponse(
             status_code=400,
             content={"status": "error", "message": "Geçersiz dosya formatı. Yalnızca PDF veya görsel (.png, .jpg) yükleyebilirsiniz."}
         )
 
-    content_bytes = await file.read()
-    if len(content_bytes) > MAX_ITP_UPLOAD_SIZE:
+    chunks = []
+    total_bytes = 0
+    try:
+        while True:
+            chunk = await file.read(65536)
+            if not chunk:
+                break
+            total_bytes += len(chunk)
+            if total_bytes > MAX_ITP_UPLOAD_SIZE:
+                return JSONResponse(
+                    status_code=413,
+                    content={"status": "error", "message": f"Dosya boyutu çok büyük (Max: {MAX_ITP_UPLOAD_SIZE // (1024*1024)} MB)."}
+                )
+            chunks.append(chunk)
+    finally:
+        await file.close()
+    content_bytes = b"".join(chunks)
+
+    valid_magic = (
+        (fn_lower.endswith(".pdf") and b"%PDF-" in content_bytes[:16])
+        or (fn_lower.endswith(".png") and content_bytes.startswith(b"\x89PNG\r\n\x1a\n"))
+        or (fn_lower.endswith((".jpg", ".jpeg")) and content_bytes.startswith(b"\xff\xd8\xff"))
+    )
+    if not valid_magic:
         return JSONResponse(
             status_code=400,
-            content={"status": "error", "message": f"Dosya boyutu çok büyük (Max: {MAX_ITP_UPLOAD_SIZE // (1024*1024)} MB)."}
+            content={"status": "error", "message": "Dosya içeriği uzantısıyla uyuşmuyor (geçersiz PDF veya görsel imzası)."}
         )
 
     parse_result = await run_in_threadpool(UnlimitedOCREngine.parse_pdf_or_image, content_bytes, filename)
+    del content_bytes
     extracted_items = parse_result.get("items", [])
     detected_meta = parse_result.get("detected_metadata", {})
 
-    # If pipe_config has unset/default values, enrich with detected metadata
+    if not detected_meta.get("is_itp", True):
+        return JSONResponse(content={
+            "status": "warning",
+            "is_fallback": False,
+            "warning_message": parse_result.get("warning_message"),
+            "document_type": parse_result.get("document_type"),
+            "source": filename,
+            "engine": parse_result.get("engine", "Unlimited-OCR"),
+            "extracted_items": [],
+            "detected_metadata": detected_meta,
+            "effective_config": pipe_config,
+            "audit_result": {
+                "pipe_summary": {},
+                "kpi": {
+                    "total_tests_audited": 0,
+                    "compliant_count": 0,
+                    "more_stringent_count": 0,
+                    "non_compliant_count": 0,
+                    "compliance_score_percent": 0.0,
+                    "bare_pipe_score_percent": None,
+                    "coating_score_percent": None,
+                    "overall_verdict": "NON_ITP_DOCUMENT",
+                },
+                "findings_count": 0,
+                "findings": [],
+                "audit_rows": [],
+            },
+            "variant_audits": [],
+            "scope_variants": [],
+        })
+
+    # Enrich unset/auto values with detected metadata before falling back to defaults
     effective_config = dict(pipe_config)
     for k, det_k in (
         ("standard_type", "detected_standard"),
@@ -1071,20 +1135,19 @@ async def upload_and_audit_itp(
         ("wall_thickness_mm", "detected_wall_thickness_mm"),
         ("delivery_condition", "detected_delivery_condition"),
     ):
-        if det_k in detected_meta and (k not in pipe_config or pipe_config.get(k) in (None, "", "auto", "default")):
+        if det_k in detected_meta and (k not in effective_config or effective_config.get(k) in (None, "", "auto", "default")):
             effective_config[k] = detected_meta[det_k]
 
-    # Handle coating-only scope: filter items to coating-related tests only
-    scope_mode = effective_config.get("scope_mode", detected_meta.get("detected_scope_mode", "BARE_PIPE_ONLY"))
-    if scope_mode == "COATING_ONLY":
-        # Filter items to only coating-related tests
-        coating_keywords = ("kaplama", "kumlama", "holiday", "peel", "soyulma", "darbe", "indentation", "katodik", "cutback", "cut back", "fbe", "3lpe", "hdpe", "boyasız", "yama")
-        extracted_items = [it for it in extracted_items if any(kw in (it.get("test_name") or "").lower() for kw in coating_keywords)]
-        # Also add detected coating items from metadata
-        effective_config["scope_mode"] = "COATING_ONLY"
+    for k, v in default_pipe_config.items():
+        if k not in effective_config or effective_config.get(k) in (None, "", "auto", "default"):
+            effective_config[k] = v
+
+    scope_mode = str(effective_config.get("scope_mode") or detected_meta.get("detected_scope_mode") or "COMBINED").upper()
+    if scope_mode in ("COATING_ONLY", "BARE_PIPE_ONLY", "COMBINED"):
+        effective_config["scope_mode"] = scope_mode
 
     # Multi-variant detection: same diameter with several wall thicknesses (e.g. 914.4×11.10/12.70/15.90/17.50)
-    scope_variants = detected_meta.get("scope_variants", []) if isinstance(detected_meta, dict) else []
+    scope_variants = (detected_meta.get("scope_variants", []) if isinstance(detected_meta, dict) else [])[:20]
     variant_audits: list = []
     if scope_variants and len(scope_variants) > 1:
         # Use detected scope table to audit each pipe geometry separately
@@ -1100,21 +1163,6 @@ async def upload_and_audit_itp(
         audit_res = variant_audits[0]["audit_result"] if variant_audits else await run_in_threadpool(ITPAuditEngine.audit_itp, extracted_items, effective_config)
     else:
         audit_res = await run_in_threadpool(ITPAuditEngine.audit_itp, extracted_items, effective_config)
-
-    # Persist in current project state if available
-    try:
-        current_proj = ProjectManager.get_current_project()
-        if current_proj:
-            current_proj["latest_itp_audit"] = {
-                "source": filename,
-                "engine": parse_result.get("engine", "Unlimited-OCR"),
-                "detected_metadata": detected_meta,
-                "effective_config": effective_config,
-                "audit_result": audit_res,
-                "variant_audits": variant_audits
-            }
-    except Exception as e:
-        logger.debug(f"Project state save debug: {e}")
 
     return JSONResponse(content={
         "status": parse_result.get("status", "success"),
@@ -1137,7 +1185,9 @@ async def audit_itp_manual(data: Dict[str, Any] = Body(...)):
     """
     items = data.get("items", [])
     pipe_config = data.get("pipe_config", {})
-    audit_res = ITPAuditEngine.audit_itp(items, pipe_config)
+    if not isinstance(items, list) or len(items) > 500 or not isinstance(pipe_config, dict):
+        return JSONResponse(status_code=400, content={"status": "error", "message": "Geçersiz ITP denetim verisi."})
+    audit_res = await run_in_threadpool(ITPAuditEngine.audit_itp, items, pipe_config)
     return JSONResponse(content={"status": "success", "audit_result": audit_res})
 
 @app.post("/api/itp/export-audit-report")
@@ -1146,12 +1196,14 @@ async def export_itp_audit_report(data: Dict[str, Any] = Body(...)):
     Generates and downloads styled Excel audit discrepancy report.
     """
     audit_data = data.get("audit_result", {})
+    if not isinstance(audit_data, dict):
+        return JSONResponse(status_code=400, content={"status": "error", "message": "Geçersiz audit_result verisi."})
     lang = data.get("lang", "tr")
     excel_stream = await run_in_threadpool(ExcelExporter.export_itp_audit_report, audit_data, lang)
 
     pipe = audit_data.get("pipe_summary", {})
-    d_inch = str(pipe.get("diameter_inch", "48in")).replace('"', '').replace("'", "").strip()
-    grade = pipe.get("material_grade", "X65")
+    d_inch = _safe_filename_part(pipe.get("diameter_inch"), "48in")
+    grade = _safe_filename_part(pipe.get("material_grade"), "X65")
     filename = f"ITP_Audit_Report_{d_inch}_{grade}_API5L_47th.xlsx"
 
     return StreamingResponse(
@@ -1166,12 +1218,14 @@ async def export_itp_audit_pdf(data: Dict[str, Any] = Body(...)):
     Generates and downloads publication-grade PDF audit discrepancy & compliance certificate.
     """
     audit_data = data.get("audit_result", {})
+    if not isinstance(audit_data, dict):
+        return JSONResponse(status_code=400, content={"status": "error", "message": "Geçersiz audit_result verisi."})
     lang = data.get("lang", "tr")
     pdf_stream = await run_in_threadpool(PDFExporter.export_itp_audit_pdf, audit_data, lang)
 
     pipe = audit_data.get("pipe_summary", {})
-    d_inch = str(pipe.get("diameter_inch", "48in")).replace('"', '').replace("'", "").strip()
-    grade = pipe.get("material_grade", "X65")
+    d_inch = _safe_filename_part(pipe.get("diameter_inch"), "48in")
+    grade = _safe_filename_part(pipe.get("material_grade"), "X65")
     filename = f"ITP_Audit_Report_{d_inch}_{grade}_API5L_BOTAS.pdf"
 
     return StreamingResponse(
@@ -1192,6 +1246,8 @@ async def get_reference_frequencies(
     """
     Returns official API 5L 47th Edition (Tables 17, 18, 19, 20) & BOTAŞ master test frequencies.
     """
+    if diameter_mm <= 0 or wall_thickness_mm <= 0:
+        return JSONResponse(status_code=400, content={"status": "error", "message": "Çap ve et kalınlığı pozitif olmalıdır."})
     pipe_config = {
         "diameter_mm": diameter_mm,
         "wall_thickness_mm": wall_thickness_mm,
@@ -1200,6 +1256,6 @@ async def get_reference_frequencies(
         "psl_level": psl_level,
         "standard_type": standard_type
     }
-    master_spec = get_comprehensive_itp_specification(pipe_config)
+    master_spec = await run_in_threadpool(get_comprehensive_itp_specification, pipe_config)
     return JSONResponse(content={"status": "success", "master_specification": master_spec})
 

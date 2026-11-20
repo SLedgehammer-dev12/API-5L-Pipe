@@ -5,6 +5,7 @@ Generates fully formatted, colored, print-ready .xlsx workbooks matching exact e
 
 import io
 import math
+import re
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
@@ -13,6 +14,18 @@ from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 
 from core._excel_style import base_styles, styled_cell
+
+_ILLEGAL_XLSX_CHARS = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f]")
+_FORMULA_PREFIXES = ("=", "+", "-", "@", "\t", "\r")
+
+
+def _safe_excel_text(value: Any) -> Any:
+    if not isinstance(value, str):
+        return value
+    cleaned = _ILLEGAL_XLSX_CHARS.sub("", value)
+    if cleaned and (cleaned[0] in _FORMULA_PREFIXES or cleaned.lstrip().startswith("=")):
+        return "'" + cleaned
+    return cleaned
 
 
 class ExcelExporter:
@@ -469,7 +482,7 @@ class ExcelExporter:
         std_ed_title = pipe.get("standard_edition", "API Spec 5L 47. Baskı")
         # Header Title
         ws.merge_cells("A1:J1")
-        ws.cell(1, 1, f"{std_ed_title} - ITP AKILLI DENETİM VE SAPMA RAPORU").font = font_title
+        ws.cell(1, 1, _safe_excel_text(f"{std_ed_title} - ITP AKILLI DENETİM VE SAPMA RAPORU")).font = font_title
         ws.cell(1, 1).alignment = align_left
 
         # Pipe Metadata Box
@@ -496,7 +509,7 @@ class ExcelExporter:
             f"Kalite: {grade_str} {psl_str} | Üretim: {process_str} | "
             f"{scores_summary} ({verdict_str})"
         )
-        ws.cell(2, 1, meta_str).font = font_small
+        ws.cell(2, 1, _safe_excel_text(meta_str)).font = font_small
         ws.cell(2, 1).alignment = align_left
 
         # Table Column Headers
@@ -527,18 +540,18 @@ class ExcelExporter:
             ws.row_dimensions[current_r].height = 36
             status = row.get("status", "COMPLIANT")
             ip = row.get("inspection_points", {})
-            ip_str = f"Üretici: {ip.get('mfg', 'C')} | TPI: {ip.get('tpi', 'W')} | İdare: {ip.get('client', 'W')}" if isinstance(ip, dict) and ip else "C / W / H"
-            
-            c_name = ws.cell(current_r, 1, row.get("test_name", "—"))
-            c_cat = ws.cell(current_r, 2, row.get("category", "—"))
-            c_target = ws.cell(current_r, 3, row.get("calculated_target", "—"))
-            c_ndt = ws.cell(current_r, 4, row.get("ndt_method_standard", "—"))
-            c_up_f = ws.cell(current_r, 5, row.get("uploaded_frequency", "—"))
-            c_st_f = ws.cell(current_r, 6, row.get("standard_frequency", "—"))
-            c_up_c = ws.cell(current_r, 7, row.get("uploaded_criteria", "—"))
-            c_st_c = ws.cell(current_r, 8, row.get("standard_criteria", "—"))
-            c_ip = ws.cell(current_r, 9, ip_str)
-            c_rem = ws.cell(current_r, 10, row.get("audit_remarks", "—"))
+            ip_str = f"Üretici: {ip.get('mfg', '—')} | TPI: {ip.get('tpi', '—')} | İdare: {ip.get('client', '—')}" if isinstance(ip, dict) and ip else "—"
+
+            c_name = ws.cell(current_r, 1, _safe_excel_text(row.get("test_name", "—")))
+            c_cat = ws.cell(current_r, 2, _safe_excel_text(row.get("category", "—")))
+            c_target = ws.cell(current_r, 3, _safe_excel_text(row.get("calculated_target", "—")))
+            c_ndt = ws.cell(current_r, 4, _safe_excel_text(row.get("ndt_method_standard", "—")))
+            c_up_f = ws.cell(current_r, 5, _safe_excel_text(row.get("uploaded_frequency", "—")))
+            c_st_f = ws.cell(current_r, 6, _safe_excel_text(row.get("standard_frequency", "—")))
+            c_up_c = ws.cell(current_r, 7, _safe_excel_text(row.get("uploaded_criteria", "—")))
+            c_st_c = ws.cell(current_r, 8, _safe_excel_text(row.get("standard_criteria", "—")))
+            c_ip = ws.cell(current_r, 9, _safe_excel_text(ip_str))
+            c_rem = ws.cell(current_r, 10, _safe_excel_text(row.get("audit_remarks", "—")))
 
             status_fill = fill_pass if status == "COMPLIANT" else (fill_warn if status == "MORE_STRINGENT" else fill_fail)
 
@@ -588,11 +601,11 @@ class ExcelExporter:
                 sev = find.get("severity", "INFO")
                 sev_fill = fill_fail if sev == "CRITICAL" else fill_warn
 
-                c_sev = ws_f.cell(f_row, 1, sev)
-                c_tname = ws_f.cell(f_row, 2, find.get("test_name", "—"))
-                c_type = ws_f.cell(f_row, 3, find.get("issue_type", "—"))
-                c_clause = ws_f.cell(f_row, 4, find.get("clause_ref", "—"))
-                c_msg = ws_f.cell(f_row, 5, find.get("message", "—"))
+                c_sev = ws_f.cell(f_row, 1, _safe_excel_text(sev))
+                c_tname = ws_f.cell(f_row, 2, _safe_excel_text(find.get("test_name", "—")))
+                c_type = ws_f.cell(f_row, 3, _safe_excel_text(find.get("issue_type", "—")))
+                c_clause = ws_f.cell(f_row, 4, _safe_excel_text(find.get("clause_ref", "—")))
+                c_msg = ws_f.cell(f_row, 5, _safe_excel_text(find.get("message", "—")))
 
                 for cell in (c_sev, c_tname, c_type, c_clause, c_msg):
                     cell.font = font_regular
@@ -3000,12 +3013,12 @@ class ExcelExporter:
         grade = straightness_data.get("material_grade") or p_extra.get("material_grade") or "X65"
         proc = straightness_data.get("manufacturing_process") or p_extra.get("manufacturing_process") or "SAWH"
         std = straightness_data.get("standard_code") or "BOTAŞ"
-        is_botas = straightness_data.get("is_botas", True)
+        d_inch_label = p_extra.get("diameter_inch") or '48"'
 
         info_rows = [
             ("Proje Adı", p_info.get("project_name") or "API 5L / BOTAŞ Boru Hattı İletim Hattı Projesi",
              "Rapor Tarihi", datetime.now().strftime("%d.%m.%Y %H:%M")),
-            ("Boru Çapı (D)", f"{d_mm:.1f} mm ({p_extra.get('diameter_inch') or '48\"'})",
+            ("Boru Çapı (D)", f"{d_mm:.1f} mm ({d_inch_label})",
              "Et Kalınlığı (t)", f"{t_mm:.2f} mm"),
             ("Boru Boyu (L)", f"{l_m:.2f} m ({l_m*1000:.0f} mm)",
              "Çelik Kalitesi & Tip", f"{grade} ({proc})"),
@@ -3323,11 +3336,12 @@ class ExcelExporter:
         smys = derating_data.get("smys_mpa", 450.0)
         f_fact = derating_data.get("design_factor_f", 0.72)
         ca = derating_data.get("corrosion_allowance_mm", 0.0)
+        d_inch_label = p_extra.get("diameter_inch") or '48"'
 
         info_rows = [
             ("Proje Adı", p_info.get("project_name") or "API 5L / BOTAŞ Boru Hattı İletim Projesi",
              "Rapor Tarihi", datetime.now().strftime("%d.%m.%Y %H:%M")),
-            ("Boru Çapı (D)", f"{d_mm:.1f} mm ({p_extra.get('diameter_inch') or '48\"'})",
+            ("Boru Çapı (D)", f"{d_mm:.1f} mm ({d_inch_label})",
              "Nominal Et Kalınlığı (t)", f"{t_mm:.2f} mm"),
             ("Çelik Kalitesi & SMYS", f"{grade} (SMYS = {smys:.0f} MPa)",
              "İmalat Yöntemi & Standart", f"{proc} ({std})"),

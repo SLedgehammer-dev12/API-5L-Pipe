@@ -922,16 +922,10 @@ def get_comprehensive_itp_specification(pipe_config: Optional[Dict[str, Any]] = 
     if not isinstance(ovality_body, (int, float)):
         ovality_body = 6.10 if is_botas else 18.30
 
-    if is_botas:
-        t_neg_pct = 8.0
-        t_pos_pct = 15.0 if t_mm < 15.0 else 10.0
-        t_min = round(t_mm * (1.0 - t_neg_pct / 100.0), 2)
-        t_max = round(t_mm * (1.0 + t_pos_pct / 100.0), 2)
-    else:
-        t_min = wall_tol.get("min_mm", round(t_mm * 0.90, 2))
-        t_max = wall_tol.get("max_mm", round(t_mm * 1.10, 2))
-        t_neg_pct = round(((t_mm - t_min) / t_mm) * 100.0, 1)
-        t_pos_pct = round(((t_max - t_mm) / t_mm) * 100.0, 1)
+    t_min = wall_tol.get("min_mm", round(t_mm * 0.90, 2))
+    t_max = wall_tol.get("max_mm", round(t_mm * 1.10, 2))
+    t_neg_pct = round(((t_mm - t_min) / t_mm) * 100.0, 1) if t_mm > 0 else 0.0
+    t_pos_pct = round(((t_max - t_mm) / t_mm) * 100.0, 1) if t_mm > 0 else 0.0
 
     straightness_pct = 0.10 if is_botas else 0.20
     squareness_max = dim.get("pipe_end_squareness_max_mm", 1.6)
@@ -999,7 +993,7 @@ def get_comprehensive_itp_specification(pipe_config: Optional[Dict[str, Any]] = 
             "ndt_method_standard": "ISO 6892-1 / ASTM A370 (Gövde Enine / Boyuna Numune)",
             "ndt_acceptance_level": f"Rt0.5 ≥ {rt05_min:.1f} MPa, Rm ≥ {rm_min:.1f} MPa, Af ≥ %{af_min:.1f}",
             "calculated_target_str": f"Rt0.5: {rt05_min:.1f} - {rt05_max or 760.0:.1f} MPa, Rm: {rm_min:.1f} - {rm_max or 760.0:.1f} MPa, Af ≥ %{af_min:.1f}{yt_str}",
-            "calculated_targets": {"yield_min_mpa": rt05_min, "yield_max_mpa": rt05_max, "tensile_min_mpa": rm_min, "tensile_max_mpa": rm_max, "elongation_min_pct": af_min, "yt_max": yt_max},
+            "calculated_targets": {"yield_min_mpa": rt05_min, "yield_max_mpa": rt05_max, "tensile_min_mpa": rm_min, "tensile_max_mpa": rm_max, "elongation_min_pct": af_min, "yt_max": yt_max, "yt_ratio_max": yt_max},
             "is_mandatory": True,
         },
     ]
@@ -1642,7 +1636,7 @@ def get_comprehensive_itp_specification(pipe_config: Optional[Dict[str, Any]] = 
         "test_name": "Soyulma Mukavemeti / Yapışma Testi (Peel Adhesion Test)",
         "standard_frequency": "İlk boru ve her PE partisinde / her vardiya (3 adet numune)",
         "standard_frequency_en": "First pipe and each PE batch / shift (3 specimens)",
-        "standard_acceptance_criteria": "(23 ± 2) °C'de ≥ 150 N/cm (veya ≥ 18 N/mm); (50 ± 2) °C'de ≥ 15 N/cm; Test hızı: 10 mm/dakika",
+        "standard_acceptance_criteria": "(23 ± 2) °C'de ≥ 150 N/cm (veya ≥ 15 N/mm); (50 ± 2) °C'de ≥ 15 N/cm; Test hızı: 10 mm/dakika",
         "clause_ref": "BOTAŞ 5410 R1 Madde 7.4.4 & Ek D / DIN 30670 / EN 21809-1",
         "table_ref": "BOTAŞ 5410 R1 Ek D",
         "ndt_method_standard": "Soyulma Test Cihazı (DIN 30670 / EN ISO 21809-1 Ek D)",

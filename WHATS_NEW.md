@@ -1,3 +1,34 @@
+# What's New in API 5L Pipe QA/QC & Wall Thickness Suite (v2.13.0)
+## Yenilikler ve Sürüm Özeti - v2.13.0 (2026-11-20)
+
+---
+
+### 🇹🇷 Türkçe Özet (v2.13.0)
+
+API 5L Pipe QA/QC Suite **v2.13.0** sürümü ile **Akıllı ITP Denetim Motoru & Frekans Kanonikleştirmesi**, **BOTAŞ 5120_R7 Madde 5.5 İmalat Düşümü & Standart Minimum Et Kalınlığı Hesabı** ve **Çift Platformlu Otonom Geliştirici Mimarisi (Google Antigravity & OpenCode)** entegre edilmiştir:
+
+#### 1. 📋 Akıllı ITP Denetim Motoru & Frekans Kanonikleştirmesi
+- **Kanonik Frekans Normalizasyonu:** `core/itp_audit_engine.py` ile `FrequencyCanonical` ve `FrequencyNormalizer` mimarisi.
+- **Seyrek/Yetersiz Test Tespiti:** Şartnamelere aykırı seyrek frekanslar (`1/5`, `1/10`, `1 per 100`, `50 boruda 1`, `spot`, `sample 1 per shift`) otomatik yakalanıp `NON_COMPLIANT` olarak işaretlenir.
+- **Kompozit Denetim Paketleri:** `dimensional_bundle` ve `weld_geometry_bundle` paketleriyle boyutsal ve dikiş muayeneleri eksiksiz denetlenir.
+- **OCR & Endpoint Güvenliği:** `core/itp_criteria_parser.py` Türkçe normalizasyonu, `core/unlimited_ocr_engine.py` üstveri tespiti, `POST /api/itp/upload-and-audit` dosya adı sanitizasyonu ve DoS koruması.
+- **12 Yeni Boru Hattı Testi:** [`tests/test_itp_pipeline.py`](file:///Users/macbook/Documents/Kodlama/API%205L%20Pipe/tests/test_itp_pipeline.py) ile uçtan uca doğrulama.
+
+#### 2. 📉 BOTAŞ 5120_R7 Madde 5.5 İmalat Düşümü & Minimum Et Kalınlığı ($t_{\min}$)
+- **Kademeli Cidar Toleransı:** `core/wall_thickness_engine.py` içine `get_botas_wall_negative_tolerance` ($<8.71\text{ mm} \to -0.04\text{ mm}$, $8.71-12.71\text{ mm} \to -0.10\text{ mm}$, $\ge 12.71\text{ mm} \to -0.15\text{ mm}$).
+- **Standart Tolerans Çıktısı:** `compute_standard_min_wall_thickness` ile hesaplanan `t_min_standard_mm` ve `standard_tolerance_rule` bilgileri tasarım föyüne ve derating motoruna aktarıldı.
+
+#### 3. 🤖 Çift Platformlu Otonom Geliştirici Mimarisi (Google Antigravity & OpenCode)
+- **8 Otonom Alt Ajan:** `improver`, `qa-auditor`, `perf-analyst`, `ux-reviewer`, `feature-scout`, `refactor-architect`, `verifier`, `ponytail-reviewer`.
+- **OpenCode Regex / Zod Uyumluluğu:** 6 haneli Hex renk formatı (`^#[0-9a-fA-F]{6}$`) ve `opencode.json` şema doğrulaması.
+- **8 Mühendislik Becerisi (Skills):** `improvement-loop`, `ponytail`, `ponytail-audit`, `ponytail-debt`, `ponytail-gain`, `ponytail-help`, `ponytail-review`, `stageshow`.
+- **Senkronizasyon ve Test:** [`tools/sync_agents_and_skills.py`](file:///Users/macbook/Documents/Kodlama/API%205L%20Pipe/tools/sync_agents_and_skills.py) ve [`tests/test_agents_skills_sync.py`](file:///Users/macbook/Documents/Kodlama/API%205L%20Pipe/tests/test_agents_skills_sync.py).
+
+#### 4. ✅ Test & Kalite Güvencesi
+- `pytest -q`: **119 passed, 2 skipped** (%100 başarı); golden master testleri tam yeşil.
+
+---
+
 # What's New in API 5L Pipe QA/QC & Wall Thickness Suite (v2.12.0)
 ## Yenilikler ve Sürüm Özeti - v2.12.0 (2026-10-11)
 

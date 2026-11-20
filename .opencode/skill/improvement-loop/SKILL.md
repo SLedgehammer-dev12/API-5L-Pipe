@@ -31,7 +31,7 @@ Run exactly one improvement per cycle, in this priority order:
 5. Code quality / maintainability
 
 ### Step 1 — Analyze
-Dispatch the analysis subagents (in parallel) to scan the codebase and return
+Dispatch the analysis subagents in parallel (via `invoke_subagent` in Antigravity or `task` in OpenCode) to scan the codebase and return
 candidate findings. Then pick the **single** most impactful item. Do NOT list
 multiple options to the user.
 
@@ -64,7 +64,7 @@ already in `requirements.txt`). No comments unless asked. Show the file-level
 modifications.
 
 ### Step 6 — Verify
-Dispatch `verifier`, and explain how to test, the expected result, and edge
+Dispatch `verifier` (via `invoke_subagent` in Antigravity or `task` in OpenCode), and explain how to test, the expected result, and edge
 cases covered. Prefer `pytest` (existing suites) and `ruff check .`.
 
 ## Continuation rule

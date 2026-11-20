@@ -8,6 +8,14 @@ against standard/calculated pipe engineering targets.
 import re
 from typing import Dict, Optional, Any
 
+_TR_ASCII_TABLE = str.maketrans("çğöşü", "cgosu")
+_CHEM_SEP = r'(?:[\s:=≤<%]{1,8}(?:max\.?|azami|en\s{1,3}çok)[\s:=≤<%]{0,8}|[\s:=≤<%]{1,8})'
+
+
+def norm_tr(text: str, ascii_fold: bool = False) -> str:
+    s = (text or "").replace("İ", "i").replace("I", "i").replace("ı", "i").lower().replace("i\u0307", "i")
+    return s.translate(_TR_ASCII_TABLE) if ascii_fold else s
+
 
 class ITPCriteriaParser:
     """
@@ -31,41 +39,33 @@ class ITPCriteriaParser:
             "N_max": None
         }
 
-        # Carbon C max
-        m_c = re.search(r'(?:(?<![a-z0-9])c|carbon|karbon)[\s:=≤<=]*(?:max\.?|azami|en\s*çok)?[\s:=≤<=]*0\.(\d+)', t)
+        m_c = re.search(r'(?:(?<![a-z0-9])c(?![a-z0-9])|carbon|karbon)' + _CHEM_SEP + r'0\.(\d+)', t)
         if m_c:
             res["C_max"] = float("0." + m_c.group(1))
         else:
-            m_c2 = re.search(r'0\.(\d+)\s*(?:%|\b)[\s:=]*(?:max|azami)[^\w]*(?:c|carbon|karbon)', t)
+            m_c2 = re.search(r'0\.(\d+)\s{0,4}%?[\s:=]{0,6}(?:max\.?|azami)[^\w]{0,5}(?:c|carbon|karbon)\b', t)
             if m_c2:
                 res["C_max"] = float("0." + m_c2.group(1))
 
-        # Phosphorus P max
-        m_p = re.search(r'(?:(?<![a-z0-9])p|phosphorus|fosfor)[\s:=≤<=]*(?:max\.?|azami|en\s*çok)?[\s:=≤<=]*0\.0(\d+)', t)
+        m_p = re.search(r'(?:(?<![a-z0-9])p(?![a-z0-9])|phosphorus|fosfor)' + _CHEM_SEP + r'0\.(\d+)', t)
         if m_p:
-            res["P_max"] = float("0.0" + m_p.group(1))
+            res["P_max"] = float("0." + m_p.group(1))
 
-        # Sulfur S max
-        m_s = re.search(r'(?:(?<![a-z0-9])s|sulfur|sulphur|kükürt|kukurt)[\s:=≤<=]*(?:max\.?|azami|en\s*çok)?[\s:=≤<=]*0\.0(\d+)', t)
+        m_s = re.search(r'(?:(?<![a-z0-9])s(?![a-z0-9])|sulfur|sulphur|kükürt|kukurt)' + _CHEM_SEP + r'0\.(\d+)', t)
         if m_s:
-            res["S_max"] = float("0.0" + m_s.group(1))
+            res["S_max"] = float("0." + m_s.group(1))
 
-        # CE_Pcm max
-        m_pcm = re.search(r'(?:ce[_\s-]*pcm|pcm)[\s:=≤<=]*(?:max\.?|azami|en\s*çok)?[\s:=≤<=]*0\.(\d+)', t)
+        m_pcm = re.search(r'(?:(?<![a-z0-9])ce[\s_-]{0,3}\(?pcm\)?|(?<![a-z0-9])pcm(?![a-z0-9]))' + _CHEM_SEP + r'0\.(\d+)', t)
         if m_pcm:
             res["CE_Pcm_max"] = float("0." + m_pcm.group(1))
 
-        # CE_IIW max
-        m_ce = re.search(r'(?:ce[_\s-]*(?:\([a-z0-9]+\)|[a-z0-9]+)?|ce)[\s:=≤<=]*(?:max\.?|azami|en\s*çok)?[\s:=≤<=]*0\.(\d+)', t)
+        m_ce = re.search(r'(?<![a-z0-9])(?:ceq|cev|ce(?:[\s_-]{0,3}\(?iiw\)?|(?![\s_-]{0,3}\(?pcm\b)(?![a-z0-9])))' + _CHEM_SEP + r'0\.(\d+)', t)
         if m_ce:
-            v_ce = float("0." + m_ce.group(1))
-            if res["CE_Pcm_max"] != v_ce:
-                res["CE_IIW_max"] = v_ce
+            res["CE_IIW_max"] = float("0." + m_ce.group(1))
 
-        # Nitrogen N max
-        m_n = re.search(r'(?:(?<![a-z0-9])n|nitrogen|azot)[\s:=≤<=]*(?:max\.?|azami|en\s*çok)?[\s:=≤<=]*0\.0(\d+)', t)
+        m_n = re.search(r'(?:(?<![a-z0-9])n(?![a-z0-9])|nitrogen|azot)' + _CHEM_SEP + r'0\.(\d+)', t)
         if m_n:
-            res["N_max"] = float("0.0" + m_n.group(1))
+            res["N_max"] = float("0." + m_n.group(1))
 
         return res
 
@@ -85,10 +85,10 @@ class ITPCriteriaParser:
             "elongation_min": None
         }
 
-        # Yield strength (Rt0.5, Rp0.2, akma, yield, SMYS)
-        # e.g., 'Rt0.5: 450 - 570 MPa' or 'Rt0.5 >= 450' or 'akma: 450-570'
-        m_yield = re.search(r'(?:rt\s*0?\.?5|rp\s*0?\.?2|akma\s*(?:muk\.?|dayanımı)?|yield\s*(?:strength)?|smys|ys)[\s:=≥≤><]+(\d+(?:\.\d+)?)\s*(?:[-–/]\s*(\d+(?:\.\d+)?))?', t)
-        if m_yield:
+        for m_yield in re.finditer(
+            r'(?:rt\s{0,2}0?\.?5|rp\s{0,2}0?\.?2|akma(?:\s{1,3}(?:muk\.?|dayanımı|dayanimi))?|yield(?:\s{1,3}strength)?|smys|ys)[\s:=≥≤><]{1,6}(?:min\.?[\s:=≥≤><]{0,4})?(\d+(?:\.\d+)?)(?:\s{0,3}[-–/]\s{0,3}(\d+(?:\.\d+)?))?',
+            t,
+        ):
             v_y = float(m_yield.group(1))
             if v_y >= 100.0:
                 res["yield_min"] = v_y
@@ -96,11 +96,12 @@ class ITPCriteriaParser:
                     v_y2 = float(m_yield.group(2))
                     if v_y2 >= 100.0:
                         res["yield_max"] = v_y2
+                break
 
-        # Tensile strength (Rm, UTS, çekme, tensile)
-        # e.g., 'Rm: 535 - 760 MPa' or 'Rm >= 535'
-        m_tens = re.search(r'(?:rm|uts|çekme\s*(?:muk\.?|dayanımı)?|cekme|tensile\s*(?:strength)?)[\s:=≥≤><]+(\d+(?:\.\d+)?)\s*(?:[-–/]\s*(\d+(?:\.\d+)?))?', t)
-        if m_tens:
+        for m_tens in re.finditer(
+            r'(?:(?<![a-z0-9/])rm(?![a-z0-9])|(?<![a-z0-9])uts(?![a-z0-9])|çekme(?:\s{1,3}(?:muk\.?|dayanımı|dayanimi))?|cekme|tensile(?:\s{1,3}strength)?)[\s:=≥≤><]{1,6}(?:min\.?[\s:=≥≤><]{0,4})?(\d+(?:\.\d+)?)(?:\s{0,3}[-–/]\s{0,3}(\d+(?:\.\d+)?))?',
+            t,
+        ):
             v_t = float(m_tens.group(1))
             if v_t >= 100.0:
                 res["tensile_min"] = v_t
@@ -108,14 +109,19 @@ class ITPCriteriaParser:
                     v_t2 = float(m_tens.group(2))
                     if v_t2 >= 100.0:
                         res["tensile_max"] = v_t2
+                break
 
-        # Yield-to-tensile ratio (Rt/Rm, ratio, oran)
-        m_ratio = re.search(r'(?:rt/rm|yt|y/t|oran|ratio)\s*(?:<=|>=|:=|[=:≤<>])\s*(0?\.\d+)', t)
+        m_ratio = re.search(
+            r'(?:rt\s{0,2}0?\.?5\s{0,2}/\s{0,2}rm|rp\s{0,2}0?\.?2\s{0,2}/\s{0,2}rm|rt\s{0,2}/\s{0,2}rm|(?<![a-z0-9])y\s{0,2}/\s{0,2}t(?![a-z0-9])|(?<![a-z0-9])yt(?![a-z0-9])|oran[ıi]?|ratio)\s{0,4}(?:max\.?|azami)?[\s:=≤<>≥]{0,6}(0?\.\d+)',
+            t,
+        )
         if m_ratio:
             res["ratio_max"] = float(m_ratio.group(1))
 
-        # Elongation (A, A50, Af, uzama, elongation, kopma uzaması)
-        m_elo = re.search(r'(?:a50|a2in|af|uzama|elongation|kopma)[\s:=≥≤><%]*(\d+(?:\.\d+)?)', t)
+        m_elo = re.search(
+            r'(?:(?<![a-z0-9])(?:a50|a2in|af)(?![a-z0-9])|kopma\s{1,3}uzamas[ıi]|uzamas[ıi]|uzama|elongation)(?:\s{0,3}\(%\))?(?:\s{1,3}(?:min\.?|asgari|en\s{1,3}az))?[\s:=≥≤><%]{0,8}(\d+(?:\.\d+)?)',
+            t,
+        )
         if m_elo:
             res["elongation_min"] = float(m_elo.group(1))
 
@@ -135,13 +141,16 @@ class ITPCriteriaParser:
             "shear_area_percent": None
         }
 
-        # Temperature: '-20°C', '-20 c', '0°C', '+20°C', 'at -20 deg c'
-        m_temp = re.search(r'([+-]?\d+)\s*(?:°\s*c|deg\s*c|c)', t)
+        m_temp = re.search(r'(?<![\d.])([+-]?\d+)\s{0,3}(?:°\s{0,2}c|deg\.?\s{0,2}c)|(?<![a-z0-9.])([+-]\d+)\s{0,2}c\b|(?<![\d.])(0)\s{1,2}c\b', t)
         if m_temp:
-            res["temp_c"] = float(m_temp.group(1))
+            temp_token = m_temp.group(1) or m_temp.group(2) or m_temp.group(3)
+            if temp_token is not None:
+                res["temp_c"] = float(temp_token)
 
-        # 1. Explicit average energy: 'ortalama 48 J', 'min ortalama 48 J', 'ort 48 J', 'avg 48 J'
-        m_avg_exp = re.search(r'(?:ort(?:alama)?|avg|average)\s*(?:min)?\s*[:=≥>]?\s*(\d+(?:\.\d+)?)\s*(?:[-–/]\s*(\d+(?:\.\d+)?))?\s*(?:j|joule)?', t)
+        m_avg_exp = re.search(
+            r'(?:ort(?:alama)?|avg|average)(?:\s{1,3}min\.?)?[\s:=≥>]{0,6}(\d+(?:\.\d+)?)(?:\s{0,3}[-–/]\s{0,3}(\d+(?:\.\d+)?))?\s{0,3}(?:j|joule)?',
+            t,
+        )
         if m_avg_exp:
             v1 = float(m_avg_exp.group(1))
             v2 = float(m_avg_exp.group(2)) if m_avg_exp.group(2) else None
@@ -151,24 +160,28 @@ class ITPCriteriaParser:
             else:
                 res["energy_avg_j"] = v1
         else:
-            # Fallback average energy: '40/30 J', 'min 40 J'
-            m_avg = re.search(r'(?:min)?\s*(\d+(?:\.\d+)?)\s*(?:[-–/]\s*(\d+(?:\.\d+)?))?\s*(?:j|joule)', t)
+            m_avg = re.search(r'(?:min\.?[\s:=≥>]{0,4})?(\d+(?:\.\d+)?)(?:\s{0,3}[-–/]\s{0,3}(\d+(?:\.\d+)?))?\s{0,3}(?:j|joule)\b', t)
             if m_avg:
                 v1 = float(m_avg.group(1))
                 v2 = float(m_avg.group(2)) if m_avg.group(2) else None
-                if v2:
+                if v2 is not None:
                     res["energy_avg_j"] = max(v1, v2)
                     res["energy_min_j"] = min(v1, v2)
                 else:
                     res["energy_avg_j"] = v1
 
-        # Explicit single minimum: 'tekil min 30 J', 'single min 30 J', 'ind 30 J'
-        m_ind = re.search(r'(?:tekil|single|ind(?:ividual)?)\s*(?:min)?\s*[:=≥>]?\s*(\d+(?:\.\d+)?)\s*(?:j|joule)?', t)
+        m_ind = re.search(
+            r'(?:tekil|single|ind(?:ividual)?)(?:\s{1,3}min\.?)?[\s:=≥>]{0,6}(\d+(?:\.\d+)?)\s{0,3}(?:j|joule)?',
+            t,
+        )
         if m_ind:
             res["energy_min_j"] = float(m_ind.group(1))
 
         # Shear area percentage: 'min %85 shear', '%85 shear', 'liflilik >= %85', 'ortalama sünek kırılma min %70'
-        m_shear = re.search(r'(?:(?:shear|liflilik|düşen|ductile|sünek|sunek|kırılma|kirilma)[^\d%]{0,15}[\s:=≥≤><%]*(\d+(?:\.\d+)?)|%?\s*(\d+(?:\.\d+)?)\s*%?\s*(?:shear|liflilik|ductile|sünek|sunek|kırılma|kirilma))', t)
+        m_shear = re.search(
+            r'(?:(?:shear|liflilik|düşen|ductile|sünek|sunek|kırılma|kirilma)[^\d%]{0,15}[\s:=≥≤><%]{0,6}(\d+(?:\.\d+)?)|%?\s{0,3}(\d+(?:\.\d+)?)\s{0,3}%?\s{1,3}(?:shear|liflilik|ductile|sünek|sunek|kırılma|kirilma))',
+            t,
+        )
         if m_shear:
             res["shear_area_percent"] = float(m_shear.group(1) or m_shear.group(2))
 
@@ -186,28 +199,25 @@ class ITPCriteriaParser:
             "smys_percent": None
         }
 
-        # Pressure in bar, psi or MPa
-        m_bar = re.search(r'(\d+(?:\.\d+)?)\s*bar\b', t)
+        m_bar = re.search(r'(\d+(?:\.\d+)?)\s{0,3}bar\b', t)
         if m_bar:
             res["pressure_bar"] = float(m_bar.group(1))
         else:
-            m_mpa = re.search(r'(\d+(?:\.\d+)?)\s*mpa\b', t)
+            m_mpa = re.search(r'(\d+(?:\.\d+)?)\s{0,3}mpa\b', t)
             if m_mpa:
                 res["pressure_bar"] = float(m_mpa.group(1)) * 10.0
             else:
-                m_psi = re.search(r'(\d+(?:\.\d+)?)\s*psi\b', t)
+                m_psi = re.search(r'(\d+(?:\.\d+)?)\s{0,3}psi\b', t)
                 if m_psi:
                     res["pressure_bar"] = round(float(m_psi.group(1)) * 0.0689476, 1)
 
-        # Holding duration in seconds: '10 s', '10 sn', '10 saniye', '5 sec', '10 seconds'
-        m_time = re.search(r'(\d+)\s*(?:s\b|sn\b|sec\b|second|saniye)', t)
+        m_time = re.search(r'(?<![\d.])(\d+(?:\.\d+)?)\s{0,4}(?:s\b|sn\b|sec\b|second|saniye)', t)
         if m_time:
             res["holding_time_sec"] = float(m_time.group(1))
 
-        # % SMYS: '%95 SMYS', '95% SMYS', '%100 SMYS'
-        m_smys = re.search(r'%?\s*(\d+(?:\.\d+)?)\s*%?\s*smys', t)
+        m_smys = re.search(r'(?:%\s{0,2}(\d+(?:\.\d+)?)|(\d+(?:\.\d+)?)\s{0,2}%)\s{0,3}smys', t)
         if m_smys:
-            res["smys_percent"] = float(m_smys.group(1))
+            res["smys_percent"] = float(m_smys.group(1) or m_smys.group(2))
 
         return res
 
@@ -224,55 +234,83 @@ class ITPCriteriaParser:
             "total_pe_mm": None,
             "fbe_um": None,
             "holiday_kv": None,
+            "holiday_kv_per_mm": None,
             "peel_n_mm": None,
             "impact_j_mm": None,
             "roughness_rz_min_um": None,
             "roughness_rz_max_um": None
         }
 
-        # Coating Thickness: 'min 3.0 mm', 'min 3000 µm', '2.7 mm'
-        m_thk_mm = re.search(r'(?:min|azami)?\s*(\d+(?:\.\d+)?)\s*mm\b', t)
-        if m_thk_mm and float(m_thk_mm.group(1)) < 20.0:
-            val_thk = float(m_thk_mm.group(1))
+        m_fbe_um = re.search(r'(?:fbe|epoksi|epoxy|astar)[^\d]{0,20}(\d+(?:\.\d+)?)\s{0,3}(?:µm|um|mikron|micron)', t)
+        if m_fbe_um:
+            res["fbe_um"] = float(m_fbe_um.group(1))
+        else:
+            m_fbe_mm = re.search(r'(?:fbe|epoksi|epoxy|astar)[^\d]{0,20}(\d+(?:\.\d+)?)\s{0,3}mm\b(?!\s*/)', t)
+            if m_fbe_mm and float(m_fbe_mm.group(1)) < 1.0:
+                res["fbe_um"] = float(m_fbe_mm.group(1)) * 1000.0
+
+        m_exp_pe = re.search(
+            r'(?:toplam(?:\s{1,3}(?:kalınlık|kalinlik|pe|3lpe|hdpe|kaplama))?|total(?:\s{1,3}(?:thickness|pe|3lpe|hdpe|coating))?|pe(?:\s{1,3}(?:kaplama|kalınlık|kalinlik|thickness))?|3lpe|hdpe|polietilen|polyethylene)[^\d/]{0,25}(\d+(?:\.\d+)?)\s{0,3}mm\b(?!\s*/)',
+            t,
+        )
+        if m_exp_pe and 0.5 <= float(m_exp_pe.group(1)) < 20.0:
+            val_thk = float(m_exp_pe.group(1))
             res["thickness_mm"] = val_thk
             res["total_pe_mm"] = val_thk
         else:
-            m_thk_um = re.search(r'(\d{3,5})\s*(?:µm|um|mikron|micron)', t)
-            if m_thk_um:
-                val_thk = float(m_thk_um.group(1)) / 1000.0
+            layer_kws = ("fbe", "epoksi", "epoxy", "astar", "yapıştırıcı", "yapistirici", "adhesive", "copolymer", "kopolimer")
+            total_kws = ("toplam", "total", "3lpe", "hdpe", "polietilen", "polyethylene")
+            mm_candidates = []
+            for m_cand in re.finditer(r'(?<![/\d.])(\d+(?:\.\d+)?)\s{0,3}mm\b(?!\s*/)', t):
+                val_cand = float(m_cand.group(1))
+                if not (0.5 <= val_cand < 20.0):
+                    continue
+                prefix = t[max(0, m_cand.start() - 25):m_cand.start()]
+                last_layer = max((prefix.rfind(k) for k in layer_kws), default=-1)
+                last_total = max((prefix.rfind(k) for k in total_kws), default=-1)
+                if last_layer > last_total:
+                    continue
+                mm_candidates.append(val_cand)
+            if mm_candidates:
+                val_thk = max(mm_candidates)
                 res["thickness_mm"] = val_thk
                 res["total_pe_mm"] = val_thk
+            else:
+                um_candidates = [
+                    float(m_u.group(1)) / 1000.0
+                    for m_u in re.finditer(r'(\d{4,5})\s{0,3}(?:µm|um|mikron|micron)', t)
+                    if 1000.0 <= float(m_u.group(1)) < 20000.0
+                ]
+                if um_candidates:
+                    val_thk = max(um_candidates)
+                    res["thickness_mm"] = val_thk
+                    res["total_pe_mm"] = val_thk
 
-        # FBE thickness: 'fbe 120 µm', 'epoksi 100 um'
-        m_fbe = re.search(r'(?:fbe|epoksi|epoxy|astar)\s*[:=≥≥]*\s*(\d+(?:\.\d+)?)\s*(?:µm|um)', t)
-        if m_fbe:
-            res["fbe_um"] = float(m_fbe.group(1))
+        m_kv_mm = re.search(r'(\d+(?:\.\d+)?)\s{0,3}kv\s{0,2}/\s{0,2}mm\b', t)
+        if m_kv_mm:
+            res["holiday_kv_per_mm"] = float(m_kv_mm.group(1))
 
-        # Holiday voltage: '25 kV', '25000 V', '25kv'
-        m_kv = re.search(r'(\d+(?:\.\d+)?)\s*kv\b', t)
+        m_kv = re.search(r'(\d+(?:\.\d+)?)\s{0,3}kv\b(?!\s*/\s*mm)', t)
         if m_kv:
             res["holiday_kv"] = float(m_kv.group(1))
         else:
-            m_v = re.search(r'(\d{4,5})\s*v(?:olt)?\b', t)
+            m_v = re.search(r'(\d{4,5})\s{0,3}v(?:olt)?\b(?!\s*/\s*mm)', t)
             if m_v:
                 res["holiday_kv"] = float(m_v.group(1)) / 1000.0
 
-        # Peel adhesion: '150 N/cm' -> 15.0 N/mm, '15 N/mm', '18 N/mm'
-        m_peel_cm = re.search(r'(\d+(?:\.\d+)?)\s*n/cm\b', t)
+        m_peel_cm = re.search(r'(\d+(?:\.\d+)?)\s{0,3}n\s{0,1}/\s{0,1}cm\b', t)
         if m_peel_cm:
             res["peel_n_mm"] = float(m_peel_cm.group(1)) / 10.0
         else:
-            m_peel_mm = re.search(r'(\d+(?:\.\d+)?)\s*n/mm\b', t)
+            m_peel_mm = re.search(r'(\d+(?:\.\d+)?)\s{0,3}n\s{0,1}/\s{0,1}mm\b', t)
             if m_peel_mm:
                 res["peel_n_mm"] = float(m_peel_mm.group(1))
 
-        # Impact resistance: '5 J/mm', '5.0 j/mm'
-        m_imp = re.search(r'(\d+(?:\.\d+)?)\s*j/mm\b', t)
+        m_imp = re.search(r'(\d+(?:\.\d+)?)\s{0,3}j\s{0,1}/\s{0,1}mm\b', t)
         if m_imp:
             res["impact_j_mm"] = float(m_imp.group(1))
 
-        # Roughness Rz: 'Rz 60-100 µm'
-        m_rz = re.search(r'rz\s*(\d+)\s*(?:[-–/]\s*(\d+))?', t)
+        m_rz = re.search(r'rz[\s:=]{0,4}(\d+)(?:\s{0,3}[-–/]\s{0,3}(\d+))?', t)
         if m_rz:
             res["roughness_rz_min_um"] = float(m_rz.group(1))
             if m_rz.group(2):
@@ -301,8 +339,7 @@ class ITPCriteriaParser:
             "root_face_mm": None
         }
 
-        # 1. Plus-Minus: '± 1.6 mm', '+/- 1.6 mm', '+- 1.6 mm'
-        m_pm = re.search(r'(?:±|\+\s*[\-/]+\s*)\s*(\d+(?:\.\d+)?)\s*mm', t)
+        m_pm = re.search(r'(?:±|\+\s{0,3}[-/]{1,2})\s{0,4}(\d+(?:\.\d+)?)\s{0,3}mm\b', t)
         if m_pm:
             val_pm = float(m_pm.group(1))
             res["plus_tol_mm"] = val_pm
@@ -310,54 +347,59 @@ class ITPCriteriaParser:
             res["plus_mm"] = val_pm
             res["minus_mm"] = val_pm
         else:
-            # Standalone +X.X mm
-            m_plus = re.search(r'(?<![-/])\+\s*(\d+(?:\.\d+)?)\s*mm', t)
-            if m_plus:
-                res["plus_mm"] = float(m_plus.group(1))
-                res["plus_tol_mm"] = float(m_plus.group(1))
-            # Standalone -X.X mm
-            m_minus = re.search(r'(?<![+/])[-–]\s*(\d+(?:\.\d+)?)\s*mm', t)
-            if m_minus:
-                res["minus_mm"] = float(m_minus.group(1))
-                res["minus_tol_mm"] = float(m_minus.group(1))
+            t_no_ranges = re.sub(r'(?<![+-±\d.])\d+(?:\.\d+)?\s{0,4}[-–]\s{0,4}\d+(?:\.\d+)?(?:\s{0,3}mm\b)?', ' ', t)
+            m_asym1 = re.search(r'[-–]\s{0,3}(\d+(?:\.\d+)?)\s{0,3}(?:mm\b)?\s{0,3}[/,;]\s{0,3}\+\s{0,3}(\d+(?:\.\d+)?)\s{0,3}mm\b', t_no_ranges)
+            m_asym2 = re.search(r'\+\s{0,3}(\d+(?:\.\d+)?)\s{0,3}(?:mm\b)?\s{0,3}[/,;]\s{0,3}[-–]\s{0,3}(\d+(?:\.\d+)?)\s{0,3}mm\b', t_no_ranges)
+            if m_asym1:
+                v_min = float(m_asym1.group(1))
+                v_pls = float(m_asym1.group(2))
+                res["minus_mm"] = v_min
+                res["minus_tol_mm"] = v_min
+                res["plus_mm"] = v_pls
+                res["plus_tol_mm"] = v_pls
+            elif m_asym2:
+                v_pls = float(m_asym2.group(1))
+                v_min = float(m_asym2.group(2))
+                res["plus_mm"] = v_pls
+                res["plus_tol_mm"] = v_pls
+                res["minus_mm"] = v_min
+                res["minus_tol_mm"] = v_min
+            else:
+                m_plus = re.search(r'(?<![-/])\+\s{0,3}(\d+(?:\.\d+)?)\s{0,3}mm\b', t_no_ranges)
+                if m_plus:
+                    v_p = float(m_plus.group(1))
+                    res["plus_mm"] = v_p
+                    res["plus_tol_mm"] = v_p
+                m_minus = re.search(r'(?<![+/])[-–]\s{0,3}(\d+(?:\.\d+)?)\s{0,3}mm\b', t_no_ranges)
+                if m_minus:
+                    v_m = float(m_minus.group(1))
+                    res["minus_mm"] = v_m
+                    res["minus_tol_mm"] = v_m
 
-        # Plus percentage (e.g. +%15, +15%, + 10 %)
-        m_pct_plus = re.search(r'\+\s*[%]?\s*(\d+(?:\.\d+)?)\s*%', t)
+        t_no_pct_ranges = re.sub(r'(?<![+-±\d.])\d+(?:\.\d+)?\s{0,4}[-–]\s{0,4}\d+(?:\.\d+)?\s{0,3}%', ' ', t)
+        m_pct_plus = re.search(r'\+\s{0,3}(?:%\s{0,2}(\d+(?:\.\d+)?)|(\d+(?:\.\d+)?)\s{0,2}%)', t_no_pct_ranges)
         if m_pct_plus:
-            res["plus_pct"] = float(m_pct_plus.group(1))
-        else:
-            m_pct_plus2 = re.search(r'\+\s*%\s*(\d+(?:\.\d+)?)', t)
-            if m_pct_plus2:
-                res["plus_pct"] = float(m_pct_plus2.group(1))
+            res["plus_pct"] = float(m_pct_plus.group(1) or m_pct_plus.group(2))
 
-        # Minus percentage (e.g. -%12.5, -12.5%, -8%)
-        m_pct_min = re.search(r'[-–]\s*[%]?\s*(\d+(?:\.\d+)?)\s*%', t)
+        m_pct_min = re.search(r'[-–]\s{0,3}(?:%\s{0,2}(\d+(?:\.\d+)?)|(\d+(?:\.\d+)?)\s{0,2}%)', t_no_pct_ranges)
         if m_pct_min:
-            res["minus_pct"] = float(m_pct_min.group(1))
-        else:
-            m_pct_min2 = re.search(r'[-–]\s*%\s*(\d+(?:\.\d+)?)', t)
-            if m_pct_min2:
-                res["minus_pct"] = float(m_pct_min2.group(1))
+            res["minus_pct"] = float(m_pct_min.group(1) or m_pct_min.group(2))
 
-        # Min / Asgari X.X mm
-        m_min_lim = re.search(r'(?:min|asgari|en az|≥)\s*(\d+(?:\.\d+)?)\s*mm', t)
+        m_min_lim = re.search(r'(?:min\.?|asgari|en\s{1,3}az|≥)[\s:=]{0,4}(\d+(?:\.\d+)?)\s{0,3}mm\b', t)
         if m_min_lim:
             res["min_limit_mm"] = float(m_min_lim.group(1))
 
-        # Max / Azami X.X mm
-        m_max = re.search(r'(?:max|azami|en çok|≤)\s*(\d+(?:\.\d+)?)\s*mm', t)
+        m_max = re.search(r'(?:max\.?|azami|en\s{1,3}çok|≤)[\s:=]{0,4}(\d+(?:\.\d+)?)\s{0,3}mm\b', t)
         if m_max:
             val_m = float(m_max.group(1))
             res["max_val_mm"] = val_m
             res["max_limit_mm"] = val_m
 
-        # Angle: '30°', '30 deg', '35°'
-        m_ang = re.search(r'(\d+)\s*(?:°|deg|derece)', t)
+        m_ang = re.search(r'(\d+)\s{0,3}(?:°|deg\b|derece)', t)
         if m_ang:
             res["angle_deg"] = float(m_ang.group(1))
 
-        # Root face: 'kök yüzü 1.6 mm', 'root face 1.6'
-        m_rf = re.search(r'(?:kök|root)\s*(?:yüzü|face)?\s*[:=]?\s*(\d+(?:\.\d+)?)', t)
+        m_rf = re.search(r'(?:kök|root)(?:\s{1,3}(?:yüzeyi|yuzeyi|yüzü|yuzu|face))?[\s:=]{0,6}(\d+(?:\.\d+)?)', t)
         if m_rf:
             res["root_face_mm"] = float(m_rf.group(1))
 
@@ -375,22 +417,19 @@ class ITPCriteriaParser:
             "max_crack_mm": None
         }
 
-        # Mandrel diameter Ag
-        m_mand = re.search(r'mandrel[^\d]{0,12}(?:ag\b)?[\s:=]*(\d+(?:\.\d+)?)\s*mm', t)
+        m_mand = re.search(r'mandrel[^\d]{0,12}(?:ag\b)?[\s:=]{0,6}(\d+(?:\.\d+)?)\s{0,3}mm\b', t)
         if m_mand:
             res["mandrel_dia_mm"] = float(m_mand.group(1))
 
-        # Jaw opening Bg
-        m_jaw = re.search(r'(?:çene|cene|jaw)[^\d]{0,12}(?:bg\b)?[\s:=]*(\d+(?:\.\d+)?)\s*mm', t)
+        m_jaw = re.search(r'(?:çene|cene|jaw)[^\d]{0,12}(?:bg\b)?[\s:=]{0,6}(\d+(?:\.\d+)?)\s{0,3}mm\b', t)
         if m_jaw:
             res["jaw_opening_mm"] = float(m_jaw.group(1))
 
-        # Defect / crack length limit specifically tied to crack keywords
-        m_crack = re.search(r'(?:çatlak|catlak|kusur|defect|crack|açılma|acilma)[^\d]{0,15}(?:<=|≤|<|max|azami)?[\s:=]*(\d+(?:\.\d+)?)\s*mm', t)
+        m_crack = re.search(r'(?:çatlak|catlak|kusur|defect|crack|açılma|acilma)[^\d]{0,15}(?:<=|≤|<|max\.?|azami)?[\s:=]{0,6}(\d+(?:\.\d+)?)\s{0,3}mm\b', t)
         if m_crack:
             res["max_crack_mm"] = float(m_crack.group(1))
         else:
-            m_crack2 = re.search(r'(?:<=|≤|<|max|azami)\s*(\d+(?:\.\d+)?)\s*mm[^\d]{0,15}(?:çatlak|catlak|kusur|defect|crack)', t)
+            m_crack2 = re.search(r'(?:<=|≤|<|max\.?|azami)\s{0,4}(\d+(?:\.\d+)?)\s{0,3}mm\b[^\d]{0,15}(?:çatlak|catlak|kusur|defect|crack)', t)
             if m_crack2:
                 res["max_crack_mm"] = float(m_crack2.group(1))
 
@@ -419,21 +458,19 @@ class ITPCriteriaParser:
         elif any(k in t for k in ("re-repair serbest", "tekrar tamir serbest")):
             res["re_repair_allowed"] = True
 
-        # Single repair length (e.g. 'Tek tamir <= 150 mm', 'max 150 mm')
-        m_rep = re.search(r'(?:tek\s*tamir|tekil\s*tamir|single\s*repair|tamir\s*boyu|length\s*of\s*repair)[^\d]{0,15}(?:<=|≤|<|max|azami)?[\s:=]*(\d+(?:\.\d+)?)\s*mm', t)
+        m_rep = re.search(r'(?:tek\s{1,3}tamir|tekil\s{1,3}tamir|single\s{1,3}repair|tamir\s{1,3}boyu|length\s{1,3}of\s{1,3}repair)[^\d]{0,15}(?:<=|≤|<|max\.?|azami)?[\s:=]{0,6}(\d+(?:\.\d+)?)\s{0,3}mm\b', t)
         if m_rep:
             res["max_single_repair_length_mm"] = float(m_rep.group(1))
         else:
-            m_rep2 = re.search(r'(?:<=|≤|<|max|azami)\s*(\d+(?:\.\d+)?)\s*mm[^\d]{0,15}(?:tek\s*tamir|single\s*repair)', t)
+            m_rep2 = re.search(r'(?:<=|≤|<|max\.?|azami)\s{0,4}(\d+(?:\.\d+)?)\s{0,3}mm\b[^\d]{0,15}(?:tek\s{1,3}tamir|single\s{1,3}repair)', t)
             if m_rep2:
                 res["max_single_repair_length_mm"] = float(m_rep2.group(1))
 
-        # End restriction distance (e.g. 'uçta 300 mm tamir yasağı', '300 mm from ends')
-        m_end = re.search(r'(?:uçta|ucta|uçtan|uctan|from\s*ends?|pipe\s*ends?)[^\d]{0,15}(\d+(?:\.\d+)?)\s*mm', t)
+        m_end = re.search(r'(?:uçta|ucta|uçtan|uctan|from\s{1,3}ends?|pipe\s{1,3}ends?)[^\d]{0,15}(\d+(?:\.\d+)?)\s{0,3}mm\b', t)
         if m_end:
             res["end_restriction_distance_mm"] = float(m_end.group(1))
         else:
-            m_end2 = re.search(r'(\d+(?:\.\d+)?)\s*mm[^\d]{0,15}(?:uç|uc|end)', t)
+            m_end2 = re.search(r'(\d+(?:\.\d+)?)\s{0,3}mm\b[^\d]{0,15}(?:uç|uc|end)', t)
             if m_end2:
                 res["end_restriction_distance_mm"] = float(m_end2.group(1))
 
@@ -453,29 +490,25 @@ class ITPCriteriaParser:
             "ovality_pct": None
         }
 
-        # End ovality
-        m_end = re.search(r'(?:uç\s*ovalite|ovalite\s*uç|uc\s*ovalite|ovalite\s*uc|end\s*ovality|ovality\s*ends?|out-of-roundness\s*ends?)[^\d]{0,15}(?:<=|≤|<|max|azami)?[\s:=]*(\d+(?:\.\d+)?)\s*mm', t)
+        m_end = re.search(r'(?:uç\s{1,3}ovalite|ovalite\s{1,3}uç|uc\s{1,3}ovalite|ovalite\s{1,3}uc|end\s{1,3}ovality|ovality\s{1,3}ends?|out-of-roundness\s{1,3}ends?)[^\d]{0,15}(?:<=|≤|<|max\.?|azami)?[\s:=]{0,6}(\d+(?:\.\d+)?)\s{0,3}mm\b', t)
         if m_end:
             res["ovality_end_max_mm"] = float(m_end.group(1))
             res["ovality_max_mm"] = float(m_end.group(1))
 
-        # Body ovality
-        m_body = re.search(r'(?:gövde\s*ovalite|govde\s*ovalite|body\s*ovality|ovality\s*body|out-of-roundness\s*body)[^\d]{0,15}(?:<=|≤|<|max|azami)?[\s:=]*(\d+(?:\.\d+)?)\s*mm', t)
+        m_body = re.search(r'(?:gövde\s{1,3}ovalite|govde\s{1,3}ovalite|body\s{1,3}ovality|ovality\s{1,3}body|out-of-roundness\s{1,3}body)[^\d]{0,15}(?:<=|≤|<|max\.?|azami)?[\s:=]{0,6}(\d+(?:\.\d+)?)\s{0,3}mm\b', t)
         if m_body:
             res["ovality_body_max_mm"] = float(m_body.group(1))
             if res["ovality_max_mm"] is None:
                 res["ovality_max_mm"] = float(m_body.group(1))
 
-        # General ovality if neither end nor body specifically isolated
         if res["ovality_max_mm"] is None:
-            m_gen = re.search(r'(?:ovality|ovalite|roundness|yuvarlaklık|yuvarlaklik|dairesellik)[^\d]{0,15}(?:<=|≤|<|max|azami)?[\s:=]*(\d+(?:\.\d+)?)\s*mm', t)
+            m_gen = re.search(r'(?:ovality|ovalite|roundness|yuvarlaklık|yuvarlaklik|dairesellik)[^\d]{0,15}(?:<=|≤|<|max\.?|azami)?[\s:=]{0,6}(\d+(?:\.\d+)?)\s{0,3}mm\b', t)
             if m_gen:
                 res["ovality_max_mm"] = float(m_gen.group(1))
 
-        # Ovality percentage (e.g. '%0.5 D', '0.5%')
-        m_pct = re.search(r'(?:ovality|ovalite|roundness)[^\d]{0,15}(?:<=|≤|<|max|azami)?[\s:=]*(\d+(?:\.\d+)?)\s*%', t)
+        m_pct = re.search(r'(?:ovality|ovalite|roundness)[^\d%]{0,15}(?:<=|≤|<|max\.?|azami)?[\s:=]{0,6}(?:%\s{0,2}(\d+(?:\.\d+)?)|(\d+(?:\.\d+)?)\s{0,2}%)', t)
         if m_pct:
-            res["ovality_pct"] = float(m_pct.group(1))
+            res["ovality_pct"] = float(m_pct.group(1) or m_pct.group(2))
 
         return res
 
@@ -492,33 +525,23 @@ class ITPCriteriaParser:
             "plus_pct": None
         }
 
-        # Nominal / theoretical weight: e.g. '424.8 kg/m', 'W = 425 kg/m'
-        m_w = re.search(r'(?:teorik|nominal|w\b|birim\s*ağırlık|weight)?[^\d]{0,10}(\d+(?:\.\d+)?)\s*kg/m', t)
+        m_w = re.search(r'(?:teorik|nominal|(?<![a-z0-9])w\b|birim\s{1,3}ağırlık|weight)?[^\d]{0,10}(\d+(?:\.\d+)?)\s{0,3}kg/m\b', t)
         if m_w:
             res["nominal_kg_m"] = float(m_w.group(1))
 
-        # Plus/minus percentage: e.g. '± %5', '±5%', '+/- 5%'
-        m_pm = re.search(r'(?:±|\+\s*[\-/]+\s*)[%]?\s*(\d+(?:\.\d+)?)\s*%', t)
+        m_pm = re.search(r'(?:±|\+\s{0,3}[-/]{1,2})\s{0,3}(?:%\s{0,2}(\d+(?:\.\d+)?)|(\d+(?:\.\d+)?)\s{0,2}%)', t)
         if m_pm:
-            res["minus_pct"] = float(m_pm.group(1))
-            res["plus_pct"] = float(m_pm.group(1))
+            v_pm = float(m_pm.group(1) or m_pm.group(2))
+            res["minus_pct"] = v_pm
+            res["plus_pct"] = v_pm
         else:
-            # Minus pct: e.g. '-3.5%', '-%3.5', '- 3.5 %'
-            m_min = re.search(r'[-–]\s*[%]?\s*(\d+(?:\.\d+)?)\s*%', t)
+            t_no_pct_ranges = re.sub(r'(?<![+-±\d.])\d+(?:\.\d+)?\s{0,4}[-–]\s{0,4}\d+(?:\.\d+)?\s{0,3}%', ' ', t)
+            m_min = re.search(r'[-–]\s{0,3}(?:%\s{0,2}(\d+(?:\.\d+)?)|(\d+(?:\.\d+)?)\s{0,2}%)', t_no_pct_ranges)
             if m_min:
-                res["minus_pct"] = float(m_min.group(1))
-            else:
-                m_min2 = re.search(r'[-–]\s*%\s*(\d+(?:\.\d+)?)', t)
-                if m_min2:
-                    res["minus_pct"] = float(m_min2.group(1))
+                res["minus_pct"] = float(m_min.group(1) or m_min.group(2))
 
-            # Plus pct: e.g. '+10%', '+%10', '+ 10 %'
-            m_pls = re.search(r'\+\s*[%]?\s*(\d+(?:\.\d+)?)\s*%', t)
+            m_pls = re.search(r'\+\s{0,3}(?:%\s{0,2}(\d+(?:\.\d+)?)|(\d+(?:\.\d+)?)\s{0,2}%)', t_no_pct_ranges)
             if m_pls:
-                res["plus_pct"] = float(m_pls.group(1))
-            else:
-                m_pls2 = re.search(r'\+\s*%\s*(\d+(?:\.\d+)?)', t)
-                if m_pls2:
-                    res["plus_pct"] = float(m_pls2.group(1))
+                res["plus_pct"] = float(m_pls.group(1) or m_pls.group(2))
 
         return res

@@ -12,6 +12,8 @@ Conforms to:
 import math
 from typing import Any, Dict, List, Optional
 
+from core.wall_thickness_engine import WallThicknessEngine
+
 
 class DeratingEngine:
     @staticmethod
@@ -32,39 +34,22 @@ class DeratingEngine:
 
         if is_smls:
             # Seamless Pipe (API 5L Table 11)
-            if t < 4.0:
+            if t < 10.0:
                 tol_pos_pct = 15.0
-                tol_neg_pct = -12.5
-            elif t < 10.0:
-                tol_pos_pct = 15.0
-                tol_neg_pct = -12.5
             elif t < 25.0:
                 tol_pos_pct = 12.5
-                tol_neg_pct = -12.5
             else:
                 tol_pos_pct = 10.0
-                tol_neg_pct = -10.0
+            tol_neg_pct = -12.5 if t < 25.0 else -10.0
         else:
             # Welded Pipe (SAWH, SAWL, HFW/ERW, COW)
-            if is_botas:
-                # BOTAŞ Clause 8.1.2.4 tightened tolerance for gas line pipe
-                if t >= 15.0:
-                    tol_pos_pct = 10.0
-                    tol_neg_pct = -8.0
-                else:
-                    tol_pos_pct = 10.0
-                    tol_neg_pct = -10.0
-            else:
-                # API 5L Table 11 standard
-                if t <= 5.0:
-                    tol_pos_pct = 10.0
-                    tol_neg_pct = -10.0
-                elif t < 15.0:
-                    tol_pos_pct = 10.0
-                    tol_neg_pct = -10.0
-                else:
-                    tol_pos_pct = 10.0
-                    tol_neg_pct = -8.0
+            tol_pos_pct = 10.0
+            tol_neg_pct = -10.0 if t < 15.0 else -8.0
+
+        if is_botas:
+            # BOTAŞ 5120_R7 Madde 5.5: fixed minus deductions, not a percentage
+            botas_tol_mm = WallThicknessEngine.get_botas_wall_negative_tolerance(t)["tolerance_mm"]
+            tol_neg_pct = round(-botas_tol_mm / t * 100.0, 3)
 
         tol_pos_mm = round((tol_pos_pct / 100.0) * t, 3)
         tol_neg_mm = round((tol_neg_pct / 100.0) * t, 3)
@@ -240,7 +225,7 @@ class DeratingEngine:
             "actual": t_act,
             "unit": "mm",
             "status": c1_stat,
-            "criteria": f"{t_min:.2f} mm — {t_max:.2f} mm (%{tol_neg_pct:+.1f} / %{tol_pos_pct:+.1f})",
+            "criteria": f"{t_min:.2f} mm — {t_max:.2f} mm ({tols['tol_neg_mm']:+.2f} / {tols['tol_pos_mm']:+.2f} mm)",
             "clause": "API 5L Tablo 11 & BOTAŞ 8.1.2.4",
         })
 
@@ -286,7 +271,7 @@ class DeratingEngine:
 
         methodology_note = (
             f"Tolerans ve İndirgeme Değerlendirmesi (API 5L Tablo 11 & ASME B31.8):\n"
-            f"1. Eksi Tolerans Alt Sınırı: Nominal et kalınlığı {t:.2f} mm olan boruda %{tol_neg_pct:.1f} eksi tolerans "
+            f"1. Eksi Tolerans Alt Sınırı: Nominal et kalınlığı {t:.2f} mm olan boruda {tols['tol_neg_mm']:+.2f} mm eksi tolerans "
             f"ile minimum cidar t_min = {t_min:.2f} mm olarak gerçekleşebilir.\n"
             f"2. Tasarım Basıncı İndirgemesi: Borunun alt toleransta üretilmesi durumunda güvenli tasarım basıncı "
             f"{p_des_nom_bar:.1f} bar'dan {p_des_min_bar:.1f} bar'a geriler (-{delta_p_des_bar:.1f} bar / -%{derating_loss_pct:.1f}).\n"

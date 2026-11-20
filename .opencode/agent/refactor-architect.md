@@ -1,7 +1,8 @@
 ---
+name: refactor-architect
 description: Read-only maintainability and architecture reviewer for the API 5L Pipe app. Use to find the single highest-impact code-quality issue (huge files, duplication, tight coupling, missing validation). Trigger: refactor, maintainability, code quality, architecture, duplication, coupling.
 mode: subagent
-color: blue
+color: "#3B82F6"
 permission:
   edit: deny
   bash:

@@ -1,7 +1,8 @@
 ---
+name: ux-reviewer
 description: Read-only UX/UI reviewer for the API 5L Pipe app. Use to find the single most painful UX/UI friction (confusing flow, dead-end error, missing feedback, accessibility, mobile layout) in templates/index.html and static/js. Trigger: UX, UI, usability, confusing, flow, accessibility, layout.
 mode: subagent
-color: purple
+color: "#8B5CF6"
 permission:
   edit: deny
   bash:

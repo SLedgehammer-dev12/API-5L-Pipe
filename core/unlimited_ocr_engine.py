@@ -19,6 +19,7 @@ import re
 from typing import Any, Dict, List, Optional
 
 from core.database import get_pipe_size_by_mm
+from core.itp_criteria_parser import norm_tr
 
 logger = logging.getLogger(__name__)
 
@@ -52,8 +53,8 @@ class UnlimitedOCREngine:
         Pre-flight gatekeeper to classify uploaded document before auditing.
         Distinguishes ITP Quality Plans from Delivery Schedules and Technical Specifications.
         """
-        t = (text or "").lower().replace("ı", "i").replace("İ", "i")
-        f = (filename or "").lower().replace("ı", "i").replace("İ", "i")
+        t = norm_tr(text, ascii_fold=True)
+        f = norm_tr(filename, ascii_fold=True)
         comb = f"{t} {f}"
 
         # 1. Delivery / Shipping schedule
@@ -113,15 +114,31 @@ class UnlimitedOCREngine:
                 import io
                 from PIL import Image
                 import pytesseract
-                img = Image.open(io.BytesIO(file_bytes))
-                extracted_text = pytesseract.image_to_string(img, lang="tur+eng")
+                Image.MAX_IMAGE_PIXELS = 25_000_000
+                with Image.open(io.BytesIO(file_bytes), formats=("PNG", "JPEG", "BMP", "TIFF")) as img:
+                    img.thumbnail((2500, 2500))
+                    extracted_text = pytesseract.image_to_string(img, lang="tur+eng", timeout=15)
             except Exception as e_img:
                 logger.debug(f"Direct image OCR failed: {e_img}")
 
         # 1b. Document Type Pre-flight Classification
         doc_class = cls.classify_document_type(extracted_text, filename)
         if not doc_class["is_itp"]:
-            warning_msg = doc_class["warning_message"]
+            detected_metadata = cls.detect_itp_metadata(extracted_text, [], filename)
+            detected_metadata["document_type"] = doc_class["document_type"]
+            detected_metadata["is_itp"] = False
+            return {
+                "status": "warning",
+                "is_fallback": False,
+                "warning_message": doc_class["warning_message"],
+                "document_type": doc_class["document_type"],
+                "filename": filename,
+                "engine": "Unlimited-OCR Table & Multi-Column Parser (PyMuPDF 1.23+)",
+                "total_items_found": 0,
+                "raw_text_snippet": extracted_text[:500] if extracted_text else "",
+                "items": [],
+                "detected_metadata": detected_metadata
+            }
 
         # 2. If Unlimited-OCR remote/local worker endpoint is provided, query it
         if endpoint and not tables_found:
@@ -173,43 +190,54 @@ class UnlimitedOCREngine:
         """
         text_content = ""
         extracted_rows: List[Dict[str, Any]] = []
+        seen_rows: set = set()
         table_state: Optional[Dict[str, Any]] = None
 
         try:
             import fitz
-            doc = fitz.open(stream=file_bytes, filetype="pdf")
-            for page in doc:
-                text_content += (page.get_text() or "") + "\n"
+            with fitz.open(stream=file_bytes, filetype="pdf") as doc:
+                for p_idx, page in enumerate(doc):
+                    if p_idx >= 100:
+                        break
+                    text_content += (page.get_text() or "") + "\n"
 
-                # Native PyMuPDF table detection (available in PyMuPDF 1.23.0+)
-                try:
-                    tabs = page.find_tables()
-                    if tabs and tabs.tables:
-                        for tab in tabs.tables:
-                            raw_df = tab.extract()
-                            if raw_df and len(raw_df) >= 1:
-                                parsed, table_state = cls._parse_table_matrix_into_itp(raw_df, table_state)
-                                for item in parsed:
-                                    if not any(it.get("test_name") == item["test_name"] for it in extracted_rows):
-                                        extracted_rows.append(item)
-                except Exception as e_tab:
-                    logger.debug(f"fitz find_tables error on page: {e_tab}")
+                    # Native PyMuPDF table detection (available in PyMuPDF 1.23.0+)
+                    try:
+                        tabs = page.find_tables()
+                        if tabs and tabs.tables:
+                            for tab in tabs.tables:
+                                raw_df = tab.extract()
+                                if raw_df and len(raw_df) >= 1:
+                                    parsed, table_state = cls._parse_table_matrix_into_itp(raw_df, table_state)
+                                    for item in parsed:
+                                        row_key = (item["test_name"], item["test_frequency"], item["acceptance_criteria"])
+                                        if row_key not in seen_rows:
+                                            seen_rows.add(row_key)
+                                            extracted_rows.append(item)
+                    except Exception as e_tab:
+                        logger.debug(f"fitz find_tables error on page: {e_tab}")
 
-            # If digital text extraction returned no text (scanned image PDF), or very few tables extracted,
-            # attempt OCR on rasterized pages
-            if (not text_content.strip() or len(text_content.strip()) < 100) and len(extracted_rows) < 5:
-                try:
-                    import pytesseract
-                    from PIL import Image
-                    import io
-                    for page in doc:
-                        pix = page.get_pixmap(dpi=200)
-                        img = Image.open(io.BytesIO(pix.tobytes("png")))
-                        ocr_txt = pytesseract.image_to_string(img, lang="tur+eng")
-                        if ocr_txt:
-                            text_content += ocr_txt + "\n"
-                except Exception as e_tess:
-                    logger.debug(f"Local pytesseract fallback unavailable: {e_tess}")
+                # If digital text extraction returned no text (scanned image PDF), or very few tables extracted,
+                # attempt OCR on rasterized pages
+                if (not text_content.strip() or len(text_content.strip()) < 100) and len(extracted_rows) < 5:
+                    try:
+                        import pytesseract
+                        from PIL import Image
+                        import io
+                        Image.MAX_IMAGE_PIXELS = 25_000_000
+                        for p_idx, page in enumerate(doc):
+                            if p_idx >= 15:
+                                break
+                            rect = page.rect
+                            max_dim = max(rect.width, rect.height, 1.0)
+                            scale = min(200.0 / 72.0, 2500.0 / max_dim)
+                            pix = page.get_pixmap(matrix=fitz.Matrix(scale, scale))
+                            with Image.open(io.BytesIO(pix.tobytes("png")), formats=("PNG",)) as img:
+                                ocr_txt = pytesseract.image_to_string(img, lang="tur+eng", timeout=15)
+                            if ocr_txt:
+                                text_content += ocr_txt + "\n"
+                    except Exception as e_tess:
+                        logger.debug(f"Local pytesseract fallback unavailable: {e_tess}")
 
         except Exception as e_fitz:
             try:
@@ -238,12 +266,12 @@ class UnlimitedOCREngine:
             return [], last_state
 
         # Check first 2 rows for header keywords (Kapsam table spans 2 rows)
-        first_two_headers = " ".join(" ".join(str(c or "") for c in r) for r in table_data[:2]).lower()
+        first_two_headers = norm_tr(" ".join(" ".join(str(c or "") for c in r) for r in table_data[:2]))
         # Skip document title blocks, Kapsam scope table, and signature/abbreviation footers + Kısaltma Listesi 2-col table
-        if any(k in first_two_headers for k in ("kısaltmalar", "hazırlayan", "onaylayan", "temsilcisi", "sayfa no", "revizyon no", "sipariş bilgileri", "kısaltma listesi")):
+        if any(norm_tr(k) in first_two_headers for k in ("kısaltmalar", "hazırlayan", "onaylayan", "temsilcisi", "sayfa no", "revizyon no", "sipariş bilgileri", "kısaltma listesi")):
             return [], last_state
         # Kapsam scope table (Sıra | Çap | Kalınlık | Çelik Kalitesi) - scope, not ITP test
-        if "sıra" in first_two_headers and "çap" in first_two_headers and "kalınlık" in first_two_headers:
+        if norm_tr("sıra") in first_two_headers and "çap" in first_two_headers and norm_tr("kalınlık") in first_two_headers:
             return [], last_state
         # 2-col abbreviation table (AUT | Otomatik Ultrasonik Test) - skip
         if len(table_data[0]) == 2 and any(str(c or "").strip().upper() in ("AUT","DWT","HAZ","HRC","HT","MUT","MPQT","MTC","NDT","RT","SAWH","SMYS","TDC","UT","W.T.","OD","NA") for c in [r[0] for r in table_data[1:5] if r and r[0]]):
@@ -264,7 +292,7 @@ class UnlimitedOCREngine:
         idx_client = -1
 
         for r_i, r in enumerate(table_data[:5]):
-            cand_row = [str(c or "").lower().strip() for c in r]
+            cand_row = [norm_tr(str(c or "")).strip() for c in r]
             if not cand_row or not any(cand_row):
                 continue
             # If the first cell is a pure numeric row index (e.g. '1.0', '6.0', '12'), it is a data row, not a header!
@@ -284,30 +312,33 @@ class UnlimitedOCREngine:
 
             for col_i, col_text in enumerate(cand_row):
                 # Independent Column Identification (No elif masking)
-                if cand_feat == -1 and any(k in col_text for k in ("ürün özelli", "özellik", "gereksinim", "parametre", "test adı", "muayene türü", "özelliği", "kontrolü", "muayene / test", "test parametre")):
+                if cand_feat == -1 and any(norm_tr(k) in col_text for k in ("ürün özelli", "özellik", "gereksinim", "parametre", "test adı", "muayene türü", "özelliği", "kontrolü", "muayene / test", "test parametre")):
                     cand_feat = col_i
-                if cand_act == -1 and any(k in col_text for k in ("faaliyet", "aktivite", "activity", "proses", "tanım", "aşama", "proses aşaması", "operasyon")):
+                if cand_act == -1 and any(norm_tr(k) in col_text for k in ("faaliyet", "aktivite", "activity", "proses", "tanım", "aşama", "proses aşaması", "operasyon")):
                     cand_act = col_i
-                elif cand_act == -1 and any(k in col_text for k in ("test", "inspection", "muayene", "deney", "item", "scope")) and cand_feat != col_i:
+                elif cand_act == -1 and any(norm_tr(k) in col_text for k in ("test", "inspection", "muayene", "deney", "scope")) and cand_feat != col_i:
                     cand_act = col_i
                 
-                if cand_freq == -1 and any(k in col_text for k in ("freq", "extent", "frekans", "sıklık", "adet", "rate", "aralık", "frequency", "sıklığı", "numune alma", "numune boyutu")):
+                if cand_freq == -1 and any(norm_tr(k) in col_text for k in ("freq", "extent", "frekans", "sıklık", "adet", "rate", "aralık", "frequency", "sıklığı", "numune alma", "numune boyutu")):
                     cand_freq = col_i
-                if cand_loc == -1 and any(k in col_text for k in ("location", "specimen", "yer", "numune", "yön", "örnek", "position", "gerçekleştiren", "sorumlu")):
+                if cand_loc == -1 and any(norm_tr(k) in col_text for k in ("location", "specimen", "yer", "numune", "yön", "örnek", "position", "gerçekleştiren", "sorumlu")):
                     cand_loc = col_i
-                if cand_std == -1 and any(k in col_text for k in ("kontrol eden", "kontrol doküman", "standard", "method", "metot", "prosedür", "code", "standart", "doküman", "dokümanı", "şartname", "şartnamesi", "spec")):
+                has_crit_kw = any(norm_tr(k) in col_text for k in ("kabul", "kriter", "acceptance", "criteria", "limit", "tolerans", "requirement", "kabul şartı", "onay kriteri"))
+                has_crit_excl = any(norm_tr(k) in col_text for k in ("kabul", "kriter", "acceptance", "criteria"))
+                has_std_kw = any(norm_tr(k) in col_text for k in ("kontrol eden", "kontrol doküman", "standard", "method", "metot", "prosedür", "code", "standart", "doküman", "dokümanı", "şartname", "şartnamesi")) or bool(re.search(r"\bspec(?:ification)?s?\b", col_text))
+                if cand_std == -1 and cand_act != col_i and not has_crit_excl and has_std_kw:
                     cand_std = col_i
-                if cand_crit == -1 and "şartname" not in col_text and any(k in col_text for k in ("kabul", "kriter", "acceptance", "criteria", "limit", "tolerans", "requirement", "kabul şartı", "onay kriteri")):
+                if cand_crit == -1 and has_crit_kw:
                     cand_crit = col_i
-                if cand_clause == -1 and any(k in col_text for k in ("clause", "madde", "ref", "section", "referans")):
+                if cand_clause == -1 and any(norm_tr(k) in col_text for k in ("clause", "madde", "ref", "section", "referans")):
                     cand_clause = col_i
 
                 # Witness / Hold Point Columns (C / H / W / I / R)
-                if cand_mfg == -1 and any(k in col_text for k in ("imalatçı", "üretici", "mfg", "manufacturer", "borusan", "tosçelik", "toscelik", "erciyas", "yapımcı")):
+                if cand_mfg == -1 and any(norm_tr(k) in col_text for k in ("imalatçı", "üretici", "mfg", "manufacturer", "borusan", "tosçelik", "toscelik", "erciyas", "yapımcı")):
                     cand_mfg = col_i
-                if cand_tpi == -1 and any(k in col_text for k in ("tpi", "gözetim", "3rd party", "üçüncü taraf", "denetim kurumu", "mümessil", "tüv", "lloyd", "sgs", "bv")):
+                if cand_tpi == -1 and any(norm_tr(k) in col_text for k in ("tpi", "gözetim", "3rd party", "üçüncü taraf", "denetim kurumu", "mümessil", "tüv", "lloyd", "sgs", "bv")):
                     cand_tpi = col_i
-                if cand_client == -1 and any(k in col_text for k in ("müşteri", "botaş", "botas", "işveren", "client", "idare", "owner", "alıcı")):
+                if cand_client == -1 and any(norm_tr(k) in col_text for k in ("müşteri", "botaş", "botas", "işveren", "client", "idare", "owner", "alıcı")):
                     cand_client = col_i
 
             matched = sum(1 for idx in (cand_act, cand_feat, cand_freq, cand_std, cand_crit, cand_clause) if idx != -1)
@@ -324,7 +355,11 @@ class UnlimitedOCREngine:
         confidence_level = "HIGH"
         if header_row_idx != -1:
             if idx_feature == -1 and idx_activity != -1 and len(header_row) > 3:
-                idx_feature = 2 if idx_activity != 2 else (3 if len(header_row) > 3 else 1)
+                used_cols = {idx_activity, idx_freq, idx_loc, idx_std, idx_crit, idx_clause, idx_mfg, idx_tpi, idx_client}
+                for cand_idx in (2, 3, 1):
+                    if cand_idx < len(header_row) and cand_idx not in used_cols:
+                        idx_feature = cand_idx
+                        break
 
             current_state = {
                 "indices": (idx_activity, idx_feature, idx_freq, idx_loc, idx_std, idx_crit, idx_clause, idx_mfg, idx_tpi, idx_client),
@@ -339,7 +374,7 @@ class UnlimitedOCREngine:
             idx_activity, idx_feature, idx_freq, idx_loc, idx_std, idx_crit, idx_clause, idx_mfg, idx_tpi, idx_client = current_state["indices"]
             ncols = len(table_data[0])
             idx_activity = min(idx_activity, ncols - 1) if idx_activity >= 0 else 1
-            idx_feature = min(idx_feature, ncols - 1) if idx_feature >= 0 else 2
+            idx_feature = min(idx_feature, ncols - 1) if idx_feature >= 0 else -1
             idx_freq = min(idx_freq, ncols - 1) if idx_freq >= 0 else -1
             idx_loc = min(idx_loc, ncols - 1) if idx_loc >= 0 else -1
             idx_std = min(idx_std, ncols - 1) if idx_std >= 0 else -1
@@ -364,17 +399,17 @@ class UnlimitedOCREngine:
             activity_val = str(row[idx_activity] or "").strip() if 0 <= idx_activity < len(row) else ""
             feature_val = str(row[idx_feature] or "").strip() if 0 <= idx_feature < len(row) else ""
 
-            if activity_val and len(activity_val) > 2 and activity_val.lower() not in ("no", "item", "test", "faaliyet", "aktivite"):
+            if activity_val and len(activity_val) > 2 and norm_tr(activity_val) not in ("no", "item", "test", "faaliyet", "aktivite"):
                 last_parent_activity = activity_val
             else:
                 activity_val = last_parent_activity
 
             # Choose the most specific and descriptive test name
             test_name = ""
-            if feature_val and len(feature_val) > 2 and feature_val.lower() not in ("no", "item", "test", "faaliyet"):
-                act_clean = activity_val.strip().lower()
-                feat_clean = feature_val.strip().lower()
-                if act_clean and act_clean != feat_clean and feat_clean not in act_clean and not any(k in act_clean for k in ("ölçüsel", "laboratuvar", "muayene ve test", "doğrulama", "genel", "kaplama öncesi", "üretim")):
+            if feature_val and len(feature_val) > 2 and norm_tr(feature_val) not in ("no", "item", "test", "faaliyet"):
+                act_clean = norm_tr(activity_val.strip())
+                feat_clean = norm_tr(feature_val.strip())
+                if act_clean and act_clean != feat_clean and feat_clean not in act_clean and not any(norm_tr(k) in act_clean for k in ("ölçüsel", "laboratuvar", "muayene ve test", "doğrulama", "genel", "kaplama öncesi", "üretim")):
                     test_name = f"{activity_val} - {feature_val}"
                 else:
                     test_name = feature_val
@@ -382,30 +417,31 @@ class UnlimitedOCREngine:
                 test_name = activity_val
 
             # Filter out non-test metadata lines (e.g. document code, dates, revision numbers, Kapsam header fragments)
-            if not test_name or len(test_name) < 2 or test_name.lower() in ("no", "item", "test", "faaliyet", "aktivite", "tarih", "imza", "isim", "isim :"):
+            tn_norm = norm_tr(test_name).strip()
+            if not test_name or len(test_name) < 2 or tn_norm in ("no", "item", "test", "faaliyet", "aktivite", "tarih", "imza", "isim", "isim :"):
                 continue
             if re.match(r"^[\d\s,.\-/%]+$", test_name):
                 continue
-            if any(k in test_name.lower() for k in ("tos-itp", "gbb-itp", "rev.", "sayfa no", "müşteri", "sipariş no", "çap (mm)", "kalınlık (mm)", "kabul kriterleri kontrol yöntemi", "genel proje bilgileri")):
+            if any(norm_tr(k) in tn_norm for k in ("tos-itp", "gbb-itp", "rev.", "sayfa no", "müşteri", "sipariş no", "çap (mm)", "kalınlık (mm)", "kabul kriterleri kontrol yöntemi", "genel proje bilgileri")):
                 continue
-            if test_name.strip().lower() in ("kapsam", "sıra", "çap", "kalınlık", "çelik kalitesi"):
+            if tn_norm in ("kapsam", norm_tr("sıra"), "çap", norm_tr("kalınlık"), norm_tr("çelik kalitesi")):
                 continue
 
             freq = str(row[idx_freq] or "").strip() if 0 <= idx_freq < len(row) else ""
             loc = str(row[idx_loc] or "").strip() if 0 <= idx_loc < len(row) else "Boru gövdesi / kaynak dikişi / kaplama"
-            std = str(row[idx_std] or "").strip() if 0 <= idx_std < len(row) else "API Spec 5L / BOTAŞ / DIN 30670"
+            std = str(row[idx_std] or "").strip() if 0 <= idx_std < len(row) else "—"
             crit = str(row[idx_crit] or "").strip() if 0 <= idx_crit < len(row) else ""
-            clause = str(row[idx_clause] or "").strip() if 0 <= idx_clause < len(row) else "API 5L / BOTAŞ 5120 / 5410 R1"
+            clause = str(row[idx_clause] or "").strip() if 0 <= idx_clause < len(row) else "—"
 
             # Extract Witness / Hold Points (C, H, W, I, R)
-            mfg_val = str(row[idx_mfg] or "").strip().upper() if 0 <= idx_mfg < len(row) else "C"
-            tpi_val = str(row[idx_tpi] or "").strip().upper() if 0 <= idx_tpi < len(row) else "W"
-            client_val = str(row[idx_client] or "").strip().upper() if 0 <= idx_client < len(row) else "W"
+            mfg_val = str(row[idx_mfg] or "").strip().upper() if 0 <= idx_mfg < len(row) else "—"
+            tpi_val = str(row[idx_tpi] or "").strip().upper() if 0 <= idx_tpi < len(row) else "—"
+            client_val = str(row[idx_client] or "").strip().upper() if 0 <= idx_client < len(row) else "—"
 
             if not freq:
                 freq = cls._extract_frequency_from_text(f"{test_name} {crit}") or "— (Tablodan Okunamadı)"
             if not crit:
-                crit = cls._extract_criteria_from_text(f"{test_name} {freq}") or "API 5L / BOTAŞ şartname limitlerine uygun"
+                crit = cls._extract_criteria_from_text(f"{test_name} {freq}") or "— (Tablodan Okunamadı)"
 
             items.append({
                 "test_name": test_name.replace("\n", " ").strip(),
@@ -500,13 +536,13 @@ class UnlimitedOCREngine:
                             "test_frequency": freq or "— (Tablodan Okunamadı)",
                             "sampling_location": "Boru gövdesi / kaynak dikişi",
                             "specimen_type": "Standart numune",
-                            "test_standard": "API Spec 5L 47. Baskı",
-                            "acceptance_criteria": crit or "API 5L / BOTAŞ şartname limitlerine uygun",
-                            "clause_reference": "API 5L / İmalatçı ITP",
+                            "test_standard": "—",
+                            "acceptance_criteria": crit or "— (Tablodan Okunamadı)",
+                            "clause_reference": "—",
                             "inspection_points": {
-                                "mfg": "C",
-                                "tpi": "W",
-                                "client": "W"
+                                "mfg": "—",
+                                "tpi": "—",
+                                "client": "—"
                             },
                             "reading_confidence": "LOW",
                             "raw_text": line
@@ -560,7 +596,6 @@ class UnlimitedOCREngine:
     def _call_unlimited_ocr_api(cls, file_bytes: bytes, filename: str, endpoint: str) -> Dict[str, Any]:
         """Sends document to Unlimited-OCR inference microservice."""
         import urllib.request
-        import urllib.error
         
         req = urllib.request.Request(
             endpoint,
@@ -718,37 +753,45 @@ class UnlimitedOCREngine:
         Automatically detects pipe manufacturing & coating standards, scope discipline,
         geometry, grade, and project metadata from extracted text and structured ITP items.
         """
-        # Use case-insensitive matching that handles Turkish İ/ı correctly: lower with both variants
-        def _norm(s: str) -> str:
-            return (s or "").lower().replace("ı", "i").replace("İ", "i").replace("i̇", "i")
-        text_lower = _norm(extracted_text)
-        fn_lower = _norm(filename)
-        items_text = _norm(" ".join([f"{it.get('test_name', '')} {it.get('acceptance_criteria', '')}" for it in items]))
+        text_lower = norm_tr(extracted_text)
+        fn_lower = norm_tr(filename)
+        _placeholders = ("tablodan okunamadi", "api 5l / botas sartname limitlerine uygun")
+        items_parts = []
+        for it in items:
+            t_part = norm_tr(it.get("test_name", ""))
+            c_part = norm_tr(it.get("acceptance_criteria", ""))
+            if any(p in norm_tr(c_part, ascii_fold=True) for p in _placeholders):
+                c_part = ""
+            items_parts.append(f"{t_part} {c_part}".strip())
+        items_text = " ".join(items_parts)
         combined_text = f"{text_lower} {fn_lower} {items_text}"
 
         # 1. Standard Detection
-        has_botas = any(k in combined_text for k in ("botaş", "botas", "5120", "5410", "5140", "4-ngtl-0-gn-p-002"))
+        has_botas = bool(re.search(r"\b(?:bota[sş]|4-ngtl-0-gn-p-002|(?:5120|5410|5140)\s*r(?:ev)?\.?\s*\d)\b", combined_text))
         has_api5l = any(k in combined_text for k in ("api 5l", "api spec 5l", "46th", "47th"))
         has_din30670 = "din 30670" in combined_text
         has_iso21809 = any(k in combined_text for k in ("iso 21809", "en 21809", "21809"))
 
-        std_type = "BOTAŞ" if has_botas else ("API" if has_api5l else "API")
+        std_type = "BOTAŞ" if has_botas else "API"
         std_label = "BOTAŞ (5120 R7 + 5410 R1)" if has_botas else ("API Spec 5L (47th / 46th Edition)" if has_api5l else "API Spec 5L")
 
         # 2. Scope / Discipline Detection
-        coating_kw = ("kaplama", "kumlama", "holiday", "peel", "soyulma", "darbe", "indentation", "katodik", "cutback", "cut back", "fbe", "3lpe", "hdpe", "boyasız", "yama")
-        bare_kw = ("çekme", "akma", "tensile", "yield", "cvn", "çentik", "dwtt", "flattening", "yassıltma", "ezme", "hidrostatik", "hydrostatic", "laminasyon", "çapak", "normalizasyon")
+        coating_kw = tuple(norm_tr(k) for k in ("kaplama", "kumlama", "holiday", "peel", "soyulma", "darbe", "indentation", "katodik", "cutback", "cut back", "fbe", "3lpe", "hdpe", "boyasız", "yama"))
+        bare_kw = tuple(norm_tr(k) for k in ("çekme", "akma", "tensile", "yield", "cvn", "çentik", "dwtt", "flattening", "yassıltma", "ezme", "hidrostatik", "hydrostatic", "laminasyon", "çapak", "normalizasyon"))
 
         coating_hits = sum(1 for k in coating_kw if k in combined_text)
         bare_hits = sum(1 for k in bare_kw if k in combined_text)
 
-        # Check filename or title cues (normalized)
         def _has_any(keys, txt):
-            return any(_norm(k) in txt for k in keys)
+            return any(norm_tr(k) in txt for k in keys)
+
+        coating_title_cues = ("hdpe kaplama", "dış kaplama", "coating only", "sadece kaplama", "din 30670", "iso 21809", "3lpe coating", "coating and painting", "tos-itp-şrk-002")
         if _has_any(("combined", "bütünsel", "tam kapsam", "full combined", "imalat ve kaplama"), fn_lower) or _has_any(("combined", "bütünsel", "tam kapsam", "full combined", "imalat ve kaplama"), text_lower[:500]):
             scope_mode = "COMBINED"
             scope_label = "Bütünsel (İmalat + 3LPE Dış Kaplama)"
-        elif _has_any(("hdpe kaplama", "dış kaplama", "coating only", "sadece kaplama", "din 30670", "tos-itp-şrk-002"), fn_lower) or _has_any(("hdpe kaplama", "dış kaplama", "coating only", "sadece kaplama", "din 30670", "tos-itp-şrk-002"), text_lower[:500]):
+        elif _has_any(coating_title_cues, fn_lower) or (
+            _has_any((*coating_title_cues, "3lpe", "hdpe", "coating", "5410"), f"{fn_lower} {text_lower[:500]}") and bare_hits < 4
+        ):
             scope_mode = "COATING_ONLY"
             scope_label = "Sadece 3LPE Dış Kaplama (DIN 30670 / BOTAŞ 5410 R1)"
         elif _has_any(("siyah boru", "çıplak boru", "bare pipe", "tos-itp-şrk-001", "bare_pipe"), fn_lower) or _has_any(("siyah boru", "çıplak boru", "bare pipe", "tos-itp-şrk-001", "bare_pipe"), text_lower[:500]):
@@ -767,41 +810,25 @@ class UnlimitedOCREngine:
             scope_mode = "COMBINED"
             scope_label = "Bütünsel Kalite Planı"
 
-        # 3. Grade Detection
-        grade = "X65"
-        grades = [
-            ("X80", "X80"), ("X70", "X70"), ("X65", "X65"), ("X60", "X60"),
-            ("X56", "X56"), ("X52", "X52"), ("X46", "X46"), ("X42", "X42"),
-            ("GRADE B", "Grade B"), ("GR.B", "Grade B"), ("GRB", "Grade B"), ("L485", "X70"),
-            ("L450", "X65"), ("L415", "X60"), ("L360", "X52"), ("L290", "X42"), ("L245", "Grade B")
-        ]
-        for code, clean_name in grades:
-            if re.search(r"\b" + code.lower() + r"\b", text_lower) or re.search(r"\b" + code.lower() + r"m\b", text_lower):
-                grade = clean_name
-                break
-
-        # 4. Process Detection
+        # 3. Process Detection
         process = "SAWH"
-        if any(k in combined_text for k in ("smls", "dikişsiz", "dikissiz", "seamless")):
+        if any(norm_tr(k) in combined_text for k in ("smls", "dikişsiz", "dikissiz", "seamless")):
             process = "SMLS"
-        elif any(k in combined_text for k in ("erw", "hfw", "yüksek frekans", "high frequency")):
+        elif re.search(r"\b(?:erw|hfw)\b", combined_text) or any(norm_tr(k) in combined_text for k in ("yüksek frekans", "high frequency")):
             process = "ERW"
-        elif any(k in combined_text for k in ("lsaw", "sawl", "boyuna tozaltı", "boyuna kaynak", "longitudinal submerged", "longitudinal saw", "longitudinal weld")):
+        elif any(norm_tr(k) in combined_text for k in ("lsaw", "sawl", "boyuna tozaltı", "boyuna kaynak", "longitudinal submerged", "longitudinal saw", "longitudinal weld")):
             process = "LSAW"
-        elif any(k in combined_text for k in ("sawh", "hsaw", "spiral", "helical")):
+        elif any(norm_tr(k) in combined_text for k in ("sawh", "hsaw", "spiral", "helical")):
             process = "SAWH"
 
-        # 5. PSL Level
+        # 4. PSL Level
         if "psl1" in combined_text or "psl 1" in combined_text or "psl-1" in combined_text:
             psl = "PSL1"
-        elif "psl2" in combined_text or "psl 2" in combined_text or "psl-2" in combined_text or has_botas:
-            psl = "PSL2"
         else:
             psl = "PSL2"
 
-        # 5b. Delivery Condition Detection (M, N, Q, R)
-        delivery_condition = "M"  # Default
-        # Look for "Delivery Condition: M" or "Teslim Koşulu: M" or "M" in tables
+        # 5. Delivery Condition Detection (M, N, Q, R)
+        delivery_condition = "M"
         delivery_patterns = [
             r"delivery\s*condition\s*[:\s]*([MNQR])\b",
             r"teslim\s*koşulu\s*[:\s]*([MNQR])\b",
@@ -809,14 +836,12 @@ class UnlimitedOCREngine:
             r"\b([MNQR])\s*(?:teslim|delivery|cond)\b",
         ]
         for pattern in delivery_patterns:
-            m = re.search(pattern, text_lower)
+            m = re.search(pattern, text_lower, re.IGNORECASE)
             if m:
                 delivery_condition = m.group(1).upper()
                 break
-        # Also check for "M" "N" "Q" "R" in tables near "Delivery" or "Teslim"
         if delivery_condition == "M":
-            # Look for "M" in context of delivery condition tables
-            m_del = re.search(r"(?:delivery|teslim|cond)\s*[:\s]*([MNQR])\b", text_lower)
+            m_del = re.search(r"(?:delivery|teslim|cond)\s*[:\s]*([MNQR])\b", text_lower, re.IGNORECASE)
             if m_del:
                 delivery_condition = m_del.group(1).upper()
 
@@ -912,10 +937,17 @@ class UnlimitedOCREngine:
                 except Exception:
                     continue
 
+        def _to_inch_str(mm_val: float) -> str:
+            for mm_c, in_c, _ in known_diameters:
+                if abs(mm_c - mm_val) < 0.5:
+                    return in_c
+            return f'{mm_val:.1f} mm'
+
         # Select first variant as default
         if scope_variants:
             d_mm = scope_variants[0]["diameter_mm"]
             t_mm = scope_variants[0]["wall_thickness_mm"]
+            d_inch = _to_inch_str(d_mm)
 
         # Final fallback: known wall thicknesses
         if not scope_variants:
@@ -925,12 +957,10 @@ class UnlimitedOCREngine:
             known_wts = sorted(set(round(w, 2) for w in known_wts if w > 0), reverse=True)
             for w in known_wts:
                 w_str = str(w).replace(".", "[.,]")
-                if re.search(r"(?:et kalınlığı|kalınlık|wt|t)[\s:=]*" + w_str, text_lower) or re.search(r"\b" + w_str + r"\s*mm\b", text_lower):
+                if re.search(r"(?:et kalinliği|kalinlik|wt|t)[\s:=]*" + w_str, text_lower) or re.search(r"\b" + w_str + r"\s*mm\b", text_lower):
                     t_mm = w
                     break
 
-        customer = "BOTAŞ" if has_botas else "Genel Müşteri"
-        
         customer = "BOTAŞ" if has_botas else "Genel Müşteri"
         proj_m = re.search(r"proje(?: ismi)?\s*[:\n]\s*([^\n\r]+)", text_lower)
         project_name = proj_m.group(1).strip() if proj_m else ("BOTAŞ Doğal Gaz Boru Hattı Projesi" if has_botas else "Çelik Boru İmalat & Test Projesi")
@@ -941,15 +971,7 @@ class UnlimitedOCREngine:
         if d_mm and t_mm:
             confidence += 10
 
-        # Build inch string for scope variants
-        def _to_inch_str(mm_val: float) -> str:
-            for mm_c, in_c, _ in known_diameters:
-                if abs(mm_c - mm_val) < 0.5:
-                    return in_c
-            return f'{mm_val:.1f} mm'
-        
-        # scope_variants already built, ensure inch string present
-        for v in scope_variants if 'scope_variants' in locals() else []:
+        for v in scope_variants:
             v["diameter_inch"] = _to_inch_str(v["diameter_mm"])
             v["material_grade"] = grade
             v["manufacturing_process"] = process

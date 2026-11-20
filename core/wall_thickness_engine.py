@@ -63,9 +63,69 @@ class WallThicknessEngine:
         return {
             'tolerance_percent': round(tol_mm / t * 100.0, 2) if t > 0 else 0.0,
             'tolerance_mm': round(tol_mm, 3),
+            't_min_mm': round(t - tol_mm, 3),
             'rule_description': f"{desc} (-{tol_mm:.2f} mm)",
             'standard_ref': "API Spec 5L (47th Ed.) Table 11"
         }
+
+    @staticmethod
+    def get_botas_wall_negative_tolerance(
+        wall_thickness_mm: float = 14.30
+    ) -> Dict[str, Any]:
+        """
+        Computes BOTAŞ 5120_R7 Specification Clause 5.5 negative wall thickness tolerance.
+
+        Deductions:
+        - t < 8.71 mm:   -0.04 mm
+        - 8.71 <= t < 12.71 mm: -0.10 mm
+        - t >= 12.71 mm:  -0.15 mm
+        """
+        t = float(wall_thickness_mm or 14.30)
+        if t < 8.71:
+            tol_mm = 0.04
+        elif t < 12.71:
+            tol_mm = 0.10
+        else:
+            tol_mm = 0.15
+
+        return {
+            'tolerance_percent': round(tol_mm / t * 100.0, 3) if t > 0 else 0.0,
+            'tolerance_mm': round(tol_mm, 3),
+            't_min_mm': round(t - tol_mm, 3),
+            'rule_description': f"BOTAŞ 5120_R7 Madde 5.5 İmalat Düşümü (-{tol_mm:.2f} mm)",
+            'standard_ref': "BOTAŞ 5120_R7 Madde 5.5"
+        }
+
+    @staticmethod
+    def compute_standard_min_wall_thickness(
+        wall_thickness_mm: float,
+        standard_code: str = "BOTAŞ",
+        manufacturing_process: str = "SAWH",
+        manual_negative_tolerance_percent: Optional[float] = None
+    ) -> Dict[str, Any]:
+        """
+        Calculates the true standard minimum manufacturing wall thickness t_min
+        conforming directly to BOTAŞ 5120_R7 Clause 5.5 or API Spec 5L Table 11.
+        """
+        t = float(wall_thickness_mm)
+        std_upper = str(standard_code or "").upper().strip()
+        proc_upper = str(manufacturing_process or "SAWH").upper().strip()
+
+        if manual_negative_tolerance_percent is not None and float(manual_negative_tolerance_percent) > 0:
+            tol_pct = float(manual_negative_tolerance_percent)
+            tol_mm = round(t * (tol_pct / 100.0), 3)
+            return {
+                't_min_mm': round(t - tol_mm, 3),
+                'tolerance_mm': tol_mm,
+                'tolerance_percent': round(tol_pct, 2),
+                'rule_description': f"Kullanıcı Tanımlı Negatif Tolerans: -%{tol_pct:.1f} (-{tol_mm:.2f} mm)",
+                'standard_ref': "Kullanıcı Tanımlı Tolerans"
+            }
+
+        if "BOTAŞ" in std_upper or "BOTAS" in std_upper:
+            return WallThicknessEngine.get_botas_wall_negative_tolerance(t)
+
+        return WallThicknessEngine.get_api_5l_wall_negative_tolerance(1219.0, t, proc_upper)
 
     @staticmethod
     def calculate_wall_thickness(
@@ -316,6 +376,20 @@ class WallThicknessEngine:
                         botas_thk_rec = pipe_size['botas_thk'].get('0.50_ist_75bar', pipe_size['botas_thk'].get('0.50_ist1', 0.0))
                     botas_label = "BOTAŞ Şartnamesi (Hat F=0.50)"
 
+        # Standard minimum manufacturing wall thickness per BOTAŞ 5120_R7 or API 5L Table 11
+        if "BOTAŞ" in std_upper or "BOTAS" in std_upper:
+            std_tol_info = WallThicknessEngine.get_botas_wall_negative_tolerance(selected_thk)
+        elif not is_stainless and ("API" in std_upper or "B31.8" in std_upper or "B31.4" in std_upper):
+            std_tol_info = WallThicknessEngine.get_api_5l_wall_negative_tolerance(d_mm, selected_thk, manufacturing_process)
+        else:
+            std_tol_info = {
+                't_min_mm': neg_tolerance_val,
+                'tolerance_mm': round(selected_thk - neg_tolerance_val, 3),
+                'tolerance_percent': tolerance_percent_used,
+                'rule_description': tolerance_rule_description,
+                'standard_ref': schedule_standard_name
+            }
+
         return {
             'input_parameters': {
                 'diameter_inch': d_inch,
@@ -345,6 +419,8 @@ class WallThicknessEngine:
                 'selected_nominal_thickness_asme_b36_10_mm': round(selected_thk, 2),
                 'schedule_standard_used': schedule_standard_name,
                 'negative_tolerance_min_mm': neg_tolerance_val,
+                't_min_standard_mm': std_tol_info['t_min_mm'],
+                'standard_tolerance_rule': std_tol_info['rule_description'],
                 'tolerance_percent_used': tolerance_percent_used,
                 'tolerance_rule_description': tolerance_rule_description,
                 'botas_standard_thickness_mm': round(botas_thk_rec, 2),

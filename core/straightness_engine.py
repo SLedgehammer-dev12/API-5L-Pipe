@@ -8,7 +8,6 @@ Conforms to:
 - BOTAŞ Petroleum Pipeline Corporation Specification Clauses 5.5 & 8.1.2.4
 """
 
-import math
 from typing import Any, Dict, List, Optional
 
 
@@ -70,7 +69,6 @@ class StraightnessEngine:
         # API 5L Clause 9.11.3.2: Max deviation at each end for 1.0 m (3.0 ft) <= 4.0 mm
         # BOTAŞ Clause 8.1.2.4: Max deviation at each end for 1.0 m <= 3.0 mm
         end_chord_length_m = 1.00
-        end_chord_length_mm = 1000.0
 
         if is_botas:
             end_straightness_max_limit_mm = 3.00
@@ -192,7 +190,7 @@ class StraightnessEngine:
             f"1. Tam Boy Düzlük: Boru eksenine paralel gerdirilen çelik piyano teli (taut wire) veya lazer kolimatör ışını "
             f"ile boru gövdesi arasındaki maksimum aralık (sehim) ölçülür. L={L:.1f} m için üst sınır: {total_straightness_max_limit_mm:.2f} mm.\n"
             f"2. Uç Düzlüğü: Her iki boru ucunda (Bevel A ve Bevel B) 1,0 m boyundaki hassas çelik mastar (straight edge) "
-            f"boru yüzeyine teğet oturtularak fener mastarı / sentil ile maksimum boşluk kontrol edilir. Üst sınır: {end_straightness_max_limit_limit_mm if 'end_straightness_max_limit_limit_mm' in locals() else end_straightness_max_limit_mm:.2f} mm."
+            f"boru yüzeyine teğet oturtularak fener mastarı / sentil ile maksimum boşluk kontrol edilir. Üst sınır: {end_straightness_max_limit_mm:.2f} mm."
         )
 
         return {

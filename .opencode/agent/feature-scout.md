@@ -1,7 +1,8 @@
 ---
+name: feature-scout
 description: Read-only feature gap scout for the API 5L Pipe app. Use to find the single most valuable missing or weak feature versus API 5L / ASME / EN 10204 workflows. Trigger: feature, missing, gap, capability, requirement, standard, workflow.
 mode: subagent
-color: green
+color: "#22C55E"
 permission:
   edit: deny
   bash:

@@ -2203,7 +2203,7 @@ async function calculateDeratingFromInputs(pipeData) {
                 setTxt("der-kpi-stressjump", `+${r.hydro_stress_jump_pct.toFixed(1)}%`);
                 setTxt("der-kpi-weightdiff", `-${r.mass_loss_per_pipe_kg.toFixed(0)} kg`);
 
-                setTxt("der-param-band", `[${r.t_min_allowed_mm.toFixed(2)} — ${r.t_max_allowed_mm.toFixed(2)}] mm (%${r.tol_neg_pct.toFixed(1)} / +%${r.tol_pos_pct.toFixed(1)})`);
+                setTxt("der-param-band", `[${r.t_min_allowed_mm.toFixed(2)} — ${r.t_max_allowed_mm.toFixed(2)}] mm (${r.tol_neg_mm.toFixed(2)} / +${r.tol_pos_mm.toFixed(2)} mm)`);
                 setTxt("der-param-press-desc", `P_nom = ${r.p_des_nom_bar.toFixed(1)} bar → P_min = ${r.p_des_min_bar.toFixed(1)} bar (-%${r.derating_loss_pct.toFixed(1)})`);
                 setTxt("der-param-hydro-desc", `%${r.hydro_smys_nom_pct.toFixed(1)} SMYS → %${r.hydro_smys_min_pct.toFixed(1)} SMYS (Test: ${r.hydro_test_pressure_bar.toFixed(1)} bar)`);
 
@@ -4409,6 +4409,7 @@ let currentITPDetectedMeta = null;
 let currentITPEffectiveConfig = null;
 let currentITPVariantAudits = [];
 let currentITPScopeVariants = [];
+let currentITPSourceFilename = "";
 
 function setupITPAuditUI() {
     const fileInput = document.getElementById("itp-file-input");
@@ -4557,6 +4558,7 @@ function setupITPAuditUI() {
                 document.body.appendChild(a);
                 a.click();
                 a.remove();
+                window.URL.revokeObjectURL(url);
                 showToast("Excel ITP Sapma Raporu başarıyla indirildi!", "success");
             } catch (err) {
                 console.error("Export error:", err);
@@ -4575,7 +4577,7 @@ function setupITPAuditUI() {
                 const payload = Object.assign({}, currentITPAuditResult, {
                     customer: currentITPDetectedMeta?.customer || (currentITPEffectiveConfig?.standard_type === 'BOTAŞ' ? 'BOTAŞ' : 'Genel Müşteri'),
                     project_name: currentITPDetectedMeta?.project_name || 'Doğalgaz Boru Hattı Projesi',
-                    source_filename: currentITPDetectedMeta?.source_filename || 'İmalatçı ITP Dokümanı'
+                    source_filename: currentITPSourceFilename || currentITPDetectedMeta?.source_filename || 'İmalatçı ITP Dokümanı'
                 });
 
                 const resp = await fetch("/api/itp/export-audit-pdf", {
@@ -4595,6 +4597,7 @@ function setupITPAuditUI() {
                 document.body.appendChild(a);
                 a.click();
                 a.remove();
+                window.URL.revokeObjectURL(url);
                 showToast("✓ PDF ITP Denetim Raporu başarıyla indirildi!", "success");
             } catch (err) {
                 console.error("PDF Export error:", err);
@@ -4614,6 +4617,12 @@ function updateITPTargetPipes() {
     if (!select) return;
     select.innerHTML = "";
 
+    const autoOpt = document.createElement("option");
+    autoOpt.value = "auto";
+    autoOpt.text = "Otomatik — Dokümandan Algıla (Önerilen)";
+    autoOpt.selected = true;
+    select.appendChild(autoOpt);
+
     if (!activeProject.pipes || activeProject.pipes.length === 0) {
         const opt = document.createElement("option");
         opt.value = "default";
@@ -4631,7 +4640,6 @@ function updateITPTargetPipes() {
         const pStr = p.manufacturing_process || "SAWH";
         const pslStr = p.psl_level || "PSL2";
         opt.text = `${idx + 1}. Boru: ${dStr} x ${tStr} | ${gStr} ${pslStr} ${pStr}`;
-        if (idx === selectedPipeIndex) opt.selected = true;
         select.appendChild(opt);
     });
 }
@@ -4679,19 +4687,40 @@ async function startITPAudit(file = null, useDemo = false) {
     const btnStart = document.getElementById("btn-start-itp-audit");
     const select = document.getElementById("itp-target-pipe-select");
 
-    let pipeConfig = {
-        diameter_mm: 1219.0,
-        diameter_inch: '48"',
-        wall_thickness_mm: 14.30,
-        material_grade: "X65",
-        manufacturing_process: "SAWH",
-        psl_level: "PSL2",
-        standard_type: "API"
-    };
+    const selectedVal = select?.value || "auto";
+    let pipeConfig = {};
 
-    if (activeProject.pipes && activeProject.pipes.length > 0) {
-        const pipeIdx = parseInt(select?.value || "0");
-        pipeConfig = activeProject.pipes[isNaN(pipeIdx) ? 0 : pipeIdx] || pipeConfig;
+    if (useDemo) {
+        pipeConfig = {
+            diameter_mm: 1219.0,
+            diameter_inch: '48"',
+            wall_thickness_mm: 14.30,
+            material_grade: "X65",
+            manufacturing_process: "SAWH",
+            psl_level: "PSL2",
+            standard_type: "API"
+        };
+        if (activeProject.pipes && activeProject.pipes.length > 0 && selectedVal !== "auto" && selectedVal !== "default") {
+            const pipeIdx = parseInt(selectedVal, 10);
+            if (!isNaN(pipeIdx) && activeProject.pipes[pipeIdx]) {
+                pipeConfig = activeProject.pipes[pipeIdx];
+            }
+        }
+    } else if (selectedVal === "default") {
+        pipeConfig = {
+            diameter_mm: 1219.0,
+            diameter_inch: '48"',
+            wall_thickness_mm: 14.30,
+            material_grade: "X65",
+            manufacturing_process: "SAWH",
+            psl_level: "PSL2",
+            standard_type: "API"
+        };
+    } else if (selectedVal !== "auto" && activeProject.pipes && activeProject.pipes.length > 0) {
+        const pipeIdx = parseInt(selectedVal, 10);
+        if (!isNaN(pipeIdx) && activeProject.pipes[pipeIdx]) {
+            pipeConfig = activeProject.pipes[pipeIdx];
+        }
     }
 
     if (statusText) statusText.innerText = "⏳ Unlimited-OCR dokümanı okuyor ve tabloları analiz ediyor...";
@@ -4716,6 +4745,7 @@ async function startITPAudit(file = null, useDemo = false) {
             currentITPEffectiveConfig = res.effective_config || pipeConfig;
             currentITPVariantAudits = res.variant_audits || [];
             currentITPScopeVariants = res.scope_variants || (res.detected_metadata?.scope_variants || []);
+            currentITPSourceFilename = res.source || file?.name || "";
 
             renderITPAlignmentPanel(res.detected_metadata, res.effective_config);
             renderITPVariantTabs(currentITPVariantAudits, currentITPScopeVariants);
@@ -4734,9 +4764,10 @@ async function startITPAudit(file = null, useDemo = false) {
                 console.warn("LocalStorage save error for ITP audit:", e);
             }
 
-            if (res.is_fallback) {
-                if (statusText) statusText.innerHTML = `<span class="text-amber-600 font-semibold">${res.warning_message}</span>`;
-                showToast(res.warning_message || "Referans ITP şablonu yüklendi.", "warning");
+            if (res.is_fallback || res.status === "warning" || res.warning_message) {
+                const warnMsg = res.warning_message || "Referans ITP şablonu yüklendi.";
+                if (statusText) statusText.innerHTML = `<span class="text-amber-600 font-semibold">${esc(warnMsg)}</span>`;
+                showToast(warnMsg, "warning");
             } else {
                 if (statusText) statusText.innerText = `✓ Denetim tamamlandı (${res.source || "ITP"}).`;
                 showToast("ITP dokümanı başarıyla okundu ve denetlendi!", "success");
@@ -4818,7 +4849,10 @@ function renderITPAuditResult(auditData) {
     if (elBar) elBar.style.width = `${score}%`;
 
     if (elVerdict) {
-        if (kpi.non_compliant_count > 0) {
+        if (kpi.overall_verdict === "NON_ITP_DOCUMENT") {
+            elVerdict.className = "px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200";
+            elVerdict.innerText = "⚠ ITP Dokümanı Değil — Denetim Durduruldu";
+        } else if (kpi.non_compliant_count > 0) {
             elVerdict.className = "px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-100 text-rose-800 border border-rose-200";
             elVerdict.innerText = `⚠ ${kpi.non_compliant_count} Sapma Tespit Edildi (Revizyon Gerekli)`;
         } else if (kpi.more_stringent_count > 0) {
@@ -4952,6 +4986,7 @@ function loadSavedITPAuditFromStorage() {
                 currentITPAuditResult = data.audit_result;
                 currentITPDetectedMeta = data.detected_metadata || null;
                 currentITPEffectiveConfig = data.effective_config || null;
+                currentITPSourceFilename = data.source || "";
                 if (data.detected_metadata) {
                     renderITPAlignmentPanel(data.detected_metadata, data.effective_config);
                 }

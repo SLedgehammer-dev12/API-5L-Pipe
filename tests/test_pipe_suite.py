@@ -263,6 +263,25 @@ class TestPipeQAQCSuite(unittest.TestCase):
         self.assertEqual(res_botas_custom['calculation_results']['tolerance_percent_used'], 0.0)
         self.assertEqual(res_botas_custom['calculation_results']['selected_nominal_thickness_asme_b36_10_mm'], 17.48)
         self.assertEqual(res_botas_custom['calculation_results']['negative_tolerance_min_mm'], 17.48)
+        self.assertEqual(res_botas_custom['calculation_results']['t_min_standard_mm'], 17.33)
+        self.assertIn("BOTAŞ 5120_R7 Madde 5.5", res_botas_custom['calculation_results']['standard_tolerance_rule'])
+
+        # 8. BOTAŞ & API 5L Standard Minimum Wall Thickness Unit Checks
+        botas_tols_thin = WallThicknessEngine.get_botas_wall_negative_tolerance(8.0)
+        self.assertEqual(botas_tols_thin['tolerance_mm'], 0.04)
+        self.assertEqual(botas_tols_thin['t_min_mm'], 7.96)
+
+        botas_tols_mid = WallThicknessEngine.get_botas_wall_negative_tolerance(10.0)
+        self.assertEqual(botas_tols_mid['tolerance_mm'], 0.10)
+        self.assertEqual(botas_tols_mid['t_min_mm'], 9.90)
+
+        botas_tols_thick = WallThicknessEngine.get_botas_wall_negative_tolerance(14.30)
+        self.assertEqual(botas_tols_thick['tolerance_mm'], 0.15)
+        self.assertEqual(botas_tols_thick['t_min_mm'], 14.15)
+
+        api_welded_thick = WallThicknessEngine.compute_standard_min_wall_thickness(18.0, standard_code='API 5L', manufacturing_process='SAWH')
+        self.assertEqual(api_welded_thick['tolerance_mm'], 1.5)
+        self.assertEqual(api_welded_thick['t_min_mm'], 16.5)
 
     def test_09b_wall_thickness_tolerance_safety_flag(self):
         """Guards the is_nominal_sufficient flag: tolerance-adjusted minimum (not nominal) decides safety."""
@@ -3734,13 +3753,14 @@ class TestPipeQAQCSuite(unittest.TestCase):
 
         # 1. Tolerance Lookups (API 5L Table 11 & BOTAŞ 8.1.2.4)
         tols_botas_thick = DeratingEngine.get_wall_thickness_tolerances(1219.0, 16.0, "SAWH", is_botas=True)
-        self.assertEqual(tols_botas_thick["tol_neg_pct"], -8.0)
+        self.assertEqual(tols_botas_thick["tol_neg_mm"], -0.15)
         self.assertEqual(tols_botas_thick["tol_pos_pct"], 10.0)
+        self.assertEqual(tols_botas_thick["t_min_allowed_mm"], 15.85)
 
         tols_botas_standard = DeratingEngine.get_wall_thickness_tolerances(1219.0, 14.30, "SAWH", is_botas=True)
-        self.assertEqual(tols_botas_standard["tol_neg_pct"], -10.0)
+        self.assertEqual(tols_botas_standard["tol_neg_mm"], -0.15)
         self.assertEqual(tols_botas_standard["tol_pos_pct"], 10.0)
-        self.assertEqual(tols_botas_standard["t_min_allowed_mm"], 12.87)
+        self.assertEqual(tols_botas_standard["t_min_allowed_mm"], 14.15)
         self.assertEqual(tols_botas_standard["t_max_allowed_mm"], 15.73)
 
         tols_smls = DeratingEngine.get_wall_thickness_tolerances(508.0, 12.70, "SMLS", is_botas=False)
@@ -3756,12 +3776,12 @@ class TestPipeQAQCSuite(unittest.TestCase):
             design_factor_f=0.72,
             corrosion_allowance_mm=0.0
         )
-        self.assertEqual(res["t_min_allowed_mm"], 12.87)
+        self.assertEqual(res["t_min_allowed_mm"], 14.15)
         self.assertAlmostEqual(res["p_des_nom_bar"], 76.02, places=1)
-        self.assertAlmostEqual(res["p_des_min_bar"], 68.41, places=1)
-        self.assertAlmostEqual(res["delta_p_des_bar"], 7.61, places=1)
-        self.assertAlmostEqual(res["derating_loss_pct"], 10.01, places=1)
-        self.assertGreater(res["hydro_stress_jump_pct"], 10.0)
+        self.assertAlmostEqual(res["p_des_min_bar"], 75.22, places=1)
+        self.assertAlmostEqual(res["delta_p_des_bar"], 0.80, places=1)
+        self.assertAlmostEqual(res["derating_loss_pct"], 1.05, places=1)
+        self.assertGreater(res["hydro_stress_jump_pct"], 0.5)
         self.assertEqual(res["verdict"], "NOMINAL (DENETİME HAZIR)")
 
         # 3. Actual Thickness PASS Case
@@ -3769,12 +3789,12 @@ class TestPipeQAQCSuite(unittest.TestCase):
             diameter_mm=1219.0,
             wall_thickness_mm=14.30,
             material_grade="X65",
-            actual_measured_thickness_mm=13.50
+            actual_measured_thickness_mm=14.20
         )
         self.assertTrue(res_pass["is_compliant"])
         self.assertEqual(res_pass["verdict"], "UYGUN (KABUL / PASS)")
 
-        # 4. Actual Thickness FAIL Case (under minimum tolerance 12.87 mm)
+        # 4. Actual Thickness FAIL Case (under minimum tolerance 14.15 mm)
         res_fail = DeratingEngine.calculate_derating(
             diameter_mm=1219.0,
             wall_thickness_mm=14.30,
@@ -3797,8 +3817,9 @@ class TestPipeQAQCSuite(unittest.TestCase):
         self.assertEqual(resp_calc.status_code, 200)
         data_calc = resp_calc.json()
         self.assertEqual(data_calc["status"], "success")
-        self.assertTrue(data_calc["data"]["is_compliant"])
-        self.assertAlmostEqual(data_calc["data"]["t_min_allowed_mm"], 12.87, places=1)
+        self.assertFalse(data_calc["data"]["is_compliant"])
+        self.assertEqual(data_calc["data"]["verdict"], "RED (UYGUNSUZ / REJECT)")
+        self.assertAlmostEqual(data_calc["data"]["t_min_allowed_mm"], 14.15, places=2)
 
         # 6. Corporate Excel Exporter Direct Test
         project_info = {

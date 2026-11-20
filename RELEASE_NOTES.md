@@ -1,3 +1,40 @@
+# Sürüm Notları / Release Notes - v2.13.0
+
+## 🚀 API 5L PSL1/PSL2 & BOTAŞ Boru Kalite Güvence, Et Kalınlığı Tasarım ve Akıllı ITP Denetim Süiti (v2.13.0)
+
+Bu sürüm (**v2.13.0**), **Akıllı ITP Denetim Motoru & Frekans Kanonikleştirmesi**, **BOTAŞ 5120_R7 Madde 5.5 İmalat Düşümü & Standart Minimum Et Kalınlığı Hesabı**, **Çift Platformlu Otonom Ajan/Beceri Mimarisi (Google Antigravity & OpenCode)** ve **119 Kapsamlı Test Doğrulaması** ile donatılmıştır.
+
+---
+
+### 🌟 v2.13.0 ile Gelen Başlıca Yenilikler ve İyileştirmeler
+
+1. **📋 Akıllı ITP Denetim Motoru & Frekans Kanonikleştirmesi:**
+   - **Kanonik Frekans Sınıflandırması:** `core/itp_audit_engine.py` içinde `FrequencyCanonical` ve `FrequencyNormalizer` mimarisi kuruldu.
+   - **Yetersiz/Seyrek Test Tespiti (Inadequate/Sparse Sampling):** Şartnamelere aykırı seyrek test frekansları (`1/5`, `1/10`, `1 per 100`, `50 boruda 1`, `sample 1 per shift`, `%5-%10 spot` vb.) otomatik olarak tespit edilir ve denetim raporunda `NON_COMPLIANT` bayrağıyla işaretlenir.
+   - **Kompozit Denetim Paketleri:** `dimensional_bundle` ve `weld_geometry_bundle` ile çoklu boyutsal ve dikiş muayene maddeleri API 5L / BOTAŞ frekanslarıyla paket halinde doğrulanır.
+   - **OCR & Metin Ayrıştırma İyileştirmeleri:** `core/itp_criteria_parser.py` Türkçe karakter normalizasyonu (`norm_tr`), `core/unlimited_ocr_engine.py` tablo/üstveri tespiti ve `POST /api/itp/upload-and-audit` endpoint güvenliği (dosya adı sanitizasyonu, DoS koruması).
+   - **Yeni Doğrulama Testleri:** [`tests/test_itp_pipeline.py`](file:///Users/macbook/Documents/Kodlama/API%205L%20Pipe/tests/test_itp_pipeline.py) ile 12 yeni uçtan uca boru hattı testi eklendi.
+
+2. **📉 BOTAŞ 5120_R7 Madde 5.5 İmalat Düşümü & Standart Minimum Et Kalınlığı Hesabı ($t_{\min}$):**
+   - **Şartname Kademeli Düşüm:** `core/wall_thickness_engine.py` içine `get_botas_wall_negative_tolerance` metodu entegre edildi:
+     * $t < 8.71\text{ mm}$ için $-0.04\text{ mm}$
+     * $8.71 \le t < 12.71\text{ mm}$ için $-0.10\text{ mm}$
+     * $t \ge 12.71\text{ mm}$ için $-0.15\text{ mm}$
+   - **Standart Tolerans Analizi:** `compute_standard_min_wall_thickness` metodu ile hem BOTAŞ hem de API 5L Tablo 11 alt sınırları hesaplanıp `t_min_standard_mm` ve `standard_tolerance_rule` olarak doğrudan tasarım çıktısına yansıtıldı.
+   - **Derating Entegrasyonu:** `core/derating_engine.py` BOTAŞ ve API 5L gerçek imalat alt toleransları ile uyumlu hale getirildi.
+
+3. **🤖 Çift Platformlu Otonom Ajan & Beceri Mimarisi (Google Antigravity & OpenCode):**
+   - **Tam Parite ve Senkronizasyon:** Hem Google Antigravity ([`.agents/`](file:///Users/macbook/Documents/Kodlama/API%205L%20Pipe/.agents/)) hem de OpenCode ([`.opencode/`](file:///Users/macbook/Documents/Kodlama/API%205L%20Pipe/.opencode/)) dizinlerinde çalışan 8 otonom alt ajan (`improver`, `qa-auditor`, `perf-analyst`, `ux-reviewer`, `feature-scout`, `refactor-architect`, `verifier`, `ponytail-reviewer`) dual-architecture ile eşitlendi.
+   - **OpenCode Regex / Zod Uyumluluğu:** Ajan ön başlıklarındaki renkler 6 haneli Hex kod formatına (`^#[0-9a-fA-F]{6}$`) dönüştürüldü; `opencode.json` şeması düzeltildi.
+   - **Mühendislik Becerileri (Skills):** `improvement-loop`, `ponytail`, `ponytail-audit`, `ponytail-debt`, `ponytail-gain`, `ponytail-help`, `ponytail-review`, `stageshow`.
+   - **Araçlar ve Testler:** [`tools/sync_agents_and_skills.py`](file:///Users/macbook/Documents/Kodlama/API%205L%20Pipe/tools/sync_agents_and_skills.py), [`tools/sync_ponytail.py`](file:///Users/macbook/Documents/Kodlama/API%205L%20Pipe/tools/sync_ponytail.py) ve [`tests/test_agents_skills_sync.py`](file:///Users/macbook/Documents/Kodlama/API%205L%20Pipe/tests/test_agents_skills_sync.py).
+
+4. **✅ Test & Kalite Güvencesi:**
+   - Test paketi: `pytest -q`: **119 passed, 2 skipped** (%100 başarı).
+   - Golden master regresyon testleri: **2 passed, 2 skipped** (tam uyum).
+
+---
+
 # Sürüm Notları / Release Notes - v2.12.0
 
 ## 🛡️ API 5L PSL1/PSL2 & BOTAŞ Boru Kalite Güvence Süiti (v2.12.0)

@@ -3,6 +3,37 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.13.0] - 2026-11-20 (Akıllı ITP Denetim Motoru & OCR Güçlendirmesi, BOTAŞ 5120_R7 Madde 5.5 İmalat Düşümü, Çift Platformlu Ajan/Beceri Mimarisi)
+
+### 🚀 Yeni Özellikler ve İyileştirmeler (New Features & Enhancements)
+- **Akıllı ITP Denetim Motoru & Frekans Kanonikleştirmesi:**
+  - `core/itp_audit_engine.py`: İmalat ve test frekanslarının standartlaştırılması için `FrequencyCanonical` ve `FrequencyNormalizer` entegrasyonu.
+  - Seyrek/yetersiz test sıklıklarını (`1/5`, `1/10`, `1 per 100`, `50 boruda 1`, `sample 1 per shift`, izole `spot` vb.) otomatik tespit eden gelişmiş regex ayrıştırması; API Spec 5L ve BOTAŞ şartnamelerine aykırı seyrek örneklemler anında bayraklanıyor.
+  - Kompozit denetim paketleri (`dimensional_bundle`, `weld_geometry_bundle`) ile boyutsal toleranslar ve kaynak dikiş geometri maddelerinin şartname frekans uyumu sağlandı.
+- **BOTAŞ 5120_R7 Madde 5.5 İmalat Düşümü & Standart Minimum Et Kalınlığı Hesabı ($t_{\min}$):**
+  - `core/wall_thickness_engine.py`: BOTAŞ 5120_R7 Madde 5.5 negatif cidar toleransı (`t < 8.71 mm -> -0.04 mm`, `8.71 <= t < 12.71 mm -> -0.10 mm`, `t >= 12.71 mm -> -0.15 mm`) hesaplayıcısı (`get_botas_wall_negative_tolerance`) ve genel `compute_standard_min_wall_thickness` metodu eklendi.
+  - API 5L Tablo 11 ve BOTAŞ şartname limitleriyle hesaplanan `t_min_standard_mm` ve `standard_tolerance_rule` bilgisi boru tasarım sonucuna dahil edildi.
+- **OCR ve Metin Ayrıştırma Güçlendirmesi:**
+  - `core/itp_criteria_parser.py`: Türkçe karakter normalizasyonu (`norm_tr`), boyutsal ve mekanik tolerans aralıklarının hassas regex eşleştirmesi.
+  - `core/unlimited_ocr_engine.py`: PDF ve görüntü bazlı ITP dosyalarında tablo satırı ve üstveri tespiti; güvenli geri çekilme (fallback) mimarisi.
+  - `app.py`: `POST /api/itp/upload-and-audit` endpoint'inde güvenli dosya adı sanitizasyonu (`_safe_filename_part`), DoS önleyici boyut sınırı ve 400/422 hata yanıtları.
+
+### 🤖 Çift Platformlu Otonom Geliştirici Mimarisi (Google Antigravity & OpenCode Dual Architecture)
+- **Antigravity & OpenCode Eşzamanlı Uyumluluğu:**
+  - Hem Google Antigravity ([`.agents/`](file:///Users/macbook/Documents/Kodlama/API%205L%20Pipe/.agents/)) hem de OpenCode ([`.opencode/`](file:///Users/macbook/Documents/Kodlama/API%205L%20Pipe/.opencode/)) dizinlerinde çalışan 8 otonom alt ajan tanımlandı: `improver`, `qa-auditor`, `perf-analyst`, `ux-reviewer`, `feature-scout`, `refactor-architect`, `verifier`, `ponytail-reviewer`.
+  - OpenCode Zod şeması ile tam uyumlu 6 haneli Hex renk formatı (`^#[0-9a-fA-F]{6}$`) ve `opencode.json` şema doğrulaması (`plugin` anahtarı, `instructions`).
+  - 8 adet mühendislik becerisi (skills): `improvement-loop`, `ponytail`, `ponytail-audit`, `ponytail-debt`, `ponytail-gain`, `ponytail-help`, `ponytail-review`, `stageshow`.
+  - Otomatik senkronizasyon ve doğrulama araçları: [`tools/sync_agents_and_skills.py`](file:///Users/macbook/Documents/Kodlama/API%205L%20Pipe/tools/sync_agents_and_skills.py) ve [`tools/sync_ponytail.py`](file:///Users/macbook/Documents/Kodlama/API%205L%20Pipe/tools/sync_ponytail.py).
+  - İki yönlü parite ve şema geçerliliğini denetleyen otomatik test: [`tests/test_agents_skills_sync.py`](file:///Users/macbook/Documents/Kodlama/API%205L%20Pipe/tests/test_agents_skills_sync.py).
+
+### 📄 Dışa Aktarım ve Arayüz (Export & UI)
+- `core/pdf_exporter.py` ve `core/excel_exporter.py` kurumsal dışa aktarım motorlarında ITP denetim tabloları ve tolerans raporlaması güncellendi.
+- `static/js/app.js`: ITP audit sonuç paneli, dinamik durum kontrolleri ve toast bildirimleri entegre edildi.
+
+### ✅ Doğrulama (Verification)
+- `pytest -q`: **119 passed, 2 skipped** (12 yeni ITP boru hattı testi [`tests/test_itp_pipeline.py`](file:///Users/macbook/Documents/Kodlama/API%205L%20Pipe/tests/test_itp_pipeline.py) ve 4 yeni ajan/beceri parite testi [`tests/test_agents_skills_sync.py`](file:///Users/macbook/Documents/Kodlama/API%205L%20Pipe/tests/test_agents_skills_sync.py)).
+- Golden master regresyon testleri tam yeşil.
+
 ## [2.12.0] - 2026-10-11 (Güvenlik Kritik Düzeltmeler, Girdi Doğrulama, Performans ve Matris PDF Tamamlama)
 
 ### 🛡️ Kritik Düzeltmeler (Critical Fixes)

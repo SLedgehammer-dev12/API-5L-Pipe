@@ -1,7 +1,8 @@
 ---
+name: perf-analyst
 description: Read-only performance analyst for the API 5L Pipe app. Use to find the single biggest performance bottleneck (slow endpoints, heavy Excel/PDF export, blocking I/O, UI jank, repeated O(n^2) work). Trigger: performance, slow, optimize, latency, memory, bottleneck.
 mode: subagent
-color: orange
+color: "#F97316"
 permission:
   edit: deny
   bash:

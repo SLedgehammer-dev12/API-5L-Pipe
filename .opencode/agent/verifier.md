@@ -1,7 +1,8 @@
 ---
+name: verifier
 description: Read-only verifier for the API 5L Pipe app. Use AFTER an approved change to confirm correctness by running pytest, ruff, and targeted checks, then report how to test, expected results, and edge cases. Trigger: verify, test, validate, check, regression.
 mode: subagent
-color: yellow
+color: "#EAB308"
 permission:
   edit: deny
   bash:

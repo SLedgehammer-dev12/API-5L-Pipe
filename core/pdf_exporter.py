@@ -9,8 +9,11 @@ project & pipe specifications, discrepancies, and full side-by-side audit matric
 import datetime
 import io
 import os
+import re
 from typing import Any, Dict, List, Optional
+from xml.sax.saxutils import escape as _xml_escape
 
+from reportlab import rl_config
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib import colors
 from reportlab.platypus import (
@@ -20,6 +23,16 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.pdfgen import canvas
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
+
+rl_config.trustedSchemes = []
+rl_config.trustedHosts = []
+_XML_CTRL_CHARS = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f]")
+
+
+def _p_esc(val: Any, default: str = "—") -> str:
+    if val is None or val == "":
+        return _xml_escape(default)
+    return _xml_escape(_XML_CTRL_CHARS.sub("", str(val)))
 
 try:
     from version import __version__
@@ -61,8 +74,9 @@ class NumberedCanvas(canvas.Canvas):
             self.setFont(font_to_use, 8)
             self.setFillColor(colors.HexColor("#64748B"))
             header_text = getattr(PDFExporter, "_current_header_title", "API 5L 47. Baskı & BOTAŞ Şartnamesi — Kalite Güvence ve Kabul Matrisi")
+            right_title = getattr(PDFExporter, "_current_header_right", "Boru Kalite Güvence Matrisi")
             self.drawString(30, h - 24, header_text)
-            self.drawRightString(w - 30, h - 24, "Boru Kalite Güvence Matrisi")
+            self.drawRightString(w - 30, h - 24, right_title)
 
         # Footer rule & metadata
         self.setStrokeColor(colors.HexColor("#E2E8F0"))
@@ -132,6 +146,8 @@ class PDFExporter:
         Builds and returns a PDF stream for an ITP audit report.
         """
         cls._init_fonts()
+        cls._current_header_title = f"{_XML_CTRL_CHARS.sub('', str((audit_data.get('pipe_summary') or {}).get('standard_edition') or 'API Spec 5L 47. Baskı & BOTAŞ'))} — ITP Denetim Raporu"
+        cls._current_header_right = "ITP Denetim Raporu"
         buf = io.BytesIO()
 
         doc = SimpleDocTemplate(
@@ -224,7 +240,7 @@ class PDFExporter:
         std_ed_name = str(pipe.get("standard_edition") or "API Spec 5L 47. Baskı & BOTAŞ Şartnamesi")
         banner_table_data = [
             [
-                Paragraph(f"<b>{std_ed_name.upper()}</b><br/><font size=7 color='#64748B'>BORU İMALAT VE DIŞ KAPLAMA KALİTE GÜVENCE SİSTEMİ</font>", body_style),
+                Paragraph(f"<b>{_p_esc(std_ed_name.upper())}</b><br/><font size=7 color='#64748B'>BORU İMALAT VE DIŞ KAPLAMA KALİTE GÜVENCE SİSTEMİ</font>", body_style),
                 Paragraph("<font size=12><b>ITP UYGUNLUK VE SAPMA DENETİM RAPORU</b></font><br/><font size=7 color='#64748B'>Inspection & Test Plan (ITP) Compliance & Gap Audit Certificate</font>", ParagraphStyle("RAlign", parent=title_style, alignment=2, fontSize=12, leading=15)),
             ]
         ]
@@ -240,14 +256,29 @@ class PDFExporter:
         elements.append(HRFlowable(width="100%", thickness=1.5, color=colors.HexColor("#3B82F6"), spaceBefore=3, spaceAfter=8))
 
         # --- 2. Project, Specification & KPI Dashboard Grid ---
-        score_val = kpi.get("compliance_score_percent", 100.0)
+        try:
+            score_val = float(kpi.get("compliance_score_percent", 100.0))
+        except (TypeError, ValueError):
+            score_val = 0.0
         bare_s = kpi.get("bare_pipe_score_percent")
         coat_s = kpi.get("coating_score_percent")
         verdict = kpi.get("overall_verdict", "APPROVED")
-        is_pass = verdict == "APPROVED"
-        verdict_text = "ONAYLANDI (APPROVED)" if is_pass else "RED / REVİZYON GEREKLİ (REJECTED)"
-        verdict_color = colors.HexColor("#065F46") if is_pass else colors.HexColor("#991B1B")
-        verdict_bg = colors.HexColor("#D1FAE5") if is_pass else colors.HexColor("#FEE2E2")
+        if verdict == "APPROVED":
+            verdict_text = "ONAYLANDI (APPROVED)"
+            verdict_color = colors.HexColor("#065F46")
+            verdict_bg = colors.HexColor("#D1FAE5")
+        elif verdict == "APPROVED_WITH_COMMENTS":
+            verdict_text = "ŞARTLI ONAY / ÜSTÜN TAAHHÜT (APPROVED WITH COMMENTS)"
+            verdict_color = colors.HexColor("#92400E")
+            verdict_bg = colors.HexColor("#FEF3C7")
+        elif verdict == "NON_ITP_DOCUMENT":
+            verdict_text = "ITP DOKÜMANI DEĞİL (NOT APPLICABLE)"
+            verdict_color = colors.HexColor("#92400E")
+            verdict_bg = colors.HexColor("#FEF3C7")
+        else:
+            verdict_text = "RED / REVİZYON GEREKLİ (REJECTED)"
+            verdict_color = colors.HexColor("#991B1B")
+            verdict_bg = colors.HexColor("#FEE2E2")
 
         cust_str = str(audit_data.get("customer") or "BOTAŞ")
         proj_str = str(audit_data.get("project_name") or "Doğalgaz Boru Hattı Projesi")
@@ -255,22 +286,27 @@ class PDFExporter:
 
         scores_summary_html = f"<font color='#1E40AF'><b>Genel: %{score_val:.1f}</b></font>"
         if bare_s is not None:
-            scores_summary_html += f" | <font color='#065F46'><b>Çıplak Boru: %{bare_s:.1f}</b></font>"
+            scores_summary_html += f" | <font color='#065F46'><b>Çıplak Boru: %{float(bare_s):.1f}</b></font>"
         if coat_s is not None:
-            scores_summary_html += f" | <font color='#7C3AED'><b>3LPE Kaplama: %{coat_s:.1f}</b></font>"
+            scores_summary_html += f" | <font color='#7C3AED'><b>3LPE Kaplama: %{float(coat_s):.1f}</b></font>"
+
+        try:
+            d_mm_int = int(float(d_mm))
+        except (TypeError, ValueError):
+            d_mm_int = 0
 
         spec_box_data = [
             [
-                Paragraph(f"<b>Proje / Müşteri:</b> {cust_str} — {proj_str}", body_style),
-                Paragraph(f"<b>Denetim Standardı:</b> <font color='#1D4ED8'><b>{std_ed_name}</b></font>", body_style),
+                Paragraph(f"<b>Proje / Müşteri:</b> {_p_esc(cust_str)} — {_p_esc(proj_str)}", body_style),
+                Paragraph(f"<b>Denetim Standardı:</b> <font color='#1D4ED8'><b>{_p_esc(std_ed_name)}</b></font>", body_style),
             ],
             [
-                Paragraph(f"<b>Boru Ebat & Malzeme:</b> <b>{d_inch} ({d_mm} mm) x {t_mm} mm</b> | <b>{grade} {psl} {process}</b>", body_style),
+                Paragraph(f"<b>Boru Ebat & Malzeme:</b> <b>{_p_esc(d_inch)} ({_p_esc(d_mm)} mm) x {_p_esc(t_mm)} mm</b> | <b>{_p_esc(grade)} {_p_esc(psl)} {_p_esc(process)}</b>", body_style),
                 Paragraph(f"<b>Disiplin Puanları:</b> {scores_summary_html}", body_style),
             ],
             [
-                Paragraph(f"<b>Kaynak ITP Dokümanı:</b> {src_file} ({len(rows)} Test Kalemi)", body_style),
-                Paragraph(f"<b>Rapor Tarihi / No:</b> {datetime.datetime.now().strftime('%d.%m.%Y %H:%M')} | REF-ITP-{int(d_mm)}-{grade}", body_style),
+                Paragraph(f"<b>Kaynak ITP Dokümanı:</b> {_p_esc(src_file)} ({len(rows)} Test Kalemi)", body_style),
+                Paragraph(f"<b>Rapor Tarihi / No:</b> {datetime.datetime.now().strftime('%d.%m.%Y %H:%M')} | REF-ITP-{d_mm_int}-{_p_esc(grade)}", body_style),
             ]
         ]
         t_spec = Table(spec_box_data, colWidths=[390, 390])
@@ -291,10 +327,10 @@ class PDFExporter:
             [
                 Paragraph(f"<b>GENEL DENETİM KARARI</b><br/><font size=10 color='{verdict_color.hexval()}'><b>{verdict_text}</b></font>", ParagraphStyle("K1", parent=body_style, alignment=1)),
                 Paragraph(f"<b>UYUMLULUK PUANI</b><br/><font size=11 color='#1E40AF'><b>%{score_val:.1f}</b></font>", ParagraphStyle("K2", parent=body_style, alignment=1)),
-                Paragraph(f"<b>TOPLAM MADDE</b><br/><font size=11 color='#0F172A'><b>{kpi.get('total_tests_audited', len(rows))}</b></font>", ParagraphStyle("K3", parent=body_style, alignment=1)),
-                Paragraph(f"<b>UYUMLU TESTLER (🟢)</b><br/><font size=11 color='#065F46'><b>{kpi.get('compliant_count', 0)}</b></font>", ParagraphStyle("K4", parent=body_style, alignment=1)),
-                Paragraph(f"<b>DAHA SIKI ŞARTLAR (🟡)</b><br/><font size=11 color='#92400E'><b>{kpi.get('more_stringent_count', 0)}</b></font>", ParagraphStyle("K5", parent=body_style, alignment=1)),
-                Paragraph(f"<b>HATA & SAPMA (🔴)</b><br/><font size=11 color='#991B1B'><b>{kpi.get('non_compliant_count', 0)}</b></font>", ParagraphStyle("K6", parent=body_style, alignment=1)),
+                Paragraph(f"<b>TOPLAM MADDE</b><br/><font size=11 color='#0F172A'><b>{_p_esc(kpi.get('total_tests_audited', len(rows)), '0')}</b></font>", ParagraphStyle("K3", parent=body_style, alignment=1)),
+                Paragraph(f"<b>UYUMLU TESTLER (🟢)</b><br/><font size=11 color='#065F46'><b>{_p_esc(kpi.get('compliant_count', 0), '0')}</b></font>", ParagraphStyle("K4", parent=body_style, alignment=1)),
+                Paragraph(f"<b>DAHA SIKI ŞARTLAR (🟡)</b><br/><font size=11 color='#92400E'><b>{_p_esc(kpi.get('more_stringent_count', 0), '0')}</b></font>", ParagraphStyle("K5", parent=body_style, alignment=1)),
+                Paragraph(f"<b>HATA & SAPMA (🔴)</b><br/><font size=11 color='#991B1B'><b>{_p_esc(kpi.get('non_compliant_count', 0), '0')}</b></font>", ParagraphStyle("K6", parent=body_style, alignment=1)),
             ]
         ]
         t_kpi = Table(kpi_bar_data, colWidths=[160, 110, 110, 130, 140, 130])
@@ -326,10 +362,10 @@ class PDFExporter:
                 sev_color = colors.HexColor("#991B1B") if f.get("severity") == "CRITICAL" else colors.HexColor("#B45309")
                 find_rows.append([
                     Paragraph(str(idx + 1), cell_bold),
-                    Paragraph(f.get("test_name", "—"), cell_bold),
-                    Paragraph(f"<font color='{sev_color.hexval()}'><b>{f.get('severity', 'CRITICAL')}</b></font>", cell_style),
-                    Paragraph(f.get("message", "—"), cell_style),
-                    Paragraph(f.get("clause_ref", "API 5L / BOTAŞ"), cell_style),
+                    Paragraph(_p_esc(f.get("test_name")), cell_bold),
+                    Paragraph(f"<font color='{sev_color.hexval()}'><b>{_p_esc(f.get('severity'), 'CRITICAL')}</b></font>", cell_style),
+                    Paragraph(_p_esc(f.get("message")), cell_style),
+                    Paragraph(_p_esc(f.get("clause_ref"), "API 5L / BOTAŞ"), cell_style),
                 ])
             t_find = Table(find_rows, colWidths=[20, 160, 60, 420, 120])
             t_find.setStyle(TableStyle([
@@ -378,16 +414,19 @@ class PDFExporter:
             if not rem_text:
                 rem_text = "🟢 Standart şartlarına uygundur." if status in ("COMPLIANT", "MORE_STRINGENT") else "🔴 Standart şartlarını sağlamıyor."
 
+            target_val = r.get("calculated_target") or r.get("calculated_target_str") or "—"
+            std_crit_val = r.get("standard_criteria") or r.get("standard_acceptance_criteria") or "—"
+
             matrix_data.append([
                 Paragraph(str(idx + 1), cell_style),
-                Paragraph(f"<b>{r.get('test_name', '—')}</b>", cell_bold),
-                Paragraph(r.get("calculated_target_str", "—"), cell_calc),
-                Paragraph(r.get("uploaded_frequency", "—"), cell_style),
-                Paragraph(r.get("standard_frequency", "—"), cell_style),
-                Paragraph(r.get("uploaded_criteria", "—"), cell_style),
-                Paragraph(r.get("standard_acceptance_criteria", "—"), cell_style),
+                Paragraph(f"<b>{_p_esc(r.get('test_name'))}</b>", cell_bold),
+                Paragraph(_p_esc(target_val), cell_calc),
+                Paragraph(_p_esc(r.get("uploaded_frequency")), cell_style),
+                Paragraph(_p_esc(r.get("standard_frequency")), cell_style),
+                Paragraph(_p_esc(r.get("uploaded_criteria")), cell_style),
+                Paragraph(_p_esc(std_crit_val), cell_style),
                 Paragraph(st_html, cell_style),
-                Paragraph(rem_text, cell_style),
+                Paragraph(_p_esc(rem_text), cell_style),
             ])
 
         t_matrix = Table(matrix_data, colWidths=col_widths, repeatRows=1)
@@ -451,6 +490,7 @@ class PDFExporter:
             "API Spec 5L (47. Baskı) & BOTAŞ — Kalite Güvence ve Kabul Matrisi"
             if lang == "tr" else "API Spec 5L (47th Ed.) & BOTAŞ — QA/QC Acceptance Matrix"
         )
+        cls._current_header_right = "Boru Kalite Güvence Matrisi"
 
         buf = io.BytesIO()
         doc = SimpleDocTemplate(
